@@ -3,7 +3,7 @@ import { collection, getDocs, addDoc } from "firebase/firestore";
 import { db } from '../firebase.jsx';
 
 const ManageServices = () => {
-  const [date, setDate] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]); // Define a data inicial como a data de hoje
   const [clientId, setClientId] = useState('');
   const [equipmentId, setEquipmentId] = useState('');
   const [clients, setClients] = useState([]);
@@ -24,7 +24,7 @@ const ManageServices = () => {
       const querySnapshot = await getDocs(collection(db, "equipamentos"));
       const equipmentsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setEquipments(equipmentsData);
-      setFilteredEquipments(equipmentsData); // Inicia com todos os equipamentos
+      setFilteredEquipments(equipmentsData);
     };
 
     fetchClients();
@@ -40,7 +40,7 @@ const ManageServices = () => {
       const filtered = equipments.filter(equipment => equipment.clientId === selectedClientId);
       setFilteredEquipments(filtered);
     } else {
-      setFilteredEquipments(equipments); // Mostra todos os equipamentos se nenhum cliente estiver selecionado
+      setFilteredEquipments(equipments);
     }
   };
 
@@ -74,7 +74,7 @@ const ManageServices = () => {
   };
 
   const resetForm = () => {
-    setDate('');
+    setDate(new Date().toISOString().split('T')[0]); // Reinicia a data para hoje
     setClientId('');
     setEquipmentId('');
     setServiceName('');
