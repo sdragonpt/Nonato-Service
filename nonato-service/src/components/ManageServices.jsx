@@ -126,7 +126,7 @@ const ManageServices = () => {
   };
 
   return (
-    <div className="w-96 mx-auto p-4 bg-gray-800 rounded-lg">
+    <div className="w-full lg:w-96 mx-auto p-4 bg-gray-800 rounded-lg">
       <h2 className="text-lg mb-4 text-white">Gerenciar Serviços</h2>
       <form onSubmit={handleAddService} className="mb-6">
         <input 

@@ -36,7 +36,7 @@ const ManageEquipments = () => {
   };
 
   return (
-    <div className="w-96 mx-auto p-6 bg-gray-800 rounded-lg">
+    <div className="w-full lg:w-96 mx-auto p-6 bg-gray-800 rounded-lg">
       <h2 className="text-xl mb-4 text-white">Gerenciar Equipamentos</h2>
       <ul>
         {equipments.map((equipment) => (

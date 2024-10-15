@@ -35,7 +35,7 @@ const AddClient = () => {
   };
 
   return (
-    <div className="w-96 mx-auto p-6 bg-gray-800 rounded-lg">
+    <div className="w-full lg:w-96 mx-auto p-6 bg-gray-800 rounded-lg">
       <form onSubmit={handleSubmit}>
         <input 
           type="text" 
