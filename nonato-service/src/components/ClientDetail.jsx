@@ -52,7 +52,7 @@ const ClientDetail = () => {
   };
 
   return (
-    <div className="w-full lg:w-96 mx-auto p-6 bg-gray-800 rounded-lg">
+    <div className="w-full xl:w-96 mx-auto p-6 bg-gray-800 rounded-lg">
       <h2 className="text-xl mb-4 text-white">{client.name}</h2>
       <h3 className="text-lg mb-2 text-white">Serviços Realizados:</h3>
       <ul>

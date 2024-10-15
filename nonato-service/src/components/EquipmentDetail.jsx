@@ -45,7 +45,7 @@ const EquipmentDetail = () => {
   }
 
   return (
-    <div className="w-full lg:w-96 mx-auto p-6 bg-gray-800 rounded-lg">
+    <div className="w-full xl:w-96 mx-auto p-6 bg-gray-800 rounded-lg">
       <h2 className="text-xl mb-2 text-white">{equipment.name}</h2>
       <span className="text-gray-400 mb-4 block">{clientName}</span> {/* Nome do cliente em cor neutra */}
       <h3 className="text-lg mb-2 text-white">Serviços Realizados:</h3>

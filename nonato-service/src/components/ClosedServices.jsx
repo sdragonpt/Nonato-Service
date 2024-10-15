@@ -59,7 +59,7 @@ const ClosedServices = () => {
   };
 
   return (
-    <div className="w-full lg:w-96 mx-auto p-6 bg-gray-800 rounded-lg">
+    <div className="w-full xl:w-96 mx-auto p-6 bg-gray-800 rounded-lg">
       <h2 className="text-xl mb-4 text-white">Serviços Fechados</h2>
       {closedServices.length > 0 ? (
         closedServices.map(service => {
