@@ -70,13 +70,13 @@ const ClosedServices = () => {
             <p className="text-gray-400">Data: {new Date(service.date).toLocaleDateString()}</p>
             <button 
               onClick={() => handleGeneratePDF(service)} 
-              className="text-blue-500 hover:underline ml-2"
+              className="text-blue-500 hover:underline mr-2"
             >
               Gerar PDF
             </button>
             <button 
               onClick={() => toggleDetails(service.id)} 
-              className="text-blue-500 hover:underline ml-2"
+              className="text-blue-500 hover:underline mr-2"
             >
               Detalhes
             </button>

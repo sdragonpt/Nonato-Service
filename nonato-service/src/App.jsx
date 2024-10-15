@@ -1,70 +1,69 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import ManageServices from './components/ManageServices';
 import AddEquipment from './components/AddEquipment';
 import AddClient from './components/AddClient';
 import ClosedServices from './components/ClosedServices';
 import OpenServices from './components/OpenServices';
-import ManageClients from './components/ManageClients'; 
-import ManageEquipments from './components/ManageEquipments'; 
-import ClientDetail from './components/ClientDetail'; // Importar o componente ClientDetail
-import EquipmentDetail from './components/EquipmentDetail'; // Importar o componente EquipmentDetail
+import ManageClients from './components/ManageClients';
+import ManageEquipments from './components/ManageEquipments';
+import ClientDetail from './components/ClientDetail';
+import EquipmentDetail from './components/EquipmentDetail';
 
 const App = () => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Função para alternar a abertura da navbar
+  const toggleNavbar = () => {
+    setIsOpen(!isOpen);
+  };
+
+  // Função para fechar a navbar após clicar em um link
+  const closeNavbar = () => {
+    setIsOpen(false);
+  };
+
   return (
     <Router>
-      <div className="App flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white">
-        <h1 className="text-3xl mb-6">Gerenciamento de Serviços</h1>
-
-        <div className="flex space-x-4 mb-6">
-          <Link to="/manage-services">
-            <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition duration-300">
-              Gerenciar Serviços
-            </button>
-          </Link>
-          <Link to="/add-client">
-            <button className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition duration-300">
-              Adicionar Cliente
-            </button>
-          </Link>
-          <Link to="/add-equipment">
-            <button className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg transition duration-300">
-              Adicionar Equipamento
-            </button>
-          </Link>
-          <Link to="/closed-services">
-            <button className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition duration-300">
-              Ver Serviços Fechados
-            </button>
-          </Link>
-          <Link to="/open-services">
-            <button className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition duration-300">
-              Ver Serviços Abertos
-            </button>
-          </Link>
-          <Link to="/manage-clients">
-            <button className="px-4 py-2 bg-teal-600 hover:bg-teal-700 rounded-lg transition duration-300">
-              Gerenciar Clientes
-            </button>
-          </Link>
-          <Link to="/manage-equipments">
-            <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition duration-300">
-              Gerenciar Equipamentos
-            </button>
-          </Link>
+      <div className="App min-h-screen bg-gray-900 text-white">
+        {/* Botão de hambúrguer no topo */}
+        <div className="p-4">
+          <button 
+            onClick={toggleNavbar} 
+            className="text-white focus:outline-none md:hidden">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
+            </svg>
+          </button>
         </div>
 
-        <Routes>
-          <Route path="/add-client" element={<AddClient />} />
-          <Route path="/add-equipment" element={<AddEquipment />} />
-          <Route path="/manage-services" element={<ManageServices />} />
-          <Route path="/closed-services" element={<ClosedServices />} />
-          <Route path="/open-services" element={<OpenServices />} />
-          <Route path="/manage-clients" element={<ManageClients />} />
-          <Route path="/manage-equipments" element={<ManageEquipments />} />
-          <Route path="/client/:clientId" element={<ClientDetail />} /> {/* Rota para detalhes do cliente */}
-          <Route path="/equipment/:equipmentId" element={<EquipmentDetail />} />
-        </Routes>
+        {/* Navbar lateral */}
+        <div className={`fixed top-0 left-0 w-64 h-full bg-gray-800 z-50 transform ${isOpen ? "translate-x-0" : "-translate-x-full"} transition-transform duration-300 ease-in-out md:translate-x-0`}>
+          <nav className="flex flex-col p-6 space-y-4">
+            <Link to="/manage-services" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Gerenciar Serviços</Link>
+            <Link to="/add-client" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Adicionar Cliente</Link>
+            <Link to="/add-equipment" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Adicionar Equipamento</Link>
+            <Link to="/closed-services" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Ver Serviços Fechados</Link>
+            <Link to="/open-services" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Ver Serviços Abertos</Link>
+            <Link to="/manage-clients" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Gerenciar Clientes</Link>
+            <Link to="/manage-equipments" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Gerenciar Equipamentos</Link>
+          </nav>
+        </div>
+
+        {/* Conteúdo principal */}
+        <div className="md:ml-64 p-6">
+          <Routes>
+            <Route path="/add-client" element={<AddClient />} />
+            <Route path="/add-equipment" element={<AddEquipment />} />
+            <Route path="/manage-services" element={<ManageServices />} />
+            <Route path="/closed-services" element={<ClosedServices />} />
+            <Route path="/open-services" element={<OpenServices />} />
+            <Route path="/manage-clients" element={<ManageClients />} />
+            <Route path="/manage-equipments" element={<ManageEquipments />} />
+            <Route path="/client/:clientId" element={<ClientDetail />} />
+            <Route path="/equipment/:equipmentId" element={<EquipmentDetail />} />
+          </Routes>
+        </div>
       </div>
     </Router>
   );

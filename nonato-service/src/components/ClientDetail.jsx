@@ -7,6 +7,7 @@ const ClientDetail = () => {
   const { clientId } = useParams();
   const [client, setClient] = useState(null);
   const [services, setServices] = useState([]);
+  const [equipments, setEquipments] = useState([]);
 
   useEffect(() => {
     const fetchClient = async () => {
@@ -27,13 +28,28 @@ const ClientDetail = () => {
       setServices(servicesData);
     };
 
+    const fetchEquipments = async () => {
+      const equipmentsSnapshot = await getDocs(collection(db, "equipamentos"));
+      const equipmentsData = equipmentsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setEquipments(equipmentsData);
+    };
+
     fetchClient();
     fetchServices();
+    fetchEquipments();
   }, [clientId]);
 
   if (!client) {
     return <div>Carregando...</div>;
   }
+
+  const getEquipmentName = (equipmentId) => {
+    const equipment = equipments.find(e => e.id === equipmentId);
+    return equipment ? equipment.name : 'Equipamento não encontrado';
+  };
 
   return (
     <div className="w-96 mx-auto p-6 bg-gray-800 rounded-lg">
@@ -42,7 +58,9 @@ const ClientDetail = () => {
       <ul>
         {services.map(service => (
           <li key={service.id} className="mb-2">
-            <span>{service.serviceName} - {service.date}</span>
+            <span className="text-yellow-400">{getEquipmentName(service.equipmentId)}</span>
+            <br />
+            <span className="text-gray-300">{service.serviceName} - {service.date}</span>
           </li>
         ))}
       </ul>

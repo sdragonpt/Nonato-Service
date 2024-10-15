@@ -7,6 +7,7 @@ const EquipmentDetail = () => {
   const { equipmentId } = useParams();
   const [equipment, setEquipment] = useState(null);
   const [services, setServices] = useState([]);
+  const [clientName, setClientName] = useState('');
 
   useEffect(() => {
     const fetchEquipment = async () => {
@@ -14,6 +15,14 @@ const EquipmentDetail = () => {
       const equipmentData = await getDoc(equipmentDoc);
       if (equipmentData.exists()) {
         setEquipment({ id: equipmentData.id, ...equipmentData.data() });
+        // Fetch the client name based on clientId from equipment data
+        const clientDoc = doc(db, "clientes", equipmentData.data().clientId);
+        const clientData = await getDoc(clientDoc);
+        if (clientData.exists()) {
+          setClientName(clientData.data().name);
+        } else {
+          console.log("Cliente não encontrado");
+        }
       } else {
         console.log("Equipamento não encontrado");
       }
@@ -37,7 +46,8 @@ const EquipmentDetail = () => {
 
   return (
     <div className="w-96 mx-auto p-6 bg-gray-800 rounded-lg">
-      <h2 className="text-xl mb-4 text-white">{equipment.name}</h2>
+      <h2 className="text-xl mb-2 text-white">{equipment.name}</h2>
+      <span className="text-gray-400 mb-4 block">{clientName}</span> {/* Nome do cliente em cor neutra */}
       <h3 className="text-lg mb-2 text-white">Serviços Realizados:</h3>
       <ul>
         {services.map(service => (

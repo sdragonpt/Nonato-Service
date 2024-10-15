@@ -4,7 +4,8 @@ import { db } from "../firebase.jsx";
 import { Link } from "react-router-dom";
 
 const ManageEquipments = () => {
-  const [equipments, setEquipments] = useState([]); // Mantém um array vazio inicialmente
+  const [equipments, setEquipments] = useState([]);
+  const [clients, setClients] = useState([]);
 
   useEffect(() => {
     const fetchEquipments = async () => {
@@ -13,25 +14,42 @@ const ManageEquipments = () => {
         id: doc.id,
         ...doc.data(),
       }));
-      setEquipments(equipmentsData); // Atualiza o estado com os dados obtidos
+      setEquipments(equipmentsData);
+    };
+
+    const fetchClients = async () => {
+      const querySnapshot = await getDocs(collection(db, "clientes"));
+      const clientsData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setClients(clientsData);
     };
 
     fetchEquipments();
+    fetchClients();
   }, []);
+
+  const getClientName = (clientId) => {
+    const client = clients.find((client) => client.id === clientId);
+    return client ? client.name : "Cliente não encontrado";
+  };
 
   return (
     <div className="w-96 mx-auto p-6 bg-gray-800 rounded-lg">
       <h2 className="text-xl mb-4 text-white">Gerenciar Equipamentos</h2>
       <ul>
         {equipments.map((equipment) => (
-          <li key={equipment.id} className="mb-4">
-            <span>{equipment.name}</span>
-            <span className="ml-2 text-gray-400">
-              (Cliente: {equipment.clientId}) {/* Exibe o ID do cliente, altere conforme necessário */}
-            </span>
+          <li key={equipment.id} className="mb-4 flex items-center justify-between">
+            <div>
+              <span className="block text-white">{equipment.name}</span>
+              <span className="block text-gray-400">
+                Cliente: {getClientName(equipment.clientId)}
+              </span>
+            </div>
             <Link
               to={`/equipment/${equipment.id}`}
-              className="ml-4 text-blue-500 hover:underline"
+              className="text-blue-500 hover:underline"
             >
               Exibir
             </Link>
