@@ -61,34 +61,38 @@ const ClosedServices = () => {
   return (
     <div className="w-96 mx-auto p-6 bg-gray-800 rounded-lg">
       <h2 className="text-xl mb-4 text-white">Serviços Fechados</h2>
-      {closedServices.map(service => {
-        const client = clients.find(c => c.id === service.clientId);
-        const equipment = equipments.find(e => e.id === service.equipmentId);
-        return (
-          <div key={service.id} className="bg-gray-700 p-4 mb-2 rounded text-white">
-            <h4>{service.serviceName} - {service.serviceValue} €</h4>
-            <p className="text-gray-400">Data: {new Date(service.date).toLocaleDateString()}</p>
-            <button 
-              onClick={() => handleGeneratePDF(service)} 
-              className="text-blue-500 hover:underline mr-2"
-            >
-              Gerar PDF
-            </button>
-            <button 
-              onClick={() => toggleDetails(service.id)} 
-              className="text-blue-500 hover:underline mr-2"
-            >
-              Detalhes
-            </button>
-            {expandedService === service.id && (
-              <div className="mt-2 text-gray-300">
-                <p><strong>Cliente:</strong> {client ? client.name : 'N/A'}</p>
-                <p><strong>Equipamento:</strong> {equipment ? equipment.name : 'N/A'}</p>
-              </div>
-            )}
-          </div>
-        );
-      })}
+      {closedServices.length > 0 ? (
+        closedServices.map(service => {
+          const client = clients.find(c => c.id === service.clientId);
+          const equipment = equipments.find(e => e.id === service.equipmentId);
+          return (
+            <div key={service.id} className="bg-gray-700 p-4 mb-2 rounded text-white">
+              <h4>{service.serviceName} - {service.serviceValue} €</h4>
+              <p className="text-gray-400">Data: {new Date(service.date).toLocaleDateString()}</p>
+              <button 
+                onClick={() => handleGeneratePDF(service)} 
+                className="text-blue-500 hover:underline mr-2"
+              >
+                Gerar PDF
+              </button>
+              <button 
+                onClick={() => toggleDetails(service.id)} 
+                className="text-blue-500 hover:underline mr-2"
+              >
+                Detalhes
+              </button>
+              {expandedService === service.id && (
+                <div className="mt-2 text-gray-300">
+                  <p><strong>Cliente:</strong> {client ? client.name : 'N/A'}</p>
+                  <p><strong>Equipamento:</strong> {equipment ? equipment.name : 'N/A'}</p>
+                </div>
+              )}
+            </div>
+          );
+        })
+      ) : (
+        <p className="text-white">Nenhum serviço fechado.</p>
+      )}
     </div>
   );
 };
