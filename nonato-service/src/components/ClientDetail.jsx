@@ -53,7 +53,14 @@ const ClientDetail = () => {
 
   return (
     <div className="w-full xl:w-96 mx-auto p-6 bg-gray-800 rounded-lg">
-      <h2 className="text-xl mb-4 text-white">{client.name}</h2>
+      <h2 className="text-xl mb-2 text-white">{client.name}</h2>
+      
+      {/* Novos campos adicionados aqui */}
+      <p className="text-gray-400 mb-2">Endereço: {client.address}</p>
+      <p className="text-gray-400 mb-2">Código Postal: {client.postalCode}</p> {/* Adicionado Código Postal */}
+      <p className="text-gray-400 mb-2">Número de Telefone: {client.phone}</p>
+      <p className="text-gray-400 mb-4">NIF: {client.nif}</p>
+
       <h3 className="text-lg mb-2 text-white">Serviços Realizados:</h3>
       <ul>
         {services.map(service => (

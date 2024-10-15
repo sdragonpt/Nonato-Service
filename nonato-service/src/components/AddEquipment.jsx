@@ -5,6 +5,10 @@ import { db } from '../firebase.jsx';
 const AddEquipment = () => {
   const [clientId, setClientId] = useState('');
   const [equipmentName, setEquipmentName] = useState('');
+  const [type, setType] = useState('');
+  const [brand, setBrand] = useState('');
+  const [model, setModel] = useState('');
+  const [serialNumber, setSerialNumber] = useState('');
   const [clients, setClients] = useState([]);
 
   useEffect(() => {
@@ -47,12 +51,20 @@ const AddEquipment = () => {
       await setDoc(doc(db, "equipamentos", newEquipmentId.toString()), {
         name: equipmentName,
         clientId: clientId,
+        type: type,
+        brand: brand,
+        model: model,
+        serialNumber: serialNumber,
         createdAt: new Date(), // Adiciona a data de criação
       });
 
       // Limpa os campos após adicionar
       setEquipmentName('');
       setClientId('');
+      setType('');
+      setBrand('');
+      setModel('');
+      setSerialNumber('');
     } catch (e) {
       console.error("Erro ao adicionar equipamento: ", e);
     }
@@ -66,13 +78,13 @@ const AddEquipment = () => {
           value={equipmentName}
           onChange={(e) => setEquipmentName(e.target.value)}
           placeholder="Nome do Equipamento"
-          className="w-full p-2 mb-4 text-gray-900 bg-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
         />
         <select 
           value={clientId} 
           onChange={(e) => setClientId(e.target.value)} 
-          className="w-full p-2 mb-4 text-gray-900 bg-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
         >
           <option value="">Selecione um Cliente</option>
@@ -82,6 +94,38 @@ const AddEquipment = () => {
             </option>
           ))}
         </select>
+        <input
+          type="text"
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          placeholder="Tipo"
+          className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        />
+        <input
+          type="text"
+          value={brand}
+          onChange={(e) => setBrand(e.target.value)}
+          placeholder="Marca"
+          className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        />
+        <input
+          type="text"
+          value={model}
+          onChange={(e) => setModel(e.target.value)}
+          placeholder="Modelo"
+          className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        />
+        <input
+          type="text"
+          value={serialNumber}
+          onChange={(e) => setSerialNumber(e.target.value)}
+          placeholder="Número de Série"
+          className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        />
         <button 
           type="submit" 
           className="w-full p-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition duration-300"

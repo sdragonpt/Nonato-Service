@@ -4,6 +4,10 @@ import { db } from '../firebase.jsx'; // Importe o Firestore que configuramos
 
 const AddClient = () => {
   const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
+  const [postalCode, setPostalCode] = useState(''); // Novo estado para Código Postal
+  const [phone, setPhone] = useState('');
+  const [nif, setNif] = useState('');
 
   const getNextClientId = async () => {
     const counterRef = doc(db, "counters", "clientsCounter");
@@ -26,9 +30,18 @@ const AddClient = () => {
     try {
       const newClientId = await getNextClientId(); // Gera um ID sequencial
       await setDoc(doc(db, "clientes", newClientId.toString()), {
-        name: name
+        name: name,
+        address: address,
+        postalCode: postalCode, // Adiciona o Código Postal
+        phone: phone,
+        nif: nif
       });
-      setName(''); // Limpa o campo após salvar
+      // Limpa os campos após salvar
+      setName('');
+      setAddress('');
+      setPostalCode(''); // Limpa o campo do Código Postal
+      setPhone('');
+      setNif('');
     } catch (e) {
       console.error("Erro ao adicionar cliente: ", e);
     }
@@ -43,7 +56,39 @@ const AddClient = () => {
           onChange={(e) => setName(e.target.value)} 
           placeholder="Nome do Cliente" 
           required
-          className="w-full p-2 mb-4 text-gray-900 bg-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <input 
+          type="text" 
+          value={address} 
+          onChange={(e) => setAddress(e.target.value)} 
+          placeholder="Endereço" 
+          required
+          className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <input 
+          type="text" 
+          value={postalCode} // Novo campo para Código Postal
+          onChange={(e) => setPostalCode(e.target.value)} 
+          placeholder="Código Postal" 
+          required
+          className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <input 
+          type="tel" 
+          value={phone} 
+          onChange={(e) => setPhone(e.target.value)} 
+          placeholder="Número de Telefone" 
+          required
+          className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <input 
+          type="text" 
+          value={nif} 
+          onChange={(e) => setNif(e.target.value)} 
+          placeholder="NIF" 
+          required
+          className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button 
           type="submit" 
