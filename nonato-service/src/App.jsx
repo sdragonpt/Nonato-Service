@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import ManageServices from './components/ManageServices';
 import AddEquipment from './components/AddEquipment';
@@ -14,21 +14,35 @@ import EditEquipment from './components/EditEquipment';
 
 const App = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const navbarRef = useRef(null); // Referência para a navbar
 
-  // Função para alternar a abertura da navbar
   const toggleNavbar = () => {
     setIsOpen(!isOpen);
   };
 
-  // Função para fechar a navbar após clicar em um link
   const closeNavbar = () => {
     setIsOpen(false);
   };
 
+  // Função para detectar cliques fora da navbar
+  const handleClickOutside = (event) => {
+    if (navbarRef.current && !navbarRef.current.contains(event.target)) {
+      closeNavbar();
+    }
+  };
+
+  useEffect(() => {
+    // Adiciona o listener para detectar cliques fora da navbar
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      // Remove o listener quando o componente for desmontado
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
     <Router>
       <div className="App min-h-screen bg-gray-900 text-white">
-        {/* Botão de hambúrguer no topo */}
         <div className="p-4">
           <button 
             onClick={toggleNavbar} 
@@ -40,7 +54,9 @@ const App = () => {
         </div>
 
         {/* Navbar lateral */}
-        <div className={`fixed top-0 left-0 w-64 h-full bg-gray-800 z-50 transform ${isOpen ? "translate-x-0" : "-translate-x-full"} transition-transform duration-300 ease-in-out md:translate-x-0`}>
+        <div 
+          ref={navbarRef} // Adiciona a referência à navbar
+          className={`fixed top-0 left-0 w-64 h-full bg-gray-800 z-50 transform ${isOpen ? "translate-x-0" : "-translate-x-full"} transition-transform duration-300 ease-in-out md:translate-x-0`}>
           <nav className="flex flex-col p-6 space-y-4">
             <Link to="/manage-services" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Gerenciar Serviços</Link>
             <Link to="/add-client" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Adicionar Cliente</Link>
