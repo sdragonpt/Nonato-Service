@@ -13,16 +13,12 @@ const AddEquipment = () => {
 
   useEffect(() => {
     const fetchClients = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, "clientes"));
-        const clientsData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setClients(clientsData);
-      } catch (e) {
-        console.error("Erro ao buscar clientes: ", e);
-      }
+      const querySnapshot = await getDocs(collection(db, "clientes"));
+      const clientsData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setClients(clientsData);
     };
 
     fetchClients();
@@ -55,7 +51,7 @@ const AddEquipment = () => {
         brand: brand,
         model: model,
         serialNumber: serialNumber,
-        createdAt: new Date(), // Adiciona a data de criação
+        createdAt: new Date(),
       });
 
       // Limpa os campos após adicionar
@@ -90,7 +86,7 @@ const AddEquipment = () => {
           <option value="">Selecione um Cliente</option>
           {clients.map((client) => (
             <option key={client.id} value={client.id}>
-              {client.id} - {client.name}
+              {client.name}
             </option>
           ))}
         </select>
@@ -100,7 +96,6 @@ const AddEquipment = () => {
           onChange={(e) => setType(e.target.value)}
           placeholder="Tipo"
           className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
         />
         <input
           type="text"
@@ -108,7 +103,6 @@ const AddEquipment = () => {
           onChange={(e) => setBrand(e.target.value)}
           placeholder="Marca"
           className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
         />
         <input
           type="text"
@@ -116,7 +110,6 @@ const AddEquipment = () => {
           onChange={(e) => setModel(e.target.value)}
           placeholder="Modelo"
           className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
         />
         <input
           type="text"
@@ -124,10 +117,9 @@ const AddEquipment = () => {
           onChange={(e) => setSerialNumber(e.target.value)}
           placeholder="Número de Série"
           className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
         />
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           className="w-full p-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition duration-300"
         >
           Adicionar Equipamento
@@ -138,3 +130,4 @@ const AddEquipment = () => {
 };
 
 export default AddEquipment;
+

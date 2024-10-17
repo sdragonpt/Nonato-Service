@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, deleteDoc } from "firebase/firestore";
 import { db } from "../firebase.jsx";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const ManageEquipments = () => {
   const [equipments, setEquipments] = useState([]);
   const [clients, setClients] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchEquipments = async () => {
@@ -30,6 +31,25 @@ const ManageEquipments = () => {
     fetchClients();
   }, []);
 
+  // Função para deletar um equipamento
+  const handleDelete = async (equipmentId) => {
+    const confirmDelete = window.confirm("Você tem certeza que deseja deletar este equipamento?");
+    if (confirmDelete) {
+      try {
+        await deleteDoc(doc(db, "equipamentos", equipmentId));
+        setEquipments(equipments.filter((equipment) => equipment.id !== equipmentId));
+        alert("Equipamento deletado com sucesso!");
+      } catch (e) {
+        console.error("Erro ao deletar o equipamento: ", e);
+      }
+    }
+  };
+
+  // Função para redirecionar à página de edição
+  const handleEdit = (equipmentId) => {
+    navigate(`/edit-equipment/${equipmentId}`); // Redireciona para a página de edição (defina essa rota)
+  };
+
   const getClientName = (clientId) => {
     const client = clients.find((client) => client.id === clientId);
     return client ? client.name : "Cliente não encontrado";
@@ -47,12 +67,29 @@ const ManageEquipments = () => {
                 Cliente: {getClientName(equipment.clientId)}
               </span>
             </div>
-            <Link
-              to={`/equipment/${equipment.id}`}
-              className="text-blue-500 hover:underline"
-            >
-              Exibir
-            </Link>
+            <div className="flex items-center space-x-4">
+              {/* Link para Exibir o equipamento */}
+              <Link
+                to={`/equipment/${equipment.id}`}
+                className="text-blue-500 hover:underline"
+              >
+                Exibir
+              </Link>
+              {/* Botão de Editar */}
+              <button
+                onClick={() => handleEdit(equipment.id)}
+                className="text-yellow-500 hover:underline"
+              >
+                Editar
+              </button>
+              {/* Botão de Deletar */}
+              <button
+                onClick={() => handleDelete(equipment.id)}
+                className="text-red-500 hover:underline"
+              >
+                Deletar
+              </button>
+            </div>
           </li>
         ))}
       </ul>
