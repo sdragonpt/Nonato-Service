@@ -11,10 +11,12 @@ import ClientDetail from './components/ClientDetail';
 import EquipmentDetail from './components/EquipmentDetail';
 import EditClient from './components/EditClient';
 import EditEquipment from './components/EditEquipment';
+import Agenda from './components/Agenda'; // Import the Agenda component
+import AddEvent from './components/AddEvent'; // Add this line to your imports
 
 const App = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const navbarRef = useRef(null); // Referência para a navbar
+  const navbarRef = useRef(null); 
 
   const toggleNavbar = () => {
     setIsOpen(!isOpen);
@@ -24,7 +26,6 @@ const App = () => {
     setIsOpen(false);
   };
 
-  // Função para detectar cliques fora da navbar
   const handleClickOutside = (event) => {
     if (navbarRef.current && !navbarRef.current.contains(event.target)) {
       closeNavbar();
@@ -32,10 +33,8 @@ const App = () => {
   };
 
   useEffect(() => {
-    // Adiciona o listener para detectar cliques fora da navbar
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      // Remove o listener quando o componente for desmontado
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
@@ -44,18 +43,15 @@ const App = () => {
     <Router>
       <div className="App min-h-screen bg-gray-900 text-white">
         <div className="p-4">
-          <button 
-            onClick={toggleNavbar} 
-            className="text-white focus:outline-none md:hidden">
+          <button onClick={toggleNavbar} className="text-white focus:outline-none md:hidden">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
             </svg>
           </button>
         </div>
 
-        {/* Navbar lateral */}
         <div 
-          ref={navbarRef} // Adiciona a referência à navbar
+          ref={navbarRef} 
           className={`fixed top-0 left-0 w-64 h-full bg-gray-800 z-50 transform ${isOpen ? "translate-x-0" : "-translate-x-full"} transition-transform duration-300 ease-in-out md:translate-x-0`}>
           <nav className="flex flex-col p-6 space-y-4">
             <Link to="/manage-services" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Gerenciar Serviços</Link>
@@ -65,10 +61,11 @@ const App = () => {
             <Link to="/open-services" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Ver Serviços Abertos</Link>
             <Link to="/manage-clients" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Gerenciar Clientes</Link>
             <Link to="/manage-equipments" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Gerenciar Equipamentos</Link>
+            <Link to="/agenda" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Agenda</Link> {/* Agenda link */}
+            <Link to="/add-event" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Agendar Eventos</Link> {/* Agenda link */}
           </nav>
         </div>
 
-        {/* Conteúdo principal */}
         <div className="md:ml-64 p-6">
           <Routes>
             <Route path="/add-client" element={<AddClient />} />
@@ -82,6 +79,8 @@ const App = () => {
             <Route path="/equipment/:equipmentId" element={<EquipmentDetail />} />
             <Route path="/edit-client/:clientId" element={<EditClient />} />
             <Route path="/edit-equipment/:equipmentId" element={<EditEquipment />} />
+            <Route path="/agenda" element={<Agenda />} />
+            <Route path="/add-event" element={<AddEvent />} />
           </Routes>
         </div>
       </div>
