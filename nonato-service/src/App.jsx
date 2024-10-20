@@ -11,8 +11,8 @@ import ClientDetail from './components/ClientDetail';
 import EquipmentDetail from './components/EquipmentDetail';
 import EditClient from './components/EditClient';
 import EditEquipment from './components/EditEquipment';
-import Agenda from './components/Agenda'; // Import the Agenda component
-import AddEvent from './components/AddEvent'; // Add this line to your imports
+import Agenda from './components/Agenda';
+import AddEvent from './components/AddEvent'; 
 
 const App = () => {
   const [isOpen, setIsOpen] = useState(false);
