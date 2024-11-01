@@ -39,7 +39,7 @@ const App = () => {
 
   return (
     <Router>
-      <div className="App min-h-screen bg-gray-900 text-white">
+      <div className="App min-h-screen bg-gray-900 text-white bg-contain bg-no-repeat bg-center" style={{ backgroundImage: "url('/background.png')"}}>
         <div className="p-4">
           <button onClick={toggleNavbar} className="text-white focus:outline-none md:hidden">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
