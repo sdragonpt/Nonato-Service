@@ -11,8 +11,6 @@ import ClientDetail from './components/ClientDetail';
 import EquipmentDetail from './components/EquipmentDetail';
 import EditClient from './components/EditClient';
 import EditEquipment from './components/EditEquipment';
-import Agenda from './components/Agenda';
-import AddEvent from './components/AddEvent'; 
 
 const App = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -61,8 +59,6 @@ const App = () => {
             <Link to="/open-services" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Ver Serviços Abertos</Link>
             <Link to="/manage-clients" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Gerenciar Clientes</Link>
             <Link to="/manage-equipments" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Gerenciar Equipamentos</Link>
-            <Link to="/agenda" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Agenda</Link> {/* Agenda link */}
-            <Link to="/add-event" onClick={closeNavbar} className="text-white hover:bg-gray-700 p-2 rounded">Agendar Eventos</Link> {/* Agenda link */}
           </nav>
         </div>
 
@@ -79,8 +75,6 @@ const App = () => {
             <Route path="/equipment/:equipmentId" element={<EquipmentDetail />} />
             <Route path="/edit-client/:clientId" element={<EditClient />} />
             <Route path="/edit-equipment/:equipmentId" element={<EditEquipment />} />
-            <Route path="/agenda" element={<Agenda />} />
-            <Route path="/add-event" element={<AddEvent />} />
           </Routes>
         </div>
       </div>
