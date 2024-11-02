@@ -37,7 +37,7 @@ const ManageClients = () => {
       <h2 className="text-2xl font-semibold text-center text-white mb-6">
         Clientes
       </h2>
-      <div className="space-y-4">
+      <div className="space-y-4 mb-32">
         {clients.map((client) => (
           <div
             key={client.id}
@@ -45,7 +45,7 @@ const ManageClients = () => {
             className="flex items-center p-4 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600"
           >
             <img
-              src={client.photoURL || "/default-avatar.png"}
+              src={client.profilePic || "/nonato.png"}
               alt={client.name}
               className="w-12 h-12 rounded-full mr-4"
             />
@@ -62,31 +62,13 @@ const ManageClients = () => {
 
       {/* Botões na parte inferior da página, estilo conforme a imagem */}
       <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center">
-        {/* Botão retangular à esquerda */}
-        <button
-          className="w-32 h-16 bg-[#1d2d50] mr-4 text-white text-lg flex items-center justify-center rounded-lg"
-          onClick={() => navigate("/app/manage-equipments")}
-          aria-label="Equipamentos"
-        >
-          
-        </button>
-
         {/* Botão redondo central para adicionar cliente */}
         <button
           onClick={() => navigate("/app/add-client")}
-          className="h-20 w-20 -mt-8 bg-[#9df767] text-white text-3xl flex items-center justify-center rounded-full shadow-lg"
+          className="h-20 px-4 -mt-8 bg-[#9df767] text-white text-2xl font-medium flex items-center justify-center rounded-full shadow-lg"
           aria-label="Adicionar Cliente"
         >
-          +
-        </button>
-
-        {/* Botão retangular à direita */}
-        <button
-          className="w-32 h-16 bg-[#1d2d50] ml-4 text-white text-lg flex items-center justify-center rounded-lg"
-          onClick={() => navigate("/app/manage-equipments")}
-          aria-label="Equipamentos"
-        >
-          Equipamentos
+          Novo Cliente
         </button>
       </div>
     </div>

@@ -9,7 +9,7 @@ const AddClient = () => {
   const [postalCode, setPostalCode] = useState("");
   const [phone, setPhone] = useState("");
   const [nif, setNif] = useState("");
-  const [profilePic, setProfilePic] = useState(null);
+  const [profilePic, setProfilePic] = useState("");
 
   const navigate = useNavigate();
 
@@ -37,21 +37,30 @@ const AddClient = () => {
         postalCode,
         phone,
         nif,
-        profilePic,
+        profilePic, // Salvar a URL da imagem
       });
+      // Limpar os campos após a submissão
       setName("");
       setAddress("");
       setPostalCode("");
       setPhone("");
       setNif("");
-      setProfilePic(null);
+      setProfilePic("");
+      navigate(-1); // Voltar após a adição
     } catch (e) {
       console.error("Erro ao adicionar cliente: ", e);
     }
   };
 
   const handleProfilePicChange = (e) => {
-    setProfilePic(e.target.files[0]);
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePic(reader.result); // Definir a URL da imagem
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -125,8 +134,16 @@ const AddClient = () => {
                 type="file"
                 className="hidden"
                 onChange={handleProfilePicChange}
+                accept="image/*"
               />
             </label>
+            {profilePic && ( // Exibe a imagem selecionada
+              <img
+                src={profilePic}
+                alt="Preview da Foto de Perfil"
+                className="mt-2 w-24 h-24 rounded-full"
+              />
+            )}
           </div>
 
           <button

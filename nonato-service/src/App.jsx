@@ -1,4 +1,3 @@
-// App.js
 import React, { useState, useRef, useEffect } from "react";
 import {
   BrowserRouter as Router,
@@ -6,6 +5,7 @@ import {
   Route,
   Navigate,
   Link,
+  useLocation,
 } from "react-router-dom";
 import InitialPage from "./components/InitialPage";
 import ManageServices from "./components/ManageServices";
@@ -19,6 +19,16 @@ import ClientDetail from "./components/ClientDetail";
 import EquipmentDetail from "./components/EquipmentDetail";
 import EditClient from "./components/EditClient";
 import EditEquipment from "./components/EditEquipment";
+
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+};
 
 const App = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,6 +50,7 @@ const App = () => {
 
   return (
     <Router>
+      <ScrollToTop />
       <Routes>
         {/* Redirect from root to /start */}
         <Route path="/" element={<Navigate to="/start" />} />
@@ -171,6 +182,11 @@ const App = () => {
                     <Route
                       path="edit-equipment/:equipmentId"
                       element={<EditEquipment />}
+                    />
+                    {/* Rota para adicionar equipamento associado ao cliente */}
+                    <Route
+                      path="client/:clientId/add-equipment"
+                      element={<AddEquipment />}
                     />
                   </Routes>
                 </div>

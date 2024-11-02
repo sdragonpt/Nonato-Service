@@ -45,63 +45,77 @@ const EditClient = () => {
         postalCode,
       });
       alert("Cliente atualizado com sucesso!");
-      navigate("/manage-clients"); // Redireciona para a página de gerenciamento de clientes
+      navigate(-1); // Volta para a página anterior
     } catch (e) {
       console.error("Erro ao atualizar cliente: ", e);
     }
   };
 
   return (
-    <div className="w-full xl:w-96 mx-auto p-6 bg-gray-800 rounded-lg">
-      <h2 className="text-xl mb-4 text-white">Editar Cliente</h2>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Nome do Cliente"
-          required
-          className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <input
-          type="text"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder="Endereço"
-          required
-          className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <input
-          type="tel"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="Número de Telefone"
-          required
-          className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <input
-          type="text"
-          value={nif}
-          onChange={(e) => setNif(e.target.value)}
-          placeholder="NIF"
-          required
-          className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <input
-          type="text"
-          value={postalCode}
-          onChange={(e) => setPostalCode(e.target.value)}
-          placeholder="Código Postal"
-          required
-          className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button
-          type="submit"
-          className="w-full p-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition duration-300"
-        >
-          Salvar Alterações
-        </button>
-      </form>
+    <div>
+      {/* Botão de Voltar no canto superior direito */}
+      <button
+        onClick={() => navigate(-1)}
+        className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition transform hover:scale-105"
+        aria-label="Voltar"
+      >
+        Voltar
+      </button>
+
+      <h2 className="text-2xl font-medium mb-2 text-white text-center">
+        Editar Cliente
+      </h2>
+      <div className="w-full xl:w-96 mx-auto p-6 bg-gray-800 rounded-lg mt-10">
+        <form onSubmit={handleSubmit}>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Nome do Cliente"
+            required
+            className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Endereço"
+            required
+            className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="Número de Telefone"
+            required
+            className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            type="text"
+            value={nif}
+            onChange={(e) => setNif(e.target.value)}
+            placeholder="NIF"
+            required
+            className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            type="text"
+            value={postalCode}
+            onChange={(e) => setPostalCode(e.target.value)}
+            placeholder="Código Postal"
+            required
+            className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+
+          <button
+            type="submit"
+            className="w-full p-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition duration-300"
+          >
+            Salvar Alterações
+          </button>
+        </form>
+      </div>
     </div>
   );
 };

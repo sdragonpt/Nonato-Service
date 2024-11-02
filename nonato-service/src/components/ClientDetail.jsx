@@ -17,7 +17,7 @@ const ClientDetail = () => {
   const [equipments, setEquipments] = useState([]);
   const [newPhotoURL, setNewPhotoURL] = useState("");
   const [imageFile, setImageFile] = useState(null);
-  const [photoChanged, setPhotoChanged] = useState(false); // Novo estado para rastrear mudanças na foto
+  const [photoChanged, setPhotoChanged] = useState(false); // Estado para rastrear mudanças na foto
 
   useEffect(() => {
     const fetchClient = async () => {
@@ -25,7 +25,7 @@ const ClientDetail = () => {
       const clientData = await getDoc(clientDoc);
       if (clientData.exists()) {
         setClient({ id: clientData.id, ...clientData.data() });
-        setNewPhotoURL(clientData.data().photoURL); // Carregar a foto atual do cliente
+        setNewPhotoURL(clientData.data().profilePic); // Carregar a foto atual do cliente
       } else {
         console.log("Cliente não encontrado");
       }
@@ -58,7 +58,7 @@ const ClientDetail = () => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setNewPhotoURL(reader.result);
+        setNewPhotoURL(reader.result); // Atualiza a nova foto que será exibida
       };
       reader.readAsDataURL(file);
       setImageFile(file);
@@ -70,9 +70,14 @@ const ClientDetail = () => {
     if (imageFile) {
       const clientDocRef = doc(db, "clientes", clientId);
       await updateDoc(clientDocRef, {
-        photoURL: newPhotoURL,
+        profilePic: newPhotoURL, // Atualiza a foto de perfil no Firestore
       });
       alert("Foto de perfil atualizada com sucesso!");
+      setClient((prevClient) => ({
+        ...prevClient,
+        profilePic: newPhotoURL, // Atualiza a foto do cliente no estado
+      }));
+      setPhotoChanged(false); // Reseta o estado de alteração da foto
     } else {
       alert("Por favor, selecione uma imagem para salvar.");
     }
@@ -81,7 +86,7 @@ const ClientDetail = () => {
   const handleRemovePhoto = async () => {
     const clientDocRef = doc(db, "clientes", clientId);
     await updateDoc(clientDocRef, {
-      photoURL: "", // Remove a URL da foto
+      profilePic: "", // Remove a URL da foto
     });
     setNewPhotoURL("/default-avatar.png"); // Define a imagem padrão
     setImageFile(null); // Limpa o arquivo de imagem
@@ -95,7 +100,6 @@ const ClientDetail = () => {
 
   return (
     <div className="w-full max-w-3xl mx-auto rounded-lg">
-      {/* Botão de Voltar no canto superior direito */}
       <button
         onClick={() => navigate(-1)}
         className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition transform hover:scale-105"
@@ -104,12 +108,14 @@ const ClientDetail = () => {
         Voltar
       </button>
 
-      <h2 className="text-2xl mb-2 text-white text-center">{client.name}</h2>
+      <h2 className="text-2xl font-medium mb-2 text-white text-center">
+        {client.name}
+      </h2>
 
       <div className="flex flex-col items-center mb-4">
         <label className="relative">
           <img
-            src={newPhotoURL || "/default-avatar.png"}
+            src={newPhotoURL || "/nonato.png"} // Usa a nova foto ou a padrão
             alt="Foto de Perfil"
             className="w-24 h-24 rounded-full mb-2 z-0 border-zinc-800 border-2"
           />
@@ -117,10 +123,10 @@ const ClientDetail = () => {
             type="file"
             accept="image/*"
             onChange={handlePhotoChange}
-            className="absolute inset-0 w-full h-full opacity-0 z-0 cursor-pointer"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           />
         </label>
-        {photoChanged && ( // Mostra o botão apenas se a foto foi alterada
+        {photoChanged && ( // Mostra os botões apenas se a foto foi alterada
           <>
             <button
               onClick={handleSavePhoto}
@@ -137,6 +143,7 @@ const ClientDetail = () => {
           </>
         )}
       </div>
+
       <div className="bg-zinc-800 py-2 px-2 mb-4 rounded-lg">
         <p className="text-gray-300 mb-2">Endereço: {client.address}</p>
         <p className="text-gray-300 mb-2">Código Postal: {client.postalCode}</p>
@@ -145,7 +152,7 @@ const ClientDetail = () => {
       </div>
 
       <h3 className="text-lg mb-2 text-white">Equipamentos:</h3>
-      <div className="space-y-4 mb-24">
+      <div className="space-y-4 mb-32">
         {equipments
           .filter((equipment) => equipment.clientId === clientId)
           .map((equipment) => (
@@ -155,23 +162,25 @@ const ClientDetail = () => {
               onClick={() => navigate(`/app/equipment/${equipment.id}`)}
             >
               <img
-                src={equipment.photoURL || "/default-avatar.png"}
+                src={equipment.equipmentPic || "/nonato.png"}
                 alt={equipment.name}
                 className="w-12 h-12 rounded-full mr-4"
               />
               <div className="text-white">
-                <h4 className="font-semibold">{equipment.name}</h4>
+                <h4 className="font-semibold">{equipment.brand}</h4>
                 <p className="text-gray-400">
-                  {equipment.brand} - {equipment.model}
+                  {equipment.model} - {equipment.type}
                 </p>
               </div>
             </div>
           ))}
       </div>
 
-      {/* Botões na parte inferior da página, estilo conforme a imagem */}
       <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center">
-        {/* Botão retangular à esquerda para serviços do cliente */}
+        <p className="absolute bottom-24 text-white mb-2 text-center">
+          Clique aqui para adicionar novo equipamento:
+        </p>
+
         <button
           className="w-32 h-16 bg-[#1d2d50] mr-4 text-white text-lg flex items-center justify-center rounded-lg"
           onClick={() => navigate(`/app/services/${clientId}`)}
@@ -180,16 +189,14 @@ const ClientDetail = () => {
           Serviços
         </button>
 
-        {/* Botão redondo central para adicionar equipamento */}
         <button
-          onClick={() => navigate("/app/add-equipment")}
-          className="h-20 w-20 -mt-8 bg-[#9df767] text-white text-3xl flex items-center justify-center rounded-full shadow-lg"
+          onClick={() => navigate(`/app/client/${clientId}/add-equipment`)}
+          className="h-20 w-20 -mt-8 bg-[#9df767] text-white font-bold text-3xl flex items-center justify-center rounded-full shadow-lg"
           aria-label="Adicionar Equipamento"
         >
           +
         </button>
 
-        {/* Botão retangular à direita para editar os dados do cliente */}
         <button
           className="w-32 h-16 bg-[#1d2d50] ml-4 text-white text-lg flex items-center justify-center rounded-lg"
           onClick={() => navigate(`/app/edit-client/${clientId}`)}
