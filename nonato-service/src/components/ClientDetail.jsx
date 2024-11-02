@@ -126,6 +126,12 @@ const ClientDetail = () => {
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           />
         </label>
+        <button
+          onClick={handleRemovePhoto}
+          className="mt-2 w-32 h-10 bg-red-500 text-white rounded-lg"
+        >
+          Remover Foto
+        </button>
         {photoChanged && ( // Mostra os botões apenas se a foto foi alterada
           <>
             <button
@@ -133,12 +139,6 @@ const ClientDetail = () => {
               className="mt-2 w-32 h-10 bg-[#9df767] text-white rounded-lg"
             >
               Salvar Foto
-            </button>
-            <button
-              onClick={handleRemovePhoto}
-              className="mt-2 w-32 h-10 bg-red-500 text-white rounded-lg"
-            >
-              Remover Foto
             </button>
           </>
         )}

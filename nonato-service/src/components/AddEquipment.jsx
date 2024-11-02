@@ -48,6 +48,9 @@ const AddEquipment = () => {
       setSerialNumber("");
       setEquipmentPic(null);
       setEquipmentPicPreview(""); // Limpa a prévia da imagem
+
+      // Navega de volta para a página anterior após a adição bem-sucedida
+      navigate(-1);
     } catch (e) {
       console.error("Erro ao adicionar equipamento: ", e);
     }

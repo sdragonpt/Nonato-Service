@@ -137,6 +137,12 @@ const EquipmentDetail = () => {
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           />
         </label>
+        <button
+          onClick={handleRemovePhoto}
+          className="mt-2 w-32 h-10 bg-red-500 text-white rounded-lg"
+        >
+          Remover Foto
+        </button>
         {photoChanged && (
           <>
             <button
@@ -144,12 +150,6 @@ const EquipmentDetail = () => {
               className="mt-2 w-32 h-10 bg-[#9df767] text-white rounded-lg"
             >
               Salvar Foto
-            </button>
-            <button
-              onClick={handleRemovePhoto}
-              className="mt-2 w-32 h-10 bg-red-500 text-white rounded-lg"
-            >
-              Remover Foto
             </button>
           </>
         )}
@@ -159,7 +159,9 @@ const EquipmentDetail = () => {
         <p className="text-gray-300 mb-2">Cliente: {clientName}</p>
         <p className="text-gray-300 mb-2">Marca: {equipment.brand}</p>
         <p className="text-gray-300 mb-2">Modelo: {equipment.model}</p>
-        <p className="text-gray-300 mb-2">Número de Série: {equipment.serialNumber}</p>
+        <p className="text-gray-300 mb-2">
+          Número de Série: {equipment.serialNumber}
+        </p>
         <p className="text-gray-300">Tipo: {equipment.type}</p>
       </div>
 
