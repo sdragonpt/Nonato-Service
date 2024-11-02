@@ -1,22 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { collection, getDocs, setDoc, doc, getDoc, increment } from "firebase/firestore";
-import { db } from '../firebase.jsx';
+import React, { useState, useEffect } from "react";
+import {
+  collection,
+  getDocs,
+  setDoc,
+  doc,
+  getDoc,
+  increment,
+} from "firebase/firestore";
+import { db } from "../firebase.jsx";
 
 const AddEquipment = () => {
-  const [clientId, setClientId] = useState('');
-  const [equipmentName, setEquipmentName] = useState('');
-  const [type, setType] = useState('');
-  const [brand, setBrand] = useState('');
-  const [model, setModel] = useState('');
-  const [serialNumber, setSerialNumber] = useState('');
+  const [clientId, setClientId] = useState("");
+  const [equipmentName, setEquipmentName] = useState("");
+  const [type, setType] = useState("");
+  const [brand, setBrand] = useState("");
+  const [model, setModel] = useState("");
+  const [serialNumber, setSerialNumber] = useState("");
   const [clients, setClients] = useState([]);
 
   useEffect(() => {
     const fetchClients = async () => {
       const querySnapshot = await getDocs(collection(db, "clientes"));
-      const clientsData = querySnapshot.docs.map(doc => ({
+      const clientsData = querySnapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       }));
       setClients(clientsData);
     };
@@ -55,12 +62,12 @@ const AddEquipment = () => {
       });
 
       // Limpa os campos após adicionar
-      setEquipmentName('');
-      setClientId('');
-      setType('');
-      setBrand('');
-      setModel('');
-      setSerialNumber('');
+      setEquipmentName("");
+      setClientId("");
+      setType("");
+      setBrand("");
+      setModel("");
+      setSerialNumber("");
     } catch (e) {
       console.error("Erro ao adicionar equipamento: ", e);
     }
@@ -77,9 +84,9 @@ const AddEquipment = () => {
           className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
         />
-        <select 
-          value={clientId} 
-          onChange={(e) => setClientId(e.target.value)} 
+        <select
+          value={clientId}
+          onChange={(e) => setClientId(e.target.value)}
           className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
         >
@@ -130,4 +137,3 @@ const AddEquipment = () => {
 };
 
 export default AddEquipment;
-

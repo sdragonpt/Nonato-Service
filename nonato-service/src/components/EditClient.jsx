@@ -6,11 +6,11 @@ import { db } from "../firebase.jsx";
 const EditClient = () => {
   const { clientId } = useParams(); // Obtém o ID do cliente a partir da URL
   const [client, setClient] = useState(null); // Estado para armazenar os dados do cliente
-  const [name, setName] = useState('');
-  const [address, setAddress] = useState('');
-  const [phone, setPhone] = useState('');
-  const [nif, setNif] = useState('');
-  const [postalCode, setPostalCode] = useState('');
+  const [name, setName] = useState("");
+  const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState("");
+  const [nif, setNif] = useState("");
+  const [postalCode, setPostalCode] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,7 +42,7 @@ const EditClient = () => {
         address,
         phone,
         nif,
-        postalCode
+        postalCode,
       });
       alert("Cliente atualizado com sucesso!");
       navigate("/manage-clients"); // Redireciona para a página de gerenciamento de clientes
@@ -55,48 +55,48 @@ const EditClient = () => {
     <div className="w-full xl:w-96 mx-auto p-6 bg-gray-800 rounded-lg">
       <h2 className="text-xl mb-4 text-white">Editar Cliente</h2>
       <form onSubmit={handleSubmit}>
-        <input 
-          type="text" 
-          value={name} 
-          onChange={(e) => setName(e.target.value)} 
-          placeholder="Nome do Cliente" 
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Nome do Cliente"
           required
           className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <input 
-          type="text" 
-          value={address} 
-          onChange={(e) => setAddress(e.target.value)} 
-          placeholder="Endereço" 
+        <input
+          type="text"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder="Endereço"
           required
           className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <input 
-          type="tel" 
-          value={phone} 
-          onChange={(e) => setPhone(e.target.value)} 
-          placeholder="Número de Telefone" 
+        <input
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="Número de Telefone"
           required
           className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <input 
-          type="text" 
-          value={nif} 
-          onChange={(e) => setNif(e.target.value)} 
-          placeholder="NIF" 
+        <input
+          type="text"
+          value={nif}
+          onChange={(e) => setNif(e.target.value)}
+          placeholder="NIF"
           required
           className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <input 
-          type="text" 
-          value={postalCode} 
-          onChange={(e) => setPostalCode(e.target.value)} 
-          placeholder="Código Postal" 
+        <input
+          type="text"
+          value={postalCode}
+          onChange={(e) => setPostalCode(e.target.value)}
+          placeholder="Código Postal"
           required
           className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           className="w-full p-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition duration-300"
         >
           Salvar Alterações

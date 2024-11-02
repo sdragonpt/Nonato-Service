@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
-import { db } from '../firebase.jsx';
+import { db } from "../firebase.jsx";
 
 const EquipmentDetail = () => {
   const { equipmentId } = useParams();
   const [equipment, setEquipment] = useState(null);
   const [services, setServices] = useState([]);
-  const [clientName, setClientName] = useState('');
+  const [clientName, setClientName] = useState("");
 
   useEffect(() => {
     const fetchEquipment = async () => {
@@ -31,8 +31,8 @@ const EquipmentDetail = () => {
     const fetchServices = async () => {
       const servicesSnapshot = await getDocs(collection(db, "servicos"));
       const servicesData = servicesSnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(service => service.equipmentId === equipmentId);
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((service) => service.equipmentId === equipmentId);
       setServices(servicesData);
     };
 
@@ -47,19 +47,22 @@ const EquipmentDetail = () => {
   return (
     <div className="w-full xl:w-96 mx-auto p-6 bg-gray-800 rounded-lg">
       <h2 className="text-xl mb-2 text-white">{equipment.name}</h2>
-      <span className="text-gray-400 mb-2 block">{clientName}</span> {/* Nome do cliente em cor neutra */}
-      
+      <span className="text-gray-400 mb-2 block">{clientName}</span>{" "}
+      {/* Nome do cliente em cor neutra */}
       {/* Novos campos adicionados aqui */}
       <p className="text-gray-400 mb-2">Tipo: {equipment.type}</p>
       <p className="text-gray-400 mb-2">Marca: {equipment.brand}</p>
       <p className="text-gray-400 mb-2">Modelo: {equipment.model}</p>
-      <p className="text-gray-400 mb-4">Número de Série: {equipment.serialNumber}</p>
-      
+      <p className="text-gray-400 mb-4">
+        Número de Série: {equipment.serialNumber}
+      </p>
       <h3 className="text-lg mb-2 text-white">Serviços Realizados:</h3>
       <ul>
-        {services.map(service => (
+        {services.map((service) => (
           <li key={service.id} className="mb-2">
-            <span>{service.serviceName} - {service.date}</span>
+            <span>
+              {service.serviceName} - {service.date}
+            </span>
           </li>
         ))}
       </ul>

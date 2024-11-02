@@ -33,11 +33,15 @@ const ManageEquipments = () => {
 
   // Função para deletar um equipamento
   const handleDelete = async (equipmentId) => {
-    const confirmDelete = window.confirm("Você tem certeza que deseja deletar este equipamento?");
+    const confirmDelete = window.confirm(
+      "Você tem certeza que deseja deletar este equipamento?"
+    );
     if (confirmDelete) {
       try {
         await deleteDoc(doc(db, "equipamentos", equipmentId));
-        setEquipments(equipments.filter((equipment) => equipment.id !== equipmentId));
+        setEquipments(
+          equipments.filter((equipment) => equipment.id !== equipmentId)
+        );
         alert("Equipamento deletado com sucesso!");
       } catch (e) {
         console.error("Erro ao deletar o equipamento: ", e);
@@ -60,7 +64,10 @@ const ManageEquipments = () => {
       <h2 className="text-xl mb-4 text-white">Gerenciar Equipamentos</h2>
       <ul>
         {equipments.map((equipment) => (
-          <li key={equipment.id} className="mb-4 flex items-center justify-between">
+          <li
+            key={equipment.id}
+            className="mb-4 flex items-center justify-between"
+          >
             <div>
               <span className="block text-white">{equipment.name}</span>
               <span className="block text-gray-400">

@@ -11,7 +11,7 @@ const firebaseConfig = {
   storageBucket: "nonato-service.appspot.com",
   messagingSenderId: "896475175219",
   appId: "1:896475175219:web:872d29d21f0798622ec646",
-  measurementId: "G-38ZWZRQ3KZ"
+  measurementId: "G-38ZWZRQ3KZ",
 };
 
 // Inicializa o Firebase

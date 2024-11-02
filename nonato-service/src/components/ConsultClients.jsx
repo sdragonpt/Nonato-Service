@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
-import { db } from '../firebase.jsx'; // Importe o Firestore que configuramos
+import { db } from "../firebase.jsx"; // Importe o Firestore que configuramos
 
 const ConsultClients = () => {
   const [clients, setClients] = useState([]);
@@ -9,9 +9,9 @@ const ConsultClients = () => {
     const fetchClients = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "clientes"));
-        const clientsData = querySnapshot.docs.map(doc => ({
+        const clientsData = querySnapshot.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         }));
         setClients(clientsData);
       } catch (e) {
@@ -27,7 +27,7 @@ const ConsultClients = () => {
       <h2 className="text-xl mb-4 text-white">Clientes</h2>
       <ul className="text-white">
         {clients.length > 0 ? (
-          clients.map(client => (
+          clients.map((client) => (
             <li key={client.id} className="mb-2">
               {client.id} - {client.name}
             </li>

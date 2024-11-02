@@ -41,7 +41,10 @@ const ManageClients = () => {
       <h2 className="text-xl mb-4 text-white">Gerenciar Clientes</h2>
       <ul>
         {clients.map((client) => (
-          <li key={client.id} className="mb-4 flex items-center justify-between">
+          <li
+            key={client.id}
+            className="mb-4 flex items-center justify-between"
+          >
             <span>{client.name}</span>
             <div className="flex items-center">
               <Link

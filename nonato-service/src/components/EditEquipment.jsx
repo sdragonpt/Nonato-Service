@@ -1,17 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { doc, getDoc, updateDoc, collection, getDocs } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  collection,
+  getDocs,
+} from "firebase/firestore";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase.jsx";
 
 const EditEquipment = () => {
   const { equipmentId } = useParams(); // Obtém o ID do equipamento a partir da URL
   const [equipment, setEquipment] = useState(null); // Estado para armazenar os dados do equipamento
-  const [name, setName] = useState('');
-  const [type, setType] = useState('');
-  const [brand, setBrand] = useState('');
-  const [model, setModel] = useState('');
-  const [serialNumber, setSerialNumber] = useState('');
-  const [clientId, setClientId] = useState('');
+  const [name, setName] = useState("");
+  const [type, setType] = useState("");
+  const [brand, setBrand] = useState("");
+  const [model, setModel] = useState("");
+  const [serialNumber, setSerialNumber] = useState("");
+  const [clientId, setClientId] = useState("");
   const [clients, setClients] = useState([]); // Estado para armazenar os clientes
   const navigate = useNavigate();
 
@@ -69,17 +75,17 @@ const EditEquipment = () => {
     <div className="w-full xl:w-96 mx-auto p-6 bg-gray-800 rounded-lg">
       <h2 className="text-xl mb-4 text-white">Editar Equipamento</h2>
       <form onSubmit={handleSubmit}>
-        <input 
-          type="text" 
-          value={name} 
-          onChange={(e) => setName(e.target.value)} 
-          placeholder="Nome do Equipamento" 
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Nome do Equipamento"
           required
           className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <select 
-          value={clientId} 
-          onChange={(e) => setClientId(e.target.value)} 
+        <select
+          value={clientId}
+          onChange={(e) => setClientId(e.target.value)}
           className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
         >
@@ -90,36 +96,36 @@ const EditEquipment = () => {
             </option>
           ))}
         </select>
-        <input 
-          type="text" 
-          value={type} 
-          onChange={(e) => setType(e.target.value)} 
-          placeholder="Tipo" 
+        <input
+          type="text"
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          placeholder="Tipo"
           className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <input 
-          type="text" 
-          value={brand} 
-          onChange={(e) => setBrand(e.target.value)} 
-          placeholder="Marca" 
+        <input
+          type="text"
+          value={brand}
+          onChange={(e) => setBrand(e.target.value)}
+          placeholder="Marca"
           className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <input 
-          type="text" 
-          value={model} 
-          onChange={(e) => setModel(e.target.value)} 
-          placeholder="Modelo" 
+        <input
+          type="text"
+          value={model}
+          onChange={(e) => setModel(e.target.value)}
+          placeholder="Modelo"
           className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <input 
-          type="text" 
-          value={serialNumber} 
-          onChange={(e) => setSerialNumber(e.target.value)} 
-          placeholder="Número de Série" 
+        <input
+          type="text"
+          value={serialNumber}
+          onChange={(e) => setSerialNumber(e.target.value)}
+          placeholder="Número de Série"
           className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           className="w-full p-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition duration-300"
         >
           Salvar Alterações
