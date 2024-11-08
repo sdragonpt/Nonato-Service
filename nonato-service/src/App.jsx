@@ -67,7 +67,7 @@ const App = () => {
             <div className="relative min-h-screen bg-zinc-900 text-white">
               {/* Background image */}
               <div
-                className="absolute inset-0 opacity-60 bg-cover bg-center"
+                className="absolute inset-0 opacity-60 bg-cover bg-center lg:hidden"
                 style={{
                   backgroundImage: "url('/background2.png')",
                   backgroundPosition: "center",
