@@ -19,6 +19,11 @@ import ClientDetail from "./components/ClientDetail";
 import EquipmentDetail from "./components/EquipmentDetail";
 import EditClient from "./components/EditClient";
 import EditEquipment from "./components/EditEquipment";
+import AddService from "./components/AddService";
+import OrderDetail from "./components/OrderDetail";
+import AddWorkday from "./components/AddWorkDay";
+import EditService from "./components/EditService";
+import EditWorkday from "./components/EditWorkDay";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -113,7 +118,7 @@ const App = () => {
                       Clientes
                     </Link>
                     <Link
-                      to="/app/manage-services"
+                      to="/app/services"
                       onClick={closeNavbar}
                       className="text-white hover:bg-gray-700 p-2 rounded text-lg"
                     >
@@ -128,7 +133,7 @@ const App = () => {
                     </Link>
                     <div className="my-4" /> {/* Espaço extra */}
                     <Link
-                      to="/app/manage-order"
+                      to="/app/manage-services"
                       onClick={closeNavbar}
                       className="text-white hover:bg-gray-700 p-2 rounded text-lg"
                     >
@@ -156,6 +161,7 @@ const App = () => {
                     {/* Define child routes without the /app prefix */}
                     <Route path="add-client" element={<AddClient />} />
                     <Route path="add-equipment" element={<AddEquipment />} />
+                    <Route path="add-service" element={<AddService />} />
                     <Route
                       path="manage-services"
                       element={<ManageServices />}
@@ -187,6 +193,22 @@ const App = () => {
                     <Route
                       path="client/:clientId/add-equipment"
                       element={<AddEquipment />}
+                    />
+                    <Route
+                      path="order-detail/:serviceId"
+                      element={<OrderDetail />}
+                    />
+                    <Route
+                      path="order/:serviceId/add-workday"
+                      element={<AddWorkday />}
+                    />
+                    <Route
+                      path="edit-service-order/:serviceId"
+                      element={<EditService />}
+                    />
+                    <Route
+                      path="/edit-workday/:workdayId"
+                      element={<EditWorkday />}
                     />
                   </Routes>
                 </div>
