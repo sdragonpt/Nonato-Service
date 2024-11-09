@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import { firebaseApp } from "../firebase"; // Make sure Firebase is initialized here
+import { firebaseApp } from "../firebase"; // Certifique-se de que o Firebase foi inicializado aqui
 
 const auth = getAuth(firebaseApp);
 
@@ -11,21 +11,25 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const allowedEmail = "sergionunoribeiro@gmail.com"; // Replace with your designated account email
+  // Lista de e-mails permitidos
+  const allowedEmails = [
+    "sergionunoribeiro@gmail.com",
+    "service.nonato@gmail.com", // Adicione os e-mails desejados aqui
+  ];
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
-    // Check if the email matches the allowed account
-    if (email !== allowedEmail) {
+    // Verifica se o e-mail está na lista de permitidos
+    if (!allowedEmails.includes(email)) {
       setError("Access denied.");
       return;
     }
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate("/app"); // Redirect to the main page on successful login
+      navigate("/app"); // Redireciona para a página principal após login bem-sucedido
     } catch (err) {
       setError("Failed to log in. Check your credentials.");
       console.error("Login error:", err);

@@ -21,7 +21,7 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
   }
 
   // Carregar a imagem do fundo
-  const backgroundImageBytes = await fetch("/background3.png").then((res) =>
+  const backgroundImageBytes = await fetch("/background5.png").then((res) =>
     res.arrayBuffer()
   );
   const backgroundImage = await pdfDoc.embedPng(backgroundImageBytes);
@@ -43,10 +43,10 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
   const topImage = await pdfDoc.embedPng(topImageBytes);
 
   // Desenhar a imagem de fundo
-  const topImageWidth = 50; // Ajuste o tamanho da imagem conforme necessário
-  const topImageHeight = 50; // Ajuste o tamanho da imagem conforme necessário
+  const topImageWidth = 65; // Ajuste o tamanho da imagem conforme necessário
+  const topImageHeight = 65; // Ajuste o tamanho da imagem conforme necessário
   page.drawImage(topImage, {
-    x: 190,
+    x: 50,
     y: height - topImageHeight - 30, // Empurra a imagem para baixo
     width: topImageWidth,
     height: topImageHeight,
@@ -54,8 +54,8 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
 
   const yPosi = height - 50;
   // Adicionando "Protocolo de Serviço"
-  page.drawText("Protocolo de Serviço", {
-    x: 250, // Ajuste a posição para a direita
+  page.drawText("Relatório de Serviço", {
+    x: 220, // Ajuste a posição para a direita
     y: yPosi,
     size: 16,
     color: rgb(0, 0, 0.8),
@@ -64,16 +64,16 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
 
   // Adicionando "ASSISTÊNCIA TÉCNICA" abaixo de "Protocolo de Serviço"
   page.drawText("ASSISTÊNCIA TÉCNICA", {
-    x: 260, // Mantém a mesma posição horizontal
+    x: 228, // Mantém a mesma posição horizontal
     y: yPosi - 20, // Desloca 20 unidades para baixo (ajuste conforme necessário)
     size: 12,
     color: rgb(0, 0, 0.8),
     font: helveticaBoldFont,
   });
   page.drawText("Tel (SERVIÇO): 911115479 - EMAIL: service.nonato@gmail.com", {
-    x: 150,
-    y: height - 90,
-    size: fontSize,
+    x: 303,
+    y: height - 860,
+    size: 8,
     font: helveticaFont,
   });
 
@@ -132,7 +132,7 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
   // Configuração da tabela
   let tableYStart = infoYStart - 100;
   const cellHeight = 20;
-  const columnWidths = [48, 30, 44, 25, 30, 44, 25, 25, 44, 30, 32, 42, 25, 40];
+  const columnWidths = [44, 40, 40, 25, 40, 40, 25, 38, 38, 25, 38, 38, 25, 40];
   const headers = [
     "dd/mm/aa",
     "Saída",
@@ -141,7 +141,7 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
     "Saída",
     "Chegada",
     "hs",
-    "ida",
+    "Ida",
     "Retorno",
     "Total",
     "Início",
@@ -152,16 +152,40 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
 
   // Novo cabeçalho adicional
   const extraHeaders = ["DATA", "IDA", "RETORNO", "KM", "HORAS", "PAUSA"];
-  const extraHeaderWidths = [48, 99, 99, 99, 99, 40]; // Larguras aproximadas para acomodar o texto
+  const extraHeaderWidths = [44, 105, 105, 101, 101, 40]; // Larguras aproximadas para acomodar o texto
 
   let xPos = 50; // Declara `xPos` apenas uma vez no escopo da função
   const extraHeaderYPosition = tableYStart - 5; // Posição vertical para os novos cabeçalhos
   extraHeaders.forEach((header, index) => {
+    // Calcula a largura do texto
+    const textWidth = helveticaBoldFont.widthOfTextAtSize(
+      header,
+      tableFontSize
+    );
+
+    // Calcula a posição x para centralizar o texto no retângulo
+    const textXPos = xPos + (extraHeaderWidths[index] - textWidth) / 2;
+
     page.drawText(header, {
-      x: xPos + 5,
+      x: textXPos, // Posição x centralizada
       y: extraHeaderYPosition - 10,
       size: tableFontSize,
       font: helveticaBoldFont,
+    });
+
+    xPos += extraHeaderWidths[index];
+  });
+
+  // Desenha as bordas para o cabeçalho adicional
+  xPos = 50; // Redefine `xPos` antes de usá-lo para as bordas dos cabeçalhos adicionais
+  extraHeaders.forEach((_, index) => {
+    page.drawRectangle({
+      x: xPos,
+      y: extraHeaderYPosition - cellHeight + 3,
+      width: extraHeaderWidths[index],
+      height: cellHeight,
+      borderColor: rgb(0, 0, 0),
+      borderWidth: 1,
     });
     xPos += extraHeaderWidths[index];
   });
@@ -184,12 +208,19 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
       });
     }
 
+    // Calcula a largura do texto
+    const textWidth = helveticaBoldFont.widthOfTextAtSize(header, 7);
+
+    // Centraliza o texto no retângulo
+    const textXPos = xPos + (columnWidths[index] - textWidth) / 2;
+
     page.drawText(header, {
-      x: xPos + 5,
+      x: textXPos, // Posição x centralizada
       y: headerYPosition - 15,
-      size: tableFontSize,
+      size: 7,
       font: helveticaBoldFont,
     });
+
     xPos += columnWidths[index];
   });
 
@@ -209,20 +240,6 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
 
   // Posição inicial da primeira linha de dados (ajustada para evitar sobreposição)
   let yPosition = headerYPosition - cellHeight - 20; // Aumente o valor para garantir que a primeira linha não sobreponha o cabeçalho
-
-  // Desenha as bordas para o cabeçalho adicional
-  xPos = 50; // Redefine `xPos` antes de usá-lo para as bordas dos cabeçalhos adicionais
-  extraHeaders.forEach((_, index) => {
-    page.drawRectangle({
-      x: xPos,
-      y: extraHeaderYPosition - cellHeight,
-      width: extraHeaderWidths[index],
-      height: cellHeight,
-      borderColor: rgb(0, 0, 0),
-      borderWidth: 1,
-    });
-    xPos += extraHeaderWidths[index];
-  });
 
   // Preenche as linhas de dados
   workdays.forEach((day) => {
@@ -266,8 +283,14 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
         });
       }
 
+      // Calcula a largura do texto
+      const textWidth = helveticaFont.widthOfTextAtSize(data, tableFontSize);
+
+      // Calcula a posição x para centralizar o texto no retângulo
+      const textXPos = xPos + (columnWidths[index] - textWidth) / 2;
+
       page.drawText(data, {
-        x: xPos + 5,
+        x: textXPos, // Posição x centralizada
         y: yPosition + 20 - 15,
         size: tableFontSize,
         font: helveticaFont,
