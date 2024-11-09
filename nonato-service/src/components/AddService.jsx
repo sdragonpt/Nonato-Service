@@ -18,13 +18,10 @@ const AddService = () => {
     arrivalTime: "",
     kmDeparture: "",
     kmReturn: "",
-    startTime: "",
-    endTime: "",
     pause: false,
     pauseHours: "",
-    return: false,
-    returnDepartureTime: "",
-    returnArrivalTime: "",
+    returnDepartureTime: "", // Mover "returnDepartureTime" para o local correto
+    returnArrivalTime: "", // Mover "returnArrivalTime" para o local correto
   });
 
   const navigate = useNavigate();
@@ -234,7 +231,7 @@ const AddService = () => {
               </div>
 
               <div className="mb-4">
-                <h3 className="text-lg text-white">KM´s</h3>
+                <h3 className="text-lg text-white">KM's</h3>
                 <input
                   type="number"
                   name="kmDeparture"
@@ -254,131 +251,52 @@ const AddService = () => {
               </div>
 
               <div className="mb-4">
-                <h3 className="text-lg text-white">Horas</h3>
+                <h3 className="text-lg text-white">Retorno</h3>
                 <input
                   type="time"
-                  name="startTime"
-                  value={workday.startTime}
+                  name="returnDepartureTime"
+                  value={workday.returnDepartureTime}
                   onChange={handleWorkdayChange}
-                  placeholder="Início"
                   className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
                 />
                 <input
                   type="time"
-                  name="endTime"
-                  value={workday.endTime}
+                  name="returnArrivalTime"
+                  value={workday.returnArrivalTime}
                   onChange={handleWorkdayChange}
-                  placeholder="Término"
                   className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
                 />
               </div>
 
+              {/* Checkbox para Pausa */}
               <div className="mb-4">
-                <h3 className="text-lg text-white mb-2">Pausa?</h3>
-                <div className="flex items-center space-x-4">
+                <label className="text-white flex items-center space-x-2 mb-2">
                   <input
                     type="checkbox"
                     name="pause"
                     checked={workday.pause}
                     onChange={handleWorkdayChange}
-                    className="h-6 w-6 bg-gray-600 border-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 transition duration-300"
+                    className="w-6 h-6 text-violet-600"
                   />
-                  <label className="text-white text-sm">Sim</label>
-                </div>
+                  <span>Pausa</span>
+                </label>
                 {workday.pause && (
                   <input
-                    type="number"
+                    type="text"
                     name="pauseHours"
                     value={workday.pauseHours}
                     onChange={handleWorkdayChange}
                     placeholder="Horas de Pausa"
-                    className="w-full p-3 mt-2 rounded-md bg-gray-700 text-white border border-gray-600 focus:ring-2 focus:ring-blue-500 transition duration-300"
+                    className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
                   />
                 )}
               </div>
-
-              <div className="mb-4">
-                <h3 className="text-lg text-white mb-2">Retorno?</h3>
-                <div className="flex items-center space-x-4">
-                  <input
-                    type="checkbox"
-                    name="return"
-                    checked={workday.return}
-                    onChange={handleWorkdayChange}
-                    className="h-6 w-6 bg-gray-600 border-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500 transition duration-300"
-                  />
-                  <label className="text-white text-sm">Sim</label>
-                </div>
-                {workday.return && (
-                  <div className="space-y-3 mt-2">
-                    <input
-                      type="time"
-                      name="returnDepartureTime"
-                      value={workday.returnDepartureTime}
-                      onChange={handleWorkdayChange}
-                      placeholder="Horário de saída"
-                      className="w-full p-3 rounded-md bg-gray-700 text-white border border-gray-600 focus:ring-2 focus:ring-blue-500 transition duration-300"
-                    />
-                    <input
-                      type="time"
-                      name="returnArrivalTime"
-                      value={workday.returnArrivalTime}
-                      onChange={handleWorkdayChange}
-                      placeholder="Horário de chegada"
-                      className="w-full p-3 rounded-md bg-gray-700 text-white border border-gray-600 focus:ring-2 focus:ring-blue-500 transition duration-300"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {workday.pause && (
-                <input
-                  type="number"
-                  name="pauseHours"
-                  value={workday.pauseHours}
-                  onChange={handleWorkdayChange}
-                  placeholder="Horas de pausa"
-                  className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-                />
-              )}
-
-              <div className="flex items-center mb-4">
-                <label className="text-white">Retorno</label>
-                <input
-                  type="checkbox"
-                  name="return"
-                  checked={workday.return}
-                  onChange={handleWorkdayChange}
-                  className="ml-2"
-                />
-              </div>
-
-              {workday.return && (
-                <div>
-                  <input
-                    type="time"
-                    name="returnDepartureTime"
-                    value={workday.returnDepartureTime}
-                    onChange={handleWorkdayChange}
-                    placeholder="Hora de ida"
-                    className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-                  />
-                  <input
-                    type="time"
-                    name="returnArrivalTime"
-                    value={workday.returnArrivalTime}
-                    onChange={handleWorkdayChange}
-                    placeholder="Hora de retorno"
-                    className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-                  />
-                </div>
-              )}
             </div>
           )}
 
           <button
             type="submit"
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-300"
+            className="w-full px-4 py-2 bg-green-600 rounded-lg text-white hover:bg-green-700 transition duration-300"
           >
             Adicionar Serviço
           </button>

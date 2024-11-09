@@ -23,4 +23,4 @@ const db = getFirestore(app);
 // Inicializa Analytics (opcional)
 const analytics = getAnalytics(app);
 
-export { db };
+export { db, app as firebaseApp };

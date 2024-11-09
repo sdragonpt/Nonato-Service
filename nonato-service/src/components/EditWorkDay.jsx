@@ -70,118 +70,82 @@ const EditWorkday = () => {
           />
         </div>
         <div className="mb-4">
-          <label className="text-lg text-white">Horário de Início</label>
-          <input
-            type="time"
-            name="startTime"
-            value={workday.startTime || ""}
-            onChange={handleWorkdayChange}
-            className="w-full p-2 mt-1 rounded bg-gray-700 text-white"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="text-lg text-white">Horário de Chegada</label>
-          <input
-            type="time"
-            name="arrivalTime"
-            value={workday.arrivalTime || ""}
-            onChange={handleWorkdayChange}
-            className="w-full p-2 mt-1 rounded bg-gray-700 text-white"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="text-lg text-white">Horário de Saída</label>
+          <h3 className="text-lg text-white">Ida</h3>
           <input
             type="time"
             name="departureTime"
             value={workday.departureTime || ""}
             onChange={handleWorkdayChange}
-            className="w-full p-2 mt-1 rounded bg-gray-700 text-white"
+            className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+          />
+          <input
+            type="time"
+            name="arrivalTime"
+            value={workday.arrivalTime || ""}
+            onChange={handleWorkdayChange}
+            className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
           />
         </div>
         <div className="mb-4">
-          <label className="text-lg text-white">Kilometragem de Saída</label>
+          <h3 className="text-lg text-white">KM's</h3>
           <input
-            type="text"
+            type="number"
             name="kmDeparture"
             value={workday.kmDeparture || ""}
             onChange={handleWorkdayChange}
-            className="w-full p-2 mt-1 rounded bg-gray-700 text-white"
+            placeholder="Ida"
+            className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
           />
-        </div>
-        <div className="mb-4">
-          <label className="text-lg text-white">Kilometragem de Retorno</label>
           <input
-            type="text"
+            type="number"
             name="kmReturn"
             value={workday.kmReturn || ""}
             onChange={handleWorkdayChange}
-            className="w-full p-2 mt-1 rounded bg-gray-700 text-white"
+            placeholder="Retorno"
+            className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
           />
-        </div>
-        <div className="mb-4 flex items-center">
-          <input
-            type="checkbox"
-            name="pause"
-            checked={workday.pause || false}
-            onChange={handleWorkdayChange}
-            className="mr-2"
-          />
-          <label className="text-lg text-white">Pausa</label>
         </div>
 
-        {/* Exibir horas de pausa somente se a checkbox estiver marcada */}
-        {workday.pause && (
-          <div className="mb-4">
-            <label className="text-lg text-white">Horas de Pausa</label>
+        <div className="mb-4">
+          <h3 className="text-lg text-white">Retorno</h3>
+          <input
+            type="time"
+            name="returnDepartureTime"
+            value={workday.returnDepartureTime || ""}
+            onChange={handleWorkdayChange}
+            className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+          />
+          <input
+            type="time"
+            name="returnArrivalTime"
+            value={workday.returnArrivalTime || ""}
+            onChange={handleWorkdayChange}
+            className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+          />
+        </div>
+
+        <div className="mb-4">
+          <label className="text-white flex items-center space-x-2 mb-2">
+            <input
+              type="checkbox"
+              name="pause"
+              checked={workday.pause}
+              onChange={handleWorkdayChange}
+              className="w-6 h-6 text-violet-600"
+            />
+            <span>Pausa</span>
+          </label>
+          {workday.pause && (
             <input
               type="text"
               name="pauseHours"
               value={workday.pauseHours || ""}
               onChange={handleWorkdayChange}
-              className="w-full p-2 mt-1 rounded bg-gray-700 text-white"
+              placeholder="Horas de Pausa"
+              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
             />
-          </div>
-        )}
-
-        <div className="mb-4 flex items-center">
-          <input
-            type="checkbox"
-            name="return"
-            checked={workday.return || false}
-            onChange={handleWorkdayChange}
-            className="mr-2"
-          />
-          <label className="text-lg text-white">Retorno</label>
+          )}
         </div>
-
-        {/* Exibir horários de retorno somente se a checkbox estiver marcada */}
-        {workday.return && (
-          <>
-            <div className="mb-4">
-              <label className="text-lg text-white">Horário de Retorno</label>
-              <input
-                type="time"
-                name="returnArrivalTime"
-                value={workday.returnArrivalTime || ""}
-                onChange={handleWorkdayChange}
-                className="w-full p-2 mt-1 rounded bg-gray-700 text-white"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="text-lg text-white">
-                Horário de Retorno (Saída)
-              </label>
-              <input
-                type="time"
-                name="returnDepartureTime"
-                value={workday.returnDepartureTime || ""}
-                onChange={handleWorkdayChange}
-                className="w-full p-2 mt-1 rounded bg-gray-700 text-white"
-              />
-            </div>
-          </>
-        )}
 
         <button
           onClick={handleUpdateWorkday}

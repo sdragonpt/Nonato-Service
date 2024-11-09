@@ -12,11 +12,8 @@ const AddWorkday = () => {
     arrivalTime: "",
     kmDeparture: "",
     kmReturn: "",
-    startTime: "",
-    endTime: "",
     pause: false,
     pauseHours: "",
-    return: false,
     returnDepartureTime: "",
     returnArrivalTime: "",
   });
@@ -42,38 +39,20 @@ const AddWorkday = () => {
 
       // Adicionando o novo dia de trabalho à coleção
       await addDoc(workdaysCollection, {
+        serviceId, // Associando o dia de trabalho com o serviço
         workDate: workday.workDate,
         departureTime: workday.departureTime,
         arrivalTime: workday.arrivalTime,
         kmDeparture: workday.kmDeparture,
         kmReturn: workday.kmReturn,
-        startTime: workday.startTime,
-        endTime: workday.endTime,
         pause: workday.pause,
         pauseHours: workday.pauseHours,
-        return: workday.return,
         returnDepartureTime: workday.returnDepartureTime,
         returnArrivalTime: workday.returnArrivalTime,
-        serviceId: serviceId, // Aqui, associamos o serviceId
       });
 
-      console.log("Dia de Trabalho adicionado com sucesso!");
-
-      // Resetar o formulário após a adição
-      setWorkday({
-        workDate: "",
-        departureTime: "",
-        arrivalTime: "",
-        kmDeparture: "",
-        kmReturn: "",
-        startTime: "",
-        endTime: "",
-        pause: false,
-        pauseHours: "",
-        return: false,
-        returnDepartureTime: "",
-        returnArrivalTime: "",
-      });
+      console.log("Dia de trabalho adicionado com sucesso!");
+      navigate(-1); // Redireciona para o serviço após adicionar o dia de trabalho
     } catch (error) {
       console.error("Erro ao adicionar dia de trabalho:", error);
     }
@@ -93,155 +72,105 @@ const AddWorkday = () => {
         Adicionar Dia de Trabalho
       </h2>
       <div className="w-full xl:w-96 mx-auto p-6 bg-gray-800 rounded-lg mt-10">
-        {/* Campos de Entrada */}
-        <div className="mb-4">
-          <label className="text-lg text-white">Data</label>
-          <input
-            type="date"
-            name="workDate"
-            value={workday.workDate}
-            onChange={handleWorkdayChange}
-            className="w-full p-2 mt-1 rounded bg-gray-700 text-white"
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="text-lg text-white">Horário de Saída</label>
-          <input
-            type="time"
-            name="departureTime"
-            value={workday.departureTime}
-            onChange={handleWorkdayChange}
-            className="w-full p-2 mt-1 rounded bg-gray-700 text-white"
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="text-lg text-white">Horário de Chegada</label>
-          <input
-            type="time"
-            name="arrivalTime"
-            value={workday.arrivalTime}
-            onChange={handleWorkdayChange}
-            className="w-full p-2 mt-1 rounded bg-gray-700 text-white"
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="text-lg text-white">Km de Saída</label>
-          <input
-            type="number"
-            name="kmDeparture"
-            value={workday.kmDeparture}
-            onChange={handleWorkdayChange}
-            className="w-full p-2 mt-1 rounded bg-gray-700 text-white"
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="text-lg text-white">Km de Retorno</label>
-          <input
-            type="number"
-            name="kmReturn"
-            value={workday.kmReturn}
-            onChange={handleWorkdayChange}
-            className="w-full p-2 mt-1 rounded bg-gray-700 text-white"
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="text-lg text-white">Horário Inicial</label>
-          <input
-            type="time"
-            name="startTime"
-            value={workday.startTime}
-            onChange={handleWorkdayChange}
-            className="w-full p-2 mt-1 rounded bg-gray-700 text-white"
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="text-lg text-white">Horário Final</label>
-          <input
-            type="time"
-            name="endTime"
-            value={workday.endTime}
-            onChange={handleWorkdayChange}
-            className="w-full p-2 mt-1 rounded bg-gray-700 text-white"
-          />
-        </div>
-
-        <div className="mb-4 flex items-center">
-          <input
-            type="checkbox"
-            name="pause"
-            checked={workday.pause}
-            onChange={handleWorkdayChange}
-            className="mr-2"
-          />
-          <label className="text-lg text-white">Pausa</label>
-        </div>
-
-        {workday.pause && (
+        <form onSubmit={handleAddWorkdayToDb}>
           <div className="mb-4">
-            <label className="text-lg text-white">Horas de Pausa</label>
+            <h3 className="text-lg text-white">Data</h3>
             <input
-              type="number"
-              name="pauseHours"
-              value={workday.pauseHours}
+              type="date"
+              name="workDate"
+              value={workday.workDate}
               onChange={handleWorkdayChange}
-              className="w-full p-2 mt-1 rounded bg-gray-700 text-white"
+              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+              required
             />
           </div>
-        )}
 
-        <div className="mb-4 flex items-center">
-          <input
-            type="checkbox"
-            name="return"
-            checked={workday.return}
-            onChange={handleWorkdayChange}
-            className="mr-2"
-          />
-          <label className="text-lg text-white">Retorno</label>
-        </div>
-
-        {workday.return && (
           <div className="mb-4">
-            <label className="text-lg text-white">
-              Horário de Saída para Retorno
-            </label>
+            <h3 className="text-lg text-white">Ida</h3>
+            <input
+              type="time"
+              name="departureTime"
+              value={workday.departureTime}
+              onChange={handleWorkdayChange}
+              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+            />
+            <input
+              type="time"
+              name="arrivalTime"
+              value={workday.arrivalTime}
+              onChange={handleWorkdayChange}
+              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+            />
+          </div>
+
+          <div className="mb-4">
+            <h3 className="text-lg text-white">KM's</h3>
+            <input
+              type="number"
+              name="kmDeparture"
+              value={workday.kmDeparture}
+              onChange={handleWorkdayChange}
+              placeholder="Ida"
+              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+            />
+            <input
+              type="number"
+              name="kmReturn"
+              value={workday.kmReturn}
+              onChange={handleWorkdayChange}
+              placeholder="Retorno"
+              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+            />
+          </div>
+
+          <div className="mb-4">
+            <h3 className="text-lg text-white">Retorno</h3>
             <input
               type="time"
               name="returnDepartureTime"
               value={workday.returnDepartureTime}
               onChange={handleWorkdayChange}
-              className="w-full p-2 mt-1 rounded bg-gray-700 text-white"
+              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
             />
-          </div>
-        )}
-
-        {workday.return && (
-          <div className="mb-4">
-            <label className="text-lg text-white">
-              Horário de Chegada do Retorno
-            </label>
             <input
               type="time"
               name="returnArrivalTime"
               value={workday.returnArrivalTime}
               onChange={handleWorkdayChange}
-              className="w-full p-2 mt-1 rounded bg-gray-700 text-white"
+              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
             />
           </div>
-        )}
 
-        <button
-          onClick={handleAddWorkdayToDb}
-          className="mt-4 bg-blue-600 text-white py-2 px-4 rounded w-full hover:bg-blue-700 transition"
-        >
-          Adicionar Dia de Trabalho
-        </button>
+          <div className="mb-4">
+            <label className="text-white flex items-center space-x-2 mb-2">
+              <input
+                type="checkbox"
+                name="pause"
+                checked={workday.pause}
+                onChange={handleWorkdayChange}
+                className="w-6 h-6 text-violet-600"
+              />
+              <span>Pausa</span>
+            </label>
+            {workday.pause && (
+              <input
+                type="text"
+                name="pauseHours"
+                value={workday.pauseHours}
+                onChange={handleWorkdayChange}
+                placeholder="Horas de Pausa"
+                className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+              />
+            )}
+          </div>
+
+          <button
+            type="submit"
+            className="w-full px-4 py-2 bg-green-600 rounded-lg text-white hover:bg-green-700 transition duration-300"
+          >
+            Adicionar Dia de Trabalho
+          </button>
+        </form>
       </div>
     </div>
   );

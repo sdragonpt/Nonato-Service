@@ -10,6 +10,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
+import generateServiceOrderPDF from "./generatePDF";
 
 const OrderDetail = () => {
   const { serviceId } = useParams();
@@ -59,6 +60,12 @@ const OrderDetail = () => {
       setWorkdays(workdaysList); // Updates the workdays state
     } catch (error) {
       console.error("Error fetching workdays:", error);
+    }
+  };
+
+  const handleGeneratePDF = async () => {
+    if (order && client && equipment && workdays) {
+      await generateServiceOrderPDF(order, client, equipment, workdays);
     }
   };
 
@@ -124,7 +131,7 @@ const OrderDetail = () => {
           </button>
         ) : (
           <button
-            onClick={generatePDF}
+            onClick={handleGeneratePDF}
             className="h-10 px-3 bg-green-600 mt-2 text-white text-lg flex items-center justify-center rounded-lg"
             aria-label="Gerar PDF"
           >
@@ -173,19 +180,6 @@ const OrderDetail = () => {
                 <p>
                   <strong>Horas de Pausa:</strong> {day.pauseHours}
                 </p>
-              )}
-              <p>
-                <strong>Retorno:</strong> {day.return ? "Sim" : "Não"}
-              </p>
-              {day.return && (
-                <>
-                  <p>
-                    <strong>Saída:</strong> {day.returnArrivalTime}
-                  </p>
-                  <p>
-                    <strong>Chegada:</strong> {day.returnDepartureTime}
-                  </p>
-                </>
               )}
             </div>
           ))
