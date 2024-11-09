@@ -105,16 +105,18 @@ const App = () => {
           element={
             <ProtectedRoute>
               {/* Protect all /app routes */}
-              <div className="relative min-h-screen bg-zinc-900 text-white">
-                <div
-                  className="absolute inset-0 opacity-60 bg-cover bg-center lg:hidden"
-                  style={{
-                    backgroundImage: "url('/background2.png')",
-                    backgroundPosition: "center",
-                    backgroundSize: "80%",
-                    backgroundRepeat: "no-repeat",
-                  }}
-                ></div>
+              <div
+                className="relative min-h-screen bg-cover bg-center bg-zinc-900 text-white"
+                style={{
+                  backgroundImage:
+                    window.innerWidth < 1024
+                      ? "url('/background2.png')"
+                      : "none",
+                  backgroundSize: "80%",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                }}
+              >
                 <div className="relative z-10">
                   <div className="p-4">
                     <button
