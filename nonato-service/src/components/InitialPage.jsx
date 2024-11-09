@@ -28,7 +28,7 @@ const InitialPage = ({ onEnter }) => {
           isLoaded ? "opacity-60" : "opacity-100"
         }`}
         style={{
-          backgroundImage: "url('/background2.png')",
+          backgroundImage: "url('/background3.png')",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
         }}

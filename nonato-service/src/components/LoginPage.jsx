@@ -25,7 +25,7 @@ const LoginPage = () => {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate("/"); // Redirect to the main page on successful login
+      navigate("/app"); // Redirect to the main page on successful login
     } catch (err) {
       setError("Failed to log in. Check your credentials.");
       console.error("Login error:", err);
@@ -34,7 +34,7 @@ const LoginPage = () => {
 
   return (
     <div className="flex justify-center items-center h-screen bg-zinc-900">
-      <div className="w-full max-w-xs p-8 bg-zinc-800 rounded-lg shadow-xl">
+      <div className="w-full max-w-xs p-8 bg-zinc-800 rounded-lg shadow-xl mx-6">
         <h2 className="text-2xl font-bold text-center text-white mb-6">
           Login
         </h2>

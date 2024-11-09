@@ -110,13 +110,16 @@ const App = () => {
                 style={{
                   backgroundImage:
                     window.innerWidth < 1024
-                      ? "url('/background2.png')"
+                      ? "url('/background3.png')"
                       : "none",
                   backgroundSize: "80%",
                   backgroundPosition: "center",
                   backgroundRepeat: "no-repeat",
+                  backgroundAttachment:
+                    window.innerWidth < 1024 ? "fixed" : "scroll",
                 }}
               >
+                {/* Main Content */}
                 <div className="relative z-10">
                   <div className="p-4">
                     <button
