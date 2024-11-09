@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+} from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { firebaseApp } from "../firebase"; // Certifique-se de que o Firebase foi inicializado aqui
 
@@ -36,6 +41,27 @@ const LoginPage = () => {
     }
   };
 
+  // Função para login com o Google
+  const handleGoogleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Verifica se o e-mail do usuário está na lista de permitidos
+      if (!allowedEmails.includes(user.email)) {
+        setError("Access denied.");
+        return;
+      }
+
+      navigate("/app"); // Redireciona para a página principal após login bem-sucedido
+    } catch (err) {
+      setError("Failed to log in with Google.");
+      console.error("Google login error:", err);
+    }
+  };
+
   return (
     <div className="flex justify-center items-center h-screen bg-zinc-900">
       <div className="w-full max-w-xs p-8 bg-zinc-800 rounded-lg shadow-xl mx-6">
@@ -43,6 +69,8 @@ const LoginPage = () => {
           Login
         </h2>
         {error && <p className="text-red-600 mb-4">{error}</p>}
+
+        {/* Formulário de login com email e senha */}
         <form onSubmit={handleLogin}>
           <div className="mb-4">
             <label className="block text-white">Email</label>
@@ -71,6 +99,14 @@ const LoginPage = () => {
             Log In
           </button>
         </form>
+
+        {/* Botão de login com Google */}
+        <button
+          onClick={handleGoogleLogin}
+          className="w-full py-2 bg-red-600 text-white rounded mt-4 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition"
+        >
+          Log in with Google
+        </button>
       </div>
     </div>
   );
