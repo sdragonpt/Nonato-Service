@@ -20,8 +20,18 @@ const AddService = () => {
     kmReturn: "",
     pause: false,
     pauseHours: "",
-    returnDepartureTime: "", // Mover "returnDepartureTime" para o local correto
-    returnArrivalTime: "", // Mover "returnArrivalTime" para o local correto
+    returnDepartureTime: "",
+    returnArrivalTime: "",
+    startHour: "", // Novo campo para hora de início
+    endHour: "", // Novo campo para hora de término
+    description: "",
+    concluido: false,
+    retorno: false,
+    funcionarios: false,
+    documentacao: false,
+    producao: false,
+    pecas: false,
+    resultDescriptiom: "",
   });
 
   const navigate = useNavigate();
@@ -85,7 +95,7 @@ const AddService = () => {
         date,
         clientId,
         equipmentId,
-        serviceType, // Adicionando o tipo de serviço
+        serviceType,
         status: "Aberto",
       });
       console.log("Serviço adicionado com sucesso!");
@@ -94,7 +104,7 @@ const AddService = () => {
       setDate(new Date().toISOString().split("T")[0]);
       setClientId("");
       setEquipmentId("");
-      setServiceType(""); // Limpar o campo de tipo de serviço
+      setServiceType("");
     } catch (error) {
       console.error("Erro ao adicionar serviço:", error);
     }
@@ -114,7 +124,6 @@ const AddService = () => {
 
   return (
     <div>
-      {/* Botão de Voltar no canto superior direito */}
       <button
         onClick={() => navigate(-1)}
         className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition transform hover:scale-105"
@@ -157,25 +166,7 @@ const AddService = () => {
             <option value="">Selecione um Equipamento</option>
             {filteredEquipments.map((equipment) => (
               <option key={equipment.id} value={equipment.id}>
-                {/* Exibe a marca, o modelo e a foto do equipamento (se houver) */}
-                <div className="flex items-center">
-                  {/* Se tiver foto, exibe a imagem, caso contrário, exibe um ícone padrão */}
-                  {equipment.photoUrl ? (
-                    <img
-                      src={equipment.photoUrl}
-                      alt={`${equipment.brand} ${equipment.model}`}
-                      className="w-8 h-8 rounded-full mr-2"
-                    />
-                  ) : (
-                    <span className="w-8 h-8 bg-gray-600 rounded-full mr-2 flex items-center justify-center">
-                      <i className="fas fa-camera text-white"></i>{" "}
-                      {/* Ícone padrão */}
-                    </span>
-                  )}
-                  <span>
-                    {equipment.brand} - {equipment.model}
-                  </span>
-                </div>
+                {equipment.brand} - {equipment.model}
               </option>
             ))}
           </select>
@@ -189,7 +180,96 @@ const AddService = () => {
             required
           />
 
-          {/* Botão para exibir campos de dia de trabalho */}
+          <div className="mb-4">
+            <div className="flex flex-wrap items-center mb-2">
+              <div className="pr-4 py-4">
+                <input
+                  type="checkbox"
+                  name="concluido"
+                  checked={workday.concluido}
+                  onChange={handleWorkdayChange}
+                  className="mr-2 h-6 w-6"
+                />
+                <label htmlFor="pause" className="text-white">
+                  Serviço Concluído
+                </label>
+              </div>
+              <div className="pr-4 py-4">
+                <input
+                  type="checkbox"
+                  name="retorno"
+                  checked={workday.retorno}
+                  onChange={handleWorkdayChange}
+                  className="mr-2 h-6 w-6"
+                />
+                <label htmlFor="pause" className="text-white">
+                  Retorno Necessário
+                </label>
+              </div>
+              <div className="pr-4 py-4">
+                <input
+                  type="checkbox"
+                  name="funcionarios"
+                  checked={workday.funcionarios}
+                  onChange={handleWorkdayChange}
+                  className="mr-2 h-6 w-6"
+                />
+                <label htmlFor="pause" className="text-white">
+                  Instrução dos Funcionários
+                </label>
+              </div>
+              <div className="pr-4 py-4">
+                <input
+                  type="checkbox"
+                  name="documentacao"
+                  checked={workday.documentacao}
+                  onChange={handleWorkdayChange}
+                  className="mr-2 h-6 w-6"
+                />
+                <label htmlFor="pause" className="text-white">
+                  Entrega da Documentação
+                </label>
+              </div>
+              <div className="pr-4 py-4">
+                <input
+                  type="checkbox"
+                  name="producao"
+                  checked={workday.producao}
+                  onChange={handleWorkdayChange}
+                  className="mr-2 h-6 w-6"
+                />
+                <label htmlFor="pause" className="text-white">
+                  Liberação para Produção
+                </label>
+              </div>
+              <div className="pr-4 py-4">
+                <input
+                  type="checkbox"
+                  name="pecas"
+                  checked={workday.pecas}
+                  onChange={handleWorkdayChange}
+                  className="mr-2 h-6 w-6"
+                />
+                <label htmlFor="pause" className="text-white">
+                  Envio de Orçamento de Peças
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <h3 className="text-lg text-white">Notas</h3>
+            <textarea
+              type="description"
+              name="resultDescription"
+              value={workday.resultDescription}
+              onChange={handleWorkdayChange}
+              placeholder="Notas sobre o Resultado do Trabalho"
+              rows="4" // Define o número de linhas visíveis
+              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+            />
+          </div>
+
           <button
             type="button"
             onClick={toggleWorkdayFields}
@@ -198,7 +278,6 @@ const AddService = () => {
             Adicionar dia de trabalho
           </button>
 
-          {/* Campos de dia de trabalho */}
           {showWorkdayFields && (
             <div>
               <div className="mb-4">
@@ -211,7 +290,6 @@ const AddService = () => {
                   className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
                 />
               </div>
-
               <div className="mb-4">
                 <h3 className="text-lg text-white">Ida</h3>
                 <input
@@ -229,7 +307,6 @@ const AddService = () => {
                   className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
                 />
               </div>
-
               <div className="mb-4">
                 <h3 className="text-lg text-white">KM's</h3>
                 <input
@@ -249,7 +326,6 @@ const AddService = () => {
                   className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
                 />
               </div>
-
               <div className="mb-4">
                 <h3 className="text-lg text-white">Retorno</h3>
                 <input
@@ -267,19 +343,39 @@ const AddService = () => {
                   className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
                 />
               </div>
-
-              {/* Checkbox para Pausa */}
               <div className="mb-4">
-                <label className="text-white flex items-center space-x-2 mb-2">
+                <h3 className="text-lg text-white">Horas</h3>
+                <input
+                  type="time"
+                  name="startHour"
+                  value={workday.startHour}
+                  onChange={handleWorkdayChange}
+                  placeholder="Hora de Início"
+                  className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+                />
+                <input
+                  type="time"
+                  name="endHour"
+                  value={workday.endHour}
+                  onChange={handleWorkdayChange}
+                  placeholder="Hora de Término"
+                  className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+                />
+              </div>
+
+              <div className="mb-4">
+                <div className="flex items-center mb-2">
                   <input
                     type="checkbox"
                     name="pause"
                     checked={workday.pause}
                     onChange={handleWorkdayChange}
-                    className="w-6 h-6 text-violet-600"
+                    className="mr-2 h-6 w-6"
                   />
-                  <span>Pausa</span>
-                </label>
+                  <label htmlFor="pause" className="text-white">
+                    Pausa
+                  </label>
+                </div>
                 {workday.pause && (
                   <input
                     type="text"
@@ -291,12 +387,25 @@ const AddService = () => {
                   />
                 )}
               </div>
+
+              <div className="mb-4">
+                <h3 className="text-lg text-white">Descrição</h3>
+                <textarea
+                  type="description"
+                  name="description"
+                  value={workday.description}
+                  onChange={handleWorkdayChange}
+                  placeholder="Descrição do Trabalho"
+                  rows="4" // Define o número de linhas visíveis
+                  className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+                />
+              </div>
             </div>
           )}
 
           <button
             type="submit"
-            className="w-full px-4 py-2 bg-green-600 rounded-lg text-white hover:bg-green-700 transition duration-300"
+            className="w-full px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition duration-300"
           >
             Adicionar Serviço
           </button>

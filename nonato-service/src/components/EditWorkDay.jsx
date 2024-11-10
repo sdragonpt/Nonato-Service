@@ -125,6 +125,26 @@ const EditWorkday = () => {
         </div>
 
         <div className="mb-4">
+          <h3 className="text-lg text-white">Horas</h3>
+          <input
+            type="time"
+            name="startHour"
+            value={workday.startHour || ""}
+            onChange={handleWorkdayChange}
+            placeholder="Hora de Início"
+            className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+          />
+          <input
+            type="time"
+            name="endHour"
+            value={workday.endHour || ""}
+            onChange={handleWorkdayChange}
+            placeholder="Hora de Término"
+            className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+          />
+        </div>
+
+        <div className="mb-4">
           <label className="text-white flex items-center space-x-2 mb-2">
             <input
               type="checkbox"
@@ -145,6 +165,19 @@ const EditWorkday = () => {
               className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
             />
           )}
+        </div>
+
+        <div className="mb-4">
+          <h3 className="text-lg text-white">Descrição</h3>
+          <textarea
+            type="description"
+            name="description"
+            value={workday.description || ""}
+            onChange={handleWorkdayChange}
+            placeholder="Descrição do Trabalho"
+            rows="4" // Define o número de linhas visíveis
+            className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+          />
         </div>
 
         <button

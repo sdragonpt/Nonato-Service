@@ -2,10 +2,12 @@ import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 async function generateServiceOrderPDF(order, client, equipment, workdays) {
   const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([600, 900]);
-  const { width, height } = page.getSize();
+  const pageWidth = 600;
+  const pageHeight = 900;
   const fontSize = 10;
   const tableFontSize = 8;
+  const minY = 50; // Margem inferior mínima para desenhar
+  const maxDaysPerPage = 5;
 
   // Carregar a fonte padrão Helvetica
   const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -26,31 +28,46 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
   );
   const backgroundImage = await pdfDoc.embedPng(backgroundImageBytes);
 
-  // Desenhar a imagem de fundo
-  const backgroundImageWidth = 700; // Ajuste o tamanho da imagem conforme necessário
-  const backgroundImageHeight = 1000; // Ajuste o tamanho da imagem conforme necessário
-  page.drawImage(backgroundImage, {
-    x: -40,
-    y: height - backgroundImageHeight + 50, // Empurra a imagem para baixo
-    width: backgroundImageWidth,
-    height: backgroundImageHeight,
-  });
-
-  // Carregar a imagem do fundo
+  // Carregar a imagem do topo
   const topImageBytes = await fetch("/nonato.png").then((res) =>
     res.arrayBuffer()
   );
   const topImage = await pdfDoc.embedPng(topImageBytes);
 
-  // Desenhar a imagem de fundo
-  const topImageWidth = 65; // Ajuste o tamanho da imagem conforme necessário
-  const topImageHeight = 65; // Ajuste o tamanho da imagem conforme necessário
-  page.drawImage(topImage, {
-    x: 50,
-    y: height - topImageHeight - 30, // Empurra a imagem para baixo
-    width: topImageWidth,
-    height: topImageHeight,
-  });
+  // Função auxiliar para criar uma nova página
+  const createNewPage = () => {
+    const newPage = pdfDoc.addPage([pageWidth, pageHeight]);
+    const { height } = newPage.getSize();
+
+    // Desenhar as imagens na nova página
+    newPage.drawImage(backgroundImage, {
+      x: -40,
+      y: height - 1000 + 50,
+      width: 700,
+      height: 1000,
+    });
+    newPage.drawImage(topImage, {
+      x: 50,
+      y: height - 65 - 30,
+      width: 65,
+      height: 65,
+    });
+
+    return newPage;
+  };
+
+  // Criar a primeira página
+  let page = createNewPage();
+  const { width, height } = page.getSize();
+  let yPos = pageHeight - 110; // Posição inicial para o conteúdo
+
+  // Função para verificar e criar nova página quando `yPos` está próximo de `minY`
+  const checkAndAddPage = () => {
+    if (yPos < minY) {
+      page = createNewPage();
+      yPos = pageHeight - 110; // Resetar posição no topo da nova página
+    }
+  };
 
   const yPosi = height - 50;
   // Adicionando "Protocolo de Serviço"
@@ -79,7 +96,7 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
 
   // Informações Básicas
   const infoYStart = height - 110;
-  page.drawText(`Técnico: ${safeText(order.technician)}`, {
+  page.drawText(`Técnico: Nonato`, {
     x: 50,
     y: infoYStart,
     size: fontSize,
@@ -93,6 +110,12 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
   });
   page.drawText(`Cliente: ${safeText(client.name)}`, {
     x: 50,
+    y: infoYStart - 20,
+    size: fontSize,
+    font: helveticaFont,
+  });
+  page.drawText(`${safeText(client.postalCode)}`, {
+    x: 185,
     y: infoYStart - 20,
     size: fontSize,
     font: helveticaFont,
@@ -249,7 +272,11 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
       day.returnDepartureTime,
       day.returnArrivalTime
     );
-    const hoursWork = calculateHours(day.arrivalTime, day.returnDepartureTime);
+    const hoursWork = calculateHoursWithPause(
+      day.startHour,
+      day.endHour,
+      day.pauseHours
+    );
 
     const rowData = [
       safeText(formatDate(day.workDate)),
@@ -262,8 +289,8 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
       safeText(day.kmDeparture),
       safeText(day.kmReturn),
       safeText(kmTotal),
-      safeText(day.arrivalTime),
-      safeText(day.returnDepartureTime),
+      safeText(day.startHour),
+      safeText(day.endHour),
       safeText(hoursWork),
       safeText(day.pauseHours),
     ];
@@ -313,7 +340,6 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
     yPosition -= cellHeight;
   });
 
-  // Função para calcular horas
   function calculateHours(start, end) {
     const startTime = new Date(`1970-01-01T${start}:00`);
     let endTime = new Date(`1970-01-01T${end}:00`);
@@ -324,14 +350,38 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
     }
 
     const diff = (endTime - startTime) / 1000 / 3600;
-    return diff >= 0 ? diff.toFixed(1) : "N/A";
+
+    return diff >= 0 ? diff.toFixed(1) : "0"; // Retorna 0 em vez de "N/A"
+  }
+
+  // Função para calcular horas, subtraindo o tempo de pausa
+  function calculateHoursWithPause(start, end, pauseHours) {
+    const startTime = new Date(`1970-01-01T${start}:00`);
+    let endTime = new Date(`1970-01-01T${end}:00`);
+
+    // Se a hora de chegada for anterior à hora de saída, significa que a chegada é no dia seguinte
+    if (endTime < startTime) {
+      endTime.setDate(endTime.getDate() + 1); // Adiciona 1 dia à data de chegada
+    }
+
+    // Calcula a diferença em horas
+    let diff = (endTime - startTime) / 1000 / 3600;
+
+    // Subtrai o tempo de pausa (pauseHours) do total
+    diff -= pauseHours;
+
+    return diff >= 0 ? diff.toFixed(1) : "0"; // Retorna 0 em vez de "N/A"
   }
 
   // Seções de Observações e Conclusão
   let totalWorkHours = 0; // Inicializa a variável para armazenar a soma das horas de trabalho
 
   workdays.forEach((day) => {
-    const hoursWork = calculateHours(day.arrivalTime, day.returnDepartureTime);
+    const hoursWork = calculateHoursWithPause(
+      day.startHour,
+      day.endHour,
+      day.pauseHours
+    );
     totalWorkHours += parseFloat(hoursWork); // Acumulando as horas de trabalho
   });
 
@@ -348,18 +398,74 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
     size: fontSize,
     font: helveticaFont,
   });
-  yPosition -= 50;
+
+  const boxPadding = 10; // Espaçamento interno da caixa
+  const boxWidth = 396; // Largura da caixa de descrição
+
+  yPosition -= 40;
   page.drawText("Descrição do Trabalho:", {
     x: 50,
     y: yPosition,
     size: fontSize,
     font: helveticaBoldFont,
   });
-  page.drawText(safeText(order.workDescription), {
-    x: 50,
-    y: yPosition - 20,
-    size: fontSize,
-    font: helveticaFont,
+
+  // Loop para cada dia de trabalho
+  workdays.forEach((day) => {
+    // Verifica se a descrição do dia não está vazia nem "N/A"
+    const descriptionText = safeText(day.description);
+    if (
+      descriptionText.trim() !== "" &&
+      descriptionText.trim().toUpperCase() !== "N/A"
+    ) {
+      // Reduz a posição Y para mostrar a data do dia
+      yPosition -= 30;
+
+      // Desenha a data do dia
+      page.drawText(`Dia: ${safeText(formatDate(day.workDate))}`, {
+        x: 50,
+        y: yPosition,
+        size: fontSize,
+        font: helveticaFont,
+      });
+
+      // Reduz a posição Y para desenhar a caixa da descrição
+      yPosition -= boxPadding;
+
+      // Desenha o retângulo da caixa da descrição
+      const boxHeight = fontSize + 2 * boxPadding * 2; // Definindo a altura da caixa
+
+      page.drawRectangle({
+        x: 150,
+        y: yPosition - 30, // Alinhamento da caixa
+        width: boxWidth,
+        height: boxHeight, // Usando a altura definida
+        borderColor: rgb(0, 0, 0), // Cor da borda
+        color: rgb(0.9, 0.9, 0.9), // Cor de fundo da caixa
+      });
+
+      // Calculando a posição para centralizar o texto verticalmente
+      const lineHeight = 10;
+      const textHeight = fontSize; // Altura do texto
+      const textYPosition =
+        yPosition - boxPadding + (boxHeight - textHeight) / 2;
+
+      // Desenha a descrição dentro da caixa, centralizada verticalmente
+      page.drawText(descriptionText, {
+        x: 150 + boxPadding,
+        y: textYPosition - 2,
+        size: 8,
+        font: helveticaFont,
+        lineHeight: lineHeight,
+      });
+
+      // Atualiza a posição Y para o próximo item
+      yPosition -= boxHeight - 30; // Ajuste para o próximo dia
+    }
+    // Se a descrição estiver vazia ou for "N/A", não desenha nada e apenas move para o próximo item
+    else {
+      yPosition -= 0; // Ajuste para o próximo item sem adicionar a caixa de descrição
+    }
   });
 
   yPosition -= 60;
@@ -369,11 +475,132 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
     size: fontSize,
     font: helveticaBoldFont,
   });
-  page.drawText(safeText(order.workResult), {
-    x: 50,
-    y: yPosition - 20,
+
+  const drawCheckbox = (x, y, isChecked, page, fontSize, font) => {
+    const checkboxSize = 12; // Tamanho da caixa
+    const boxTextOffset = checkboxSize + 5; // Distância entre a caixa e o texto
+    const checkboxSymbol = isChecked ? "X" : ""; // Define o símbolo baseado no valor de 'isChecked'
+
+    // Desenhando a caixa vazia
+    page.drawRectangle({
+      x,
+      y,
+      width: checkboxSize,
+      height: checkboxSize,
+      color: rgb(0.8, 0.8, 0.8), // Cor da borda da caixa (preto)
+      borderWidth: 1,
+    });
+
+    // Desenhando o símbolo dentro da caixa
+    page.drawText(checkboxSymbol, {
+      x: x + 2.5, // Ajuste a posição do texto para dentro da caixa
+      y: y + 2, // Ajuste a posição para centralizar o texto na caixa
+      size: fontSize,
+      font,
+    });
+  };
+
+  // Desenhar as caixas de "Serviço Concluído", "Retorno Necessário" e outras
+  yPosition -= 30;
+  drawCheckbox(50, yPosition, order.concluido, page, fontSize, helveticaFont); // Serviço Concluído
+  page.drawText("Serviço Concluído", {
+    x: 50 + 20, // Deslocamento após a caixa
+    y: yPosition + 2,
     size: fontSize,
     font: helveticaFont,
+  });
+
+  yPosition -= 20; // Ajuste a posição para a próxima caixa
+  drawCheckbox(50, yPosition, order.retorno, page, fontSize, helveticaFont); // Retorno Necessário
+  page.drawText("Retorno Necessário", {
+    x: 50 + 20, // Deslocamento após a caixa
+    y: yPosition + 2,
+    size: fontSize,
+    font: helveticaFont,
+  });
+
+  yPosition -= -20; // Ajuste a posição para as outras opções
+  drawCheckbox(
+    170,
+    yPosition,
+    order.funcionarios,
+    page,
+    fontSize,
+    helveticaFont
+  ); // Funcionários
+  page.drawText("Instrução dos Funcionários", {
+    x: 170 + 20, // Deslocamento após a caixa
+    y: yPosition + 2,
+    size: fontSize,
+    font: helveticaFont,
+  });
+
+  yPosition -= 20;
+  drawCheckbox(
+    170,
+    yPosition,
+    order.documentacao,
+    page,
+    fontSize,
+    helveticaFont
+  ); // Documentação
+  page.drawText("Entrega da Documentação", {
+    x: 170 + 20, // Deslocamento após a caixa
+    y: yPosition + 2,
+    size: fontSize,
+    font: helveticaFont,
+  });
+
+  yPosition -= -20;
+  drawCheckbox(340, yPosition, order.producao, page, fontSize, helveticaFont); // Produção
+  page.drawText("Liberação para Produção", {
+    x: 340 + 20, // Deslocamento após a caixa
+    y: yPosition + 2,
+    size: fontSize,
+    font: helveticaFont,
+  });
+
+  yPosition -= 20;
+  drawCheckbox(340, yPosition, order.pecas, page, fontSize, helveticaFont); // Peças
+  page.drawText("Envio do Orçamento de Peças", {
+    x: 340 + 20, // Deslocamento após a caixa
+    y: yPosition + 2,
+    size: fontSize,
+    font: helveticaFont,
+  });
+
+  yPosition -= 20; // Posição para as notas
+  page.drawText("Notas:", {
+    x: 100,
+    y: yPosition,
+    size: fontSize,
+    font: helveticaFont,
+  });
+
+  const boxHeight = fontSize + 2 * boxPadding;
+
+  yPosition -= 10; // Posição para as notas
+  page.drawRectangle({
+    x: 150,
+    y: yPosition - 10, // Alinhamento da caixa
+    width: boxWidth,
+    height: boxHeight, // Usando a altura definida
+    borderColor: rgb(0, 0, 0), // Cor da borda
+    color: rgb(0.9, 0.9, 0.9), // Cor de fundo da caixa
+  });
+
+  // Calculando a posição para centralizar o texto verticalmente
+  const lineHeight = 10;
+  const textHeight = fontSize; // Altura do texto
+  const textYPosition = yPosition - boxPadding + (boxHeight - textHeight) / 2;
+
+  // Desenha a descrição dentro da caixa, centralizada verticalmente
+  page.drawText(safeText(order.resultDescription), {
+    x: 150 + boxPadding,
+    y: textYPosition + 8,
+    size: 8,
+    font: helveticaFont,
+    lineHeight: lineHeight,
   });
 
   yPosition -= 60;

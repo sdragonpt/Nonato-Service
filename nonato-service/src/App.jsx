@@ -210,7 +210,7 @@ const App = () => {
                         {/* Move o logout para o fundo */}
                         <button
                           onClick={handleLogout}
-                          className="text-white hover:bg-gray-700 p-2 rounded text-lg flex items-center w-full"
+                          className="text-white hover:bg-gray-700 p-2 rounded text-lg flex items-center w-full mt-24"
                         >
                           <FontAwesomeIcon
                             icon={faSignOutAlt}

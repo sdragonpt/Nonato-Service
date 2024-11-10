@@ -16,6 +16,16 @@ const AddWorkday = () => {
     pauseHours: "",
     returnDepartureTime: "",
     returnArrivalTime: "",
+    startHour: "", // Novo campo para hora de início
+    endHour: "",
+    description: "",
+    concluido: "",
+    retorno: "",
+    funcionarios: "",
+    documentacao: "",
+    producao: "",
+    pecas: "",
+    resultDescription: "",
   });
 
   const navigate = useNavigate();
@@ -49,6 +59,9 @@ const AddWorkday = () => {
         pauseHours: workday.pauseHours,
         returnDepartureTime: workday.returnDepartureTime,
         returnArrivalTime: workday.returnArrivalTime,
+        startHour: workday.startHour, // Novo campo para hora de início
+        endHour: workday.endHour,
+        description: workday.description,
       });
 
       console.log("Dia de trabalho adicionado com sucesso!");
@@ -142,6 +155,26 @@ const AddWorkday = () => {
           </div>
 
           <div className="mb-4">
+            <h3 className="text-lg text-white">Horas</h3>
+            <input
+              type="time"
+              name="startHour"
+              value={workday.startHour}
+              onChange={handleWorkdayChange}
+              placeholder="Hora de Início"
+              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+            />
+            <input
+              type="time"
+              name="endHour"
+              value={workday.endHour}
+              onChange={handleWorkdayChange}
+              placeholder="Hora de Término"
+              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+            />
+          </div>
+
+          <div className="mb-4">
             <label className="text-white flex items-center space-x-2 mb-2">
               <input
                 type="checkbox"
@@ -162,6 +195,19 @@ const AddWorkday = () => {
                 className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
               />
             )}
+          </div>
+
+          <div className="mb-4">
+            <h3 className="text-lg text-white">Descrição</h3>
+            <textarea
+              type="description"
+              name="description"
+              value={workday.description}
+              onChange={handleWorkdayChange}
+              placeholder="Descrição do Trabalho"
+              rows="4" // Define o número de linhas visíveis
+              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+            />
           </div>
 
           <button

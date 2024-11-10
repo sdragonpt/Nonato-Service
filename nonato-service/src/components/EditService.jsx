@@ -18,6 +18,13 @@ const EditService = () => {
   const [clients, setClients] = useState([]);
   const [equipments, setEquipments] = useState([]);
   const [filteredEquipments, setFilteredEquipments] = useState([]);
+  const [concluido, setConcluido] = useState(false); // Definição do estado
+  const [retorno, setRetorno] = useState(false);
+  const [funcionarios, setFuncionarios] = useState(false);
+  const [documentacao, setDocumentacao] = useState(false);
+  const [producao, setProducao] = useState(false);
+  const [pecas, setPecas] = useState(false);
+  const [resultDescription, setResultDescription] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,6 +39,13 @@ const EditService = () => {
           setClientId(order.clientId || "");
           setEquipmentId(order.equipmentId || "");
           setServiceType(order.serviceType || "");
+          setConcluido(order.concluido || false);
+          setRetorno(order.retorno || false);
+          setFuncionarios(order.funcionarios || false);
+          setDocumentacao(order.documentacao || false);
+          setProducao(order.producao || false);
+          setPecas(order.pecas || false);
+          setResultDescription(order.resultDescription || "");
         } else {
           console.log("Ordem de serviço não encontrada");
         }
@@ -72,6 +86,13 @@ const EditService = () => {
         clientId,
         equipmentId,
         serviceType,
+        concluido,
+        retorno,
+        funcionarios,
+        documentacao,
+        producao,
+        pecas,
+        resultDescription,
       });
       alert("Ordem atualizada com sucesso!");
       navigate(-1);
@@ -132,6 +153,96 @@ const EditService = () => {
             placeholder="Tipo de Serviço"
             className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
           />
+
+          <div className="mb-4">
+            <div className="flex flex-wrap items-center mb-2">
+              <div className="pr-4 py-4">
+                <input
+                  type="checkbox"
+                  name="concluido"
+                  checked={concluido}
+                  onChange={(e) => setConcluido(e.target.checked)}
+                  className="mr-2 h-6 w-6"
+                />
+                <label htmlFor="concluido" className="text-white">
+                  Serviço Concluído
+                </label>
+              </div>
+              <div className="pr-4 py-4">
+                <input
+                  type="checkbox"
+                  name="retorno"
+                  checked={retorno}
+                  onChange={(e) => setRetorno(e.target.checked)}
+                  className="mr-2 h-6 w-6"
+                />
+                <label htmlFor="retorno" className="text-white">
+                  Retorno Necessário
+                </label>
+              </div>
+              <div className="pr-4 py-4">
+                <input
+                  type="checkbox"
+                  name="funcionarios"
+                  checked={funcionarios}
+                  onChange={(e) => setFuncionarios(e.target.checked)}
+                  className="mr-2 h-6 w-6"
+                />
+                <label htmlFor="funcionarios" className="text-white">
+                  Instrução dos Funcionários
+                </label>
+              </div>
+              <div className="pr-4 py-4">
+                <input
+                  type="checkbox"
+                  name="documentacao"
+                  checked={documentacao}
+                  onChange={(e) => setDocumentacao(e.target.checked)}
+                  className="mr-2 h-6 w-6"
+                />
+                <label htmlFor="documentacao" className="text-white">
+                  Entrega da Documentação
+                </label>
+              </div>
+              <div className="pr-4 py-4">
+                <input
+                  type="checkbox"
+                  name="producao"
+                  checked={producao}
+                  onChange={(e) => setProducao(e.target.checked)}
+                  className="mr-2 h-6 w-6"
+                />
+                <label htmlFor="producao" className="text-white">
+                  Liberação para Produção
+                </label>
+              </div>
+              <div className="pr-4 py-4">
+                <input
+                  type="checkbox"
+                  name="pecas"
+                  checked={pecas}
+                  onChange={(e) => setPecas(e.target.checked)}
+                  className="mr-2 h-6 w-6"
+                />
+                <label htmlFor="pecas" className="text-white">
+                  Envio de Orçamento de Peças
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <h3 className="text-lg text-white">Notas</h3>
+            <textarea
+              name="resultDescription"
+              value={resultDescription}
+              onChange={(e) => setResultDescription(e.target.value)}
+              placeholder="Notas sobre o Resultado do Trabalho"
+              rows="4"
+              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+            />
+          </div>
+
           <button
             type="submit"
             className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-300"

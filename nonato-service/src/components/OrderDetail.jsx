@@ -11,6 +11,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 import generateServiceOrderPDF from "./generatePDF";
+import generateServiceOrderPDFPlus from "./generatePDFPlus";
 
 const OrderDetail = () => {
   const { serviceId } = useParams();
@@ -65,7 +66,14 @@ const OrderDetail = () => {
 
   const handleGeneratePDF = async () => {
     if (order && client && equipment && workdays) {
-      await generateServiceOrderPDF(order, client, equipment, workdays);
+      // Verifica se o número de workdays é maior que 3
+      if (workdays.length > 3) {
+        // Chama a função para mais de 3 workdays
+        await generateServiceOrderPDFPlus(order, client, equipment, workdays);
+      } else {
+        // Chama a função para 3 workdays ou menos
+        await generateServiceOrderPDF(order, client, equipment, workdays);
+      }
     }
   };
 
