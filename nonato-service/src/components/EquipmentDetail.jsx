@@ -6,6 +6,7 @@ import {
   collection,
   getDocs,
   updateDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -93,6 +94,26 @@ const EquipmentDetail = () => {
     alert("Foto do equipamento removida com sucesso!");
   };
 
+  const handleDeleteEquipment = async () => {
+    const confirmDelete = window.confirm(
+      "Tem certeza de que deseja apagar este equipamento?"
+    );
+
+    if (confirmDelete) {
+      try {
+        const equipmentDocRef = doc(db, "equipamentos", equipmentId);
+        await deleteDoc(equipmentDocRef);
+
+        navigate(`/app/client/${equipment.clientId}`); // Redirecionar para a página do cliente
+      } catch (error) {
+        console.error("Erro ao apagar equipamento:", error);
+        alert(
+          "Ocorreu um erro ao tentar apagar o equipamento. Tente novamente."
+        );
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="w-full xl:w-96 mx-auto p-6 bg-gray-800 rounded-lg text-white">
@@ -139,9 +160,15 @@ const EquipmentDetail = () => {
         </label>
         <button
           onClick={handleRemovePhoto}
-          className="mt-2 w-32 h-10 bg-red-500 text-white rounded-lg"
+          className="mt-2 w-32 h-10 bg-purple-500 text-white rounded-lg"
         >
           Remover Foto
+        </button>
+        <button
+          onClick={handleDeleteEquipment}
+          className="mt-2 w-48 h-10 bg-red-600 text-white rounded-lg"
+        >
+          Apagar Equipamento
         </button>
         {photoChanged && (
           <>

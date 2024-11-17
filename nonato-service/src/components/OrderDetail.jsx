@@ -8,6 +8,7 @@ import {
   getDocs,
   query,
   where,
+  deleteDoc,
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 import generateServiceOrderPDF from "./generatePDF";
@@ -24,6 +25,43 @@ const OrderDetail = () => {
   // Navigate to AddWorkday page
   const handleAddWorkdayClick = () => {
     navigate(`/app/order/${serviceId}/add-workday`, { state: { serviceId } });
+  };
+
+  const deleteServiceOrder = async () => {
+    const confirmDelete = window.confirm(
+      "Tem certeza de que deseja apagar esta ordem de serviço e todos os dias de trabalho associados?"
+    );
+
+    if (confirmDelete) {
+      try {
+        // Delete all associated workdays
+        const workdaysCollectionRef = collection(db, "workdays");
+        const q = query(
+          workdaysCollectionRef,
+          where("serviceId", "==", serviceId)
+        );
+        const workdaysSnapshot = await getDocs(q);
+        const deletePromises = workdaysSnapshot.docs.map(
+          (doc) => deleteDoc(doc.ref) // Corrigido: usar deleteDoc para excluir cada documento
+        );
+
+        await Promise.all(deletePromises);
+
+        // Delete the service order
+        const serviceRef = doc(db, "servicos", serviceId);
+        await deleteDoc(serviceRef); // Certifique-se de usar deleteDoc aqui também
+
+        {
+          if (order.status === "Aberto") {
+            navigate("/app/open-services");
+          } else {
+            navigate("/app/closed-services");
+          }
+        }
+      } catch (error) {
+        console.error("Error deleting service order:", error);
+      }
+    }
   };
 
   const fetchClient = async () => {
@@ -128,23 +166,42 @@ const OrderDetail = () => {
       </h2>
 
       <div className="flex justify-center mb-4">
-        {/* Conditionally render buttons based on order status */}
         {order.status === "Aberto" ? (
-          <button
-            onClick={closeServiceOrder}
-            className="h-10 px-3 bg-red-600 mt-2 text-white text-lg flex items-center justify-center rounded-lg"
-            aria-label="Fechar Ordem de Serviço"
-          >
-            Fechar Ordem de Serviço
-          </button>
+          <>
+            <button
+              onClick={closeServiceOrder}
+              className="h-10 px-3 bg-purple-600 mt-2 text-white text-lg flex items-center justify-center rounded-lg"
+              aria-label="Fechar Ordem de Serviço"
+            >
+              Fechar Ordem de Serviço
+            </button>
+
+            <button
+              onClick={deleteServiceOrder}
+              className="h-10 px-3 bg-red-600 mt-2 ml-4 text-white text-lg flex items-center justify-center rounded-lg"
+              aria-label="Deletar Ordem de Serviço"
+            >
+              Deletar Ordem de Serviço
+            </button>
+          </>
         ) : (
-          <button
-            onClick={handleGeneratePDF}
-            className="h-10 px-3 bg-green-600 mt-2 text-white text-lg flex items-center justify-center rounded-lg"
-            aria-label="Gerar PDF"
-          >
-            Gerar PDF
-          </button>
+          <>
+            <button
+              onClick={handleGeneratePDF}
+              className="h-10 px-3 bg-green-600 mt-2 text-white text-lg flex items-center justify-center rounded-lg"
+              aria-label="Gerar PDF"
+            >
+              Gerar PDF
+            </button>
+
+            <button
+              onClick={deleteServiceOrder}
+              className="h-10 px-3 bg-red-600 mt-2 ml-4 text-white text-lg flex items-center justify-center rounded-lg"
+              aria-label="Deletar Ordem de Serviço"
+            >
+              Deletar Ordem de Serviço
+            </button>
+          </>
         )}
       </div>
 

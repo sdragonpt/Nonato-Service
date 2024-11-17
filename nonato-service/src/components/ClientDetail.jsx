@@ -6,6 +6,9 @@ import {
   collection,
   getDocs,
   updateDoc,
+  deleteDoc,
+  query,
+  where,
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 
@@ -94,6 +97,38 @@ const ClientDetail = () => {
     alert("Foto de perfil removida com sucesso!");
   };
 
+  const handleDeleteClient = async () => {
+    const confirmDelete = window.confirm(
+      "Tem certeza de que deseja apagar este cliente e todos os equipamentos associados?"
+    );
+
+    if (confirmDelete) {
+      try {
+        // Delete all associated equipments
+        const equipmentsCollectionRef = collection(db, "equipamentos");
+        const equipmentsQuery = query(
+          equipmentsCollectionRef,
+          where("clientId", "==", clientId)
+        );
+        const equipmentsSnapshot = await getDocs(equipmentsQuery);
+
+        const deleteEquipmentPromises = equipmentsSnapshot.docs.map((doc) =>
+          deleteDoc(doc.ref)
+        );
+        await Promise.all(deleteEquipmentPromises);
+
+        // Delete the client
+        const clientDocRef = doc(db, "clientes", clientId);
+        await deleteDoc(clientDocRef);
+
+        navigate("/app/manage-clients"); // Redirecionar para a lista de clientes
+      } catch (error) {
+        console.error("Erro ao apagar cliente:", error);
+        alert("Ocorreu um erro ao tentar apagar o cliente. Tente novamente.");
+      }
+    }
+  };
+
   if (!client) {
     return <div>Carregando...</div>;
   }
@@ -126,12 +161,21 @@ const ClientDetail = () => {
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           />
         </label>
-        <button
-          onClick={handleRemovePhoto}
-          className="mt-2 w-32 h-10 bg-red-500 text-white rounded-lg"
-        >
-          Remover Foto
-        </button>
+        <div className="flex space-x-4 mt-2">
+          <button
+            onClick={handleRemovePhoto}
+            className="w-32 h-10 bg-purple-500 text-white rounded-lg"
+          >
+            Remover Foto
+          </button>
+          <button
+            onClick={handleDeleteClient}
+            className="w-32 h-10 bg-red-600 text-white rounded-lg"
+          >
+            Apagar Cliente
+          </button>
+        </div>
+
         {photoChanged && ( // Mostra os botões apenas se a foto foi alterada
           <>
             <button
