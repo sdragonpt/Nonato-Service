@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { useParams, useNavigate } from "react-router-dom";
 
 const EditWorkday = () => {
@@ -40,6 +40,19 @@ const EditWorkday = () => {
       navigate(-1); // Voltar para a página anterior
     } catch (error) {
       console.error("Erro ao atualizar workday:", error);
+    }
+  };
+
+  const handleDeleteWorkday = async () => {
+    if (
+      window.confirm("Tem certeza de que deseja excluir este dia de trabalho?")
+    ) {
+      try {
+        await deleteDoc(doc(db, "workdays", workdayId));
+        navigate(-1); // Voltar para a página anterior
+      } catch (error) {
+        console.error("Erro ao excluir workday:", error);
+      }
     }
   };
 
@@ -185,6 +198,13 @@ const EditWorkday = () => {
           className="mt-4 bg-blue-600 text-white py-2 px-4 rounded w-full hover:bg-blue-700 transition"
         >
           Atualizar Dia de Trabalho
+        </button>
+
+        <button
+          onClick={handleDeleteWorkday}
+          className="mt-4 bg-red-600 text-white py-2 px-4 rounded w-full hover:bg-red-700 transition"
+        >
+          Excluir Dia de Trabalho
         </button>
       </div>
     </div>
