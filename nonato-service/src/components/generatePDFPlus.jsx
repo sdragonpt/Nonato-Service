@@ -8,6 +8,7 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
   const tableFontSize = 8;
   const minY = 50; // Minimum bottom margin for drawing
   const maxDaysPerPage = 6; // Limit of 6 workdays per page
+  const form = pdfDoc.getForm();
 
   const boxPadding = 10; // Internal padding of the description box
   const boxWidth = 396; // Width of the description box
@@ -42,7 +43,7 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
 
     // Draw background and top images
     newPage.drawImage(backgroundImage, {
-      x: -40,
+      x: -50,
       y: height - 1000 + 50,
       width: 700,
       height: 1000,
@@ -99,53 +100,53 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
   const infoYStart = height - 110;
   page.drawText(`Técnico: Nonato`, {
     x: 50,
-    y: infoYStart,
+    y: infoYStart - 3,
     size: fontSize,
     font: helveticaFont,
   });
   page.drawText(`Data: ${safeText(order.date)}`, {
     x: 300,
-    y: infoYStart,
+    y: infoYStart - 3,
     size: fontSize,
     font: helveticaFont,
   });
   page.drawText(`Cliente: ${safeText(client.name)}`, {
     x: 50,
-    y: infoYStart - 20,
+    y: infoYStart - 23,
     size: fontSize,
     font: helveticaFont,
   });
   page.drawText(`${safeText(client.postalCode)}`, {
     x: 185,
-    y: infoYStart - 20,
+    y: infoYStart - 23,
     size: fontSize,
     font: helveticaFont,
   });
   page.drawText(`Telefone: ${safeText(client.phone)}`, {
     x: 50,
-    y: infoYStart - 60,
+    y: infoYStart - 63,
     size: fontSize,
     font: helveticaFont,
   });
   page.drawText(
     `Máquina/Modelo: ${safeText(equipment.brand)} ${safeText(equipment.model)}`,
-    { x: 300, y: infoYStart - 20, size: fontSize, font: helveticaFont }
+    { x: 300, y: infoYStart - 23, size: fontSize, font: helveticaFont }
   );
   page.drawText(`Número da Máquina: ${safeText(equipment.serialNumber)}`, {
     x: 300,
-    y: infoYStart - 40,
+    y: infoYStart - 43,
     size: fontSize,
     font: helveticaFont,
   });
   page.drawText(`Cidade: ${safeText(client.address)}`, {
     x: 50,
-    y: infoYStart - 40,
+    y: infoYStart - 43,
     size: fontSize,
     font: helveticaFont,
   });
   page.drawText(`Tipo de Serviço: ${safeText(order.serviceType)}`, {
     x: 50,
-    y: infoYStart - 80,
+    y: infoYStart - 83,
     size: fontSize,
     font: helveticaFont,
   });
@@ -449,7 +450,7 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
         safeText(formatDate(workday.workDate)),
         safeText(workday.departureTime),
         safeText(workday.arrivalTime),
-        safeText(hoursRetorno),
+        safeText(hoursIda),
         safeText(workday.returnDepartureTime),
         safeText(workday.returnArrivalTime),
         safeText(hoursRetorno),
@@ -465,16 +466,128 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
       yPosition = drawWorkdayRow(page, rowData, yPosition);
     });
 
-    yPos -= 30;
-    page.drawText("Descrição do Trabalho:", {
+    let totalHours = 0; // Inicializa a variável para armazenar a soma das horas
+
+    workdays.forEach((workday) => {
+      const hoursIda = calculateHours(
+        workday.departureTime,
+        workday.arrivalTime
+      ); // Horas de ida
+      const hoursRetorno = calculateHours(
+        workday.returnDepartureTime,
+        workday.returnArrivalTime
+      ); // Horas de retorno
+
+      // Verifica se as horas de ida e retorno são válidas e maiores que zero
+      if (parseFloat(hoursIda) > 0) {
+        totalHours += parseFloat(hoursIda); // Somando as horas de ida
+      }
+
+      if (parseFloat(hoursRetorno) > 0) {
+        totalHours += parseFloat(hoursRetorno); // Somando as horas de retorno
+      }
+    });
+
+    let totalKm = 0; // Inicializa a variável para armazenar a soma dos quilômetros
+
+    workdays.forEach((workday) => {
+      const kmDeparture = parseFloat(workday.kmDeparture);
+      const kmReturn = parseFloat(workday.kmReturn);
+
+      // Se kmDeparture e kmReturn forem válidos (não NaN) e a soma não for zero, acumula
+      if ((kmDeparture || kmReturn) > 0) {
+        const kmTotal = kmDeparture + kmReturn; // Somando os quilômetros de ida e volta
+        totalKm += kmTotal; // Acumulando o total de quilômetros
+      }
+    });
+
+    // Seções de Observações e Conclusão
+    let totalWorkHours = 0; // Inicializa a variável para armazenar a soma das horas de trabalho
+
+    workdays.forEach((day) => {
+      const hoursWork = calculateHoursWithPause(
+        day.startHour,
+        day.endHour,
+        day.pauseHours
+      );
+      totalWorkHours += parseFloat(hoursWork); // Acumulando as horas de trabalho
+    });
+
+    yPosition -= 0;
+    page.drawText("Total de Horas de Trabalho:", {
       x: 50,
       y: yPosition,
       size: fontSize,
       font: helveticaBoldFont,
     });
+    page.drawText(safeText(totalWorkHours) + " h", {
+      x: 50,
+      y: yPosition - 20,
+      size: fontSize,
+      font: helveticaFont,
+    });
+
+    yPosition -= 0;
+    page.drawText("Total de Km's Percorridos:", {
+      x: 200,
+      y: yPosition,
+      size: fontSize,
+      font: helveticaBoldFont,
+    });
+    page.drawText(safeText(totalKm) + " km", {
+      x: 200,
+      y: yPosition - 20,
+      size: fontSize,
+      font: helveticaFont,
+    });
+
+    yPosition -= 0;
+    page.drawText("Total de Horas de Viagem:", {
+      x: 350,
+      y: yPosition,
+      size: fontSize,
+      font: helveticaBoldFont,
+    });
+    page.drawText(safeText(totalHours)  + " h", {
+      x: 350,
+      y: yPosition - 20,
+      size: fontSize,
+      font: helveticaFont,
+    });
+
+    // Adicionar offset inicial para deslocar todas as descrições
+    const offsetY = 40; // Valor do deslocamento
+
+    yPos -= 30;
+    page.drawText("Descrição do Trabalho:", {
+      x: 50,
+      y: yPosition - 40,
+      size: fontSize,
+      font: helveticaBoldFont,
+    });
+
+    // Ajustar yPosition para incluir o offset
+    yPosition -= offsetY;
+
     // Desenhar descrições para os workdays no chunk atual
     chunk.forEach((day) => {
       yPosition = drawDescription(page, day, yPosition); // Atualiza yPosition
+    });
+
+    // Determinar o início e o final das informações básicas
+    const infoBoxX = 40; // Posição x inicial da borda
+    const infoBoxY = infoYStart + 10; // Posição y inicial da borda
+    const infoBoxWidth = 520; // Largura do retângulo (ajuste conforme necessário)
+    const infoBoxHeight = infoYStart - (infoYStart - 750); // Altura baseada no conteúdo
+
+    // Desenhar o retângulo ao redor das informações básicas
+    page.drawRectangle({
+      x: infoBoxX,
+      y: infoBoxY - infoBoxHeight,
+      width: infoBoxWidth,
+      height: infoBoxHeight,
+      borderColor: rgb(0, 0, 0), // Cor preta para a borda
+      borderWidth: 1, // Largura da borda
     });
   }
 
@@ -483,7 +596,7 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
   yPos = height - 110; // Reiniciar yPos para a nova página
 
   // Adicionar a seção "Resultados do Trabalho"
-  yPos -= 30;
+  yPos -= 10;
   page.drawText("Resultados do Trabalho:", {
     x: 50,
     y: yPos,
@@ -620,6 +733,88 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
     font: helveticaBoldFont,
   });
 
+  // Configurações para linhas e textos
+  const lineWidth = 150; // Largura de cada linha
+  const gapBetweenLines = 50; // Espaço entre as duas linhas
+  const lineHeight = 2; // Espessura da linha
+
+  // Coordenadas X para centralizar as linhas
+  const clienteX = (pageWidth - 2 * lineWidth - gapBetweenLines) / 2;
+  const tecnicoX = clienteX + lineWidth + gapBetweenLines;
+
+  // Atualiza a posição Y para as linhas (abaixo da assinatura)
+  yPos -= 40; // Ajusta a distância abaixo do texto da assinatura
+
+  // Desenhar a linha "Cliente"
+  page.drawLine({
+    start: { x: clienteX, y: yPos },
+    end: { x: clienteX + lineWidth, y: yPos },
+    thickness: lineHeight,
+    color: rgb(0, 0, 0),
+  });
+
+  // Texto "(Cliente)" abaixo da linha
+  page.drawText("(Cliente)", {
+    x: clienteX + lineWidth / 2 - fontSize * 2, // Centraliza o texto no meio da linha
+    y: yPos - 15,
+    size: fontSize,
+    font: helveticaFont,
+    color: rgb(0, 0, 0),
+  });
+
+  // Criar um campo de texto para assinatura (cliente)
+  const clienteField = form.createTextField("clienteSignature");
+  clienteField.addToPage(page, {
+    x: 145,
+    y: yPos + 4, // Ajuste a posição Y conforme necessário
+    width: 110,
+    height: 20,
+  });
+  clienteField.setText("");
+
+  // Desenhar a linha "Técnico"
+  page.drawLine({
+    start: { x: tecnicoX, y: yPos },
+    end: { x: tecnicoX + lineWidth, y: yPos },
+    thickness: lineHeight,
+    color: rgb(0, 0, 0),
+  });
+
+  // Texto "(Técnico)" abaixo da linha
+  page.drawText("(Técnico)", {
+    x: tecnicoX + lineWidth / 2 - fontSize * 2, // Centraliza o texto no meio da linha
+    y: yPos - 15,
+    size: fontSize,
+    font: helveticaFont,
+    color: rgb(0, 0, 0),
+  });
+
+  // Criar um campo de texto para assinatura (técnico)
+  const tecnicoField = form.createTextField("tecnicoSignature");
+  tecnicoField.addToPage(page, {
+    x: 345,
+    y: yPos + 4, // Ajuste a posição Y conforme necessário
+    width: 110,
+    height: 20,
+  });
+  tecnicoField.setText("");
+
+  // Determinar o início e o final das informações básicas
+  const infoBoxX = 40; // Posição x inicial da borda
+  const infoBoxY = infoYStart + 10; // Posição y inicial da borda
+  const infoBoxWidth = 520; // Largura do retângulo (ajuste conforme necessário)
+  const infoBoxHeight = infoYStart - (infoYStart - 750); // Altura baseada no conteúdo
+
+  // Desenhar o retângulo ao redor das informações básicas
+  page.drawRectangle({
+    x: infoBoxX,
+    y: infoBoxY - infoBoxHeight,
+    width: infoBoxWidth,
+    height: infoBoxHeight,
+    borderColor: rgb(0, 0, 0), // Cor preta para a borda
+    borderWidth: 1, // Largura da borda
+  });
+
   // Salvar PDF
   const pdfBytes = await pdfDoc.save();
   const blob = new Blob([pdfBytes], { type: "application/pdf" });
@@ -645,7 +840,6 @@ function calculateHours(start, end) {
   return diff >= 0 ? diff.toFixed(1) : "0"; // Retorna 0 em vez de "N/A"
 }
 
-// Função para calcular horas, subtraindo o tempo de pausa
 function calculateHoursWithPause(start, end, pauseHours) {
   const startTime = new Date(`1970-01-01T${start}:00`);
   let endTime = new Date(`1970-01-01T${end}:00`);
@@ -658,8 +852,21 @@ function calculateHoursWithPause(start, end, pauseHours) {
   // Calcula a diferença em horas
   let diff = (endTime - startTime) / 1000 / 3600;
 
-  // Subtrai o tempo de pausa (pauseHours) do total
-  diff -= pauseHours;
+  // Valida o valor de pauseHours
+  let pauseInDecimal = 0;
+  if (pauseHours.includes(":")) {
+    // Se for no formato HH:MM
+    const [pauseHoursPart, pauseMinutesPart] = pauseHours
+      .split(":")
+      .map(Number);
+    pauseInDecimal = pauseHoursPart + pauseMinutesPart / 60;
+  } else {
+    // Caso seja apenas um número, interpreta como horas
+    pauseInDecimal = parseFloat(pauseHours) || 0; // Garante que é um número válido
+  }
 
-  return diff >= 0 ? diff.toFixed(1) : "0"; // Retorna 0 em vez de "N/A"
+  // Subtrai o tempo de pausa do total
+  diff -= pauseInDecimal;
+
+  return diff >= 0 ? diff.toFixed(1) : "0"; // Retorna 0 em vez de um valor negativo
 }
