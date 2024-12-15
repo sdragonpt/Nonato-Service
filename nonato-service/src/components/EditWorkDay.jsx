@@ -174,8 +174,10 @@ const EditWorkday = () => {
               name="pauseHours"
               value={workday.pauseHours || ""}
               onChange={handleWorkdayChange}
-              placeholder="Horas de Pausa"
+              placeholder="Horas de Pausa (HH:MM)"
               className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
+              pattern="^(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" // Aceita formato HH:MM (24h)
+              inputMode="numeric" // Abre o teclado numérico em dispositivos móveis
             />
           )}
         </div>
