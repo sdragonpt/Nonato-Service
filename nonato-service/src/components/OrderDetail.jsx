@@ -21,11 +21,33 @@ const OrderDetail = () => {
   const [client, setClient] = useState(null);
   const [equipment, setEquipment] = useState(null);
   const [workdays, setWorkdays] = useState([]); // For storing workdays
+  const [serviceIdForPDF, setServiceIdForPDF] = useState(serviceId); // Variável para armazenar o serviceId para o PDF
 
   // Navigate to AddWorkday page
   const handleAddWorkdayClick = () => {
     navigate(`/app/order/${serviceId}/add-workday`, { state: { serviceId } });
   };
+
+  // Função para obter o contador do serviço
+  const getCurrentServiceId = async () => {
+    const counterRef = doc(db, "counters", "servicesCounter");
+    const counterSnapshot = await getDoc(counterRef);
+    if (counterSnapshot.exists()) {
+      return counterSnapshot.data().count || 0; // Retorna o contador ou 0 se não existir
+    } else {
+      console.error("Contador não encontrado!");
+      return 0;
+    }
+  };
+
+  // Usar useEffect para obter o currentServiceId
+  useEffect(() => {
+    const fetchServiceId = async () => {
+      const serviceIdFromCounter = await getCurrentServiceId();
+      setCurrentServiceId(serviceIdFromCounter);
+    };
+    fetchServiceId();
+  }, []); // Chama a função uma vez após o componente ser montado
 
   const deleteServiceOrder = async () => {
     const confirmDelete = window.confirm(
@@ -104,13 +126,36 @@ const OrderDetail = () => {
 
   const handleGeneratePDF = async () => {
     if (order && client && equipment && workdays) {
-      // Verifica se o número de workdays é maior que 3
-      if (workdays.length > 3) {
-        // Chama a função para mais de 3 workdays
-        await generateServiceOrderPDFPlus(order, client, equipment, workdays);
+      // Agora você pode usar a variável serviceIdForPDF
+      const { serviceId } = order; // Caso seja necessário pegar diretamente do order
+      const nonNullDescriptions = workdays.filter(
+        (day) => day.description && day.description.trim() !== ""
+      ).length;
+
+      // Verificar as condições para usar o PDF normal ou PDFPlus
+      if (
+        (workdays.length <= 3 && nonNullDescriptions === 2) ||
+        (workdays.length <= 6 && nonNullDescriptions === 1) ||
+        (workdays.length <= 7 && nonNullDescriptions === 1) ||
+        (workdays.length <= 8 && nonNullDescriptions === 0)
+      ) {
+        // Usar PDF normal
+        await generateServiceOrderPDF(
+          serviceIdForPDF, // Passando serviceIdForPDF
+          order,
+          client,
+          equipment,
+          workdays
+        );
       } else {
-        // Chama a função para 3 workdays ou menos
-        await generateServiceOrderPDF(order, client, equipment, workdays);
+        // Usar PDFPlus
+        await generateServiceOrderPDFPlus(
+          serviceIdForPDF, // Passando serviceIdForPDF
+          order,
+          client,
+          equipment,
+          workdays
+        );
       }
     }
   };
@@ -219,6 +264,7 @@ const OrderDetail = () => {
         <p className="text-gray-300 mb-2">
           Tipo de Serviço: {order.serviceType}
         </p>
+        <p className="text-gray-300 mb-2">Ordem Nº: {serviceId}</p>
       </div>
 
       <h3 className="text-lg mb-2 text-white">Dias de Trabalho:</h3>
@@ -268,7 +314,7 @@ const OrderDetail = () => {
 
         <button
           onClick={handleAddWorkdayClick}
-          className="h-20 w-20 -mt-8 bg-[#9df767] text-white font-bold text-3xl flex items-center justify-center rounded-full shadow-lg"
+          className="h-20 w-20 -mt-8 bg-[#117d49] text-white font-bold text-3xl flex items-center justify-center rounded-full shadow-lg"
           aria-label="Adicionar Trabalho"
         >
           +

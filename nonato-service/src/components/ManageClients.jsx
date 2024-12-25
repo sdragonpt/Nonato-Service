@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 const ManageClients = () => {
   const [clients, setClients] = useState([]);
+  const [searchTerm, setSearchTerm] = useState(""); // Estado para armazenar o termo de pesquisa
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,32 +33,55 @@ const ManageClients = () => {
     navigate(`/edit-client/${clientId}`);
   };
 
+  // Filtrar clientes com base no termo de pesquisa
+  const filteredClients = clients.filter((client) =>
+    client.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="w-full max-w-3xl mx-auto rounded-lg">
       <h2 className="text-2xl font-semibold text-center text-white mb-6">
         Clientes
       </h2>
+
+      {/* Barra de pesquisa */}
+      <div className="mb-6">
+        <input
+          type="text"
+          placeholder="Buscar cliente..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)} // Atualiza o estado com o texto digitado
+          className="w-full p-3 bg-gray-800 text-white rounded-lg"
+        />
+      </div>
+
       <div className="space-y-4 mb-32">
-        {clients.map((client) => (
-          <div
-            key={client.id}
-            onClick={() => navigate(`/app/client/${client.id}`)}
-            className="flex items-center p-4 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600"
-          >
-            <img
-              src={client.profilePic || "/nonato.png"}
-              alt={client.name}
-              className="w-12 h-12 rounded-full mr-4"
-            />
-            <div className="text-white">
-              <h3 className="font-semibold">{client.name}</h3>
-              <p className="text-gray-400">{client.phone || "Sem telefone"}</p>
-              <p className="text-gray-400">
-                {client.address || "Sem endereço"}
-              </p>
+        {filteredClients.length > 0 ? (
+          filteredClients.map((client) => (
+            <div
+              key={client.id}
+              onClick={() => navigate(`/app/client/${client.id}`)}
+              className="flex items-center p-4 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600"
+            >
+              <img
+                src={client.profilePic || "/nonato.png"}
+                alt={client.name}
+                className="w-12 h-12 rounded-full mr-4"
+              />
+              <div className="text-white">
+                <h3 className="font-semibold">{client.name}</h3>
+                <p className="text-gray-400">
+                  {client.phone || "Sem telefone"}
+                </p>
+                <p className="text-gray-400">
+                  {client.address || "Sem endereço"}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <p className="text-white text-center">Nenhum cliente encontrado.</p>
+        )}
       </div>
 
       {/* Botões na parte inferior da página, estilo conforme a imagem */}
@@ -65,7 +89,7 @@ const ManageClients = () => {
         {/* Botão redondo central para adicionar cliente */}
         <button
           onClick={() => navigate("/app/add-client")}
-          className="h-20 px-4 -mt-8 bg-[#9df767] text-white text-2xl font-medium flex items-center justify-center rounded-full shadow-lg"
+          className="h-20 px-4 -mt-8 bg-[#117d49] text-white text-2xl font-medium flex items-center justify-center rounded-full md:rounded-lg shadow-lg"
           aria-label="Adicionar Cliente"
         >
           Novo Cliente

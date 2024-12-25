@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../firebase"; // Importe sua configuração do Firebase
-import { collection, getDocs, addDoc } from "firebase/firestore"; // Função para adicionar e buscar dados
+import {
+  collection,
+  getDocs,
+  setDoc,
+  doc,
+  getDoc,
+  increment,
+} from "firebase/firestore"; // Incluímos funções necessárias para o incremento
 import { useNavigate } from "react-router-dom";
 
 const AddService = () => {
@@ -11,20 +18,7 @@ const AddService = () => {
   const [clients, setClients] = useState([]);
   const [equipments, setEquipments] = useState([]);
   const [filteredEquipments, setFilteredEquipments] = useState([]);
-  const [showWorkdayFields, setShowWorkdayFields] = useState(false); // Estado para exibir os campos de dia de trabalho
   const [workday, setWorkday] = useState({
-    workDate: "",
-    departureTime: "",
-    arrivalTime: "",
-    kmDeparture: "",
-    kmReturn: "",
-    pause: false,
-    pauseHours: "",
-    returnDepartureTime: "",
-    returnArrivalTime: "",
-    startHour: "", // Novo campo para hora de início
-    endHour: "", // Novo campo para hora de término
-    description: "",
     concluido: false,
     retorno: false,
     funcionarios: false,
@@ -84,20 +78,39 @@ const AddService = () => {
     setServiceType(e.target.value);
   };
 
+  // Função para obter o próximo ID de serviço
+  const getNextServiceId = async () => {
+    const counterRef = doc(db, "counters", "servicesCounter");
+    const counterSnapshot = await getDoc(counterRef);
+
+    if (counterSnapshot.exists()) {
+      const currentCounter = counterSnapshot.data().count;
+      await setDoc(counterRef, { count: increment(1) }, { merge: true });
+      return currentCounter + 1;
+    } else {
+      await setDoc(counterRef, { count: 1 });
+      return 1;
+    }
+  };
+
   // Função para adicionar serviço no Firestore
   const handleAddServiceToDb = async (e) => {
     e.preventDefault();
 
     try {
-      // Coleção de serviços no Firestore
+      // Obter o próximo ID único
+      const newServiceId = await getNextServiceId();
+
+      // Adicionar o serviço na coleção
       const servicesCollection = collection(db, "servicos");
-      await addDoc(servicesCollection, {
+      await setDoc(doc(servicesCollection, newServiceId.toString()), {
         date,
         clientId,
         equipmentId,
         serviceType,
         status: "Aberto",
       });
+
       console.log("Serviço adicionado com sucesso!");
 
       // Resetar o formulário após a adição
@@ -116,10 +129,6 @@ const AddService = () => {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-  };
-
-  const toggleWorkdayFields = () => {
-    setShowWorkdayFields(!showWorkdayFields);
   };
 
   return (
@@ -269,141 +278,6 @@ const AddService = () => {
               className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
             />
           </div>
-
-          <button
-            type="button"
-            onClick={toggleWorkdayFields}
-            className="w-full px-4 py-2 mb-6 text-white bg-violet-600 rounded-lg hover:bg-violet-700 transition duration-300"
-          >
-            Adicionar dia de trabalho
-          </button>
-
-          {showWorkdayFields && (
-            <div>
-              <div className="mb-4">
-                <h3 className="text-lg text-white">Data</h3>
-                <input
-                  type="date"
-                  name="workDate"
-                  value={workday.workDate}
-                  onChange={handleWorkdayChange}
-                  className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-                />
-              </div>
-              <div className="mb-4">
-                <h3 className="text-lg text-white">Ida</h3>
-                <input
-                  type="time"
-                  name="departureTime"
-                  value={workday.departureTime}
-                  onChange={handleWorkdayChange}
-                  className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-                />
-                <input
-                  type="time"
-                  name="arrivalTime"
-                  value={workday.arrivalTime}
-                  onChange={handleWorkdayChange}
-                  className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-                />
-              </div>
-              <div className="mb-4">
-                <h3 className="text-lg text-white">KM's</h3>
-                <input
-                  type="number"
-                  name="kmDeparture"
-                  value={workday.kmDeparture}
-                  onChange={handleWorkdayChange}
-                  placeholder="Ida"
-                  className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-                />
-                <input
-                  type="number"
-                  name="kmReturn"
-                  value={workday.kmReturn}
-                  onChange={handleWorkdayChange}
-                  placeholder="Retorno"
-                  className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-                />
-              </div>
-              <div className="mb-4">
-                <h3 className="text-lg text-white">Retorno</h3>
-                <input
-                  type="time"
-                  name="returnDepartureTime"
-                  value={workday.returnDepartureTime}
-                  onChange={handleWorkdayChange}
-                  className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-                />
-                <input
-                  type="time"
-                  name="returnArrivalTime"
-                  value={workday.returnArrivalTime}
-                  onChange={handleWorkdayChange}
-                  className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-                />
-              </div>
-              <div className="mb-4">
-                <h3 className="text-lg text-white">Horas</h3>
-                <input
-                  type="time"
-                  name="startHour"
-                  value={workday.startHour}
-                  onChange={handleWorkdayChange}
-                  placeholder="Hora de Início"
-                  className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-                />
-                <input
-                  type="time"
-                  name="endHour"
-                  value={workday.endHour}
-                  onChange={handleWorkdayChange}
-                  placeholder="Hora de Término"
-                  className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-                />
-              </div>
-
-              <div className="mb-4">
-                <div className="flex items-center mb-2">
-                  <input
-                    type="checkbox"
-                    name="pause"
-                    checked={workday.pause}
-                    onChange={handleWorkdayChange}
-                    className="mr-2 h-6 w-6"
-                  />
-                  <label htmlFor="pause" className="text-white">
-                    Pausa
-                  </label>
-                </div>
-                {workday.pause && (
-                  <input
-                    type="text"
-                    name="pauseHours"
-                    value={workday.pauseHours}
-                    onChange={handleWorkdayChange}
-                    placeholder="Horas de Pausa (HH:MM)"
-                    className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-                    pattern="^(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" // Aceita formato HH:MM (24h)
-                    inputMode="numeric" // Abre o teclado numérico em dispositivos móveis
-                  />
-                )}
-              </div>
-
-              <div className="mb-4">
-                <h3 className="text-lg text-white">Descrição</h3>
-                <textarea
-                  type="description"
-                  name="description"
-                  value={workday.description}
-                  onChange={handleWorkdayChange}
-                  placeholder="Descrição do Trabalho"
-                  rows="4" // Define o número de linhas visíveis
-                  className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-                />
-              </div>
-            </div>
-          )}
 
           <button
             type="submit"

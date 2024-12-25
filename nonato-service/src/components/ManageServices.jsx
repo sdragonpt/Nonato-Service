@@ -21,7 +21,7 @@ const ManageServices = () => {
 
         <button
           onClick={() => navigate(`/app/add-service`)}
-          className="h-20 w-20 -mt-8 bg-[#9df767] text-white font-bold text-3xl flex items-center justify-center rounded-full shadow-lg"
+          className="h-20 w-20 -mt-8 bg-[#117d49] text-white font-bold text-3xl flex items-center justify-center rounded-full shadow-lg"
           aria-label="Adicionar Serviço"
         >
           +

@@ -1,6 +1,6 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
-async function generateServiceOrderPDF(order, client, equipment, workdays) {
+async function generateServiceOrderPDF(serviceIdForPDF, order, client, equipment, workdays) {
   const pdfDoc = await PDFDocument.create();
   const pageWidth = 600;
   const pageHeight = 900;
@@ -24,13 +24,13 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
   }
 
   // Carregar a imagem do fundo
-  const backgroundImageBytes = await fetch("/background5.png").then((res) =>
+  const backgroundImageBytes = await fetch("/nonato3.png").then((res) =>
     res.arrayBuffer()
   );
   const backgroundImage = await pdfDoc.embedPng(backgroundImageBytes);
 
   // Carregar a imagem do topo
-  const topImageBytes = await fetch("/nonato.png").then((res) =>
+  const topImageBytes = await fetch("/nonato2.png").then((res) =>
     res.arrayBuffer()
   );
   const topImage = await pdfDoc.embedPng(topImageBytes);
@@ -42,16 +42,16 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
 
     // Desenhar as imagens na nova página
     newPage.drawImage(backgroundImage, {
-      x: -50,
+      x: -60,
       y: height - 1000 + 50,
       width: 700,
       height: 1000,
     });
     newPage.drawImage(topImage, {
-      x: 50,
-      y: height - 65 - 30,
+      x: 40,
+      y: height - 65 - 40,
       width: 65,
-      height: 65,
+      height: 85,
     });
 
     return newPage;
@@ -76,8 +76,40 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
     x: 220, // Ajuste a posição para a direita
     y: yPosi,
     size: 16,
-    color: rgb(0, 0, 0.8),
+    color: rgb(0.0667, 0.4902, 0.2863),
     font: helveticaBoldFont,
+  });
+
+  // Adicionando "Ordem Nº: [id]" ao lado do título
+  // Calculando a largura do retângulo com base no comprimento do número
+  const serviceIdLength = `${serviceIdForPDF}`.length; // Número de caracteres do serviceId
+  const charWidth = 7; // Largura média de cada caractere em unidades (ajustável conforme necessário)
+
+  // A largura do retângulo é a largura média de cada caractere multiplicada pelo número de caracteres
+  const rectWidth = serviceIdLength * charWidth + 20;
+
+  // Desenhar o texto com o número do serviço
+  page.drawText(`Nº: ${serviceIdForPDF}`, {
+    x: 500, // Posição à direita do "Relatório de Serviço"
+    y: yPosi,
+    size: 12,
+    color: rgb(0, 0, 0),
+    font: helveticaBoldFont,
+  });
+
+  // Medidas do retângulo
+  const rectX = 495; // Ajuste para a posição inicial do retângulo (margem esquerda do texto)
+  const rectY = yPosi - 3.5; // Ajuste vertical para o topo do retângulo
+  const rectHeight = 16; // Altura do retângulo (ajuste conforme o tamanho do texto)
+
+  // Desenhar o retângulo com a largura ajustada
+  page.drawRectangle({
+    x: rectX,
+    y: rectY,
+    width: rectWidth + 10, // Ajuste para a margem
+    height: rectHeight,
+    borderColor: rgb(0, 0, 0), // Cor da borda
+    borderWidth: 1, // Largura da borda
   });
 
   // Adicionando "ASSISTÊNCIA TÉCNICA" abaixo de "Protocolo de Serviço"
@@ -85,7 +117,7 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
     x: 228, // Mantém a mesma posição horizontal
     y: yPosi - 20, // Desloca 20 unidades para baixo (ajuste conforme necessário)
     size: 12,
-    color: rgb(0, 0, 0.8),
+    color: rgb(0.0667, 0.4902, 0.2863),
     font: helveticaBoldFont,
   });
   page.drawText("Tel (SERVIÇO): 911115479 - EMAIL: service.nonato@gmail.com", {
@@ -863,8 +895,8 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
   });
 
   // Assinatura
-  yPosition -= 80;
-  page.drawText("Assinatura Cliente e Técnico", {
+  yPosition -= 60;
+  page.drawText("Assinatura Cliente e Técnico:", {
     x: 50,
     y: yPosition,
     size: fontSize,
@@ -897,16 +929,6 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
     color: rgb(0, 0, 0),
   });
 
-  // Criar um campo de texto para assinatura (cliente)
-  const clienteField = form.createTextField("clienteSignature");
-  clienteField.addToPage(page, {
-    x: 145,
-    y: yPosition - 36, // Ajuste a posição Y conforme necessário
-    width: 110,
-    height: 20,
-  });
-  clienteField.setText("");
-
   // Desenhar a linha "Técnico"
   page.drawLine({
     start: { x: tecnicoX, y: yPosition - 40 },
@@ -923,16 +945,6 @@ async function generateServiceOrderPDF(order, client, equipment, workdays) {
     font: helveticaFont,
     color: rgb(0, 0, 0),
   });
-
-  // Criar um campo de texto para assinatura (técnico)
-  const tecnicoField = form.createTextField("tecnicoSignature");
-  tecnicoField.addToPage(page, {
-    x: 345,
-    y: yPosition - 36, // Ajuste a posição Y conforme necessário
-    width: 110,
-    height: 20,
-  });
-  tecnicoField.setText("");
 
   // Determinar o início e o final das informações básicas
   const infoBoxX = 40; // Posição x inicial da borda

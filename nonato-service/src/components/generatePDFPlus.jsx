@@ -1,4 +1,6 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase.jsx";
 
 async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
   const pdfDoc = await PDFDocument.create();
@@ -25,13 +27,24 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
     return new Date(date).toLocaleDateString("pt-BR", options);
   }
 
+  const getCurrentServiceId = async () => {
+    const counterRef = doc(db, "counters", "servicesCounter");
+    const counterSnapshot = await getDoc(counterRef);
+    if (counterSnapshot.exists()) {
+      return counterSnapshot.data().count || 0; // Retorna o contador ou 0 se não existir
+    } else {
+      console.error("Contador não encontrado!");
+      return 0;
+    }
+  };
+
   // Load background images
-  const backgroundImageBytes = await fetch("/background5.png").then((res) =>
+  const backgroundImageBytes = await fetch("/nonato3.png").then((res) =>
     res.arrayBuffer()
   );
   const backgroundImage = await pdfDoc.embedPng(backgroundImageBytes);
 
-  const topImageBytes = await fetch("/nonato.png").then((res) =>
+  const topImageBytes = await fetch("/nonato2.png").then((res) =>
     res.arrayBuffer()
   );
   const topImage = await pdfDoc.embedPng(topImageBytes);
@@ -43,16 +56,16 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
 
     // Draw background and top images
     newPage.drawImage(backgroundImage, {
-      x: -50,
+      x: -60,
       y: height - 1000 + 50,
       width: 700,
       height: 1000,
     });
     newPage.drawImage(topImage, {
-      x: 50,
-      y: height - 65 - 30,
+      x: 40,
+      y: height - 65 - 40,
       width: 65,
-      height: 65,
+      height: 85,
     });
     newPage.drawText(
       "Tel (SERVIÇO): 911115479 - EMAIL: service.nonato@gmail.com",
@@ -73,12 +86,46 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
   let yPos = height - 110; // Initial position for content
 
   // Add "Protocolo de Serviço"
+  const yPosi = height - 50;
   page.drawText("Relatório de Serviço", {
     x: 220, // Adjust position to the right
     y: height - 50,
     size: 16,
-    color: rgb(0, 0, 0.8),
+    color: rgb(0.0667, 0.4902, 0.2863),
     font: helveticaBoldFont,
+  });
+
+  const serviceId = await getCurrentServiceId(); // Busca o ID do contador
+  // Adicionando "Ordem Nº: [id]" ao lado do título
+  // Calculando a largura do retângulo com base no comprimento do número
+  const serviceIdLength = `${serviceId}`.length; // Número de caracteres do serviceId
+  const charWidth = 7; // Largura média de cada caractere em unidades (ajustável conforme necessário)
+
+  // A largura do retângulo é a largura média de cada caractere multiplicada pelo número de caracteres
+  const rectWidth = serviceIdLength * charWidth + 20;
+
+  // Desenhar o texto com o número do serviço
+  page.drawText(`Nº: ${serviceId}`, {
+    x: 500, // Posição à direita do "Relatório de Serviço"
+    y: yPosi,
+    size: 12,
+    color: rgb(0, 0, 0),
+    font: helveticaBoldFont,
+  });
+
+  // Medidas do retângulo
+  const rectX = 495; // Ajuste para a posição inicial do retângulo (margem esquerda do texto)
+  const rectY = yPosi - 3.5; // Ajuste vertical para o topo do retângulo
+  const rectHeight = 16; // Altura do retângulo (ajuste conforme o tamanho do texto)
+
+  // Desenhar o retângulo com a largura ajustada
+  page.drawRectangle({
+    x: rectX,
+    y: rectY,
+    width: rectWidth + 10, // Ajuste para a margem
+    height: rectHeight,
+    borderColor: rgb(0, 0, 0), // Cor da borda
+    borderWidth: 1, // Largura da borda
   });
 
   // Add "ASSISTÊNCIA TÉCNICA" below "Protocolo de Serviço"
@@ -86,7 +133,7 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
     x: 228, // Maintain same horizontal position
     y: height - 70, // Move down 20 units
     size: 12,
-    color: rgb(0, 0, 0.8),
+    color: rgb(0.0667, 0.4902, 0.2863),
     font: helveticaBoldFont,
   });
   // page.drawText("Tel (SERVIÇO): 911115479 - EMAIL: service.nonato@gmail.com", {
@@ -275,6 +322,20 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
     "Horas",
   ];
 
+  const infoBoxX2 = 40; // Posição x inicial da borda
+  const infoBoxY2 = infoYStart + 12; // Posição y inicial da borda
+  const infoBox2Width = 496;
+  const infoBox2Height = infoYStart - (infoYStart - 104);
+
+  page.drawRectangle({
+    x: infoBoxX2 + 10,
+    y: infoBoxY2 - infoBox2Height - 9,
+    width: infoBox2Width,
+    height: infoBox2Height,
+    borderColor: rgb(0, 0, 0), // Cor preta para a borda
+    borderWidth: 1, // Largura da borda
+  });
+
   // Novo cabeçalho adicional
   const extraHeaders = ["DATA", "IDA", "RETORNO", "KM", "HORAS", "PAUSA"];
   const extraHeaderWidths = [44, 105, 105, 101, 101, 40]; // Larguras aproximadas para acomodar o texto
@@ -316,18 +377,87 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
       xPos += extraHeaderWidths[index];
     });
 
-    const infoBoxX2 = 40; // Posição x inicial da borda
-    const infoBoxY2 = infoYStart + 12; // Posição y inicial da borda
-    const infoBox2Width = 496;
-    const infoBox2Height = infoYStart - (infoYStart - 104);
+    // Desenhar cabeçalhos principais
+    xPos = 50;
+    const headerYPosition = extraHeaderYPosition - 17; // Aumentei o espaçamento para evitar sobreposição
+    headers.forEach((header, index) => {
+      const isGrayColumn = ["hs", "Total"].includes(header);
 
-    page.drawRectangle({
-      x: infoBoxX2 + 10,
-      y: infoBoxY2 - infoBox2Height - 9,
-      width: infoBox2Width,
-      height: infoBox2Height,
-      borderColor: rgb(0, 0, 0), // Cor preta para a borda
-      borderWidth: 1, // Largura da borda
+      if (isGrayColumn) {
+        currentPage.drawRectangle({
+          x: xPos,
+          y: headerYPosition - cellHeight,
+          width: columnWidths[index],
+          height: cellHeight,
+          color: rgb(0.8, 0.8, 0.8), // Cor cinza
+        });
+      }
+
+      const textWidth = helveticaBoldFont.widthOfTextAtSize(header, 7);
+      const textXPos = xPos + (columnWidths[index] - textWidth) / 2;
+
+      currentPage.drawText(header, {
+        x: textXPos,
+        y: headerYPosition - 15,
+        size: 7,
+        font: helveticaBoldFont,
+      });
+
+      xPos += columnWidths[index];
+    });
+
+    // Desenhar bordas ao redor do cabeçalho principal
+    xPos = 50;
+    headers.forEach((_, index) => {
+      currentPage.drawRectangle({
+        x: xPos,
+        y: headerYPosition - cellHeight,
+        width: columnWidths[index],
+        height: cellHeight,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+      });
+      xPos += columnWidths[index];
+    });
+
+    return headerYPosition - cellHeight - 20; // Retorna a nova posição Y após os cabeçalhos
+  };
+
+  // Função para desenhar cabeçalhos da tabela
+  const drawTableHeaders2 = (currentPage) => {
+    let xPos = 50;
+    const extraHeaderYPosition = infoYStart - 5; // Posição vertical para os novos cabeçalhos
+
+    // Desenhar cabeçalhos adicionais
+    extraHeaders.forEach((header, index) => {
+      const textWidth = helveticaBoldFont.widthOfTextAtSize(
+        header,
+        tableFontSize
+      );
+      const textXPos = xPos + (extraHeaderWidths[index] - textWidth) / 2;
+
+      currentPage.drawText(header, {
+        x: textXPos,
+        y: extraHeaderYPosition - 10,
+        size: tableFontSize,
+        font: helveticaBoldFont,
+      });
+
+      xPos += extraHeaderWidths[index];
+    });
+
+    // Desenha as bordas para o cabeçalho adicional
+    xPos = 50;
+    extraHeaders.forEach((_, index) => {
+      currentPage.drawRectangle({
+        x: xPos,
+        y: extraHeaderYPosition - cellHeight + 3,
+        width: extraHeaderWidths[index],
+        height: cellHeight,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+      });
+      xPos += extraHeaderWidths[index];
     });
 
     // Desenhar cabeçalhos principais
@@ -439,12 +569,12 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
   function drawDescription(page, day, yPosition) {
     let descriptionText = cleanText(safeText(day.description)); // Limpa o texto removendo quebras de linha
 
-    // Usar "N/A" se a descrição estiver vazia ou for igual a "N/A"
+    // Verificar se a descrição é vazia ou igual a "N/A"
     if (
       descriptionText.trim() === "" ||
       descriptionText.trim().toUpperCase() === "N/A"
     ) {
-      descriptionText = "N/A";
+      return yPosition; // Se não houver descrição, retorna o yPosition atual sem desenhar nada
     }
 
     // Atualizar a posição Y para o texto "Dia:"
@@ -540,7 +670,7 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
     // Se não for a primeira página, criar uma nova página e desenhar cabeçalhos
     if (i > 0) {
       page = createNewPage();
-      yPosition = drawTableHeaders(page);
+      yPosition = drawTableHeaders2(page);
     }
 
     // Desenhar cada workday no grupo atual
@@ -578,141 +708,6 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
       ];
 
       yPosition = drawWorkdayRow(page, rowData, yPosition);
-    });
-
-    function formatDecimalHoursToHHMM(totalHours) {
-      if (isNaN(totalHours)) return "0h00"; // Verifica se o valor é NaN e retorna um valor padrão
-      const hours = Math.floor(totalHours); // Parte inteira das horas
-      const minutes = Math.round((totalHours - hours) * 60); // Parte decimal convertida em minutos
-      return `${hours}h${minutes.toString().padStart(2, "0")}`; // Formata como HH:MM
-    }
-
-    let totalMinutes = 0;
-
-    workdays.forEach((workday) => {
-      const hoursIda = calculateHours(
-        workday.departureTime,
-        workday.arrivalTime
-      ); // Horas de ida
-      const hoursRetorno = calculateHours(
-        workday.returnDepartureTime,
-        workday.returnArrivalTime
-      ); // Horas de retorno
-
-      // Verifica se as horas de ida e retorno são válidas
-      if (hoursIda && hoursRetorno) {
-        const [hoursIdaInt, minutesIdaInt] = hoursIda.split(":").map(Number);
-        const [hoursRetornoInt, minutesRetornoInt] = hoursRetorno
-          .split(":")
-          .map(Number);
-
-        // Verifica se a divisão deu um número válido
-        if (
-          !isNaN(hoursIdaInt) &&
-          !isNaN(minutesIdaInt) &&
-          !isNaN(hoursRetornoInt) &&
-          !isNaN(minutesRetornoInt)
-        ) {
-          // Soma as horas e minutos
-          totalMinutes += hoursIdaInt * 60 + minutesIdaInt; // Soma as horas de ida em minutos
-          totalMinutes += hoursRetornoInt * 60 + minutesRetornoInt; // Soma as horas de retorno em minutos
-        }
-      }
-    });
-
-    // Converte o total de minutos para horas e minutos
-    const totalHoursFinal = Math.floor(totalMinutes / 60);
-    const totalMinutesFinal = totalMinutes % 60;
-
-    // Formata a string final no formato HH:MM
-    const formattedTotalHours = `${totalHoursFinal}h${totalMinutesFinal
-      .toString()
-      .padStart(2, "0")}`;
-
-    let totalKm = 0; // Inicializa a variável para armazenar a soma dos quilômetros
-
-    workdays.forEach((workday) => {
-      const kmDeparture = parseFloat(workday.kmDeparture);
-      const kmReturn = parseFloat(workday.kmReturn);
-
-      // Se kmDeparture e kmReturn forem válidos (não NaN) e a soma não for zero, acumula
-      if ((kmDeparture || kmReturn) > 0) {
-        const kmTotal = kmDeparture + kmReturn; // Somando os quilômetros de ida e volta
-        totalKm += kmTotal; // Acumulando o total de quilômetros
-      }
-    });
-
-    // Seções de Observações e Conclusão
-    let totalWorkHoursInMinutes = 0; // Total em minutos
-
-    workdays.forEach((day) => {
-      const hoursWork = calculateHoursWithPause(
-        day.startHour,
-        day.endHour,
-        day.pauseHours
-      );
-
-      // Extrai horas e minutos do formato HH:MM
-      const [hours, minutes] = hoursWork.split(":").map(Number);
-
-      // Converte tudo para minutos e acumula
-      totalWorkHoursInMinutes += hours * 60 + minutes;
-    });
-
-    // Converte o total em minutos para HH:MM
-    const totalWorkHoursFormatted = formatMinutesToHours(
-      totalWorkHoursInMinutes
-    );
-
-    // Função para converter minutos para HH:MM
-    function formatMinutesToHours(totalMinutes) {
-      const hours = Math.floor(totalMinutes / 60);
-      const minutes = totalMinutes % 60;
-      return `${hours}h${minutes.toString().padStart(2, "0")}`;
-    }
-
-    yPosition -= 0;
-    page.drawText("Total de Horas de Trabalho:", {
-      x: 50,
-      y: yPosition,
-      size: fontSize,
-      font: helveticaBoldFont,
-    });
-    page.drawText(safeText(totalWorkHoursFormatted) + "m", {
-      // Corrigido de "m" para "h"
-      x: 50,
-      y: yPosition - 20,
-      size: fontSize,
-      font: helveticaFont,
-    });
-
-    yPosition -= 0;
-    page.drawText("Total de Km's Percorridos:", {
-      x: 200,
-      y: yPosition,
-      size: fontSize,
-      font: helveticaBoldFont,
-    });
-    page.drawText(safeText(totalKm) + " km", {
-      x: 200,
-      y: yPosition - 20,
-      size: fontSize,
-      font: helveticaFont,
-    });
-
-    yPosition -= 0;
-    page.drawText("Total de Horas de Viagem:", {
-      x: 350,
-      y: yPosition,
-      size: fontSize,
-      font: helveticaBoldFont,
-    });
-    page.drawText(safeText(formattedTotalHours) + "m", {
-      // Corrigido de "m" para "h"
-      x: 350,
-      y: yPosition - 20,
-      size: fontSize,
-      font: helveticaFont,
     });
 
     // Adicionar offset inicial para deslocar todas as descrições
@@ -754,6 +749,136 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
   // Agora, adicionar a seção "Resultados do Trabalho" em uma nova página
   page = createNewPage();
   yPos = height - 110; // Reiniciar yPos para a nova página
+
+  function formatDecimalHoursToHHMM(totalHours) {
+    if (isNaN(totalHours)) return "0h00"; // Verifica se o valor é NaN e retorna um valor padrão
+    const hours = Math.floor(totalHours); // Parte inteira das horas
+    const minutes = Math.round((totalHours - hours) * 60); // Parte decimal convertida em minutos
+    return `${hours}h${minutes.toString().padStart(2, "0")}`; // Formata como HH:MM
+  }
+
+  let totalMinutes = 0;
+
+  workdays.forEach((workday) => {
+    const hoursIda = calculateHours(workday.departureTime, workday.arrivalTime); // Horas de ida
+    const hoursRetorno = calculateHours(
+      workday.returnDepartureTime,
+      workday.returnArrivalTime
+    ); // Horas de retorno
+
+    // Verifica se as horas de ida e retorno são válidas
+    if (hoursIda && hoursRetorno) {
+      const [hoursIdaInt, minutesIdaInt] = hoursIda.split(":").map(Number);
+      const [hoursRetornoInt, minutesRetornoInt] = hoursRetorno
+        .split(":")
+        .map(Number);
+
+      // Verifica se a divisão deu um número válido
+      if (
+        !isNaN(hoursIdaInt) &&
+        !isNaN(minutesIdaInt) &&
+        !isNaN(hoursRetornoInt) &&
+        !isNaN(minutesRetornoInt)
+      ) {
+        // Soma as horas e minutos
+        totalMinutes += hoursIdaInt * 60 + minutesIdaInt; // Soma as horas de ida em minutos
+        totalMinutes += hoursRetornoInt * 60 + minutesRetornoInt; // Soma as horas de retorno em minutos
+      }
+    }
+  });
+
+  // Converte o total de minutos para horas e minutos
+  const totalHoursFinal = Math.floor(totalMinutes / 60);
+  const totalMinutesFinal = totalMinutes % 60;
+
+  // Formata a string final no formato HH:MM
+  const formattedTotalHours = `${totalHoursFinal}h${totalMinutesFinal
+    .toString()
+    .padStart(2, "0")}`;
+
+  let totalKm = 0; // Inicializa a variável para armazenar a soma dos quilômetros
+
+  workdays.forEach((workday) => {
+    const kmDeparture = parseFloat(workday.kmDeparture);
+    const kmReturn = parseFloat(workday.kmReturn);
+
+    // Se kmDeparture e kmReturn forem válidos (não NaN) e a soma não for zero, acumula
+    if ((kmDeparture || kmReturn) > 0) {
+      const kmTotal = kmDeparture + kmReturn; // Somando os quilômetros de ida e volta
+      totalKm += kmTotal; // Acumulando o total de quilômetros
+    }
+  });
+
+  // Seções de Observações e Conclusão
+  let totalWorkHoursInMinutes = 0; // Total em minutos
+
+  workdays.forEach((day) => {
+    const hoursWork = calculateHoursWithPause(
+      day.startHour,
+      day.endHour,
+      day.pauseHours
+    );
+
+    // Extrai horas e minutos do formato HH:MM
+    const [hours, minutes] = hoursWork.split(":").map(Number);
+
+    // Converte tudo para minutos e acumula
+    totalWorkHoursInMinutes += hours * 60 + minutes;
+  });
+
+  // Converte o total em minutos para HH:MM
+  const totalWorkHoursFormatted = formatMinutesToHours(totalWorkHoursInMinutes);
+
+  // Função para converter minutos para HH:MM
+  function formatMinutesToHours(totalMinutes) {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}h${minutes.toString().padStart(2, "0")}`;
+  }
+
+  yPosition -= 50;
+  page.drawText("Total de Horas de Trabalho:", {
+    x: 50,
+    y: yPosition,
+    size: fontSize,
+    font: helveticaBoldFont,
+  });
+  page.drawText(safeText(totalWorkHoursFormatted) + "m", {
+    // Corrigido de "m" para "h"
+    x: 50,
+    y: yPosition - 20,
+    size: fontSize,
+    font: helveticaFont,
+  });
+
+  yPosition -= 0;
+  page.drawText("Total de Km's Percorridos:", {
+    x: 200,
+    y: yPosition,
+    size: fontSize,
+    font: helveticaBoldFont,
+  });
+  page.drawText(safeText(totalKm) + " km", {
+    x: 200,
+    y: yPosition - 20,
+    size: fontSize,
+    font: helveticaFont,
+  });
+
+  yPosition -= 0;
+  page.drawText("Total de Horas de Viagem:", {
+    x: 350,
+    y: yPosition,
+    size: fontSize,
+    font: helveticaBoldFont,
+  });
+  page.drawText(safeText(formattedTotalHours) + "m", {
+    // Corrigido de "m" para "h"
+    x: 350,
+    y: yPosition - 20,
+    size: fontSize,
+    font: helveticaFont,
+  });
 
   // Adicionar a seção "Resultados do Trabalho"
   yPos -= 10;
@@ -885,8 +1010,8 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
   });
 
   // Assinatura
-  yPos -= 80;
-  page.drawText("Assinatura Cliente e Técnico", {
+  yPos -= 500;
+  page.drawText("Assinatura Cliente e Técnico:", {
     x: 50,
     y: yPos,
     size: fontSize,
@@ -922,16 +1047,6 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
     color: rgb(0, 0, 0),
   });
 
-  // Criar um campo de texto para assinatura (cliente)
-  const clienteField = form.createTextField("clienteSignature");
-  clienteField.addToPage(page, {
-    x: 145,
-    y: yPos + 4, // Ajuste a posição Y conforme necessário
-    width: 110,
-    height: 20,
-  });
-  clienteField.setText("");
-
   // Desenhar a linha "Técnico"
   page.drawLine({
     start: { x: tecnicoX, y: yPos },
@@ -948,16 +1063,6 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
     font: helveticaFont,
     color: rgb(0, 0, 0),
   });
-
-  // Criar um campo de texto para assinatura (técnico)
-  const tecnicoField = form.createTextField("tecnicoSignature");
-  tecnicoField.addToPage(page, {
-    x: 345,
-    y: yPos + 4, // Ajuste a posição Y conforme necessário
-    width: 110,
-    height: 20,
-  });
-  tecnicoField.setText("");
 
   // Determinar o início e o final das informações básicas
   const infoBoxX = 40; // Posição x inicial da borda

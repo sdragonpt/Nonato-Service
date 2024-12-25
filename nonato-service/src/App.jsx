@@ -8,6 +8,7 @@ import {
   faChartBar,
   faCheckCircle,
   faSignOutAlt,
+  faBook,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   BrowserRouter as Router,
@@ -174,6 +175,15 @@ const App = () => {
                       >
                         <FontAwesomeIcon icon={faBox} className="mr-3" />
                         Peças
+                      </Link>
+                      <Link
+                        to="/app/manage-equipments"
+                        onClick={closeNavbar}
+                        className="text-white hover:bg-gray-700 p-2 rounded text-lg flex items-center"
+                      >
+                        <FontAwesomeIcon icon={faBook} className="mr-3" />{" "}
+                        {/* Ícone de configurações */}
+                        Biblioteca de Peças
                       </Link>
                       <div className="my-4" />
                       <Link
