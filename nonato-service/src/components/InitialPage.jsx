@@ -33,14 +33,12 @@ const InitialPage = ({ onEnter }) => {
           backgroundRepeat: "no-repeat",
         }}
       ></div>
-
-      {/* Camada para o botão "Entrar" */}
       {isLoaded && (
         <button
-          className="relative z-10 px-6 py-3 bg-[#9df767] text-white font-semibold rounded-full animate-bounce"
+          className="relative z-10 px-6 py-3 bg-[#9df767] text-white font-bold rounded-full border-2 border-white"
           onClick={handleEnter}
         >
-          Entrar
+          INICIAR
         </button>
       )}
     </div>

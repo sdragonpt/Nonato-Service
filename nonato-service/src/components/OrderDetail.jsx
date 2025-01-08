@@ -13,6 +13,22 @@ import {
 import { db } from "../firebase.jsx";
 import generateServiceOrderPDF from "./generatePDF";
 import generateServiceOrderPDFPlus from "./generatePDFPlus";
+import {
+  ArrowLeft,
+  Loader2,
+  AlertCircle,
+  Plus,
+  Trash2,
+  FileText,
+  Edit2,
+  CheckSquare,
+  Calendar,
+  Clock,
+  User,
+  Printer,
+  Tag,
+  PackageOpen,
+} from "lucide-react";
 
 const OrderDetail = () => {
   const { serviceId } = useParams();
@@ -20,311 +36,384 @@ const OrderDetail = () => {
   const [order, setOrder] = useState(null);
   const [client, setClient] = useState(null);
   const [equipment, setEquipment] = useState(null);
-  const [workdays, setWorkdays] = useState([]); // For storing workdays
-  const [serviceIdForPDF, setServiceIdForPDF] = useState(serviceId); // Variável para armazenar o serviceId para o PDF
+  const [workdays, setWorkdays] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Navigate to AddWorkday page
-  const handleAddWorkdayClick = () => {
-    navigate(`/app/order/${serviceId}/add-workday`, { state: { serviceId } });
-  };
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
 
-  // Função para obter o contador do serviço
-  const getCurrentServiceId = async () => {
-    const counterRef = doc(db, "counters", "servicesCounter");
-    const counterSnapshot = await getDoc(counterRef);
-    if (counterSnapshot.exists()) {
-      return counterSnapshot.data().count || 0; // Retorna o contador ou 0 se não existir
-    } else {
-      console.error("Contador não encontrado!");
-      return 0;
-    }
-  };
+      // Buscar ordem de serviço
+      const orderDoc = doc(db, "servicos", serviceId);
+      const orderData = await getDoc(orderDoc);
 
-  // Usar useEffect para obter o currentServiceId
-  useEffect(() => {
-    const fetchServiceId = async () => {
-      const serviceIdFromCounter = await getCurrentServiceId();
-      setCurrentServiceId(serviceIdFromCounter);
-    };
-    fetchServiceId();
-  }, []); // Chama a função uma vez após o componente ser montado
-
-  const deleteServiceOrder = async () => {
-    const confirmDelete = window.confirm(
-      "Tem certeza de que deseja apagar esta ordem de serviço e todos os dias de trabalho associados?"
-    );
-
-    if (confirmDelete) {
-      try {
-        // Delete all associated workdays
-        const workdaysCollectionRef = collection(db, "workdays");
-        const q = query(
-          workdaysCollectionRef,
-          where("serviceId", "==", serviceId)
-        );
-        const workdaysSnapshot = await getDocs(q);
-        const deletePromises = workdaysSnapshot.docs.map(
-          (doc) => deleteDoc(doc.ref) // Corrigido: usar deleteDoc para excluir cada documento
-        );
-
-        await Promise.all(deletePromises);
-
-        // Delete the service order
-        const serviceRef = doc(db, "servicos", serviceId);
-        await deleteDoc(serviceRef); // Certifique-se de usar deleteDoc aqui também
-
-        {
-          if (order.status === "Aberto") {
-            navigate("/app/open-services");
-          } else {
-            navigate("/app/closed-services");
-          }
-        }
-      } catch (error) {
-        console.error("Error deleting service order:", error);
+      if (!orderData.exists()) {
+        setError("Ordem de serviço não encontrada");
+        return;
       }
-    }
-  };
 
-  const fetchClient = async () => {
-    if (order?.clientId) {
-      const clientDoc = doc(db, "clientes", order.clientId);
-      const clientData = await getDoc(clientDoc);
+      const orderInfo = { id: orderData.id, ...orderData.data() };
+      setOrder(orderInfo);
+
+      // Buscar dados relacionados em paralelo
+      const [clientData, equipmentData, workdaysSnapshot] = await Promise.all([
+        getDoc(doc(db, "clientes", orderInfo.clientId)),
+        getDoc(doc(db, "equipamentos", orderInfo.equipmentId)),
+        getDocs(
+          query(collection(db, "workdays"), where("serviceId", "==", serviceId))
+        ),
+      ]);
+
+      // Processar cliente
       if (clientData.exists()) {
         setClient({ id: clientData.id, ...clientData.data() });
       }
-    }
-  };
 
-  const fetchEquipment = async () => {
-    if (order?.equipmentId) {
-      const equipmentDoc = doc(db, "equipamentos", order.equipmentId);
-      const equipmentData = await getDoc(equipmentDoc);
+      // Processar equipamento
       if (equipmentData.exists()) {
         setEquipment({ id: equipmentData.id, ...equipmentData.data() });
       }
+
+      // Processar dias de trabalho
+      const workdaysList = workdaysSnapshot.docs
+        .map((doc) => {
+          const workDateData = doc.data().workDate;
+          let workDate;
+
+          if (workDateData instanceof Date) {
+            workDate = workDateData;
+          } else if (typeof workDateData.toDate === "function") {
+            workDate = workDateData.toDate();
+          } else if (
+            typeof workDateData === "string" ||
+            typeof workDateData === "number"
+          ) {
+            workDate = new Date(workDateData);
+          } else {
+            console.warn("Invalid workDate format:", workDateData);
+            workDate = null;
+          }
+
+          return {
+            id: doc.id,
+            ...doc.data(),
+            workDate,
+          };
+        })
+        .filter((workday) => workday.workDate !== null)
+        .sort((a, b) => b.workDate - a.workDate);
+
+      setWorkdays(workdaysList);
+    } catch (err) {
+      console.error("Erro ao carregar dados:", err);
+      setError("Erro ao carregar dados. Por favor, tente novamente.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const fetchWorkdays = async () => {
-    try {
-      const workdaysCollectionRef = collection(db, "workdays");
-      const q = query(
-        workdaysCollectionRef,
-        where("serviceId", "==", serviceId)
-      );
-      const workdaysSnapshot = await getDocs(q);
-      const workdaysList = workdaysSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setWorkdays(workdaysList); // Updates the workdays state
-    } catch (error) {
-      console.error("Error fetching workdays:", error);
-    }
-  };
+  useEffect(() => {
+    fetchData();
+  }, [serviceId]);
 
   const handleGeneratePDF = async () => {
-    if (order && client && equipment && workdays) {
-      // Agora você pode usar a variável serviceIdForPDF
-      const { serviceId } = order; // Caso seja necessário pegar diretamente do order
-      const nonNullDescriptions = workdays.filter(
-        (day) => day.description && day.description.trim() !== ""
+    try {
+      setIsGeneratingPDF(true);
+      setError(null);
+
+      const nonNullDescriptions = workdays.filter((day) =>
+        day.description?.trim()
       ).length;
 
-      // Verificar as condições para usar o PDF normal ou PDFPlus
+      // Escolher versão do PDF baseado nas condições
       if (
         (workdays.length <= 3 && nonNullDescriptions === 2) ||
         (workdays.length <= 6 && nonNullDescriptions === 1) ||
         (workdays.length <= 7 && nonNullDescriptions === 1) ||
         (workdays.length <= 8 && nonNullDescriptions === 0)
       ) {
-        // Usar PDF normal
         await generateServiceOrderPDF(
-          serviceIdForPDF, // Passando serviceIdForPDF
+          serviceId,
           order,
           client,
           equipment,
           workdays
         );
       } else {
-        // Usar PDFPlus
         await generateServiceOrderPDFPlus(
-          serviceIdForPDF, // Passando serviceIdForPDF
+          serviceId,
           order,
           client,
           equipment,
           workdays
         );
       }
+    } catch (err) {
+      console.error("Erro ao gerar PDF:", err);
+      setError("Erro ao gerar PDF. Por favor, tente novamente.");
+    } finally {
+      setIsGeneratingPDF(false);
     }
   };
 
-  useEffect(() => {
-    const fetchOrder = async () => {
-      const orderDoc = doc(db, "servicos", serviceId);
-      const orderData = await getDoc(orderDoc);
-      if (orderData.exists()) {
-        setOrder({ id: orderData.id, ...orderData.data() });
-      } else {
-        console.log("Service order not found");
-      }
-    };
+  const deleteServiceOrder = async () => {
+    if (
+      !window.confirm(
+        "Tem certeza que deseja apagar esta ordem de serviço e todos os dias de trabalho associados? Esta ação não pode ser desfeita."
+      )
+    )
+      return;
 
-    fetchOrder();
-  }, [serviceId]);
+    try {
+      setIsDeleting(true);
+      setError(null);
+
+      // Deletar dias de trabalho em paralelo
+      const deletePromises = workdays.map((workday) =>
+        deleteDoc(doc(db, "workdays", workday.id))
+      );
+      await Promise.all(deletePromises);
+
+      // Deletar ordem de serviço
+      await deleteDoc(doc(db, "servicos", serviceId));
+
+      navigate(
+        order.status === "Aberto"
+          ? "/app/open-services"
+          : "/app/closed-services"
+      );
+    } catch (err) {
+      console.error("Erro ao deletar ordem:", err);
+      setError("Erro ao deletar ordem. Por favor, tente novamente.");
+      setIsDeleting(false);
+    }
+  };
 
   const closeServiceOrder = async () => {
+    if (!window.confirm("Tem certeza que deseja fechar esta ordem de serviço?"))
+      return;
+
     try {
-      const serviceRef = doc(db, "servicos", serviceId);
-      await updateDoc(serviceRef, {
-        status: "Fechado", // Update the status to "Fechado"
+      setIsClosing(true);
+      setError(null);
+
+      await updateDoc(doc(db, "servicos", serviceId), {
+        status: "Fechado",
+        closedAt: new Date(),
       });
-      // Optionally, navigate or provide feedback after closing the service
+
       navigate("/app/open-services");
-    } catch (error) {
-      console.error("Error closing service order:", error);
+    } catch (err) {
+      console.error("Erro ao fechar ordem:", err);
+      setError("Erro ao fechar ordem. Por favor, tente novamente.");
+      setIsClosing(false);
     }
   };
 
-  const generatePDF = () => {
-    // Functionality to generate the PDF
-    console.log("Generating PDF for the service order...");
-  };
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-white" />
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    if (order) {
-      fetchClient();
-      fetchEquipment();
-      fetchWorkdays(); // Fetch workdays after the order is loaded
-    }
-  }, [order]);
-
-  if (!order) {
-    return <div>Loading...</div>;
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 flex items-start max-w-md w-full">
+          <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
+          <p className="text-red-500">{error}</p>
+        </div>
+        <button
+          onClick={() => navigate(-1)}
+          className="mt-4 flex items-center px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Voltar
+        </button>
+      </div>
+    );
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto rounded-lg">
-      <h2 className="text-2xl font-medium mb-2 text-white text-center">
-        Ordem de Serviço
+    <div className="w-full max-w-4xl mx-auto p-4">
+      <button
+        onClick={() => navigate(-1)}
+        className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all hover:scale-105 flex items-center justify-center"
+        aria-label="Voltar"
+      >
+        <ArrowLeft className="w-5 h-5" />
+      </button>
+
+      <h2 className="text-2xl font-semibold text-center text-white mb-6">
+        Ordem de Serviço #{serviceId}
       </h2>
 
-      <div className="flex justify-center mb-4">
+      {/* Ações principais */}
+      <div className="flex flex-wrap justify-center gap-3 mb-6">
         {order.status === "Aberto" ? (
           <>
             <button
               onClick={closeServiceOrder}
-              className="h-10 px-3 bg-purple-600 mt-2 text-white text-lg flex items-center justify-center rounded-lg"
-              aria-label="Fechar Ordem de Serviço"
+              disabled={isClosing}
+              className="flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50"
             >
-              Fechar Ordem de Serviço
-            </button>
-
-            <button
-              onClick={deleteServiceOrder}
-              className="h-10 px-3 bg-red-600 mt-2 ml-4 text-white text-lg flex items-center justify-center rounded-lg"
-              aria-label="Deletar Ordem de Serviço"
-            >
-              Deletar Ordem de Serviço
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={handleGeneratePDF}
-              className="h-10 px-3 bg-green-600 mt-2 text-white text-lg flex items-center justify-center rounded-lg"
-              aria-label="Gerar PDF"
-            >
-              Gerar PDF
-            </button>
-
-            <button
-              onClick={deleteServiceOrder}
-              className="h-10 px-3 bg-red-600 mt-2 ml-4 text-white text-lg flex items-center justify-center rounded-lg"
-              aria-label="Deletar Ordem de Serviço"
-            >
-              Deletar Ordem de Serviço
-            </button>
-          </>
-        )}
-      </div>
-
-      <div className="bg-zinc-800 py-4 px-4 my-6 rounded-lg">
-        <p className="text-gray-300 mb-2">
-          Data: {new Date(order.date).toLocaleDateString()}
-        </p>
-        <p className="text-gray-300 mb-2">
-          Cliente: {client ? client.name : "N/A"}
-        </p>
-        <p className="text-gray-300 mb-2">
-          Equipamento:{" "}
-          {equipment ? `${equipment.brand} - ${equipment.model}` : "N/A"}
-        </p>
-        <p className="text-gray-300 mb-2">
-          Tipo de Serviço: {order.serviceType}
-        </p>
-        <p className="text-gray-300 mb-2">Ordem Nº: {serviceId}</p>
-      </div>
-
-      <h3 className="text-lg mb-2 text-white">Dias de Trabalho:</h3>
-      <div className="space-y-4 mb-32">
-        {workdays.length > 0 ? (
-          workdays.map((day) => (
-            <div
-              key={day.id}
-              className="p-4 bg-gray-700 rounded-lg text-white cursor-pointer"
-              onClick={() =>
-                navigate(`/app/edit-workday/${day.id}`, {
-                  state: { serviceId },
-                })
-              }
-            >
-              <p>
-                <strong>Data:</strong>{" "}
-                {new Date(day.workDate).toLocaleDateString()}
-              </p>
-              <p>
-                <strong>Pausa:</strong> {day.pause ? "Sim" : "Não"}
-              </p>
-              {day.pause && (
-                <p>
-                  <strong>Horas de Pausa:</strong> {day.pauseHours}
-                </p>
+              {isClosing ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <CheckSquare className="w-4 h-4 mr-2" />
               )}
-            </div>
-          ))
+              Fechar Ordem
+            </button>
+          </>
         ) : (
-          <p className="text-gray-500">Nenhum dia de trabalho registrado</p>
+          <button
+            onClick={handleGeneratePDF}
+            disabled={isGeneratingPDF}
+            className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50"
+          >
+            {isGeneratingPDF ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <FileText className="w-4 h-4 mr-2" />
+            )}
+            Gerar PDF
+          </button>
         )}
-      </div>
-
-      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center">
-        <p className="absolute bottom-24 text-white mb-2 text-center">
-          Clique aqui para adicionar novo dia de trabalho:
-        </p>
 
         <button
-          className="w-32 h-16 bg-[#1d2d50] mr-4 text-white text-lg flex items-center justify-center rounded-lg"
-          onClick={() => navigate(-1)}
-          aria-label="Voltar atrás"
+          onClick={deleteServiceOrder}
+          disabled={isDeleting}
+          className="flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50"
         >
+          {isDeleting ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Trash2 className="w-4 h-4 mr-2" />
+          )}
+          Deletar
+        </button>
+      </div>
+
+      {/* Detalhes da ordem */}
+      <div className="bg-gray-800 rounded-lg p-6 space-y-4 mb-6">
+        <div className="flex items-center">
+          <Calendar className="w-5 h-5 text-gray-400 mr-3" />
+          <div>
+            <p className="text-sm text-gray-400">Data</p>
+            <p className="text-white">
+              {new Date(order.date).toLocaleDateString()}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center">
+          <User className="w-5 h-5 text-gray-400 mr-3" />
+          <div>
+            <p className="text-sm text-gray-400">Cliente</p>
+            <p className="text-white">{client?.name || "N/A"}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center">
+          <Printer className="w-5 h-5 text-gray-400 mr-3" />
+          <div>
+            <p className="text-sm text-gray-400">Equipamento</p>
+            <p className="text-white">
+              {equipment ? `${equipment.brand} - ${equipment.model}` : "N/A"}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center">
+          <Tag className="w-5 h-5 text-gray-400 mr-3" />
+          <div>
+            <p className="text-sm text-gray-400">Tipo de Serviço</p>
+            <p className="text-white">{order.serviceType}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Dias de trabalho */}
+      <div className="mb-32">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-white">Dias de Trabalho</h3>
+          <span className="text-sm text-gray-400">
+            {workdays.length} registro(s)
+          </span>
+        </div>
+
+        <div className="space-y-4">
+          {workdays.length > 0 ? (
+            workdays.map((day) => (
+              <div
+                key={day.id}
+                onClick={() =>
+                  navigate(`/app/edit-workday/${day.id}`, {
+                    state: { serviceId },
+                  })
+                }
+                className="bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Clock className="w-5 h-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-white font-medium">
+                        {day.workDate.toLocaleDateString()}
+                      </p>
+                      <p className="text-gray-400 text-sm">
+                        {day.pause
+                          ? `${day.pauseHours}h de pausa`
+                          : "Sem pausa"}
+                      </p>
+                    </div>
+                  </div>
+                  <Edit2 className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8 bg-gray-800 rounded-lg">
+              <PackageOpen className="w-12 h-12 text-gray-600 mx-auto mb-2" />
+              <p className="text-gray-400">Nenhum dia de trabalho registrado</p>
+              <p className="text-sm text-gray-500">
+                Clique no botão abaixo para adicionar
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Botões de ação fixos */}
+      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center gap-4">
+        <button
+          className="h-16 px-6 bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center rounded-lg transition-colors"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="w-5 h-5 mr-2" />
           Voltar
         </button>
 
         <button
-          onClick={handleAddWorkdayClick}
-          className="h-20 w-20 -mt-8 bg-[#117d49] text-white font-bold text-3xl flex items-center justify-center rounded-full shadow-lg"
-          aria-label="Adicionar Trabalho"
+          onClick={() => navigate(`/app/order/${serviceId}/add-workday`)}
+          className="h-20 w-20 -mt-8 bg-[#117d49] hover:bg-[#0d6238] text-white flex items-center justify-center rounded-full shadow-lg transition-all hover:scale-105"
+          aria-label="Adicionar dia de trabalho"
         >
-          +
+          <Plus className="w-8 h-8" />
         </button>
 
         <button
-          className="w-32 h-16 bg-[#1d2d50] ml-4 text-white text-lg flex items-center justify-center rounded-lg"
-          onClick={() => navigate(`/app/edit-service-order/${serviceId}`)} // Fixed to navigate to the service order edit page
-          aria-label="Editar Ordem de Serviço"
+          className="h-16 px-6 bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center rounded-lg transition-colors"
+          onClick={() => navigate(`/app/edit-service-order/${serviceId}`)}
         >
+          <Edit2 className="w-5 h-5 mr-2" />
           Editar
         </button>
       </div>

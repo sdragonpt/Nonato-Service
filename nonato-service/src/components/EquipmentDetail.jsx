@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  doc,
-  getDoc,
-  collection,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-} from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../firebase.jsx";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import {
+  ArrowLeft,
+  Camera,
+  Loader2,
+  Trash2,
+  Edit2,
+  Plus,
+  Wrench,
+  UserCircle,
+  Package,
+  Barcode,
+  Tag,
+} from "lucide-react";
 
 const EquipmentDetail = () => {
   const { equipmentId } = useParams();
@@ -19,33 +24,43 @@ const EquipmentDetail = () => {
   const [newPhotoURL, setNewPhotoURL] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [photoChanged, setPhotoChanged] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [photoLoading, setPhotoLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     const fetchEquipment = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
+
         const equipmentDoc = doc(db, "equipamentos", equipmentId);
         const equipmentData = await getDoc(equipmentDoc);
-        if (equipmentData.exists()) {
-          setEquipment({ id: equipmentData.id, ...equipmentData.data() });
 
-          // Fetch client name using clientId from equipment data
-          const clientDoc = doc(db, "clientes", equipmentData.data().clientId);
-          const clientData = await getDoc(clientDoc);
-          if (clientData.exists()) {
-            setClientName(clientData.data().name);
-          } else {
-            console.log("Cliente não encontrado");
-          }
-
-          setNewPhotoURL(equipmentData.data().equipmentPic || "/nonato.png");
-        } else {
-          console.log("Equipamento não encontrado");
+        if (!equipmentData.exists()) {
+          setError("Equipamento não encontrado");
+          return;
         }
-      } catch (error) {
-        console.error("Erro ao buscar equipamento:", error);
+
+        const equipmentInfo = { id: equipmentData.id, ...equipmentData.data() };
+        setEquipment(equipmentInfo);
+        setNewPhotoURL(equipmentInfo.equipmentPic || "/nonato.png");
+
+        // Buscar nome do cliente
+        const clientDoc = doc(db, "clientes", equipmentInfo.clientId);
+        const clientData = await getDoc(clientDoc);
+
+        if (clientData.exists()) {
+          setClientName(clientData.data().name);
+        } else {
+          setError("Cliente associado não encontrado");
+        }
+      } catch (err) {
+        console.error("Erro ao buscar equipamento:", err);
+        setError("Erro ao carregar dados do equipamento");
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
@@ -55,6 +70,12 @@ const EquipmentDetail = () => {
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        // 5MB limit
+        alert("A imagem deve ter menos de 5MB");
+        return;
+      }
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setNewPhotoURL(reader.result);
@@ -66,138 +87,216 @@ const EquipmentDetail = () => {
   };
 
   const handleSavePhoto = async () => {
-    if (imageFile) {
+    if (!imageFile) {
+      alert("Por favor, selecione uma imagem para salvar.");
+      return;
+    }
+
+    try {
+      setPhotoLoading(true);
       const equipmentDocRef = doc(db, "equipamentos", equipmentId);
       await updateDoc(equipmentDocRef, {
         equipmentPic: newPhotoURL,
       });
 
-      alert("Foto do equipamento atualizada com sucesso!");
-      setEquipment((prevEquipment) => ({
-        ...prevEquipment,
+      setEquipment((prev) => ({
+        ...prev,
         equipmentPic: newPhotoURL,
       }));
       setPhotoChanged(false);
-    } else {
-      alert("Por favor, selecione uma imagem para salvar.");
+      alert("Foto do equipamento atualizada com sucesso!");
+    } catch (err) {
+      console.error("Erro ao salvar foto:", err);
+      alert("Erro ao salvar foto. Por favor, tente novamente.");
+    } finally {
+      setPhotoLoading(false);
     }
   };
 
   const handleRemovePhoto = async () => {
-    const equipmentDocRef = doc(db, "equipamentos", equipmentId);
-    await updateDoc(equipmentDocRef, {
-      equipmentPic: "",
-    });
-    setNewPhotoURL("/nonato.png");
-    setImageFile(null);
-    setPhotoChanged(false);
-    alert("Foto do equipamento removida com sucesso!");
-  };
+    if (!window.confirm("Tem certeza que deseja remover a foto?")) {
+      return;
+    }
 
-  const handleDeleteEquipment = async () => {
-    const confirmDelete = window.confirm(
-      "Tem certeza de que deseja apagar este equipamento?"
-    );
+    try {
+      setPhotoLoading(true);
+      const equipmentDocRef = doc(db, "equipamentos", equipmentId);
+      await updateDoc(equipmentDocRef, {
+        equipmentPic: "",
+      });
 
-    if (confirmDelete) {
-      try {
-        const equipmentDocRef = doc(db, "equipamentos", equipmentId);
-        await deleteDoc(equipmentDocRef);
-
-        navigate(`/app/client/${equipment.clientId}`); // Redirecionar para a página do cliente
-      } catch (error) {
-        console.error("Erro ao apagar equipamento:", error);
-        alert(
-          "Ocorreu um erro ao tentar apagar o equipamento. Tente novamente."
-        );
-      }
+      setNewPhotoURL("/nonato.png");
+      setImageFile(null);
+      setPhotoChanged(false);
+      alert("Foto do equipamento removida com sucesso!");
+    } catch (err) {
+      console.error("Erro ao remover foto:", err);
+      alert("Erro ao remover foto. Por favor, tente novamente.");
+    } finally {
+      setPhotoLoading(false);
     }
   };
 
-  if (loading) {
+  const handleDeleteEquipment = async () => {
+    if (
+      !window.confirm(
+        "Tem certeza que deseja apagar este equipamento? Esta ação não pode ser desfeita."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+      const equipmentDocRef = doc(db, "equipamentos", equipmentId);
+      await deleteDoc(equipmentDocRef);
+      navigate(`/app/client/${equipment.clientId}`);
+    } catch (err) {
+      console.error("Erro ao apagar equipamento:", err);
+      alert("Erro ao apagar equipamento. Por favor, tente novamente.");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  if (isLoading) {
     return (
-      <div className="w-full xl:w-96 mx-auto p-6 bg-gray-800 rounded-lg text-white">
-        Carregando...
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
   }
 
-  if (!equipment) {
+  if (error) {
     return (
-      <div className="w-full xl:w-96 mx-auto p-6 bg-gray-800 rounded-lg text-white">
-        Equipamento não encontrado.
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <p className="text-red-500 mb-4">{error}</p>
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Voltar
+        </button>
       </div>
     );
   }
+
+  if (!equipment) return null;
 
   return (
-    <div className="w-full max-w-3xl mx-auto rounded-lg">
+    <div className="w-full max-w-3xl mx-auto rounded-lg p-4">
       <button
         onClick={() => navigate(-1)}
-        className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition transform hover:scale-105"
+        className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all hover:scale-105 flex items-center justify-center"
         aria-label="Voltar"
       >
-        Voltar
+        <ArrowLeft className="w-5 h-5" />
       </button>
 
-      <h2 className="text-2xl font-medium mb-2 text-white text-center">
-        {equipment.name}
+      <h2 className="text-2xl font-medium mb-6 text-white text-center">
+        {equipment.type}
       </h2>
 
-      <div className="flex flex-col items-center mb-4">
-        <label className="relative">
-          <img
-            src={newPhotoURL || "/nonato.png"} // Usa a nova foto ou a padrão
-            alt="Foto do Equipamento"
-            className="w-24 h-24 rounded-full mb-2 z-0 border-zinc-800 border-2"
-          />
+      <div className="flex flex-col items-center mb-6">
+        <label className="relative cursor-pointer group">
+          <div className="relative">
+            <img
+              src={newPhotoURL}
+              alt="Foto do Equipamento"
+              className="w-24 h-24 rounded-full mb-2 border-zinc-800 border-2 object-cover"
+            />
+            <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <Camera className="w-8 h-8 text-white" />
+            </div>
+          </div>
           <input
             type="file"
             accept="image/*"
             onChange={handlePhotoChange}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            className="hidden"
           />
         </label>
-        <button
-          onClick={handleRemovePhoto}
-          className="mt-2 w-32 h-10 bg-purple-500 text-white rounded-lg"
-        >
-          Remover Foto
-        </button>
-        <button
-          onClick={handleDeleteEquipment}
-          className="mt-2 w-48 h-10 bg-red-600 text-white rounded-lg"
-        >
-          Apagar Equipamento
-        </button>
+
+        <div className="flex flex-wrap justify-center gap-2 mt-4">
+          <button
+            onClick={handleRemovePhoto}
+            disabled={photoLoading}
+            className="flex items-center px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors disabled:opacity-50"
+          >
+            {photoLoading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4 mr-2" />
+            )}
+            Remover Foto
+          </button>
+
+          <button
+            onClick={handleDeleteEquipment}
+            disabled={deleteLoading}
+            className="flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50"
+          >
+            {deleteLoading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4 mr-2" />
+            )}
+            Apagar Equipamento
+          </button>
+        </div>
+
         {photoChanged && (
-          <>
-            <button
-              onClick={handleSavePhoto}
-              className="mt-2 w-32 h-10 bg-[#9df767] text-white rounded-lg"
-            >
-              Salvar Foto
-            </button>
-          </>
+          <button
+            onClick={handleSavePhoto}
+            disabled={photoLoading}
+            className="mt-4 flex items-center px-6 py-2 bg-[#9df767] hover:bg-[#8be656] text-white rounded-lg transition-colors disabled:opacity-50"
+          >
+            {photoLoading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Camera className="w-4 h-4 mr-2" />
+            )}
+            Salvar Foto
+          </button>
         )}
       </div>
 
-      <div className="bg-zinc-800 py-2 px-2 mb-4 rounded-lg">
-        <p className="text-gray-300 mb-2">Cliente: {clientName}</p>
-        <p className="text-gray-300 mb-2">Marca: {equipment.brand}</p>
-        <p className="text-gray-300 mb-2">Modelo: {equipment.model}</p>
-        <p className="text-gray-300 mb-2">
-          Número de Série: {equipment.serialNumber}
-        </p>
-        <p className="text-gray-300">Tipo: {equipment.type}</p>
+      <div className="bg-zinc-800 p-4 mb-6 rounded-lg space-y-3">
+        <button
+          onClick={() => navigate(`/app/client/${equipment.clientId}`)}
+          className="w-full flex items-center text-gray-300 hover:text-white transition-colors"
+        >
+          <UserCircle className="w-5 h-5 mr-3" />
+          <span className="font-medium mr-2">Cliente:</span>
+          <span className="text-blue-400 hover:underline">{clientName}</span>
+        </button>
+
+        <div className="flex items-center text-gray-300">
+          <Package className="w-5 h-5 mr-3" />
+          <span className="font-medium mr-2">Marca:</span>
+          {equipment.brand}
+        </div>
+
+        <div className="flex items-center text-gray-300">
+          <Tag className="w-5 h-5 mr-3" />
+          <span className="font-medium mr-2">Modelo:</span>
+          {equipment.model}
+        </div>
+
+        <div className="flex items-center text-gray-300">
+          <Barcode className="w-5 h-5 mr-3" />
+          <span className="font-medium mr-2">Nº Série:</span>
+          {equipment.serialNumber}
+        </div>
       </div>
 
-      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center">
+      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center gap-4">
         <button
-          className="w-32 h-16 bg-[#1d2d50] mr-4 text-white text-lg flex items-center justify-center rounded-lg"
+          className="h-16 px-6 bg-[#1d2d50] hover:bg-[#283b6a] text-white flex items-center justify-center rounded-lg transition-colors"
           onClick={() => navigate(`/app/services/${equipmentId}`)}
-          aria-label="Serviços do Equipamento"
         >
+          <Wrench className="w-5 h-5 mr-2" />
           Serviços
         </button>
 
@@ -205,17 +304,17 @@ const EquipmentDetail = () => {
           onClick={() =>
             navigate(`/app/client/${equipment.clientId}/add-equipment`)
           }
-          className="h-20 w-20 -mt-8 bg-[#9df767] text-white font-bold text-3xl flex items-center justify-center rounded-full shadow-lg"
+          className="h-20 w-20 -mt-8 bg-[#117d49] hover:bg-[#117d49] text-white flex items-center justify-center rounded-full shadow-lg transition-all hover:scale-105"
           aria-label="Adicionar Equipamento"
         >
-          +
+          <Plus className="w-8 h-8" />
         </button>
 
         <button
-          className="w-32 h-16 bg-[#1d2d50] ml-4 text-white text-lg flex items-center justify-center rounded-lg"
+          className="h-16 px-6 bg-[#1d2d50] hover:bg-[#283b6a] text-white flex items-center justify-center rounded-lg transition-colors"
           onClick={() => navigate(`/app/edit-equipment/${equipmentId}`)}
-          aria-label="Editar Equipamento"
         >
+          <Edit2 className="w-5 h-5 mr-2" />
           Editar
         </button>
       </div>

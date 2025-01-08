@@ -1,58 +1,140 @@
 import React, { useState, useEffect } from "react";
-import { collection, getDocs, doc, deleteDoc } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  doc,
+  deleteDoc,
+  query,
+  orderBy,
+} from "firebase/firestore";
 import { db } from "../firebase.jsx";
 import { useNavigate } from "react-router-dom";
+import {
+  Search,
+  UserPlus,
+  Loader2,
+  MoreVertical,
+  Edit2,
+  Trash2,
+} from "lucide-react";
 
 const ManageClients = () => {
   const [clients, setClients] = useState([]);
-  const [searchTerm, setSearchTerm] = useState(""); // Estado para armazenar o termo de pesquisa
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [sortOrder, setSortOrder] = useState("asc");
+  const [activeMenu, setActiveMenu] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchClients = async () => {
-      const querySnapshot = await getDocs(collection(db, "clientes"));
-      const clientsData = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setClients(clientsData);
+      try {
+        setIsLoading(true);
+        const clientsRef = collection(db, "clientes");
+        const q = query(clientsRef, orderBy("name", sortOrder));
+        const querySnapshot = await getDocs(q);
+        const clientsData = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setClients(clientsData);
+        setError(null);
+      } catch (err) {
+        setError("Erro ao carregar clientes. Por favor, tente novamente.");
+        console.error("Erro ao buscar clientes:", err);
+      } finally {
+        setIsLoading(false);
+      }
     };
     fetchClients();
+  }, [sortOrder]);
+
+  // Fecha o menu quando clicar fora
+  useEffect(() => {
+    const handleClickOutside = () => setActiveMenu(null);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
-  const handleDelete = async (clientId) => {
-    try {
-      await deleteDoc(doc(db, "clientes", clientId));
-      setClients(clients.filter((client) => client.id !== clientId));
-    } catch (error) {
-      console.error("Erro ao deletar cliente:", error);
+  const handleDelete = async (clientId, e) => {
+    e.stopPropagation();
+    if (window.confirm("Tem certeza que deseja deletar este cliente?")) {
+      try {
+        await deleteDoc(doc(db, "clientes", clientId));
+        setClients(clients.filter((client) => client.id !== clientId));
+        setActiveMenu(null);
+      } catch (error) {
+        setError("Erro ao deletar cliente. Por favor, tente novamente.");
+        console.error("Erro ao deletar cliente:", error);
+      }
     }
   };
 
-  const handleEdit = (clientId) => {
-    navigate(`/edit-client/${clientId}`);
+  const handleEdit = (clientId, e) => {
+    e.stopPropagation();
+    navigate(`/app/edit-client/${clientId}`);
+    setActiveMenu(null);
   };
 
-  // Filtrar clientes com base no termo de pesquisa
-  const filteredClients = clients.filter((client) =>
-    client.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const toggleMenu = (e, clientId) => {
+    e.stopPropagation();
+    setActiveMenu(activeMenu === clientId ? null : clientId);
+  };
+
+  const filteredClients = clients.filter(
+    (client) =>
+      client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (client.phone && client.phone.includes(searchTerm)) ||
+      (client.address &&
+        client.address.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  const toggleSortOrder = () => {
+    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-white" />
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full max-w-3xl mx-auto rounded-lg">
+    <div className="w-full max-w-3xl mx-auto rounded-lg p-4">
       <h2 className="text-2xl font-semibold text-center text-white mb-6">
-        Clientes
+        Gerenciar Clientes
       </h2>
 
-      {/* Barra de pesquisa */}
-      <div className="mb-6">
+      {error && (
+        <div className="mb-4 p-4 bg-red-500/10 border border-red-500 rounded-lg">
+          <p className="text-red-500">{error}</p>
+        </div>
+      )}
+
+      <div className="mb-6 relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
         <input
           type="text"
-          placeholder="Buscar cliente..."
+          placeholder="Buscar por nome, telefone ou endereço..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)} // Atualiza o estado com o texto digitado
-          className="w-full p-3 bg-gray-800 text-white rounded-lg"
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full p-3 pl-10 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
         />
+      </div>
+
+      <div className="mb-4 flex justify-between items-center">
+        <button
+          onClick={toggleSortOrder}
+          className="text-white hover:text-blue-400 transition-colors"
+        >
+          Ordenar: {sortOrder === "asc" ? "A-Z" : "Z-A"}
+        </button>
+        <span className="text-gray-400">
+          {filteredClients.length} cliente(s)
+        </span>
       </div>
 
       <div className="space-y-4 mb-32">
@@ -61,37 +143,79 @@ const ManageClients = () => {
             <div
               key={client.id}
               onClick={() => navigate(`/app/client/${client.id}`)}
-              className="flex items-center p-4 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600"
+              className="group flex items-center p-4 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors relative"
             >
-              <img
-                src={client.profilePic || "/nonato.png"}
-                alt={client.name}
-                className="w-12 h-12 rounded-full mr-4"
-              />
-              <div className="text-white">
-                <h3 className="font-semibold">{client.name}</h3>
-                <p className="text-gray-400">
-                  {client.phone || "Sem telefone"}
-                </p>
-                <p className="text-gray-400">
-                  {client.address || "Sem endereço"}
-                </p>
+              <div className="flex items-center flex-grow min-w-0">
+                <img
+                  src={client.profilePic || "/nonato.png"}
+                  alt={client.name}
+                  className="w-12 h-12 rounded-full mr-4 flex-shrink-0 object-cover"
+                  onError={(e) => {
+                    e.target.src = "/nonato.png";
+                    e.target.onerror = null;
+                  }}
+                />
+                <div className="min-w-0 flex-grow">
+                  <h3 className="font-semibold text-white truncate">
+                    {client.name}
+                  </h3>
+                  <p className="text-gray-400 truncate">
+                    {client.phone || "Sem telefone"}
+                  </p>
+                  <p className="text-gray-400 truncate">
+                    {client.address || "Sem endereço"}
+                  </p>
+                </div>
               </div>
+
+              {/* Menu de ações (três pontos) */}
+              <button
+                onClick={(e) => toggleMenu(e, client.id)}
+                className="p-2 ml-2 text-gray-400 hover:text-white rounded-full focus:outline-none"
+              >
+                <MoreVertical className="w-5 h-5" />
+              </button>
+
+              {/* Menu dropdown */}
+              {activeMenu === client.id && (
+                <div
+                  className="absolute right-0 top-full mt-2 w-48 bg-gray-800 rounded-lg shadow-lg z-50 py-1 border border-gray-700"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={(e) => handleEdit(client.id, e)}
+                    className="w-full px-4 py-2 text-left text-white hover:bg-gray-700 flex items-center"
+                  >
+                    <Edit2 className="w-4 h-4 mr-2" />
+                    Editar
+                  </button>
+                  <button
+                    onClick={(e) => handleDelete(client.id, e)}
+                    className="w-full px-4 py-2 text-left text-red-400 hover:bg-gray-700 flex items-center"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Excluir
+                  </button>
+                </div>
+              )}
             </div>
           ))
         ) : (
-          <p className="text-white text-center">Nenhum cliente encontrado.</p>
+          <div className="text-white text-center py-8">
+            <p className="mb-2">Nenhum cliente encontrado.</p>
+            <p className="text-gray-400">
+              Tente ajustar sua busca ou adicione um novo cliente.
+            </p>
+          </div>
         )}
       </div>
 
-      {/* Botões na parte inferior da página, estilo conforme a imagem */}
       <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center">
-        {/* Botão redondo central para adicionar cliente */}
         <button
           onClick={() => navigate("/app/add-client")}
-          className="h-20 px-4 -mt-8 bg-[#117d49] text-white text-2xl font-medium flex items-center justify-center rounded-full md:rounded-lg shadow-lg"
-          aria-label="Adicionar Cliente"
+          className="h-16 px-6 bg-[#117d49] text-white font-medium flex items-center justify-center rounded-full shadow-lg hover:bg-[#0d6238] transition-colors"
         >
+          <UserPlus className="w-5 h-5 mr-2" />
           Novo Cliente
         </button>
       </div>

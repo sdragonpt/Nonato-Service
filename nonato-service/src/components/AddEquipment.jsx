@@ -2,149 +2,307 @@ import React, { useState } from "react";
 import { doc, getDoc, setDoc, increment } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Camera, Loader2, Upload, X } from "lucide-react";
 
 const AddEquipment = () => {
   const navigate = useNavigate();
-  const { clientId } = useParams(); // Obtém o clientId da URL
-  const [type, setType] = useState("");
-  const [brand, setBrand] = useState("");
-  const [model, setModel] = useState("");
-  const [serialNumber, setSerialNumber] = useState("");
-  const [equipmentPic, setEquipmentPic] = useState(null); // Estado para a imagem do equipamento
-  const [equipmentPicPreview, setEquipmentPicPreview] = useState(""); // Estado para a prévia da imagem
+  const { clientId } = useParams();
 
-  const getNextEquipmentId = async () => {
-    const counterRef = doc(db, "counters", "equipmentsCounter");
-    const counterSnapshot = await getDoc(counterRef);
+  const [formData, setFormData] = useState({
+    type: "",
+    brand: "",
+    model: "",
+    serialNumber: "",
+  });
 
-    if (counterSnapshot.exists()) {
-      const currentCounter = counterSnapshot.data().count;
-      await setDoc(counterRef, { count: increment(1) }, { merge: true });
-      return currentCounter + 1;
-    } else {
-      await setDoc(counterRef, { count: 1 });
-      return 1;
-    }
+  const [equipmentPic, setEquipmentPic] = useState(null);
+  const [equipmentPicPreview, setEquipmentPicPreview] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [touched, setTouched] = useState({});
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleBlur = (field) => {
+    setTouched((prev) => ({
+      ...prev,
+      [field]: true,
+    }));
+  };
+
+  const getNextEquipmentId = async () => {
     try {
-      const newEquipmentId = await getNextEquipmentId();
-      await setDoc(doc(db, "equipamentos", newEquipmentId.toString()), {
-        clientId: clientId, // Associando ao clientId da URL
-        type,
-        brand,
-        model,
-        serialNumber,
-        createdAt: new Date(),
-        equipmentPic: equipmentPicPreview, // Salvar a URL da imagem
-      });
+      const counterRef = doc(db, "counters", "equipmentsCounter");
+      const counterSnapshot = await getDoc(counterRef);
 
-      // Limpa os campos após adicionar
-      setType("");
-      setBrand("");
-      setModel("");
-      setSerialNumber("");
-      setEquipmentPic(null);
-      setEquipmentPicPreview(""); // Limpa a prévia da imagem
-
-      // Navega de volta para a página anterior após a adição bem-sucedida
-      navigate(-1);
-    } catch (e) {
-      console.error("Erro ao adicionar equipamento: ", e);
+      if (counterSnapshot.exists()) {
+        const currentCounter = counterSnapshot.data().count;
+        await setDoc(counterRef, { count: increment(1) }, { merge: true });
+        return currentCounter + 1;
+      } else {
+        await setDoc(counterRef, { count: 1 });
+        return 1;
+      }
+    } catch (error) {
+      console.error("Erro ao gerar ID:", error);
+      throw new Error("Falha ao gerar ID do equipamento");
     }
   };
 
   const handleEquipmentPicChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        // 5MB limit
+        setError("A imagem deve ter menos de 5MB");
+        return;
+      }
+
       const reader = new FileReader();
       reader.onloadend = () => {
-        setEquipmentPicPreview(reader.result); // Definir a URL da imagem para a prévia
+        setEquipmentPicPreview(reader.result);
       };
       reader.readAsDataURL(file);
-      setEquipmentPic(file); // Armazena o arquivo para futuras operações, se necessário
+      setEquipmentPic(file);
+      setError(null);
+    }
+  };
+
+  const removeImage = () => {
+    setEquipmentPic(null);
+    setEquipmentPicPreview("");
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Marca todos os campos como touched para mostrar validações
+    const allTouched = Object.keys(formData).reduce(
+      (acc, key) => ({
+        ...acc,
+        [key]: true,
+      }),
+      {}
+    );
+    setTouched(allTouched);
+
+    // Validação básica
+    if (Object.values(formData).some((value) => !value.trim())) {
+      setError("Por favor, preencha todos os campos obrigatórios");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+
+      const newEquipmentId = await getNextEquipmentId();
+
+      await setDoc(doc(db, "equipamentos", newEquipmentId.toString()), {
+        clientId,
+        ...formData,
+        serialNumber: formData.serialNumber.toUpperCase(),
+        createdAt: new Date(),
+        equipmentPic: equipmentPicPreview,
+      });
+
+      navigate(-1);
+    } catch (err) {
+      console.error("Erro ao adicionar equipamento:", err);
+      setError("Erro ao adicionar equipamento. Por favor, tente novamente.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div>
+    <div className="min-h-screen p-4">
       <button
         onClick={() => navigate(-1)}
-        className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition transform hover:scale-105"
+        className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all hover:scale-105 flex items-center justify-center"
         aria-label="Voltar"
       >
-        Voltar
+        <ArrowLeft className="w-5 h-5" />
       </button>
 
-      <h2 className="text-2xl text-center text-white font-semibold mb-4">
+      <h2 className="text-2xl text-center text-white font-semibold mb-6">
         Novo Equipamento
       </h2>
-      <div className="w-full xl:w-96 mx-auto p-6 bg-gray-800 rounded-lg mt-10">
-        <form onSubmit={handleSubmit}>
-          <input
-            type="text"
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            placeholder="Tipo"
-            required
-            className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="text"
-            value={brand}
-            onChange={(e) => setBrand(e.target.value)}
-            placeholder="Marca"
-            required
-            className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="text"
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            placeholder="Modelo"
-            required
-            className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="text"
-            value={serialNumber}
-            onChange={(e) => setSerialNumber(e.target.value)}
-            placeholder="Número de Série"
-            required
-            className="w-full p-2 mb-4 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <div className="w-full mb-4">
-            <label className="flex flex-col items-center px-4 py-6 bg-gray-700 rounded-lg tracking-wide uppercase cursor-pointer hover:bg-blue-500 hover:text-white text-gray-300 transition duration-300">
-              <img
-                src="/image-regular.svg"
-                alt="Foto do Equipamento"
-                width="20"
-                height="20"
-              />
-              <span className="text-sm">Selecionar Foto do Equipamento</span>
-              <input
-                type="file"
-                className="hidden"
-                onChange={handleEquipmentPicChange}
-                accept="image/*"
-              />
+
+      <div className="w-full max-w-md mx-auto">
+        {error && (
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500 rounded-lg text-red-500 text-sm">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label
+              htmlFor="type"
+              className="block text-sm font-medium text-gray-300 mb-1"
+            >
+              Tipo
             </label>
-            {equipmentPicPreview && ( // Exibe a imagem selecionada
-              <img
-                src={equipmentPicPreview}
-                alt="Preview da Foto do Equipamento"
-                className="mt-2 w-24 h-24 rounded-full"
-              />
+            <input
+              id="type"
+              type="text"
+              name="type"
+              value={formData.type}
+              onChange={handleChange}
+              onBlur={() => handleBlur("type")}
+              placeholder="Ex: Impressora, Scanner..."
+              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors
+                ${
+                  touched.type && !formData.type ? "border border-red-500" : ""
+                }`}
+            />
+            {touched.type && !formData.type && (
+              <p className="mt-1 text-sm text-red-500">Tipo é obrigatório</p>
+            )}
+          </div>
+
+          <div>
+            <label
+              htmlFor="brand"
+              className="block text-sm font-medium text-gray-300 mb-1"
+            >
+              Marca
+            </label>
+            <input
+              id="brand"
+              type="text"
+              name="brand"
+              value={formData.brand}
+              onChange={handleChange}
+              onBlur={() => handleBlur("brand")}
+              placeholder="Ex: HP, Epson..."
+              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors
+                ${
+                  touched.brand && !formData.brand
+                    ? "border border-red-500"
+                    : ""
+                }`}
+            />
+            {touched.brand && !formData.brand && (
+              <p className="mt-1 text-sm text-red-500">Marca é obrigatória</p>
+            )}
+          </div>
+
+          <div>
+            <label
+              htmlFor="model"
+              className="block text-sm font-medium text-gray-300 mb-1"
+            >
+              Modelo
+            </label>
+            <input
+              id="model"
+              type="text"
+              name="model"
+              value={formData.model}
+              onChange={handleChange}
+              onBlur={() => handleBlur("model")}
+              placeholder="Ex: LaserJet Pro M428fdw"
+              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors
+                ${
+                  touched.model && !formData.model
+                    ? "border border-red-500"
+                    : ""
+                }`}
+            />
+            {touched.model && !formData.model && (
+              <p className="mt-1 text-sm text-red-500">Modelo é obrigatório</p>
+            )}
+          </div>
+
+          <div>
+            <label
+              htmlFor="serialNumber"
+              className="block text-sm font-medium text-gray-300 mb-1"
+            >
+              Número de Série
+            </label>
+            <input
+              id="serialNumber"
+              type="text"
+              name="serialNumber"
+              value={formData.serialNumber}
+              onChange={handleChange}
+              onBlur={() => handleBlur("serialNumber")}
+              placeholder="Ex: XYZ123456"
+              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors uppercase
+                ${
+                  touched.serialNumber && !formData.serialNumber
+                    ? "border border-red-500"
+                    : ""
+                }`}
+            />
+            {touched.serialNumber && !formData.serialNumber && (
+              <p className="mt-1 text-sm text-red-500">
+                Número de série é obrigatório
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Foto do Equipamento
+            </label>
+
+            {equipmentPicPreview ? (
+              <div className="relative w-32 h-32 mx-auto">
+                <img
+                  src={equipmentPicPreview}
+                  alt="Preview"
+                  className="w-full h-full rounded-lg object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center p-6 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors">
+                <Camera className="w-8 h-8 text-gray-400 mb-2" />
+                <span className="text-sm text-gray-400">
+                  Clique para adicionar foto
+                </span>
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={handleEquipmentPicChange}
+                  accept="image/*"
+                />
+              </label>
             )}
           </div>
 
           <button
             type="submit"
-            className="w-full p-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition duration-300"
+            disabled={isSubmitting}
+            className="w-full p-3 flex items-center justify-center text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:hover:bg-blue-600"
           >
-            Adicionar Equipamento
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Adicionando...
+              </>
+            ) : (
+              <>
+                <Upload className="w-5 h-5 mr-2" />
+                Adicionar Equipamento
+              </>
+            )}
           </button>
         </form>
       </div>

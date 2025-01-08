@@ -1,38 +1,192 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../firebase.jsx";
+import {
+  PlusCircle,
+  ClipboardCheck,
+  ClipboardList,
+  AlertCircle,
+  Clock,
+  CheckCircle2,
+  Loader2,
+  Calendar,
+} from "lucide-react";
 
 const ManageServices = () => {
   const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    open: 0,
+    closed: 0,
+    urgent: 0,
+    todayTotal: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Buscar todas as ordens de serviço
+        const servicesRef = collection(db, "servicos");
+
+        // Buscar todos os serviços de uma vez
+        const servicesSnapshot = await getDocs(servicesRef);
+        const services = servicesSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt:
+            doc.data().createdAt?.toDate() || new Date(doc.data().date),
+        }));
+
+        // Calcular estatísticas
+        const stats = {
+          open: services.filter((service) => service.status === "Aberto")
+            .length,
+          closed: services.filter((service) => service.status === "Fechado")
+            .length,
+          urgent: services.filter((service) => service.priority === "high")
+            .length,
+          todayTotal: services.filter((service) => {
+            const serviceDate = new Date(service.createdAt);
+            return serviceDate >= today;
+          }).length,
+        };
+
+        setStats(stats);
+      } catch (err) {
+        console.error("Erro ao buscar estatísticas:", err);
+        setError("Erro ao carregar dados. Por favor, tente novamente.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-white" />
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full max-w-3xl mx-auto rounded-lg">
-      <h2 className="text-2xl font-semibold text-center text-white mb-6">
+    <div className="w-full max-w-3xl mx-auto rounded-lg p-4">
+      <h2 className="text-2xl font-semibold text-center text-white mb-8">
         Ordens de Serviço
       </h2>
 
+      {error && (
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded-lg flex items-center text-red-500">
+          <AlertCircle className="w-5 h-5 mr-2" />
+          {error}
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {/* Card - Ordens Abertas */}
+        <div
+          onClick={() => navigate("/app/open-services")}
+          className="bg-blue-500/10 border border-blue-500/50 p-4 rounded-lg cursor-pointer hover:bg-blue-500/20 transition-colors"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <ClipboardList className="w-6 h-6 text-blue-400" />
+            <span className="text-2xl font-bold text-blue-400">
+              {stats.open}
+            </span>
+          </div>
+          <p className="text-blue-400 text-sm">Ordens Abertas</p>
+        </div>
+
+        {/* Card - Ordens Fechadas */}
+        <div
+          onClick={() => navigate("/app/closed-services")}
+          className="bg-green-500/10 border border-green-500/50 p-4 rounded-lg cursor-pointer hover:bg-green-500/20 transition-colors"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <ClipboardCheck className="w-6 h-6 text-green-400" />
+            <span className="text-2xl font-bold text-green-400">
+              {stats.closed}
+            </span>
+          </div>
+          <p className="text-green-400 text-sm">Ordens Fechadas</p>
+        </div>
+
+        {/* Card - Urgentes */}
+        <div className="bg-red-500/10 border border-red-500/50 p-4 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <AlertCircle className="w-6 h-6 text-red-400" />
+            <span className="text-2xl font-bold text-red-400">
+              {stats.urgent}
+            </span>
+          </div>
+          <p className="text-red-400 text-sm">Ordens Urgentes</p>
+        </div>
+
+        {/* Card - Hoje */}
+        <div className="bg-purple-500/10 border border-purple-500/50 p-4 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <Calendar className="w-6 h-6 text-purple-400" />
+            <span className="text-2xl font-bold text-purple-400">
+              {stats.todayTotal}
+            </span>
+          </div>
+          <p className="text-purple-400 text-sm">Ordens de Hoje</p>
+        </div>
+      </div>
+
+      {/* Status Cards */}
+      <div className="grid grid-cols-2 gap-4 mb-32">
+        {/* Ordens Abertas Card */}
+        <button
+          onClick={() => navigate("/app/open-services")}
+          className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors group"
+        >
+          <div className="flex items-center justify-center mb-3">
+            <Clock className="w-8 h-8 text-blue-400 group-hover:scale-110 transition-transform" />
+          </div>
+          <h3 className="text-lg font-medium text-center text-white mb-2">
+            Ordens Abertas
+          </h3>
+          <p className="text-sm text-gray-400 text-center">
+            Visualizar e gerenciar ordens em andamento
+          </p>
+        </button>
+
+        {/* Ordens Fechadas Card */}
+        <button
+          onClick={() => navigate("/app/closed-services")}
+          className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors group"
+        >
+          <div className="flex items-center justify-center mb-3">
+            <CheckCircle2 className="w-8 h-8 text-green-400 group-hover:scale-110 transition-transform" />
+          </div>
+          <h3 className="text-lg font-medium text-center text-white mb-2">
+            Ordens Fechadas
+          </h3>
+          <p className="text-sm text-gray-400 text-center">
+            Histórico de ordens concluídas
+          </p>
+        </button>
+      </div>
+
+      {/* Botão flutuante para nova ordem */}
       <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center">
         <button
-          className="w-32 h-16 bg-[#1d2d50] mr-4 text-white text-lg flex items-center justify-center rounded-lg"
-          onClick={() => navigate(`/app/open-services`)}
-          aria-label="Serviços Abertos"
+          onClick={() => navigate("/app/add-service")}
+          className="h-16 px-6 bg-[#117d49] text-white font-medium flex items-center justify-center rounded-full shadow-lg hover:bg-[#0d6238] transition-all hover:scale-105"
         >
-          Abertas
-        </button>
-
-        <button
-          onClick={() => navigate(`/app/add-service`)}
-          className="h-20 w-20 -mt-8 bg-[#117d49] text-white font-bold text-3xl flex items-center justify-center rounded-full shadow-lg"
-          aria-label="Adicionar Serviço"
-        >
-          +
-        </button>
-
-        <button
-          className="w-32 h-16 bg-[#1d2d50] ml-4 text-white text-lg flex items-center justify-center rounded-lg"
-          onClick={() => navigate(`/app/closed-services`)}
-          aria-label="Serviços Fechados"
-        >
-          Fechadas
+          <PlusCircle className="w-5 h-5 mr-2" />
+          Nova Ordem de Serviço
         </button>
       </div>
     </div>
