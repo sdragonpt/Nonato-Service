@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   doc,
   getDoc,
@@ -23,6 +23,7 @@ import {
   Mail,
   Phone,
   FileText,
+  Clipboard,
 } from "lucide-react";
 
 const ClientDetail = () => {
@@ -275,6 +276,16 @@ const ClientDetail = () => {
               <Trash2 className="w-4 h-4 mr-2" />
             )}
             Apagar Cliente
+          </button>
+
+          <button className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50">
+            <Link
+              to={`/app/add-service?clientId=${client.id}`}
+              className="flex items-center"
+            >
+              <Clipboard className="w-4 h-4 mr-2" />
+              Nova Ordem de Serviço
+            </Link>
           </button>
         </div>
 

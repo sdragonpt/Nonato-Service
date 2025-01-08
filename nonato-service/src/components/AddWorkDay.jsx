@@ -1,13 +1,27 @@
 import React, { useState, useEffect } from "react";
-import { db } from "../firebase"; // Importe sua configuração do Firebase
+import { db } from "../firebase";
 import { collection, addDoc } from "firebase/firestore";
-import { useLocation, useNavigate } from "react-router-dom"; // Importa o hook para acessar a localização atual
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  ArrowLeft,
+  Loader2,
+  Save,
+  AlertCircle,
+  Calendar,
+  Clock,
+  Car,
+  FileText,
+  Coffee,
+} from "lucide-react";
 
 const AddWorkday = () => {
-  const location = useLocation();
-  const { serviceId } = location.state || {}; // Obtém o serviceId passado na navegação
-  const [workday, setWorkday] = useState({
-    workDate: "",
+  const { serviceId } = useParams();
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const [formData, setFormData] = useState({
+    workDate: new Date().toISOString().split("T")[0],
     departureTime: "",
     arrivalTime: "",
     kmDeparture: "",
@@ -16,210 +30,298 @@ const AddWorkday = () => {
     pauseHours: "",
     returnDepartureTime: "",
     returnArrivalTime: "",
-    startHour: "", // Novo campo para hora de início
+    startHour: "",
     endHour: "",
     description: "",
-    concluido: "",
-    retorno: "",
-    funcionarios: "",
-    documentacao: "",
-    producao: "",
-    pecas: "",
-    resultDescription: "",
   });
 
-  const navigate = useNavigate();
-
-  // Função para lidar com mudanças nos campos de entrada
-  const handleWorkdayChange = (e) => {
+  const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setWorkday((prev) => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  // Função para adicionar o dia de trabalho ao Firestore
-  const handleAddWorkdayToDb = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!serviceId) {
+      setError("ID do serviço não encontrado");
+      return;
+    }
+
     try {
-      // Coleção de dias de trabalho no Firestore
-      const workdaysCollection = collection(db, "workdays");
+      setIsLoading(true);
+      setError(null);
 
-      // Adicionando o novo dia de trabalho à coleção
-      await addDoc(workdaysCollection, {
-        serviceId, // Associando o dia de trabalho com o serviço
-        workDate: workday.workDate,
-        departureTime: workday.departureTime,
-        arrivalTime: workday.arrivalTime,
-        kmDeparture: workday.kmDeparture,
-        kmReturn: workday.kmReturn,
-        pause: workday.pause,
-        pauseHours: workday.pauseHours,
-        returnDepartureTime: workday.returnDepartureTime,
-        returnArrivalTime: workday.returnArrivalTime,
-        startHour: workday.startHour, // Novo campo para hora de início
-        endHour: workday.endHour,
-        description: workday.description,
-      });
+      const workdayData = {
+        ...formData,
+        serviceId,
+        createdAt: new Date(),
+      };
 
-      console.log("Dia de trabalho adicionado com sucesso!");
-      navigate(-1); // Redireciona para o serviço após adicionar o dia de trabalho
-    } catch (error) {
-      console.error("Erro ao adicionar dia de trabalho:", error);
+      await addDoc(collection(db, "workdays"), workdayData);
+      navigate(-1);
+    } catch (err) {
+      console.error("Erro ao adicionar dia:", err);
+      setError("Erro ao salvar. Por favor, tente novamente.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div>
+    <div className="w-full max-w-2xl mx-auto p-4">
       <button
         onClick={() => navigate(-1)}
-        className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition transform hover:scale-105"
-        aria-label="Voltar"
+        className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all hover:scale-105 flex items-center justify-center"
       >
-        Voltar
+        <ArrowLeft className="w-5 h-5" />
       </button>
 
-      <h2 className="text-2xl text-center text-white mb-4">
+      <h2 className="text-2xl font-semibold text-center text-white mb-6">
         Adicionar Dia de Trabalho
       </h2>
-      <div className="w-full xl:w-96 mx-auto p-6 bg-gray-800 rounded-lg mt-10">
-        <form onSubmit={handleAddWorkdayToDb}>
-          <div className="mb-4">
-            <h3 className="text-lg text-white">Data</h3>
-            <input
-              type="date"
-              name="workDate"
-              value={workday.workDate}
-              onChange={handleWorkdayChange}
-              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-              required
-            />
-          </div>
 
-          <div className="mb-4">
-            <h3 className="text-lg text-white">Ida</h3>
-            <input
-              type="time"
-              name="departureTime"
-              value={workday.departureTime}
-              onChange={handleWorkdayChange}
-              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-            />
-            <input
-              type="time"
-              name="arrivalTime"
-              value={workday.arrivalTime}
-              onChange={handleWorkdayChange}
-              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-            />
-          </div>
+      {error && (
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded-lg flex items-center">
+          <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
+          <p className="text-red-500">{error}</p>
+        </div>
+      )}
 
-          <div className="mb-4">
-            <h3 className="text-lg text-white">KM's</h3>
-            <input
-              type="number"
-              name="kmDeparture"
-              value={workday.kmDeparture}
-              onChange={handleWorkdayChange}
-              placeholder="Ida"
-              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-            />
-            <input
-              type="number"
-              name="kmReturn"
-              value={workday.kmReturn}
-              onChange={handleWorkdayChange}
-              placeholder="Retorno"
-              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-            />
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Data */}
+        <div className="bg-gray-800 p-6 rounded-lg">
+          <div className="flex items-center mb-4">
+            <Calendar className="w-5 h-5 text-gray-400 mr-2" />
+            <h3 className="text-lg font-medium text-white">Data</h3>
           </div>
+          <input
+            type="date"
+            name="workDate"
+            value={formData.workDate}
+            onChange={handleChange}
+            className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            required
+          />
+        </div>
 
-          <div className="mb-4">
-            <h3 className="text-lg text-white">Retorno</h3>
-            <input
-              type="time"
-              name="returnDepartureTime"
-              value={workday.returnDepartureTime}
-              onChange={handleWorkdayChange}
-              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-            />
-            <input
-              type="time"
-              name="returnArrivalTime"
-              value={workday.returnArrivalTime}
-              onChange={handleWorkdayChange}
-              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-            />
+        {/* Horários de Ida */}
+        <div className="bg-gray-800 p-6 rounded-lg">
+          <div className="flex items-center mb-4">
+            <Clock className="w-5 h-5 text-gray-400 mr-2" />
+            <h3 className="text-lg font-medium text-white">Horários de Ida</h3>
           </div>
-
-          <div className="mb-4">
-            <h3 className="text-lg text-white">Horas</h3>
-            <input
-              type="time"
-              name="startHour"
-              value={workday.startHour}
-              onChange={handleWorkdayChange}
-              placeholder="Hora de Início"
-              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-            />
-            <input
-              type="time"
-              name="endHour"
-              value={workday.endHour}
-              onChange={handleWorkdayChange}
-              placeholder="Hora de Término"
-              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Saída</label>
+              <input
+                type="time"
+                name="departureTime"
+                value={formData.departureTime}
+                onChange={handleChange}
+                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">
+                Chegada
+              </label>
+              <input
+                type="time"
+                name="arrivalTime"
+                value={formData.arrivalTime}
+                onChange={handleChange}
+                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
           </div>
+        </div>
 
-          <div className="mb-4">
-            <label className="text-white flex items-center space-x-2 mb-2">
+        {/* Quilometragem */}
+        <div className="bg-gray-800 p-6 rounded-lg">
+          <div className="flex items-center mb-4">
+            <Car className="w-5 h-5 text-gray-400 mr-2" />
+            <h3 className="text-lg font-medium text-white">Quilometragem</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">KM Ida</label>
+              <input
+                type="number"
+                name="kmDeparture"
+                value={formData.kmDeparture}
+                onChange={handleChange}
+                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">
+                KM Volta
+              </label>
+              <input
+                type="number"
+                name="kmReturn"
+                value={formData.kmReturn}
+                onChange={handleChange}
+                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                placeholder="0"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Horários de Retorno */}
+        <div className="bg-gray-800 p-6 rounded-lg">
+          <div className="flex items-center mb-4">
+            <Clock className="w-5 h-5 text-gray-400 mr-2" />
+            <h3 className="text-lg font-medium text-white">
+              Horários de Retorno
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Saída</label>
+              <input
+                type="time"
+                name="returnDepartureTime"
+                value={formData.returnDepartureTime}
+                onChange={handleChange}
+                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">
+                Chegada
+              </label>
+              <input
+                type="time"
+                name="returnArrivalTime"
+                value={formData.returnArrivalTime}
+                onChange={handleChange}
+                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Horário do Serviço */}
+        <div className="bg-gray-800 p-6 rounded-lg">
+          <div className="flex items-center mb-4">
+            <Clock className="w-5 h-5 text-gray-400 mr-2" />
+            <h3 className="text-lg font-medium text-white">
+              Horário do Serviço
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Início</label>
+              <input
+                type="time"
+                name="startHour"
+                value={formData.startHour}
+                onChange={handleChange}
+                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Fim</label>
+              <input
+                type="time"
+                name="endHour"
+                value={formData.endHour}
+                onChange={handleChange}
+                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Pausa */}
+        <div className="bg-gray-800 p-6 rounded-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <Coffee className="w-5 h-5 text-gray-400 mr-2" />
+              <h3 className="text-lg font-medium text-white">Pausa</h3>
+            </div>
+            <label className="flex items-center cursor-pointer">
               <input
                 type="checkbox"
                 name="pause"
-                checked={workday.pause}
-                onChange={handleWorkdayChange}
-                className="w-6 h-6 text-violet-600"
+                checked={formData.pause}
+                onChange={handleChange}
+                className="sr-only"
               />
-              <span>Pausa</span>
+              <div
+                className={`relative w-10 h-6 rounded-full transition-colors ${
+                  formData.pause ? "bg-blue-500" : "bg-gray-600"
+                }`}
+              >
+                <div
+                  className={`absolute w-4 h-4 rounded-full bg-white top-1 transition-transform ${
+                    formData.pause ? "left-5" : "left-1"
+                  }`}
+                />
+              </div>
             </label>
-            {workday.pause && (
+          </div>
+
+          {formData.pause && (
+            <div className="mt-4">
+              <label className="block text-sm text-gray-400 mb-1">
+                Duração da Pausa
+              </label>
               <input
                 type="text"
                 name="pauseHours"
-                value={workday.pauseHours}
-                onChange={handleWorkdayChange}
-                placeholder="Horas de Pausa (HH:MM)"
-                className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-                pattern="^(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" // Aceita formato HH:MM (24h)
-                inputMode="numeric" // Abre o teclado numérico em dispositivos móveis
+                value={formData.pauseHours}
+                onChange={handleChange}
+                placeholder="00:00"
+                pattern="^(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$"
+                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
-            )}
-          </div>
+            </div>
+          )}
+        </div>
 
-          <div className="mb-4">
-            <h3 className="text-lg text-white">Descrição</h3>
-            <textarea
-              type="description"
-              name="description"
-              value={workday.description}
-              onChange={handleWorkdayChange}
-              placeholder="Descrição do Trabalho"
-              rows="4" // Define o número de linhas visíveis
-              className="w-full p-2 mb-3 rounded bg-gray-700 text-white"
-            />
+        {/* Descrição */}
+        <div className="bg-gray-800 p-6 rounded-lg">
+          <div className="flex items-center mb-4">
+            <FileText className="w-5 h-5 text-gray-400 mr-2" />
+            <h3 className="text-lg font-medium text-white">Descrição</h3>
           </div>
+          <textarea
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            placeholder="Descreva o trabalho realizado..."
+            rows="4"
+            className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+          />
+        </div>
 
-          <button
-            type="submit"
-            className="w-full px-4 py-2 bg-green-600 rounded-lg text-white hover:bg-green-700 transition duration-300"
-          >
-            Adicionar Dia de Trabalho
-          </button>
-        </form>
-      </div>
+        {/* Botão Submit */}
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              Salvando...
+            </>
+          ) : (
+            <>
+              <Save className="w-5 h-5 mr-2" />
+              Adicionar Dia de Trabalho
+            </>
+          )}
+        </button>
+      </form>
     </div>
   );
 };

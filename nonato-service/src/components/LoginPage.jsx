@@ -6,108 +6,189 @@ import {
   signInWithPopup,
 } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import { firebaseApp } from "../firebase"; // Certifique-se de que o Firebase foi inicializado aqui
+import { firebaseApp } from "../firebase";
+import { Mail, Lock, Loader2, AlertCircle, LogIn } from "lucide-react";
+import { motion } from "framer-motion";
 
 const auth = getAuth(firebaseApp);
 
 const LoginPage = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Lista de e-mails permitidos
   const allowedEmails = [
     "sergionunoribeiro@gmail.com",
-    "service.nonato@gmail.com", // Adicione os e-mails desejados aqui
+    "service.nonato@gmail.com",
   ];
+
+  const handleChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+    setError("");
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
 
-    // Verifica se o e-mail está na lista de permitidos
-    if (!allowedEmails.includes(email)) {
-      setError("Access denied.");
+    if (!allowedEmails.includes(formData.email)) {
+      setError("Acesso negado. Email não autorizado.");
       return;
     }
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigate("/app"); // Redireciona para a página principal após login bem-sucedido
+      setIsLoading(true);
+      setError("");
+      await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      navigate("/app");
     } catch (err) {
-      setError("Failed to log in. Check your credentials.");
-      console.error("Login error:", err);
+      setError("Falha no login. Verifique suas credenciais.");
+      console.error("Erro no login:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Função para login com o Google
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
 
     try {
+      setIsGoogleLoading(true);
+      setError("");
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
 
-      // Verifica se o e-mail do usuário está na lista de permitidos
-      if (!allowedEmails.includes(user.email)) {
-        setError("Access denied.");
+      if (!allowedEmails.includes(result.user.email)) {
+        setError("Acesso negado. Email não autorizado.");
         return;
       }
 
-      navigate("/app"); // Redireciona para a página principal após login bem-sucedido
+      navigate("/app");
     } catch (err) {
-      setError("Failed to log in with Google.");
-      console.error("Google login error:", err);
+      setError("Falha no login com Google.");
+      console.error("Erro no login Google:", err);
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
   return (
-    <div className="flex justify-center items-center h-screen bg-zinc-900">
-      <div className="w-full max-w-xs p-8 bg-zinc-800 rounded-lg shadow-xl mx-6">
-        <h2 className="text-2xl font-bold text-center text-white mb-6">
-          Login
-        </h2>
-        {error && <p className="text-red-600 mb-4">{error}</p>}
+    <div className="min-h-screen flex items-center justify-center bg-zinc-900 p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md"
+      >
+        {/* Logo/Nome */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white">Nonato Service</h1>
+          <p className="text-gray-400 mt-2">Sistema de Gestão</p>
+        </div>
 
-        {/* Formulário de login com email e senha */}
-        <form onSubmit={handleLogin}>
-          <div className="mb-4">
-            <label className="block text-white">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-700 text-white"
-              required
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-white">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-700 text-white"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          >
-            Log In
-          </button>
-        </form>
+        {/* Card do Login */}
+        <div className="bg-zinc-800 rounded-xl shadow-xl p-8">
+          <h2 className="text-2xl font-bold text-white text-center mb-6">
+            Login
+          </h2>
 
-        {/* Botão de login com Google */}
-        <button
-          onClick={handleGoogleLogin}
-          className="w-full py-2 bg-red-600 text-white rounded mt-4 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition"
-        >
-          Log in with Google
-        </button>
-      </div>
+          {error && (
+            <div className="mb-6 p-3 bg-red-500/10 border border-red-500 rounded-lg flex items-center text-sm">
+              <AlertCircle className="w-4 h-4 text-red-500 mr-2" />
+              <p className="text-red-500">{error}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Email
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full pl-10 pr-4 py-3 bg-zinc-700 border border-zinc-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
+                  placeholder="Seu email"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Senha
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="w-full pl-10 pr-4 py-3 bg-zinc-700 border border-zinc-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
+                  placeholder="Sua senha"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Entrando...
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="w-5 h-5 mr-2" />
+                    Entrar
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={isGoogleLoading}
+                className="w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center disabled:opacity-50"
+              >
+                {isGoogleLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Conectando...
+                  </>
+                ) : (
+                  <>
+                    <img
+                      src="/google.svg"
+                      alt="Google"
+                      className="w-5 h-5 mr-2"
+                    />
+                    Entrar com Google
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <p className="text-center text-gray-500 text-sm mt-8">
+          © {new Date().getFullYear()} Nonato Service. Todos os direitos
+          reservados.
+        </p>
+      </motion.div>
     </div>
   );
 };

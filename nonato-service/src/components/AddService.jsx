@@ -8,7 +8,7 @@ import {
   getDoc,
   increment,
 } from "firebase/firestore";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   Loader2,
@@ -26,9 +26,13 @@ import {
 } from "lucide-react";
 
 const AddService = () => {
+  const { search } = useLocation();
+  const queryParams = new URLSearchParams(search);
+  const clientId = queryParams.get("clientId");
+
   const initialForm = {
     date: new Date().toISOString().split("T")[0],
-    clientId: "",
+    clientId: clientId || "",
     equipmentId: "",
     serviceType: "",
     priority: "normal", // novo campo
@@ -81,7 +85,16 @@ const AddService = () => {
 
         setClients(clientsData);
         setEquipments(equipmentsData);
-        setFilteredEquipments(equipmentsData);
+
+        // Filtrar equipamentos do cliente selecionado (se já houver clienteId na URL)
+        if (clientId) {
+          const filteredEquipments = equipmentsData.filter(
+            (equipment) => equipment.clientId === clientId
+          );
+          setFilteredEquipments(filteredEquipments);
+        } else {
+          setFilteredEquipments(equipmentsData);
+        }
       } catch (err) {
         console.error("Erro ao carregar dados:", err);
         setError("Erro ao carregar dados. Por favor, tente novamente.");
@@ -91,7 +104,7 @@ const AddService = () => {
     };
 
     fetchData();
-  }, []);
+  }, [clientId]); // Reexecutar o useEffect quando clientId mudar
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -101,13 +114,14 @@ const AddService = () => {
     }));
 
     if (name === "clientId") {
+      // Filtrar os equipamentos com base no clientId
       const filtered = equipments.filter(
         (equipment) => equipment.clientId === value
       );
       setFilteredEquipments(filtered);
       setFormData((prev) => ({
         ...prev,
-        equipmentId: "",
+        equipmentId: "", // Resetar o equipamento selecionado
       }));
     }
   };

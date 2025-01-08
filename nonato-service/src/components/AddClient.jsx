@@ -87,17 +87,13 @@ const AddClient = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const allTouched = Object.keys(formData).reduce(
-      (acc, key) => ({
-        ...acc,
-        [key]: true,
-      }),
-      {}
-    );
-    setTouched(allTouched);
+    setTouched((prev) => ({
+      ...prev,
+      name: true,
+    }));
 
-    if (Object.values(formData).some((value) => !value.trim())) {
-      setError("Por favor, preencha todos os campos obrigatórios");
+    if (!formData.name.trim()) {
+      setError("O campo Nome é obrigatório");
       return;
     }
 
@@ -171,15 +167,13 @@ const AddClient = () => {
                     : "123456789"
                 }`}
                 className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-                  touched[name] && !formData[name]
+                  touched[name] && name === "name" && !formData[name]
                     ? "border border-red-500"
                     : ""
                 }`}
               />
-              {touched[name] && !formData[name] && (
-                <p className="mt-1 text-sm text-red-500">
-                  {label} é obrigatório
-                </p>
+              {touched[name] && name === "name" && !formData[name] && (
+                <p className="mt-1 text-sm text-red-500">Nome é obrigatório</p>
               )}
             </div>
           ))}

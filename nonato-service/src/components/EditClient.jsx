@@ -74,25 +74,25 @@ const EditClient = () => {
     const errors = {};
 
     if (!formData.name.trim()) errors.name = "Nome é obrigatório";
-    if (!formData.address.trim()) errors.address = "Endereço é obrigatório";
+    // if (!formData.address.trim()) errors.address = "Endereço é obrigatório";
 
-    if (!formData.phone.trim()) {
-      errors.phone = "Telefone é obrigatório";
-    } else if (!/^\d{9,}$/.test(formData.phone.replace(/\D/g, ""))) {
-      errors.phone = "Telefone inválido";
-    }
+    // if (!formData.phone.trim()) {
+    //   errors.phone = "Telefone é obrigatório";
+    // } else if (!/^\d{9,}$/.test(formData.phone.replace(/\D/g, ""))) {
+    //   errors.phone = "Telefone inválido";
+    // }
 
-    if (!formData.nif.trim()) {
-      errors.nif = "NIF é obrigatório";
-    } else if (!/^\d{9}$/.test(formData.nif)) {
-      errors.nif = "NIF deve conter 9 dígitos";
-    }
+    // if (!formData.nif.trim()) {
+    //   errors.nif = "NIF é obrigatório";
+    // } else if (!/^\d{9}$/.test(formData.nif)) {
+    //   errors.nif = "NIF deve conter 9 dígitos";
+    // }
 
-    if (!formData.postalCode.trim()) {
-      errors.postalCode = "Código Postal é obrigatório";
-    } else if (!/^\d{4}-\d{3}$/.test(formData.postalCode)) {
-      errors.postalCode = "Formato: 1234-567";
-    }
+    // if (!formData.postalCode.trim()) {
+    //   errors.postalCode = "Código Postal é obrigatório";
+    // } else if (!/^\d{4}-\d{3}$/.test(formData.postalCode)) {
+    //   errors.postalCode = "Formato: 1234-567";
+    // }
 
     return errors;
   };
@@ -218,18 +218,8 @@ const EditClient = () => {
               value={formData.address}
               onChange={handleChange}
               onBlur={() => handleBlur("address")}
-              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors
-                ${
-                  touched.address && !formData.address
-                    ? "border border-red-500"
-                    : ""
-                }`}
+              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
             />
-            {touched.address && !formData.address && (
-              <p className="mt-1 text-sm text-red-500">
-                Endereço é obrigatório
-              </p>
-            )}
           </div>
 
           <div>
@@ -247,18 +237,8 @@ const EditClient = () => {
               onChange={handleChange}
               onBlur={() => handleBlur("phone")}
               placeholder="912345678"
-              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors
-                ${
-                  touched.phone &&
-                  !/^\d{9,}$/.test(formData.phone.replace(/\D/g, ""))
-                    ? "border border-red-500"
-                    : ""
-                }`}
+              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
             />
-            {touched.phone &&
-              !/^\d{9,}$/.test(formData.phone.replace(/\D/g, "")) && (
-                <p className="mt-1 text-sm text-red-500">Telefone inválido</p>
-              )}
           </div>
 
           <div>
@@ -277,18 +257,8 @@ const EditClient = () => {
               onBlur={() => handleBlur("nif")}
               maxLength={9}
               placeholder="123456789"
-              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors
-                ${
-                  touched.nif && !/^\d{9}$/.test(formData.nif)
-                    ? "border border-red-500"
-                    : ""
-                }`}
+              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
             />
-            {touched.nif && !/^\d{9}$/.test(formData.nif) && (
-              <p className="mt-1 text-sm text-red-500">
-                NIF deve conter 9 dígitos
-              </p>
-            )}
           </div>
 
           <div>
@@ -307,18 +277,8 @@ const EditClient = () => {
               onBlur={() => handleBlur("postalCode")}
               placeholder="1234-567"
               maxLength={8}
-              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors
-                ${
-                  touched.postalCode &&
-                  !/^\d{4}-\d{3}$/.test(formData.postalCode)
-                    ? "border border-red-500"
-                    : ""
-                }`}
+              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
             />
-            {touched.postalCode &&
-              !/^\d{4}-\d{3}$/.test(formData.postalCode) && (
-                <p className="mt-1 text-sm text-red-500">Formato: 1234-567</p>
-              )}
           </div>
 
           <button
