@@ -19,6 +19,10 @@ import {
   Edit,
   Plus,
   Wrench,
+  Map,
+  Mail,
+  Phone,
+  FileText,
 } from "lucide-react";
 
 const ClientDetail = () => {
@@ -88,9 +92,9 @@ const ClientDetail = () => {
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        // 5MB limit
-        alert("A imagem deve ter menos de 5MB");
+      if (file.size > 2 * 1024 * 1024) {
+        // 2MB limit
+        alert("A imagem deve ter menos de 2MB");
         return;
       }
 
@@ -290,23 +294,27 @@ const ClientDetail = () => {
         )}
       </div>
 
-      <div className="bg-zinc-800 p-4 mb-6 rounded-lg space-y-2">
-        <p className="text-gray-300">
-          <span className="font-medium">Endereço:</span>{" "}
+      <div className="bg-zinc-800 p-4 mb-6 rounded-lg space-y-3">
+        <div className="flex items-center text-gray-300">
+          <Map className="w-5 h-5 mr-3" />
+          <span className="font-medium mr-2">Endereço:</span>
           {client.address || "Não definido"}
-        </p>
-        <p className="text-gray-300">
-          <span className="font-medium">Código Postal:</span>{" "}
+        </div>
+        <div className="flex items-center text-gray-300">
+          <Mail className="w-5 h-5 mr-3" />
+          <span className="font-medium mr-2">Código Postal:</span>
           {client.postalCode || "Não definido"}
-        </p>
-        <p className="text-gray-300">
-          <span className="font-medium">Telefone:</span>{" "}
+        </div>
+        <div className="flex items-center text-gray-300">
+          <Phone className="w-5 h-5 mr-3" />
+          <span className="font-medium mr-2">Telefone:</span>
           {client.phone || "Não definido"}
-        </p>
-        <p className="text-gray-300">
-          <span className="font-medium">NIF:</span>{" "}
+        </div>
+        <div className="flex items-center text-gray-300">
+          <FileText className="w-5 h-5 mr-3" />
+          <span className="font-medium mr-2">NIF:</span>
           {client.nif || "Não definido"}
-        </p>
+        </div>
       </div>
 
       <div className="mb-4 flex justify-between items-center">
