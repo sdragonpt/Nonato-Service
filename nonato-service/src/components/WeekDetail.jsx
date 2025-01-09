@@ -35,13 +35,47 @@ const WeekDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // No WeekDetail, ajuste a função getWeekDates:
   const getWeekDates = () => {
     const firstDayOfMonth = new Date(parseInt(year), parseInt(month) - 1, 1);
-    let weekStart = new Date(firstDayOfMonth);
-    weekStart.setDate(weekStart.getDate() + (parseInt(week) - 1) * 7);
+    const daysInWeek = [];
 
-    let weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
+    // Encontrar o primeiro dia da semana selecionada
+    let currentDate = new Date(firstDayOfMonth);
+    let currentWeek = 1;
+
+    while (currentWeek < parseInt(week)) {
+      currentDate.setDate(currentDate.getDate() + 1);
+      if (currentDate.getDay() === 0) {
+        // Domingo
+        currentWeek++;
+      }
+      // Se chegamos ao próximo mês, paramos
+      if (currentDate.getMonth() !== firstDayOfMonth.getMonth()) {
+        break;
+      }
+    }
+
+    // Encontrar o início da semana (domingo)
+    while (currentDate.getDay() !== 0 && currentDate.getDate() !== 1) {
+      currentDate.setDate(currentDate.getDate() - 1);
+    }
+
+    let weekStart = new Date(currentDate);
+
+    // Encontrar o fim da semana (sábado)
+    while (currentDate.getDay() !== 6) {
+      currentDate.setDate(currentDate.getDate() + 1);
+      // Se chegamos ao fim do mês, paramos no último dia
+      if (
+        currentDate.getMonth() !== weekStart.getMonth() &&
+        currentDate.getDate() > 1
+      ) {
+        currentDate.setDate(currentDate.getDate() - 1);
+        break;
+      }
+    }
+    let weekEnd = new Date(currentDate);
 
     return { weekStart, weekEnd };
   };
@@ -212,22 +246,25 @@ const WeekDetail = () => {
         Agendamentos da Semana
       </h2>
 
-      <div className="bg-gray-800 p-4 rounded-lg mb-6 flex items-center justify-between">
-        <div className="flex items-center">
-          <Calendar className="w-5 h-5 text-blue-400 mr-2" />
-          <span className="text-white">
-            {weekStart.toLocaleDateString()} - {weekEnd.toLocaleDateString()}
+      <div className="bg-gray-800 p-4 rounded-lg mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+          <div className="flex items-center">
+            <Calendar className="w-5 h-5 text-blue-400 mr-2" />
+            <span className="text-white text-sm sm:text-base">
+              {weekStart.toLocaleDateString()} - {weekEnd.toLocaleDateString()}
+            </span>
+          </div>
+          <span className="text-gray-400 text-sm sm:text-base">
+            {agendamentos.length}{" "}
+            {agendamentos.length === 1 ? "agendamento" : "agendamentos"}
           </span>
         </div>
-        <span className="text-gray-400">
-          {agendamentos.length} agendamento(s)
-        </span>
       </div>
 
       {error && (
         <div className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded-lg flex items-center">
           <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
-          <p className="text-red-500">{error}</p>
+          <p className="text-red-500 text-sm">{error}</p>
         </div>
       )}
 
@@ -239,22 +276,22 @@ const WeekDetail = () => {
               className="bg-gray-800 p-4 rounded-lg hover:bg-gray-700 transition-colors"
             >
               {/* Cabeçalho do card */}
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center">
-                  <Clock className="w-5 h-5 text-gray-400 mr-2" />
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-2 sm:space-y-0 mb-4">
+                <div className="flex items-start">
+                  <Clock className="w-5 h-5 text-gray-400 mr-2 mt-0.5" />
                   <div>
-                    <p className="text-white font-medium">
+                    <p className="text-white font-medium text-sm sm:text-base">
                       {new Date(agendamento.data).toLocaleDateString()} às{" "}
                       {agendamento.hora}
                     </p>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-gray-400 text-sm mt-1">
                       {agendamento.tipoServico}
                     </p>
                   </div>
                 </div>
 
                 {/* Status e Prioridade */}
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={`px-3 py-1 rounded-full text-xs flex items-center ${
                       getStatusInfo(agendamento.status).color
@@ -269,21 +306,21 @@ const WeekDetail = () => {
               </div>
 
               {/* Informações do cliente e equipamento */}
-              <div className="flex items-start space-x-4 mb-4">
-                <User className="w-5 h-5 text-gray-400" />
-                <div>
-                  <p className="text-white">
+              <div className="flex items-start space-x-3 mb-4">
+                <User className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-white text-sm sm:text-base truncate">
                     {agendamento.cliente?.name || "Cliente não encontrado"}
                   </p>
                   {agendamento.cliente?.phone && (
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-gray-400 text-sm truncate">
                       {agendamento.cliente.phone}
                     </p>
                   )}
                   {agendamento.equipment && (
                     <div className="flex items-center mt-2 text-gray-400 text-sm">
-                      <Printer className="w-4 h-4 mr-2" />
-                      <span>
+                      <Printer className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span className="truncate">
                         {agendamento.equipment.brand} -{" "}
                         {agendamento.equipment.model}
                       </span>
@@ -300,7 +337,7 @@ const WeekDetail = () => {
               )}
 
               {/* Ações */}
-              <div className="flex justify-end items-center mt-4 space-x-2">
+              <div className="flex justify-end items-center mt-4 gap-1 sm:gap-2">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -345,7 +382,7 @@ const WeekDetail = () => {
             <p className="text-gray-400">Nenhum agendamento nesta semana</p>
             <button
               onClick={() => navigate("/app/add-agendamento")}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
             >
               Criar Agendamento
             </button>

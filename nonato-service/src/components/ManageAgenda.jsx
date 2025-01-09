@@ -10,6 +10,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  AlertTriangle,
+  CheckCircle,
 } from "lucide-react";
 
 const ManageAgenda = () => {
@@ -19,6 +21,13 @@ const ManageAgenda = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [agendamentos, setAgendamentos] = useState([]);
+
+  const [stats, setStats] = useState({
+    total: 0,
+    hoje: 0,
+    urgentes: 0,
+    concluidos: 0,
+  });
 
   // Define os meses do ano
   const months = [
@@ -50,6 +59,26 @@ const ManageAgenda = () => {
           ...doc.data(),
         }));
 
+        // Filtrar agendamentos do mês selecionado
+        const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
+        const lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
+        const firstDayStr = firstDayOfMonth.toISOString().split("T")[0];
+        const lastDayStr = lastDayOfMonth.toISOString().split("T")[0];
+
+        const monthAgendamentos = agendamentosData.filter(
+          (ag) => ag.data >= firstDayStr && ag.data <= lastDayStr
+        );
+
+        setStats({
+          total: monthAgendamentos.length,
+          hoje: monthAgendamentos.filter(
+            (ag) => ag.data === new Date().toISOString().split("T")[0]
+          ).length,
+          urgentes: monthAgendamentos.filter((ag) => ag.prioridade === "alta")
+            .length,
+          concluidos: monthAgendamentos.filter((ag) => ag.concluido).length,
+        });
+
         setAgendamentos(agendamentosData);
       } catch (err) {
         console.error("Erro ao carregar dados:", err);
@@ -60,7 +89,7 @@ const ManageAgenda = () => {
     };
 
     fetchData();
-  }, []);
+  }, [selectedMonth, selectedYear]);
 
   // Função para obter as semanas do mês
   const getWeeksInMonth = () => {
@@ -71,19 +100,55 @@ const ManageAgenda = () => {
     let currentWeek = [];
     let currentDate = new Date(firstDay);
 
+    // Ajustar para pegar os dias corretos de cada semana
+    if (currentDate.getDay() !== 0) {
+      // Se não começar no domingo, ajustar para o início dessa semana
+      currentDate.setDate(currentDate.getDate() - currentDate.getDay());
+    }
+
     while (currentDate <= lastDay) {
       if (currentDate.getDay() === 0 && currentWeek.length > 0) {
         weeks.push(currentWeek);
         currentWeek = [];
       }
-      currentWeek.push(new Date(currentDate));
+
+      // Só adicionar o dia se ele pertencer ao mês atual
+      if (currentDate.getMonth() === selectedMonth) {
+        currentWeek.push(new Date(currentDate));
+      }
+
       currentDate.setDate(currentDate.getDate() + 1);
     }
+
     if (currentWeek.length > 0) {
       weeks.push(currentWeek);
     }
 
     return weeks;
+  };
+
+  const getAgendamentosUrgentes = (week) => {
+    const startOfWeek = week[0].toISOString().split("T")[0];
+    const endOfWeek = week[week.length - 1].toISOString().split("T")[0];
+
+    return agendamentos.filter(
+      (agendamento) =>
+        agendamento.data >= startOfWeek &&
+        agendamento.data <= endOfWeek &&
+        agendamento.prioridade === "alta"
+    ).length;
+  };
+
+  const getAgendamentosConcluidos = (week) => {
+    const startOfWeek = week[0].toISOString().split("T")[0];
+    const endOfWeek = week[week.length - 1].toISOString().split("T")[0];
+
+    return agendamentos.filter(
+      (agendamento) =>
+        agendamento.data >= startOfWeek &&
+        agendamento.data <= endOfWeek &&
+        agendamento.concluido
+    ).length;
   };
 
   // Função para contar agendamentos por semana
@@ -162,6 +227,52 @@ const ManageAgenda = () => {
         </button>
       </div>
 
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {/* Total de Agendamentos */}
+        <div className="bg-blue-500/10 border border-blue-500/50 p-4 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <Calendar className="w-6 h-6 text-blue-400" />
+            <span className="text-2xl font-bold text-blue-400">
+              {stats.total}
+            </span>
+          </div>
+          <p className="text-blue-400 text-sm">Total Mensal</p>
+        </div>
+
+        {/* Agendamentos de Hoje */}
+        <div className="bg-purple-500/10 border border-purple-500/50 p-4 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <Clock className="w-6 h-6 text-purple-400" />
+            <span className="text-2xl font-bold text-purple-400">
+              {stats.hoje}
+            </span>
+          </div>
+          <p className="text-purple-400 text-sm">Hoje</p>
+        </div>
+
+        {/* Agendamentos Urgentes */}
+        <div className="bg-red-500/10 border border-red-500/50 p-4 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <AlertTriangle className="w-6 h-6 text-red-400" />
+            <span className="text-2xl font-bold text-red-400">
+              {stats.urgentes}
+            </span>
+          </div>
+          <p className="text-red-400 text-sm">Urgentes</p>
+        </div>
+
+        {/* Agendamentos Concluídos */}
+        <div className="bg-green-500/10 border border-green-500/50 p-4 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <CheckCircle className="w-6 h-6 text-green-400" />
+            <span className="text-2xl font-bold text-green-400">
+              {stats.concluidos}
+            </span>
+          </div>
+          <p className="text-green-400 text-sm">Concluídos</p>
+        </div>
+      </div>
+
       {/* Seletor de Mês */}
       <div className="bg-gray-800 p-4 rounded-lg mb-6">
         <div className="flex items-center justify-between">
@@ -202,20 +313,41 @@ const ManageAgenda = () => {
               )
             }
           >
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center space-y-3 sm:space-y-0">
               <div>
                 <h4 className="text-white font-medium">Semana {index + 1}</h4>
-                <p className="text-gray-400 text-sm">
+                <p className="text-gray-400 text-sm mt-1">
                   {week[0].toLocaleDateString()} -{" "}
                   {week[week.length - 1].toLocaleDateString()}
                 </p>
               </div>
-              <div className="flex items-center bg-blue-500/20 px-3 py-1 rounded-full">
-                <Clock className="w-4 h-4 text-blue-400 mr-1" />
-                <span className="text-blue-400 font-medium">
-                  {getAgendamentosCount(week)} agendamentos
+              <div className="flex items-center bg-blue-500/20 px-3 py-2 rounded-full self-start sm:self-auto">
+                <Clock className="w-4 h-4 text-blue-400 mr-1.5" />
+                <span className="text-blue-400 font-medium text-sm">
+                  {getAgendamentosCount(week)}
+                  <span className="ml-1">
+                    {getAgendamentosCount(week) === 1
+                      ? "agendamento"
+                      : "agendamentos"}
+                  </span>
                 </span>
               </div>
+            </div>
+
+            {/* Indicadores adicionais para mobile */}
+            <div className="flex gap-2 mt-3 sm:hidden">
+              {getAgendamentosUrgentes(week) > 0 && (
+                <span className="text-xs px-2 py-1 bg-red-500/10 text-red-400 rounded-full flex items-center">
+                  <AlertTriangle className="w-3 h-3 mr-1" />
+                  {getAgendamentosUrgentes(week)} urgentes
+                </span>
+              )}
+              {getAgendamentosConcluidos(week) > 0 && (
+                <span className="text-xs px-2 py-1 bg-green-500/10 text-green-400 rounded-full flex items-center">
+                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                  {getAgendamentosConcluidos(week)} concluídos
+                </span>
+              )}
             </div>
           </div>
         ))}

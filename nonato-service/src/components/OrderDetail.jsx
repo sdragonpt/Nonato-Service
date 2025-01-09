@@ -285,6 +285,39 @@ const OrderDetail = () => {
             )}
             Gerar PDF
           </button>
+          // <button className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50">
+          //   <PDFDownloadLink
+          //     document={
+          //       <ServiceOrderPDF
+          //         serviceId={order.id}
+          //         order={order}
+          //         client={client}
+          //         equipment={equipment}
+          //         workdays={workdays}
+          //       />
+          //     }
+          //     fileName={`ordem_servico_${order.id}.pdf`}
+          //   >
+          //     {({ blob, url, loading, error }) => (
+          //       <button
+          //         className="flex items-center"
+          //         disabled={loading}
+          //       >
+          //         {loading ? (
+          //           <>
+          //             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          //             Gerando PDF...
+          //           </>
+          //         ) : (
+          //           <>
+          //             <FileText className="w-4 h-4 mr-2" />
+          //             Download PDF
+          //           </>
+          //         )}
+          //       </button>
+          //     )}
+          //   </PDFDownloadLink>
+          // </button>
         )}
 
         <button
