@@ -59,7 +59,7 @@ const InitialPage = () => {
               transition={{ delay: 0.2 }}
               className="text-4xl md:text-5xl font-bold text-white mb-8 text-center"
             >
-              Bem-vindo ao Nonato Service
+              Bem-vindo à Nonato Service
             </motion.h1>
 
             <motion.button
