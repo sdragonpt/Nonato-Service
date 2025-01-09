@@ -92,9 +92,9 @@ const AddEquipment = () => {
     );
     setTouched(allTouched);
 
-    // Validação básica
-    if (Object.values(formData).some((value) => !value.trim())) {
-      setError("Por favor, preencha todos os campos obrigatórios");
+    // Validação: Apenas o campo "type" é obrigatório
+    if (!formData.type.trim()) {
+      setError("O campo 'Tipo' é obrigatório.");
       return;
     }
 
@@ -183,16 +183,11 @@ const AddEquipment = () => {
               onChange={handleChange}
               onBlur={() => handleBlur("brand")}
               placeholder="Ex: HP, Epson..."
-              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors
-                ${
-                  touched.brand && !formData.brand
-                    ? "border border-red-500"
-                    : ""
-                }`}
+              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
             />
-            {touched.brand && !formData.brand && (
+            {/* {touched.brand && !formData.brand && (
               <p className="mt-1 text-sm text-red-500">Marca é obrigatória</p>
-            )}
+            )} */}
           </div>
 
           <div>
@@ -210,16 +205,11 @@ const AddEquipment = () => {
               onChange={handleChange}
               onBlur={() => handleBlur("model")}
               placeholder="Ex: LaserJet Pro M428fdw"
-              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors
-                ${
-                  touched.model && !formData.model
-                    ? "border border-red-500"
-                    : ""
-                }`}
+              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
             />
-            {touched.model && !formData.model && (
+            {/* {touched.model && !formData.model && (
               <p className="mt-1 text-sm text-red-500">Modelo é obrigatório</p>
-            )}
+            )} */}
           </div>
 
           <div>
@@ -237,18 +227,13 @@ const AddEquipment = () => {
               onChange={handleChange}
               onBlur={() => handleBlur("serialNumber")}
               placeholder="Ex: XYZ123456"
-              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors uppercase
-                ${
-                  touched.serialNumber && !formData.serialNumber
-                    ? "border border-red-500"
-                    : ""
-                }`}
+              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors uppercase`}
             />
-            {touched.serialNumber && !formData.serialNumber && (
+            {/* {touched.serialNumber && !formData.serialNumber && (
               <p className="mt-1 text-sm text-red-500">
                 Número de série é obrigatório
               </p>
-            )}
+            )} */}
           </div>
 
           <div>

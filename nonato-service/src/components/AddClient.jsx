@@ -159,7 +159,7 @@ const AddClient = () => {
                   name === "name"
                     ? "Manuel Silva"
                     : name === "address"
-                    ? "Rua das Flores, 123"
+                    ? "Vila Real, Rua das Flores 123"
                     : name === "postalCode"
                     ? "1234-567"
                     : name === "phone"

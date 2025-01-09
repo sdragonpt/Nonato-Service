@@ -345,7 +345,7 @@ const ClientDetail = () => {
             >
               <img
                 src={equipment.equipmentPic || "/nonato.png"}
-                alt={equipment.brand}
+                alt={equipment.model}
                 className="w-12 h-12 rounded-full mr-4 object-cover"
                 onError={(e) => {
                   e.target.src = "/nonato.png";
@@ -353,9 +353,12 @@ const ClientDetail = () => {
                 }}
               />
               <div className="flex-grow">
-                <h4 className="font-semibold text-white">{equipment.brand}</h4>
+                <h4 className="font-semibold text-white">{equipment.type}</h4>
                 <p className="text-gray-400">
-                  {equipment.model} - {equipment.type}
+                  {[equipment.brand, equipment.model, equipment.serialNumber]
+                    .filter(Boolean) // Filtra apenas os valores não vazios
+                    .join(" - ")}{" "}
+                  {/* Junta os valores com " - " */}
                 </p>
               </div>
             </div>
@@ -367,13 +370,13 @@ const ClientDetail = () => {
         )}
       </div>
 
-      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center">
+      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center md:left-64">
         <p className="absolute bottom-24 text-white mb-2 text-center">
           Clique + para adicionar novo equipamento
         </p>
 
         <button
-          className="w-32 h-16 bg-[#1d2d50] hover:bg-[#283b6a] mr-4 text-white flex items-center justify-center rounded-lg transition-colors"
+          className="w-32 h-16 bg-[#1d2d50] hover:bg-[#283b6a] mr-4 text-white flex items-center justify-center rounded-full transition-colors"
           onClick={() => navigate(`/app/services/${clientId}`)}
           aria-label="Serviços do Cliente"
         >
@@ -390,7 +393,7 @@ const ClientDetail = () => {
         </button>
 
         <button
-          className="w-32 h-16 bg-[#1d2d50] hover:bg-[#283b6a] ml-4 text-white flex items-center justify-center rounded-lg transition-colors"
+          className="w-32 h-16 bg-[#1d2d50] hover:bg-[#283b6a] ml-4 text-white flex items-center justify-center rounded-full transition-colors"
           onClick={() => navigate(`/app/edit-client/${clientId}`)}
           aria-label="Editar Cliente"
         >

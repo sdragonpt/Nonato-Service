@@ -19,6 +19,7 @@ import {
   LogOut,
   Menu,
   X,
+  Calendar,
 } from "lucide-react";
 
 // Componentes
@@ -40,6 +41,10 @@ import AddWorkday from "./components/AddWorkDay";
 import EditService from "./components/EditService";
 import EditWorkday from "./components/EditWorkDay";
 import LoginPage from "./components/LoginPage";
+import ManageAgenda from "./components/ManageAgenda";
+import AddAgendamento from "./components/AddAgendamento";
+import EditAgendamento from "./components/EditAgendamento";
+import WeekDetail from "./components/WeekDetail";
 
 // Configuração das rotas e navegação
 const NAVIGATION_ITEMS = [
@@ -60,6 +65,7 @@ const NAVIGATION_ITEMS = [
         icon: ClipboardList,
         label: "Ordem de Serviço",
       },
+      { path: "/app/manage-agenda", icon: Calendar, label: "Agenda" }, // Nova opção
       { path: "/app/manage-report", icon: BarChart, label: "Relatório" },
       { path: "/app/manage-checklist", icon: CheckSquare, label: "Check List" },
     ],
@@ -279,6 +285,19 @@ const App = () => {
                       <Route
                         path="edit-workday/:workdayId"
                         element={<EditWorkday />}
+                      />
+                      <Route path="manage-agenda" element={<ManageAgenda />} />
+                      <Route
+                        path="add-agendamento"
+                        element={<AddAgendamento />}
+                      />
+                      <Route
+                        path="edit-agendamento/:agendamentoId"
+                        element={<EditAgendamento />}
+                      />
+                      <Route
+                        path="agenda/:year/:month/week/:week"
+                        element={<WeekDetail />}
                       />
                     </Routes>
                   </div>

@@ -159,12 +159,13 @@ const ManageClients = () => {
                   <h3 className="font-semibold text-white truncate">
                     {client.name}
                   </h3>
-                  <p className="text-gray-400 truncate">
-                    {client.phone || "Sem telefone"}
-                  </p>
-                  <p className="text-gray-400 truncate">
-                    {client.address || "Sem endereço"}
-                  </p>
+                  {client.phone && (
+                    <p className="text-gray-400 truncate">{client.phone}</p>
+                  )}
+
+                  {client.address && (
+                    <p className="text-gray-400 truncate">{client.address}</p>
+                  )}
                 </div>
               </div>
 
@@ -210,7 +211,7 @@ const ManageClients = () => {
         )}
       </div>
 
-      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center">
+      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center md:left-64">
         <button
           onClick={() => navigate("/app/add-client")}
           className="h-16 px-6 bg-[#117d49] text-white font-medium flex items-center justify-center rounded-full shadow-lg hover:bg-[#0d6238] transition-colors"

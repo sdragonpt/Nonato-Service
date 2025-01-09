@@ -180,7 +180,7 @@ const ManageServices = () => {
       </div>
 
       {/* Botão flutuante para nova ordem */}
-      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center">
+      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center md:left-64">
         <button
           onClick={() => navigate("/app/add-service")}
           className="h-16 px-6 bg-[#117d49] text-white font-medium flex items-center justify-center rounded-full shadow-lg hover:bg-[#0d6238] transition-all hover:scale-105"

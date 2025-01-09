@@ -14,6 +14,7 @@ import {
   Package,
   Barcode,
   Tag,
+  Shapes,
 } from "lucide-react";
 
 const EquipmentDetail = () => {
@@ -273,6 +274,12 @@ const EquipmentDetail = () => {
         </button>
 
         <div className="flex items-center text-gray-300">
+          <Shapes className="w-5 h-5 mr-3" />
+          <span className="font-medium mr-2">Tipo:</span>
+          {equipment.type}
+        </div>
+
+        <div className="flex items-center text-gray-300">
           <Package className="w-5 h-5 mr-3" />
           <span className="font-medium mr-2">Marca:</span>
           {equipment.brand}
@@ -291,27 +298,9 @@ const EquipmentDetail = () => {
         </div>
       </div>
 
-      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center gap-4">
+      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center gap-4 md:left-64">
         <button
-          className="h-16 px-6 bg-[#1d2d50] hover:bg-[#283b6a] text-white flex items-center justify-center rounded-lg transition-colors"
-          onClick={() => navigate(`/app/services/${equipmentId}`)}
-        >
-          <Wrench className="w-5 h-5 mr-2" />
-          Serviços
-        </button>
-
-        <button
-          onClick={() =>
-            navigate(`/app/client/${equipment.clientId}/add-equipment`)
-          }
-          className="h-20 w-20 -mt-8 bg-[#117d49] hover:bg-[#117d49] text-white flex items-center justify-center rounded-full shadow-lg transition-all hover:scale-105"
-          aria-label="Adicionar Equipamento"
-        >
-          <Plus className="w-8 h-8" />
-        </button>
-
-        <button
-          className="h-16 px-6 bg-[#1d2d50] hover:bg-[#283b6a] text-white flex items-center justify-center rounded-lg transition-colors"
+          className="h-16 px-6 bg-[#1d2d50] hover:bg-[#283b6a] text-white font-bold flex items-center justify-center rounded-full transition-colors"
           onClick={() => navigate(`/app/edit-equipment/${equipmentId}`)}
         >
           <Edit2 className="w-5 h-5 mr-2" />

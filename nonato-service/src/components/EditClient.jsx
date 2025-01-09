@@ -218,6 +218,7 @@ const EditClient = () => {
               value={formData.address}
               onChange={handleChange}
               onBlur={() => handleBlur("address")}
+              placeholder="Vila Real, Rua das Flores 123"
               className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
             />
           </div>

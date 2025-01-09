@@ -11,8 +11,8 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
-import generateServiceOrderPDF from "./generatePDF";
-import generateServiceOrderPDFPlus from "./generatePDFPlus";
+import generateServiceOrderPDF from "./generatePDF.jsx";
+import generateServiceOrderPDFPlus from "./generatePDFPlus.jsx";
 import {
   ArrowLeft,
   Loader2,
@@ -343,7 +343,7 @@ const OrderDetail = () => {
       {/* Dias de trabalho */}
       <div className="mb-32">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium text-white">Dias de Trabalho</h3>
+          <h3 className="text-lg font-medium text-white">Dias de Trabalho:</h3>
           <span className="text-sm text-gray-400">
             {workdays.length} registro(s)
           </span>
@@ -392,10 +392,14 @@ const OrderDetail = () => {
       </div>
 
       {/* Botões de ação fixos */}
-      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center gap-4">
+      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center gap-4 md:left-64">
+        <p className="absolute bottom-24 text-white mb-2 text-center">
+          Clique + para adicionar novo dia de trabalho
+        </p>
+
         <button
-          className="h-16 px-6 bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center rounded-lg transition-colors"
-          onClick={() => navigate(-1)}
+          className="h-16 px-6 bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center rounded-full transition-colors"
+          onClick={() => navigate("/app/manage-services")}
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
           Voltar
@@ -410,7 +414,7 @@ const OrderDetail = () => {
         </button>
 
         <button
-          className="h-16 px-6 bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center rounded-lg transition-colors"
+          className="h-16 px-6 bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center rounded-full transition-colors"
           onClick={() => navigate(`/app/edit-service-order/${serviceId}`)}
         >
           <Edit2 className="w-5 h-5 mr-2" />
