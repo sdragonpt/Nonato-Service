@@ -30,7 +30,6 @@ import AddClient from "./components/AddClient";
 import ClosedOrders from "./components/ClosedOrders";
 import OpenOrders from "./components/OpenOrders";
 import ManageClients from "./components/ManageClients";
-import ManageEquipments from "./components/ManageEquipments";
 import ClientDetail from "./components/ClientDetail";
 import EquipmentDetail from "./components/EquipmentDetail";
 import EditClient from "./components/EditClient";
@@ -256,7 +255,7 @@ const App = () => {
                       />
                       <Route
                         path="manage-equipments"
-                        element={<ManageEquipments />}
+                        // element={<ManageEquipments />}
                       />
                       <Route
                         path="client/:clientId"
