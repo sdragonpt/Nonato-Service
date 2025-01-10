@@ -34,11 +34,11 @@ const ManageOrders = () => {
         today.setHours(0, 0, 0, 0);
 
         // Buscar todas as ordens de serviço
-        const servicesRef = collection(db, "ordens");
+        const ordersRef = collection(db, "ordens");
 
         // Buscar todos os serviços de uma vez
-        const servicesSnapshot = await getDocs(servicesRef);
-        const services = servicesSnapshot.docs.map((doc) => ({
+        const ordersSnapshot = await getDocs(ordersRef);
+        const orders = ordersSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
           createdAt:
@@ -47,15 +47,13 @@ const ManageOrders = () => {
 
         // Calcular estatísticas
         const stats = {
-          open: services.filter((service) => service.status === "Aberto")
-            .length,
-          closed: services.filter((service) => service.status === "Fechado")
-            .length,
-          urgent: services.filter((service) => service.priority === "high")
-            .length,
-          todayTotal: services.filter((service) => {
-            const serviceDate = new Date(service.createdAt);
-            return serviceDate >= today;
+          open: orders.filter((order) => order.status === "Aberto").length,
+          closed: orders.filter((order) => order.status === "Fechado").length,
+          urgent: orders.filter((order) => order.priority === "high").length,
+          todayTotal: orders.filter((order) => {
+            const orderDate = new Date(order.date);
+            orderDate.setHours(0, 0, 0, 0);
+            return orderDate.getTime() === today.getTime();
           }).length,
         };
 
@@ -81,7 +79,7 @@ const ManageOrders = () => {
 
   return (
     <div className="w-full max-w-3xl mx-auto rounded-lg p-4">
-      <h2 className="text-2xl font-semibold text-center text-white mb-8">
+      <h2 className="text-2xl font-semibold text-center text-white mb-6">
         Ordens de Serviço
       </h2>
 

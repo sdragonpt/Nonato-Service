@@ -218,7 +218,6 @@ const OrderDetail = () => {
       ).length;
 
       console.log("Workdays antes de gerar o PDF:", workdays);
-      console.log("Tipo de workdays:", typeof workdays);
       console.log("É um array:", Array.isArray(workdays));
 
       // Escolher versão do PDF baseado nas condições

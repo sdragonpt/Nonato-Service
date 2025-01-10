@@ -7,6 +7,8 @@ async function generateServiceOrderPDF(
   equipment,
   workdays
 ) {
+  console.log("workdays no início da função:", workdays);
+  console.log("É um array:", Array.isArray(workdays));
   const pdfDoc = await PDFDocument.create();
   const pageWidth = 600;
   const pageHeight = 900;

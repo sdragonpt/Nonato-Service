@@ -20,6 +20,7 @@ import {
   Menu,
   X,
   Calendar,
+  FileText,
 } from "lucide-react";
 
 // Componentes
@@ -47,6 +48,8 @@ import WeekDetail from "./components/WeekDetail";
 import ManageServices from "./components/ManageServices";
 import AddService from "./components/AddService"; // Novo import
 import EditService from "./components/EditService"; // Novo import
+import AddBudget from "./components/AddBudget";
+import ManageBudgets from "./components/ManageBudgets";
 
 // Configuração das rotas e navegação
 const NAVIGATION_ITEMS = [
@@ -55,6 +58,7 @@ const NAVIGATION_ITEMS = [
     items: [
       { path: "/app/manage-clients", icon: Users, label: "Clientes" },
       { path: "/app/manage-services", icon: Wrench, label: "Serviços" }, // Atualizado path
+      { path: "/app/manage-budgets", icon: FileText, label: "Orçamentos" },
       { path: "/app/manage-equipments", icon: Package, label: "Peças" },
       { path: "/app/parts-library", icon: Book, label: "Biblioteca de Peças" },
     ],
@@ -306,6 +310,11 @@ const App = () => {
                         path="agenda/:year/:month/week/:week"
                         element={<WeekDetail />}
                       />
+                      <Route
+                        path="manage-budgets"
+                        element={<ManageBudgets />}
+                      />
+                      <Route path="add-budget" element={<AddBudget />} />
                     </Routes>
                   </div>
                 </main>

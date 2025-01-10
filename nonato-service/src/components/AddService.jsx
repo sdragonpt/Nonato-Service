@@ -137,6 +137,7 @@ const AddService = () => {
                 className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
                 <option value="base">Valor Base</option>
+                <option value="un">Despesa</option>
                 <option value="hour">Por Hora</option>
                 <option value="day">Por Dia</option>
                 <option value="km">Por Km</option>

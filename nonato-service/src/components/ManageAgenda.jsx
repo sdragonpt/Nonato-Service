@@ -216,17 +216,6 @@ const ManageAgenda = () => {
         </div>
       )}
 
-      {/* Botão de Novo Agendamento */}
-      <div className="mb-8">
-        <button
-          onClick={() => navigate("/app/add-agendamento")}
-          className="w-full p-4 bg-[#117d49] hover:bg-[#0d6238] text-white rounded-lg transition-colors flex items-center justify-center"
-        >
-          <PlusCircle className="w-5 h-5 mr-2" />
-          Novo Agendamento
-        </button>
-      </div>
-
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {/* Total de Agendamentos */}
         <div className="bg-blue-500/10 border border-blue-500/50 p-4 rounded-lg">
@@ -351,6 +340,16 @@ const ManageAgenda = () => {
             </div>
           </div>
         ))}
+      </div>
+      {/* Botão flutuante para novo agendamento */}
+      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center md:left-64">
+        <button
+          onClick={() => navigate("/app/add-agendamento")}
+          className="h-16 px-6 bg-[#117d49] text-white font-medium flex items-center justify-center rounded-full shadow-lg hover:bg-[#0d6238] transition-all hover:scale-105"
+        >
+          <PlusCircle className="w-5 h-5 mr-2" />
+          Novo Agendamento
+        </button>
       </div>
     </div>
   );

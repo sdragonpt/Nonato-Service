@@ -2,7 +2,15 @@ import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 
-async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
+async function generateServiceOrderPDFPlus(
+  orderIdForPDF,
+  order,
+  client,
+  equipment,
+  workdays
+) {
+  console.log("workdays no início da função:", workdays);
+  console.log("É um array:", Array.isArray(workdays));
   const pdfDoc = await PDFDocument.create();
   const pageWidth = 600;
   const pageHeight = 900;
