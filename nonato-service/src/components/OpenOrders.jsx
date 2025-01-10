@@ -13,7 +13,7 @@ import {
   Filter,
 } from "lucide-react";
 
-const OpenServices = () => {
+const OpenOrders = () => {
   const [services, setServices] = useState([]);
   const [clients, setClients] = useState([]);
   const [equipments, setEquipments] = useState([]);
@@ -282,4 +282,4 @@ const OpenServices = () => {
   );
 };
 
-export default OpenServices;
+export default OpenOrders;

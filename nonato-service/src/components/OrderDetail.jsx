@@ -184,8 +184,8 @@ const OrderDetail = () => {
 
       navigate(
         order.status === "Aberto"
-          ? "/app/open-services"
-          : "/app/closed-services"
+          ? "/app/open-orders"
+          : "/app/closed-orders"
       );
     } catch (err) {
       console.error("Erro ao deletar ordem:", err);
@@ -207,7 +207,7 @@ const OrderDetail = () => {
         closedAt: new Date(),
       });
 
-      navigate("/app/open-services");
+      navigate("/app/open-orders");
     } catch (err) {
       console.error("Erro ao fechar ordem:", err);
       setError("Erro ao fechar ordem. Por favor, tente novamente.");
@@ -432,7 +432,7 @@ const OrderDetail = () => {
 
         <button
           className="h-16 px-6 bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center rounded-full transition-colors"
-          onClick={() => navigate("/app/manage-services")}
+          onClick={() => navigate("/app/manage-orders")}
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
           Voltar

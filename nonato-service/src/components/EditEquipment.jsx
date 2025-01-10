@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from "react";
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  collection,
-  getDocs,
-} from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase.jsx";
-import { ArrowLeft, Loader2, Save, AlertCircle, User } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  Save,
+  AlertCircle,
+  User,
+  Printer,
+  Tag,
+  Package,
+  Barcode,
+} from "lucide-react";
 
 const EditEquipment = () => {
   const { equipmentId } = useParams();
@@ -34,7 +38,6 @@ const EditEquipment = () => {
         setIsLoading(true);
         setError(null);
 
-        // Buscar equipamento
         const equipmentDoc = await getDoc(doc(db, "equipamentos", equipmentId));
 
         if (!equipmentDoc.exists()) {
@@ -53,7 +56,6 @@ const EditEquipment = () => {
         setFormData(formattedData);
         setOriginalData(formattedData);
 
-        // Buscar nome do cliente
         const clientDoc = await getDoc(
           doc(db, "clientes", equipmentData.clientId)
         );
@@ -88,13 +90,7 @@ const EditEquipment = () => {
 
   const validateForm = () => {
     const errors = {};
-
     if (!formData.type.trim()) errors.type = "Tipo é obrigatório";
-    // if (!formData.brand.trim()) errors.brand = "Marca é obrigatória";
-    // if (!formData.model.trim()) errors.model = "Modelo é obrigatório";
-    // if (!formData.serialNumber.trim())
-    //   errors.serialNumber = "Número de série é obrigatório";
-
     return errors;
   };
 
@@ -102,10 +98,7 @@ const EditEquipment = () => {
     e.preventDefault();
 
     const allTouched = Object.keys(formData).reduce(
-      (acc, key) => ({
-        ...acc,
-        [key]: true,
-      }),
+      (acc, key) => ({ ...acc, [key]: true }),
       {}
     );
     setTouched(allTouched);
@@ -147,11 +140,10 @@ const EditEquipment = () => {
     Object.keys(formData).some((key) => formData[key] !== originalData[key]);
 
   return (
-    <div className="min-h-screen p-4">
+    <div className="w-full max-w-2xl mx-auto p-4">
       <button
         onClick={() => navigate(-1)}
         className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all hover:scale-105 flex items-center justify-center"
-        aria-label="Voltar"
       >
         <ArrowLeft className="w-5 h-5" />
       </button>
@@ -160,135 +152,127 @@ const EditEquipment = () => {
         Editar Equipamento
       </h2>
 
-      <div className="w-full max-w-md mx-auto">
-        {error && (
-          <div className="mb-4 p-3 bg-red-500/10 border border-red-500 rounded-lg flex items-center text-red-500 text-sm">
-            <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
-            {error}
-          </div>
-        )}
+      {error && (
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded-lg flex items-center">
+          <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
+          <p className="text-red-500">{error}</p>
+        </div>
+      )}
 
-        <div className="mb-6 p-4 bg-gray-700/50 rounded-lg flex items-center">
-          <User className="w-5 h-5 text-gray-400 mr-3" />
-          <div>
-            <p className="text-sm text-gray-400">Cliente</p>
-            <p className="text-white font-medium">{clientName}</p>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Informação do Cliente */}
+        <div className="bg-gray-800 p-6 rounded-lg">
+          <div className="flex items-center">
+            <User className="w-5 h-5 text-gray-400 mr-3" />
+            <div>
+              <p className="text-sm text-gray-400">Cliente</p>
+              <p className="text-white font-medium">{clientName}</p>
+            </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Informações Básicas */}
+        <div className="bg-gray-800 p-6 rounded-lg space-y-4">
           <div>
-            <label
-              htmlFor="type"
-              className="block text-sm font-medium text-gray-300 mb-1"
-            >
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Tipo
             </label>
-            <input
-              id="type"
-              type="text"
-              name="type"
-              value={formData.type}
-              onChange={handleChange}
-              onBlur={() => handleBlur("type")}
-              placeholder="Ex: Impressora, Scanner..."
-              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors
-                ${
+            <div className="relative">
+              <Printer className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                name="type"
+                value={formData.type}
+                onChange={handleChange}
+                onBlur={() => handleBlur("type")}
+                placeholder="Ex: Impressora, Scanner..."
+                className={`w-full p-3 pl-10 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
                   touched.type && !formData.type ? "border border-red-500" : ""
                 }`}
-            />
+              />
+            </div>
             {touched.type && !formData.type && (
               <p className="mt-1 text-sm text-red-500">Tipo é obrigatório</p>
             )}
           </div>
 
           <div>
-            <label
-              htmlFor="brand"
-              className="block text-sm font-medium text-gray-300 mb-1"
-            >
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Marca
             </label>
-            <input
-              id="brand"
-              type="text"
-              name="brand"
-              value={formData.brand}
-              onChange={handleChange}
-              onBlur={() => handleBlur("brand")}
-              placeholder="Ex: HP, Epson..."
-              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
-            />
-            {/* {touched.brand && !formData.brand && (
-              <p className="mt-1 text-sm text-red-500">Marca é obrigatória</p>
-            )} */}
+            <div className="relative">
+              <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                name="brand"
+                value={formData.brand}
+                onChange={handleChange}
+                onBlur={() => handleBlur("brand")}
+                placeholder="Ex: HP, Epson..."
+                className="w-full p-3 pl-10 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+              />
+            </div>
           </div>
+        </div>
 
+        {/* Modelo e Número de Série */}
+        <div className="bg-gray-800 p-6 rounded-lg space-y-4">
           <div>
-            <label
-              htmlFor="model"
-              className="block text-sm font-medium text-gray-300 mb-1"
-            >
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Modelo
             </label>
-            <input
-              id="model"
-              type="text"
-              name="model"
-              value={formData.model}
-              onChange={handleChange}
-              onBlur={() => handleBlur("model")}
-              placeholder="Ex: LaserJet Pro M428fdw"
-              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
-            />
-            {/* {touched.model && !formData.model && (
-              <p className="mt-1 text-sm text-red-500">Modelo é obrigatório</p>
-            )} */}
+            <div className="relative">
+              <Package className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                name="model"
+                value={formData.model}
+                onChange={handleChange}
+                onBlur={() => handleBlur("model")}
+                placeholder="Ex: LaserJet Pro M428fdw"
+                className="w-full p-3 pl-10 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+              />
+            </div>
           </div>
 
           <div>
-            <label
-              htmlFor="serialNumber"
-              className="block text-sm font-medium text-gray-300 mb-1"
-            >
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Número de Série
             </label>
-            <input
-              id="serialNumber"
-              type="text"
-              name="serialNumber"
-              value={formData.serialNumber}
-              onChange={handleChange}
-              onBlur={() => handleBlur("serialNumber")}
-              placeholder="Ex: XYZ123456"
-              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors uppercase`}
-            />
-            {/* {touched.serialNumber && !formData.serialNumber && (
-              <p className="mt-1 text-sm text-red-500">
-                Número de série é obrigatório
-              </p>
-            )} */}
+            <div className="relative">
+              <Barcode className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                name="serialNumber"
+                value={formData.serialNumber}
+                onChange={handleChange}
+                onBlur={() => handleBlur("serialNumber")}
+                placeholder="Ex: XYZ123456"
+                className="w-full p-3 pl-10 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors uppercase"
+              />
+            </div>
           </div>
+        </div>
 
-          <button
-            type="submit"
-            disabled={isSubmitting || !hasChanges}
-            className="w-full p-3 flex items-center justify-center text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:hover:bg-blue-600"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Salvando...
-              </>
-            ) : (
-              <>
-                <Save className="w-5 h-5 mr-2" />
-                Salvar Alterações
-              </>
-            )}
-          </button>
-        </form>
-      </div>
+        {/* Botão Submit */}
+        <button
+          type="submit"
+          disabled={isSubmitting || !hasChanges}
+          className="w-full p-4 flex items-center justify-center text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:hover:bg-blue-600"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              Salvando...
+            </>
+          ) : (
+            <>
+              <Save className="w-5 h-5 mr-2" />
+              Salvar Alterações
+            </>
+          )}
+        </button>
+      </form>
     </div>
   );
 };

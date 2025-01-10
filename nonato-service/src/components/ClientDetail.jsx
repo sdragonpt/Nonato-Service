@@ -280,7 +280,7 @@ const ClientDetail = () => {
 
           <button className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50">
             <Link
-              to={`/app/add-service?clientId=${client.id}`}
+              to={`/app/add-order?clientId=${client.id}`}
               className="flex items-center"
             >
               <Clipboard className="w-4 h-4 mr-2" />
@@ -377,7 +377,7 @@ const ClientDetail = () => {
 
         <button
           className="w-32 h-16 bg-[#1d2d50] hover:bg-[#283b6a] mr-4 text-white flex items-center justify-center rounded-full transition-colors"
-          onClick={() => navigate(`/app/services/${clientId}`)}
+          onClick={() => navigate(`/app/manage-services/${clientId}`)}
           aria-label="Serviços do Cliente"
         >
           <Wrench className="w-5 h-5 mr-2" />

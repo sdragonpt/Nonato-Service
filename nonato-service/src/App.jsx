@@ -24,27 +24,30 @@ import {
 
 // Componentes
 import InitialPage from "./components/InitialPage";
-import ManageServices from "./components/ManageServices";
+import ManageOrders from "./components/ManageOrders";
 import AddEquipment from "./components/AddEquipment";
 import AddClient from "./components/AddClient";
-import ClosedServices from "./components/ClosedServices";
-import OpenServices from "./components/OpenServices";
+import ClosedOrders from "./components/ClosedOrders";
+import OpenOrders from "./components/OpenOrders";
 import ManageClients from "./components/ManageClients";
 import ManageEquipments from "./components/ManageEquipments";
 import ClientDetail from "./components/ClientDetail";
 import EquipmentDetail from "./components/EquipmentDetail";
 import EditClient from "./components/EditClient";
 import EditEquipment from "./components/EditEquipment";
-import AddService from "./components/AddService";
+import AddOrder from "./components/AddOrder";
 import OrderDetail from "./components/OrderDetail";
 import AddWorkday from "./components/AddWorkDay";
-import EditService from "./components/EditService";
+import EditOrder from "./components/EditOrder";
 import EditWorkday from "./components/EditWorkDay";
 import LoginPage from "./components/LoginPage";
 import ManageAgenda from "./components/ManageAgenda";
 import AddAgendamento from "./components/AddAgendamento";
 import EditAgendamento from "./components/EditAgendamento";
 import WeekDetail from "./components/WeekDetail";
+import ManageServices from "./components/ManageServices";
+import AddService from "./components/AddService"; // Novo import
+import EditService from "./components/EditService"; // Novo import
 
 // Configuração das rotas e navegação
 const NAVIGATION_ITEMS = [
@@ -52,7 +55,7 @@ const NAVIGATION_ITEMS = [
     title: "Cadastro",
     items: [
       { path: "/app/manage-clients", icon: Users, label: "Clientes" },
-      { path: "/app/services", icon: Wrench, label: "Serviços" },
+      { path: "/app/manage-services", icon: Wrench, label: "Serviços" }, // Atualizado path
       { path: "/app/manage-equipments", icon: Package, label: "Peças" },
       { path: "/app/parts-library", icon: Book, label: "Biblioteca de Peças" },
     ],
@@ -61,11 +64,11 @@ const NAVIGATION_ITEMS = [
     title: "Gestão",
     items: [
       {
-        path: "/app/manage-services",
+        path: "/app/manage-orders",
         icon: ClipboardList,
         label: "Ordem de Serviço",
       },
-      { path: "/app/manage-agenda", icon: Calendar, label: "Agenda" }, // Nova opção
+      { path: "/app/manage-agenda", icon: Calendar, label: "Agenda" },
       { path: "/app/manage-report", icon: BarChart, label: "Relatório" },
       { path: "/app/manage-checklist", icon: CheckSquare, label: "Check List" },
     ],
@@ -173,23 +176,23 @@ const Navigation = ({ isOpen, onClose }) => {
   );
 };
 
-// Componente ScrollToTop
+// Componente ScrollToTop (Adicionado)
 const ScrollToTop = () => {
   const { pathname } = useLocation();
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
+
   return null;
 };
 
-// Componente Principal
 const App = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleNavbar = () => setIsOpen(!isOpen);
   const closeNavbar = () => setIsOpen(false);
 
-  // Fecha o menu quando clicar fora em dispositivos móveis
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -232,16 +235,21 @@ const App = () => {
                     <Routes>
                       <Route path="add-client" element={<AddClient />} />
                       <Route path="add-equipment" element={<AddEquipment />} />
-                      <Route path="add-service" element={<AddService />} />
+                      <Route path="add-order" element={<AddOrder />} />
+                      <Route path="manage-orders" element={<ManageOrders />} />
                       <Route
                         path="manage-services"
                         element={<ManageServices />}
                       />
+                      <Route path="add-service" element={<AddService />} />{" "}
+                      {/* Nova rota */}
                       <Route
-                        path="closed-services"
-                        element={<ClosedServices />}
-                      />
-                      <Route path="open-services" element={<OpenServices />} />
+                        path="edit-service/:serviceId"
+                        element={<EditService />}
+                      />{" "}
+                      {/* Nova rota */}
+                      <Route path="closed-orders" element={<ClosedOrders />} />
+                      <Route path="open-orders" element={<OpenOrders />} />
                       <Route
                         path="manage-clients"
                         element={<ManageClients />}
@@ -280,7 +288,7 @@ const App = () => {
                       />
                       <Route
                         path="edit-service-order/:serviceId"
-                        element={<EditService />}
+                        element={<EditOrder />}
                       />
                       <Route
                         path="edit-workday/:workdayId"

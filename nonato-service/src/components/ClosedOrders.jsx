@@ -12,7 +12,7 @@ import {
   Filter,
 } from "lucide-react";
 
-const ClosedServices = () => {
+const ClosedOrders = () => {
   const [services, setServices] = useState([]);
   const [clients, setClients] = useState({});
   const [equipments, setEquipments] = useState({});
@@ -285,4 +285,4 @@ const ClosedServices = () => {
   );
 };
 
-export default ClosedServices;
+export default ClosedOrders;

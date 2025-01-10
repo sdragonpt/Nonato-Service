@@ -1,75 +1,97 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "../firebase.jsx";
 import {
-  PlusCircle,
-  ClipboardCheck,
-  ClipboardList,
-  AlertCircle,
-  Clock,
-  CheckCircle2,
+  collection,
+  getDocs,
+  doc,
+  deleteDoc,
+  query,
+  orderBy,
+} from "firebase/firestore";
+import { db } from "../firebase.jsx";
+import { useNavigate } from "react-router-dom";
+import {
+  Search,
+  Plus,
   Loader2,
-  Calendar,
+  MoreVertical,
+  Edit2,
+  Trash2,
+  Wrench,
+  Euro,
 } from "lucide-react";
 
 const ManageServices = () => {
-  const navigate = useNavigate();
-  const [stats, setStats] = useState({
-    open: 0,
-    closed: 0,
-    urgent: 0,
-    todayTotal: 0,
-  });
+  const [services, setServices] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [sortOrder, setSortOrder] = useState("asc");
+  const [activeMenu, setActiveMenu] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchServices = async () => {
       try {
         setIsLoading(true);
-        setError(null);
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        // Buscar todas as ordens de serviço
         const servicesRef = collection(db, "servicos");
-
-        // Buscar todos os serviços de uma vez
-        const servicesSnapshot = await getDocs(servicesRef);
-        const services = servicesSnapshot.docs.map((doc) => ({
+        const q = query(servicesRef, orderBy("name", sortOrder));
+        const querySnapshot = await getDocs(q);
+        const servicesData = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-          createdAt:
-            doc.data().createdAt?.toDate() || new Date(doc.data().date),
+          value: Number(doc.data().value) || 0,
         }));
-
-        // Calcular estatísticas
-        const stats = {
-          open: services.filter((service) => service.status === "Aberto")
-            .length,
-          closed: services.filter((service) => service.status === "Fechado")
-            .length,
-          urgent: services.filter((service) => service.priority === "high")
-            .length,
-          todayTotal: services.filter((service) => {
-            const serviceDate = new Date(service.createdAt);
-            return serviceDate >= today;
-          }).length,
-        };
-
-        setStats(stats);
+        setServices(servicesData);
+        setError(null);
       } catch (err) {
-        console.error("Erro ao buscar estatísticas:", err);
-        setError("Erro ao carregar dados. Por favor, tente novamente.");
+        setError("Erro ao carregar serviços. Por favor, tente novamente.");
+        console.error("Erro ao buscar serviços:", err);
       } finally {
         setIsLoading(false);
       }
     };
+    fetchServices();
+  }, [sortOrder]);
 
-    fetchStats();
+  // Fecha o menu quando clicar fora
+  useEffect(() => {
+    const handleClickOutside = () => setActiveMenu(null);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
   }, []);
+
+  const handleDelete = async (serviceId, e) => {
+    e.stopPropagation();
+    if (window.confirm("Tem certeza que deseja deletar este serviço?")) {
+      try {
+        await deleteDoc(doc(db, "servicos", serviceId));
+        setServices(services.filter((service) => service.id !== serviceId));
+        setActiveMenu(null);
+      } catch (error) {
+        setError("Erro ao deletar serviço. Por favor, tente novamente.");
+        console.error("Erro ao deletar serviço:", error);
+      }
+    }
+  };
+
+  const handleEdit = (serviceId, e) => {
+    e.stopPropagation();
+    navigate(`/app/edit-service/${serviceId}`);
+    setActiveMenu(null);
+  };
+
+  const toggleMenu = (e, serviceId) => {
+    e.stopPropagation();
+    setActiveMenu(activeMenu === serviceId ? null : serviceId);
+  };
+
+  const filteredServices = services.filter((service) =>
+    service.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const toggleSortOrder = () => {
+    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+  };
 
   if (isLoading) {
     return (
@@ -79,114 +101,128 @@ const ManageServices = () => {
     );
   }
 
+  const getTypeLabel = (type) => {
+    const types = {
+      base: "Valor Base",
+      hour: "Por Hora",
+      day: "Por Dia",
+      km: "Por Km",
+    };
+    return types[type] || type;
+  };
+
   return (
     <div className="w-full max-w-3xl mx-auto rounded-lg p-4">
-      <h2 className="text-2xl font-semibold text-center text-white mb-8">
-        Ordens de Serviço
+      <h2 className="text-2xl font-semibold text-center text-white mb-6">
+        Gerenciar Serviços
       </h2>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded-lg flex items-center text-red-500">
-          <AlertCircle className="w-5 h-5 mr-2" />
-          {error}
+        <div className="mb-4 p-4 bg-red-500/10 border border-red-500 rounded-lg">
+          <p className="text-red-500">{error}</p>
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {/* Card - Ordens Abertas */}
-        <div
-          onClick={() => navigate("/app/open-services")}
-          className="bg-blue-500/10 border border-blue-500/50 p-4 rounded-lg cursor-pointer hover:bg-blue-500/20 transition-colors"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <ClipboardList className="w-6 h-6 text-blue-400" />
-            <span className="text-2xl font-bold text-blue-400">
-              {stats.open}
-            </span>
-          </div>
-          <p className="text-blue-400 text-sm">Ordens Abertas</p>
-        </div>
-
-        {/* Card - Ordens Fechadas */}
-        <div
-          onClick={() => navigate("/app/closed-services")}
-          className="bg-green-500/10 border border-green-500/50 p-4 rounded-lg cursor-pointer hover:bg-green-500/20 transition-colors"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <ClipboardCheck className="w-6 h-6 text-green-400" />
-            <span className="text-2xl font-bold text-green-400">
-              {stats.closed}
-            </span>
-          </div>
-          <p className="text-green-400 text-sm">Ordens Fechadas</p>
-        </div>
-
-        {/* Card - Urgentes */}
-        <div className="bg-red-500/10 border border-red-500/50 p-4 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <AlertCircle className="w-6 h-6 text-red-400" />
-            <span className="text-2xl font-bold text-red-400">
-              {stats.urgent}
-            </span>
-          </div>
-          <p className="text-red-400 text-sm">Ordens Urgentes</p>
-        </div>
-
-        {/* Card - Hoje */}
-        <div className="bg-purple-500/10 border border-purple-500/50 p-4 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <Calendar className="w-6 h-6 text-purple-400" />
-            <span className="text-2xl font-bold text-purple-400">
-              {stats.todayTotal}
-            </span>
-          </div>
-          <p className="text-purple-400 text-sm">Ordens de Hoje</p>
-        </div>
+      <div className="mb-6 relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Buscar serviços..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full p-3 pl-10 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        />
       </div>
 
-      {/* Status Cards */}
-      <div className="grid grid-cols-2 gap-4 mb-32">
-        {/* Ordens Abertas Card */}
+      <div className="mb-4 flex justify-between items-center">
         <button
-          onClick={() => navigate("/app/open-services")}
-          className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors group"
+          onClick={toggleSortOrder}
+          className="text-white hover:text-blue-400 transition-colors"
         >
-          <div className="flex items-center justify-center mb-3">
-            <Clock className="w-8 h-8 text-blue-400 group-hover:scale-110 transition-transform" />
-          </div>
-          <h3 className="text-lg font-medium text-center text-white mb-2">
-            Ordens Abertas
-          </h3>
-          <p className="text-sm text-gray-400 text-center">
-            Visualizar e gerenciar ordens em andamento
-          </p>
+          Ordenar: {sortOrder === "asc" ? "A-Z" : "Z-A"}
         </button>
-
-        {/* Ordens Fechadas Card */}
-        <button
-          onClick={() => navigate("/app/closed-services")}
-          className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors group"
-        >
-          <div className="flex items-center justify-center mb-3">
-            <CheckCircle2 className="w-8 h-8 text-green-400 group-hover:scale-110 transition-transform" />
-          </div>
-          <h3 className="text-lg font-medium text-center text-white mb-2">
-            Ordens Fechadas
-          </h3>
-          <p className="text-sm text-gray-400 text-center">
-            Histórico de ordens concluídas
-          </p>
-        </button>
+        <span className="text-gray-400">
+          {filteredServices.length} serviço(s)
+        </span>
       </div>
 
-      {/* Botão flutuante para nova ordem */}
+      <div className="space-y-4 mb-32">
+        {filteredServices.length > 0 ? (
+          filteredServices.map((service) => (
+            <div
+              key={service.id}
+              className="group flex items-center p-4 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors relative"
+            >
+              <div className="flex items-center flex-grow min-w-0">
+                <div className="h-12 w-12 rounded-full bg-[#117d49] flex items-center justify-center mr-4">
+                  <Wrench className="w-6 h-6 text-white" />
+                </div>
+                <div className="min-w-0 flex-grow">
+                  <h3 className="font-semibold text-white truncate">
+                    {service.name}
+                  </h3>
+                  <div className="flex items-center text-gray-400">
+                    <Euro className="w-4 h-4 mr-1" />
+                    <span>
+                      {Number(service.value).toFixed(2)} (
+                      {getTypeLabel(service.type)})
+                    </span>
+                  </div>
+                  {service.description && (
+                    <p className="text-gray-400 truncate mt-1">
+                      {service.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <button
+                onClick={(e) => toggleMenu(e, service.id)}
+                className="p-2 ml-2 text-gray-400 hover:text-white rounded-full focus:outline-none"
+              >
+                <MoreVertical className="w-5 h-5" />
+              </button>
+
+              {activeMenu === service.id && (
+                <div
+                  className="absolute right-0 top-full mt-2 w-48 bg-gray-800 rounded-lg shadow-lg z-50 py-1 border border-gray-700"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={(e) => handleEdit(service.id, e)}
+                    className="w-full px-4 py-2 text-left text-white hover:bg-gray-700 flex items-center"
+                  >
+                    <Edit2 className="w-4 h-4 mr-2" />
+                    Editar
+                  </button>
+                  <button
+                    onClick={(e) => handleDelete(service.id, e)}
+                    className="w-full px-4 py-2 text-left text-red-400 hover:bg-gray-700 flex items-center"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Excluir
+                  </button>
+                </div>
+              )}
+            </div>
+          ))
+        ) : (
+          <div className="text-white text-center py-8">
+            <p className="mb-2">Nenhum serviço encontrado.</p>
+            <p className="text-gray-400">
+              Tente ajustar sua busca ou adicione um novo serviço.
+            </p>
+          </div>
+        )}
+      </div>
+
       <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center md:left-64">
         <button
           onClick={() => navigate("/app/add-service")}
-          className="h-16 px-6 bg-[#117d49] text-white font-medium flex items-center justify-center rounded-full shadow-lg hover:bg-[#0d6238] transition-all hover:scale-105"
+          className="h-16 px-6 bg-[#117d49] text-white font-medium flex items-center justify-center rounded-full shadow-lg hover:bg-[#0d6238] transition-colors"
         >
-          <PlusCircle className="w-5 h-5 mr-2" />
-          Nova Ordem de Serviço
+          <Plus className="w-5 h-5 mr-2" />
+          Novo Serviço
         </button>
       </div>
     </div>
