@@ -28,10 +28,11 @@ import {
   Printer,
   Tag,
   PackageOpen,
+  BarChart,
 } from "lucide-react";
 
 const OrderDetail = () => {
-  const { serviceId } = useParams();
+  const { orderId } = useParams();
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [client, setClient] = useState(null);
@@ -42,6 +43,90 @@ const OrderDetail = () => {
   const [isClosing, setIsClosing] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [error, setError] = useState(null);
+  const [showTotals, setShowTotals] = useState(false);
+  const [totals, setTotals] = useState(null);
+
+  // Função auxiliar para calcular horas
+  const calculateHours = (start, end) => {
+    if (!start || !end) return "0:00";
+    const startTime = new Date(`1970-01-01T${start}:00`);
+    let endTime = new Date(`1970-01-01T${end}:00`);
+    if (endTime < startTime) endTime.setDate(endTime.getDate() + 1);
+    const diff = (endTime - startTime) / 1000 / 3600;
+    const hours = Math.floor(diff);
+    const minutes = Math.round((diff - hours) * 60);
+    return `${hours}:${minutes.toString().padStart(2, "0")}`;
+  };
+
+  // Função auxiliar para calcular horas com pausa
+  const calculateHoursWithPause = (start, end, pauseHours) => {
+    if (!start || !end) return "0:00";
+    const [hours, minutes] = pauseHours.split(":").map(Number);
+    const pauseInMinutes = hours * 60 + (minutes || 0);
+    const [totalHours, totalMinutes] = calculateHours(start, end)
+      .split(":")
+      .map(Number);
+    // Mudei o nome aqui para evitar a duplicação
+    const finalMinutes = totalHours * 60 + totalMinutes - pauseInMinutes;
+    return `${Math.floor(finalMinutes / 60)}:${(finalMinutes % 60)
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
+  // Função para calcular totais
+  const calculateOrderTotals = (workdays) => {
+    let totalWorkMinutes = 0;
+    let totalTravelMinutes = 0;
+    let totalKm = 0;
+
+    workdays.forEach((day) => {
+      // Calcula horas trabalhadas
+      if (day.startHour && day.endHour) {
+        const [hours, minutes] = calculateHoursWithPause(
+          day.startHour,
+          day.endHour,
+          day.pauseHours || "0:00"
+        )
+          .split(":")
+          .map(Number);
+        totalWorkMinutes += hours * 60 + minutes;
+      }
+
+      // Calcula horas de viagem
+      const [idaHours, idaMinutes] = calculateHours(
+        day.departureTime,
+        day.arrivalTime
+      )
+        .split(":")
+        .map(Number);
+      const [retHours, retMinutes] = calculateHours(
+        day.returnDepartureTime,
+        day.returnArrivalTime
+      )
+        .split(":")
+        .map(Number);
+      totalTravelMinutes +=
+        idaHours * 60 + idaMinutes + (retHours * 60 + retMinutes);
+
+      // Calcula KMs
+      totalKm +=
+        (parseFloat(day.kmDeparture) || 0) + (parseFloat(day.kmReturn) || 0);
+    });
+
+    return {
+      totalWorkHours: `${Math.floor(totalWorkMinutes / 60)}h${(
+        totalWorkMinutes % 60
+      )
+        .toString()
+        .padStart(2, "0")}`,
+      totalTravelHours: `${Math.floor(totalTravelMinutes / 60)}h${(
+        totalTravelMinutes % 60
+      )
+        .toString()
+        .padStart(2, "0")}`,
+      totalKm: totalKm.toFixed(2),
+    };
+  };
 
   const fetchData = async () => {
     try {
@@ -49,7 +134,7 @@ const OrderDetail = () => {
       setError(null);
 
       // Buscar ordem de serviço
-      const orderDoc = doc(db, "servicos", serviceId);
+      const orderDoc = doc(db, "ordens", orderId);
       const orderData = await getDoc(orderDoc);
 
       if (!orderData.exists()) {
@@ -65,7 +150,7 @@ const OrderDetail = () => {
         getDoc(doc(db, "clientes", orderInfo.clientId)),
         getDoc(doc(db, "equipamentos", orderInfo.equipmentId)),
         getDocs(
-          query(collection(db, "workdays"), where("serviceId", "==", serviceId))
+          query(collection(db, "workdays"), where("orderId", "==", orderId))
         ),
       ]);
 
@@ -109,6 +194,8 @@ const OrderDetail = () => {
         .sort((a, b) => b.workDate - a.workDate);
 
       setWorkdays(workdaysList);
+      // Calcular totais imediatamente após carregar os workdays
+      setTotals(calculateOrderTotals(workdaysList));
     } catch (err) {
       console.error("Erro ao carregar dados:", err);
       setError("Erro ao carregar dados. Por favor, tente novamente.");
@@ -119,7 +206,7 @@ const OrderDetail = () => {
 
   useEffect(() => {
     fetchData();
-  }, [serviceId]);
+  }, [orderId]);
 
   const handleGeneratePDF = async () => {
     try {
@@ -130,6 +217,10 @@ const OrderDetail = () => {
         day.description?.trim()
       ).length;
 
+      console.log("Workdays antes de gerar o PDF:", workdays);
+      console.log("Tipo de workdays:", typeof workdays);
+      console.log("É um array:", Array.isArray(workdays));
+
       // Escolher versão do PDF baseado nas condições
       if (
         (workdays.length <= 3 && nonNullDescriptions === 2) ||
@@ -137,16 +228,16 @@ const OrderDetail = () => {
         (workdays.length <= 7 && nonNullDescriptions === 1) ||
         (workdays.length <= 8 && nonNullDescriptions === 0)
       ) {
-        await generateServiceOrderPDF(
-          serviceId,
+        const pdfTotals = await generateServiceOrderPDF(
+          orderId,
           order,
           client,
           equipment,
           workdays
         );
       } else {
-        await generateServiceOrderPDFPlus(
-          serviceId,
+        const pdfTotals = await generateServiceOrderPDFPlus(
+          orderId,
           order,
           client,
           equipment,
@@ -180,12 +271,10 @@ const OrderDetail = () => {
       await Promise.all(deletePromises);
 
       // Deletar ordem de serviço
-      await deleteDoc(doc(db, "servicos", serviceId));
+      await deleteDoc(doc(db, "ordens", orderId));
 
       navigate(
-        order.status === "Aberto"
-          ? "/app/open-orders"
-          : "/app/closed-orders"
+        order.status === "Aberto" ? "/app/open-orders" : "/app/closed-orders"
       );
     } catch (err) {
       console.error("Erro ao deletar ordem:", err);
@@ -202,7 +291,7 @@ const OrderDetail = () => {
       setIsClosing(true);
       setError(null);
 
-      await updateDoc(doc(db, "servicos", serviceId), {
+      await updateDoc(doc(db, "ordens", orderId), {
         status: "Fechado",
         closedAt: new Date(),
       });
@@ -252,11 +341,11 @@ const OrderDetail = () => {
       </button>
 
       <h2 className="text-2xl font-semibold text-center text-white mb-6">
-        Ordem de Serviço #{serviceId}
+        Ordem de Serviço #{orderId}
       </h2>
 
       {/* Ações principais */}
-      <div className="flex flex-wrap justify-center gap-3 mb-6">
+      <div className="flex flex-wrap justify-center gap-3 mb-6 relative">
         {order.status === "Aberto" ? (
           <>
             <button
@@ -273,51 +362,47 @@ const OrderDetail = () => {
             </button>
           </>
         ) : (
-          <button
-            onClick={handleGeneratePDF}
-            disabled={isGeneratingPDF}
-            className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50"
-          >
-            {isGeneratingPDF ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <FileText className="w-4 h-4 mr-2" />
+          <>
+            <button
+              onClick={handleGeneratePDF}
+              disabled={isGeneratingPDF}
+              className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50"
+            >
+              {isGeneratingPDF ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <FileText className="w-4 h-4 mr-2" />
+              )}
+              Gerar PDF
+            </button>
+
+            <button
+              onClick={() => setShowTotals(!showTotals)}
+              className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              <BarChart className="w-4 h-4 mr-2" />
+              {showTotals ? "Ocultar Totais" : "Ver Totais"}
+            </button>
+
+            {showTotals && totals && (
+              <div className="absolute left-1/2 transform -translate-x-1/2 mt-16 p-4 bg-gray-800 rounded-lg shadow-lg border border-gray-700 w-64 z-50">
+                <div className="space-y-2">
+                  <p className="text-white">
+                    <span className="font-medium">Horas Trabalhadas:</span>{" "}
+                    {totals.totalWorkHours}
+                  </p>
+                  <p className="text-white">
+                    <span className="font-medium">Horas de Viagem:</span>{" "}
+                    {totals.totalTravelHours}
+                  </p>
+                  <p className="text-white">
+                    <span className="font-medium">KMs Percorridos:</span>{" "}
+                    {totals.totalKm} km
+                  </p>
+                </div>
+              </div>
             )}
-            Gerar PDF
-          </button>
-          // <button className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50">
-          //   <PDFDownloadLink
-          //     document={
-          //       <ServiceOrderPDF
-          //         serviceId={order.id}
-          //         order={order}
-          //         client={client}
-          //         equipment={equipment}
-          //         workdays={workdays}
-          //       />
-          //     }
-          //     fileName={`ordem_servico_${order.id}.pdf`}
-          //   >
-          //     {({ blob, url, loading, error }) => (
-          //       <button
-          //         className="flex items-center"
-          //         disabled={loading}
-          //       >
-          //         {loading ? (
-          //           <>
-          //             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          //             Gerando PDF...
-          //           </>
-          //         ) : (
-          //           <>
-          //             <FileText className="w-4 h-4 mr-2" />
-          //             Download PDF
-          //           </>
-          //         )}
-          //       </button>
-          //     )}
-          //   </PDFDownloadLink>
-          // </button>
+          </>
         )}
 
         <button
@@ -389,7 +474,7 @@ const OrderDetail = () => {
                 key={day.id}
                 onClick={() =>
                   navigate(`/app/edit-workday/${day.id}`, {
-                    state: { serviceId },
+                    state: { orderId },
                   })
                 }
                 className="bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors group"
@@ -439,7 +524,7 @@ const OrderDetail = () => {
         </button>
 
         <button
-          onClick={() => navigate(`/app/order/${serviceId}/add-workday`)}
+          onClick={() => navigate(`/app/order/${orderId}/add-workday`)}
           className="h-20 w-20 -mt-8 bg-[#117d49] hover:bg-[#0d6238] text-white flex items-center justify-center rounded-full shadow-lg transition-all hover:scale-105"
           aria-label="Adicionar dia de trabalho"
         >
@@ -448,7 +533,7 @@ const OrderDetail = () => {
 
         <button
           className="h-16 px-6 bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center rounded-full transition-colors"
-          onClick={() => navigate(`/app/edit-service-order/${serviceId}`)}
+          onClick={() => navigate(`/app/edit-service-order/${orderId}`)}
         >
           <Edit2 className="w-5 h-5 mr-2" />
           Editar

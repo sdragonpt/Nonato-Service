@@ -34,7 +34,7 @@ const ManageOrders = () => {
         today.setHours(0, 0, 0, 0);
 
         // Buscar todas as ordens de serviço
-        const servicesRef = collection(db, "servicos");
+        const servicesRef = collection(db, "ordens");
 
         // Buscar todos os serviços de uma vez
         const servicesSnapshot = await getDocs(servicesRef);

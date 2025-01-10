@@ -58,10 +58,10 @@ const ClientDetail = () => {
         setClient({ id: clientData.id, ...clientData.data() });
         setNewPhotoURL(clientData.data().profilePic);
 
-        // Fetch services and equipment in parallel
+        // Fetch orders and equipment in parallel
         const [servicesSnapshot, equipmentsSnapshot] = await Promise.all([
           getDocs(
-            query(collection(db, "servicos"), where("clientId", "==", clientId))
+            query(collection(db, "ordens"), where("clientId", "==", clientId))
           ),
           getDocs(
             query(
@@ -172,9 +172,9 @@ const ClientDetail = () => {
     try {
       setDeleteLoading(true);
 
-      // Delete services first
+      // Delete orders first
       const servicesDeletePromises = services.map((service) =>
-        deleteDoc(doc(db, "servicos", service.id))
+        deleteDoc(doc(db, "ordens", service.id))
       );
       await Promise.all(servicesDeletePromises);
 

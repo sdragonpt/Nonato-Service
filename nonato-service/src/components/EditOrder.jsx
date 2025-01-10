@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 
 const EditOrder = () => {
-  const { serviceId } = useParams();
+  const { orderId } = useParams();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -66,7 +66,7 @@ const EditOrder = () => {
         // Buscar dados em paralelo
         const [orderSnapshot, clientsSnapshot, equipmentsSnapshot] =
           await Promise.all([
-            getDoc(doc(db, "servicos", serviceId)),
+            getDoc(doc(db, "ordens", orderId)),
             getDocs(collection(db, "clientes")),
             getDocs(collection(db, "equipamentos")),
           ]);
@@ -125,7 +125,7 @@ const EditOrder = () => {
     };
 
     fetchData();
-  }, [serviceId]);
+  }, [orderId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -188,7 +188,7 @@ const EditOrder = () => {
         lastUpdated: new Date(),
       };
 
-      await updateDoc(doc(db, "servicos", serviceId), serviceData);
+      await updateDoc(doc(db, "ordens", orderId), serviceData);
       navigate(-1);
     } catch (err) {
       console.error("Erro ao atualizar serviço:", err);

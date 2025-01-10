@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 const OpenOrders = () => {
-  const [services, setServices] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [clients, setClients] = useState([]);
   const [equipments, setEquipments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,22 +30,20 @@ const OpenOrders = () => {
         setError(null);
 
         // Buscar dados em paralelo
-        const [servicesSnapshot, clientsSnapshot, equipmentsSnapshot] =
+        const [ordersSnapshot, clientsSnapshot, equipmentsSnapshot] =
           await Promise.all([
-            getDocs(collection(db, "servicos")),
+            getDocs(collection(db, "ordens")),
             getDocs(collection(db, "clientes")),
             getDocs(collection(db, "equipamentos")),
           ]);
 
         // Filtrar serviços abertos e ordenar por data
-        const servicesData = servicesSnapshot.docs
+        const ordersData = ordersSnapshot.docs
           .map((doc) => ({
             id: doc.id,
             ...doc.data(),
-            createdAt:
-              doc.data().createdAt?.toDate() || new Date(doc.data().date),
           }))
-          .filter((service) => service.status === "Aberto")
+          .filter((order) => order.status === "Aberto")
           .sort((a, b) => new Date(b.date) - new Date(a.date));
 
         const clientsData = clientsSnapshot.docs.reduce((acc, doc) => {
@@ -58,7 +56,7 @@ const OpenOrders = () => {
           return acc;
         }, {});
 
-        setServices(servicesData);
+        setOrders(ordersData);
         setClients(clientsData);
         setEquipments(equipmentsData);
       } catch (err) {
@@ -74,33 +72,43 @@ const OpenOrders = () => {
     fetchData();
   }, []);
 
-  const getFilteredServices = () => {
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  const getFilteredOrders = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    let filtered = services;
+    let filtered = orders;
 
     // Aplicar filtro de data/prioridade
     if (filterOption === "today") {
-      filtered = filtered.filter((service) => {
-        const serviceDate = new Date(service.createdAt);
-        return serviceDate >= today;
+      filtered = filtered.filter((order) => {
+        const orderDate = new Date(order.date);
+        orderDate.setHours(0, 0, 0, 0);
+        return orderDate.getTime() === today.getTime();
       });
     } else if (filterOption === "urgent") {
-      filtered = filtered.filter((service) => service.priority === "high");
+      filtered = filtered.filter((order) => order.priority === "high");
     }
 
     // Aplicar busca
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter((service) => {
-        const client = clients[service.clientId];
-        const equipment = equipments[service.equipmentId];
+      filtered = filtered.filter((order) => {
+        const client = clients[order.clientId];
+        const equipment = equipments[order.equipmentId];
         return (
           client?.name?.toLowerCase().includes(searchLower) ||
           equipment?.brand?.toLowerCase().includes(searchLower) ||
           equipment?.model?.toLowerCase().includes(searchLower) ||
-          service.serviceName?.toLowerCase().includes(searchLower)
+          order.orderName?.toLowerCase().includes(searchLower)
         );
       });
     }
@@ -116,7 +124,7 @@ const OpenOrders = () => {
     );
   }
 
-  const filteredServices = getFilteredServices();
+  const filteredOrders = getFilteredOrders();
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4">
@@ -189,18 +197,17 @@ const OpenOrders = () => {
       </div>
 
       <div className="space-y-4">
-        {filteredServices.length > 0 ? (
-          filteredServices.map((service) => {
-            const client = clients[service.clientId];
-            const equipment = equipments[service.equipmentId];
+        {filteredOrders.length > 0 ? (
+          filteredOrders.map((order) => {
+            const client = clients[order.clientId];
+            const equipment = equipments[order.equipmentId];
             const isToday =
-              new Date(service.createdAt).toDateString() ===
-              new Date().toDateString();
+              new Date(order.date).toDateString() === new Date().toDateString();
 
             return (
               <div
-                key={service.id}
-                onClick={() => navigate(`/app/order-detail/${service.id}`)}
+                key={order.id}
+                onClick={() => navigate(`/app/order-detail/${order.id}`)}
                 className="bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors group relative"
               >
                 <div className="absolute top-4 right-4 flex gap-2">
@@ -210,7 +217,7 @@ const OpenOrders = () => {
                       Hoje
                     </span>
                   )}
-                  {service.priority === "high" && (
+                  {order.priority === "high" && (
                     <span className="bg-red-500/20 text-red-400 text-xs px-2 py-1 rounded-full flex items-center">
                       <AlertTriangle className="w-3 h-3 mr-1" />
                       Urgente
@@ -233,9 +240,7 @@ const OpenOrders = () => {
                       <h3 className="font-semibold text-lg">
                         {client?.name || "Cliente não encontrado"}
                       </h3>
-                      <p className="text-gray-400 text-sm">
-                        {service.serviceName}
-                      </p>
+                      <p className="text-gray-400 text-sm">{order.orderName}</p>
                     </div>
                   </div>
 
@@ -246,18 +251,18 @@ const OpenOrders = () => {
                         {equipment?.brand || "N/A"}
                       </p>
                       <p className="text-gray-400">
-                        <span className="font-medium">Modelo:</span>{" "}
-                        {equipment?.model || "N/A"}
+                        <span className="font-medium">Tipo de Serviço:</span>{" "}
+                        {order?.serviceType || "N/A"}
                       </p>
                     </div>
                     <div>
                       <p className="text-gray-400">
                         <span className="font-medium">Data:</span>{" "}
-                        {service.createdAt.toLocaleDateString()}
+                        {formatDate(order.date)}
                       </p>
                       <p className="text-gray-400">
                         <span className="font-medium">Status:</span>{" "}
-                        {service.status}
+                        {order.status}
                       </p>
                     </div>
                   </div>

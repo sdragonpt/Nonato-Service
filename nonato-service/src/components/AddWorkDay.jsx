@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 const AddWorkday = () => {
-  const { serviceId } = useParams();
+  const { orderId } = useParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -46,7 +46,7 @@ const AddWorkday = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!serviceId) {
+    if (!orderId) {
       setError("ID do serviço não encontrado");
       return;
     }
@@ -57,7 +57,7 @@ const AddWorkday = () => {
 
       const workdayData = {
         ...formData,
-        serviceId,
+        orderId,
         createdAt: new Date(),
       };
 

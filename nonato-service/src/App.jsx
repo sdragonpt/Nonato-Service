@@ -278,15 +278,15 @@ const App = () => {
                         element={<AddEquipment />}
                       />
                       <Route
-                        path="order-detail/:serviceId"
+                        path="order-detail/:orderId"
                         element={<OrderDetail />}
                       />
                       <Route
-                        path="order/:serviceId/add-workday"
+                        path="order/:orderId/add-workday"
                         element={<AddWorkday />}
                       />
                       <Route
-                        path="edit-service-order/:serviceId"
+                        path="edit-service-order/:orderId"
                         element={<EditOrder />}
                       />
                       <Route

@@ -27,8 +27,8 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
     return new Date(date).toLocaleDateString("pt-BR", options);
   }
 
-  const getCurrentServiceId = async () => {
-    const counterRef = doc(db, "counters", "servicesCounter");
+  const getCurrentorderId = async () => {
+    const counterRef = doc(db, "counters", "ordersCounter");
     const counterSnapshot = await getDoc(counterRef);
     if (counterSnapshot.exists()) {
       return counterSnapshot.data().count || 0; // Retorna o contador ou 0 se não existir
@@ -95,17 +95,17 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
     font: helveticaBoldFont,
   });
 
-  const serviceId = await getCurrentServiceId(); // Busca o ID do contador
+  const orderId = await getCurrentorderId(); // Busca o ID do contador
   // Adicionando "Ordem Nº: [id]" ao lado do título
   // Calculando a largura do retângulo com base no comprimento do número
-  const serviceIdLength = `${serviceId}`.length; // Número de caracteres do serviceId
+  const orderIdLength = `${orderId}`.length; // Número de caracteres do orderId
   const charWidth = 7; // Largura média de cada caractere em unidades (ajustável conforme necessário)
 
   // A largura do retângulo é a largura média de cada caractere multiplicada pelo número de caracteres
-  const rectWidth = serviceIdLength * charWidth + 20;
+  const rectWidth = orderIdLength * charWidth + 20;
 
   // Desenhar o texto com o número do serviço
-  page.drawText(`Nº: ${serviceId}`, {
+  page.drawText(`Nº: ${orderId}`, {
     x: 500, // Posição à direita do "Relatório de Serviço"
     y: yPosi,
     size: 12,
@@ -298,8 +298,10 @@ async function generateServiceOrderPDFPlus(order, client, equipment, workdays) {
     font: helveticaFont,
   });
 
-  // Ordena os dias de trabalho por data
-  workdays.sort((a, b) => new Date(a.workDate) - new Date(b.workDate));
+  // Ordena os dias de trabalho por data, se workdays for um array
+  if (Array.isArray(workdays)) {
+    workdays.sort((a, b) => new Date(a.workDate) - new Date(b.workDate));
+  }
 
   // Configuração da tabela
   let tableYStart = infoYStart - 100;

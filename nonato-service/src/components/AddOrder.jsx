@@ -141,9 +141,9 @@ const AddOrder = () => {
     }));
   };
 
-  const getNextServiceId = async () => {
+  const getNextorderId = async () => {
     try {
-      const counterRef = doc(db, "counters", "servicesCounter");
+      const counterRef = doc(db, "counters", "ordersCounter");
       const counterSnapshot = await getDoc(counterRef);
 
       if (counterSnapshot.exists()) {
@@ -182,7 +182,7 @@ const AddOrder = () => {
       setIsSubmitting(true);
       setError(null);
 
-      const newServiceId = await getNextServiceId();
+      const neworderId = await getNextorderId();
       const serviceData = {
         ...formData,
         checklist,
@@ -191,7 +191,7 @@ const AddOrder = () => {
       };
 
       await setDoc(
-        doc(collection(db, "servicos"), newServiceId.toString()),
+        doc(collection(db, "ordens"), neworderId.toString()),
         serviceData
       );
 

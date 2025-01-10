@@ -1,6 +1,12 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
-async function generateServiceOrderPDF(serviceIdForPDF, order, client, equipment, workdays) {
+async function generateServiceOrderPDF(
+  orderIdForPDF,
+  order,
+  client,
+  equipment,
+  workdays
+) {
   const pdfDoc = await PDFDocument.create();
   const pageWidth = 600;
   const pageHeight = 900;
@@ -82,14 +88,14 @@ async function generateServiceOrderPDF(serviceIdForPDF, order, client, equipment
 
   // Adicionando "Ordem Nº: [id]" ao lado do título
   // Calculando a largura do retângulo com base no comprimento do número
-  const serviceIdLength = `${serviceIdForPDF}`.length; // Número de caracteres do serviceId
+  const orderIdLength = `${orderIdForPDF}`.length; // Número de caracteres do orderId
   const charWidth = 7; // Largura média de cada caractere em unidades (ajustável conforme necessário)
 
   // A largura do retângulo é a largura média de cada caractere multiplicada pelo número de caracteres
-  const rectWidth = serviceIdLength * charWidth + 20;
+  const rectWidth = orderIdLength * charWidth + 20;
 
   // Desenhar o texto com o número do serviço
-  page.drawText(`Nº: ${serviceIdForPDF}`, {
+  page.drawText(`Nº: ${orderIdForPDF}`, {
     x: 500, // Posição à direita do "Relatório de Serviço"
     y: yPosi,
     size: 12,
@@ -679,71 +685,79 @@ async function generateServiceOrderPDF(serviceIdForPDF, order, client, equipment
   const boxPadding = 10; // Espaçamento interno da caixa
   const boxWidth = 396; // Largura da caixa de descrição
 
-  yPosition -= 40;
-  page.drawText("Descrição do Trabalho:", {
-    x: 50,
-    y: yPosition,
-    size: fontSize,
-    font: helveticaBoldFont,
-  });
-
-  // Loop para cada dia de trabalho
-  workdays.forEach((day) => {
-    // Verifica se a descrição do dia não está vazia nem "N/A"
+  // Verificar se existe pelo menos uma descrição válida nos dias de trabalho
+  const hasValidDescriptions = workdays.some((day) => {
     const descriptionText = safeText(day.description);
-    if (
+    return (
       descriptionText.trim() !== "" &&
       descriptionText.trim().toUpperCase() !== "N/A"
-    ) {
-      // Reduz a posição Y para mostrar a data do dia
-      yPosition -= 30;
-
-      // Desenha a data do dia
-      page.drawText(`Dia: ${safeText(formatDate(day.workDate))}`, {
-        x: 50,
-        y: yPosition,
-        size: fontSize,
-        font: helveticaFont,
-      });
-
-      // Reduz a posição Y para desenhar a caixa da descrição
-      yPosition -= boxPadding;
-
-      // Desenha o retângulo da caixa da descrição
-      const boxHeight = fontSize + 2 * boxPadding * 2; // Definindo a altura da caixa
-
-      page.drawRectangle({
-        x: 150,
-        y: yPosition - 30, // Alinhamento da caixa
-        width: boxWidth,
-        height: boxHeight, // Usando a altura definida
-        borderColor: rgb(0, 0, 0), // Cor da borda
-        color: rgb(0.9, 0.9, 0.9), // Cor de fundo da caixa
-      });
-
-      // Calculando a posição para centralizar o texto verticalmente
-      const lineHeight = 10;
-      const textHeight = fontSize; // Altura do texto
-      const textYPosition =
-        yPosition - boxPadding + (boxHeight - textHeight) / 2;
-
-      // Desenha a descrição dentro da caixa, centralizada verticalmente
-      page.drawText(descriptionText, {
-        x: 150 + boxPadding,
-        y: textYPosition - 2,
-        size: 8,
-        font: helveticaFont,
-        lineHeight: lineHeight,
-      });
-
-      // Atualiza a posição Y para o próximo item
-      yPosition -= boxHeight - 30; // Ajuste para o próximo dia
-    }
-    // Se a descrição estiver vazia ou for "N/A", não desenha nada e apenas move para o próximo item
-    else {
-      yPosition -= 0; // Ajuste para o próximo item sem adicionar a caixa de descrição
-    }
+    );
   });
+
+  // Somente desenhar o texto "Descrição do Trabalho:" se houver descrições válidas
+  if (hasValidDescriptions) {
+    yPosition -= 40;
+    page.drawText("Descrição do Trabalho:", {
+      x: 50,
+      y: yPosition,
+      size: fontSize,
+      font: helveticaBoldFont,
+    });
+
+    // Loop para cada dia de trabalho
+    workdays.forEach((day) => {
+      // Verifica se a descrição do dia não está vazia nem "N/A"
+      const descriptionText = safeText(day.description);
+      if (
+        descriptionText.trim() !== "" &&
+        descriptionText.trim().toUpperCase() !== "N/A"
+      ) {
+        // Reduz a posição Y para mostrar a data do dia
+        yPosition -= 30;
+
+        // Desenha a data do dia
+        page.drawText(`Dia: ${safeText(formatDate(day.workDate))}`, {
+          x: 50,
+          y: yPosition,
+          size: fontSize,
+          font: helveticaFont,
+        });
+
+        // Reduz a posição Y para desenhar a caixa da descrição
+        yPosition -= boxPadding;
+
+        // Desenha o retângulo da caixa da descrição
+        const boxHeight = fontSize + 2 * boxPadding * 2; // Definindo a altura da caixa
+
+        page.drawRectangle({
+          x: 150,
+          y: yPosition - 30, // Alinhamento da caixa
+          width: boxWidth,
+          height: boxHeight, // Usando a altura definida
+          borderColor: rgb(0, 0, 0), // Cor da borda
+          color: rgb(0.9, 0.9, 0.9), // Cor de fundo da caixa
+        });
+
+        // Calculando a posição para centralizar o texto verticalmente
+        const lineHeight = 10;
+        const textHeight = fontSize; // Altura do texto
+        const textYPosition =
+          yPosition - boxPadding + (boxHeight - textHeight) / 2;
+
+        // Desenha a descrição dentro da caixa, centralizada verticalmente
+        page.drawText(descriptionText, {
+          x: 150 + boxPadding,
+          y: textYPosition - 2,
+          size: 8,
+          font: helveticaFont,
+          lineHeight: lineHeight,
+        });
+
+        // Atualiza a posição Y para o próximo item
+        yPosition -= boxHeight - 30; // Ajuste para o próximo dia
+      }
+    });
+  }
 
   yPosition -= 60;
   page.drawText("Resultados do Trabalho:", {
@@ -894,11 +908,14 @@ async function generateServiceOrderPDF(serviceIdForPDF, order, client, equipment
     font: helveticaFont,
   });
 
-  // Assinatura
-  yPosition -= 60;
+  // Altura fixa para assinaturas no fundo
+  const bottomMargin = 110; // Margem inferior fixa
+  const signatureYPosition = bottomMargin + 40; // Ajuste para posição inicial do texto acima das assinaturas
+
+  // Texto "Assinatura Cliente e Técnico" acima das linhas
   page.drawText("Assinatura Cliente e Técnico:", {
     x: 50,
-    y: yPosition,
+    y: signatureYPosition,
     size: fontSize,
     font: helveticaBoldFont,
   });
@@ -908,14 +925,14 @@ async function generateServiceOrderPDF(serviceIdForPDF, order, client, equipment
   const gapBetweenLines = 50; // Espaço entre as duas linhas
   const BotlineHeight = 2; // Espessura da linha
 
-  // Coordenadas X para centralizar as linhas
+  // Coordenadas X para centralizar as linhas horizontalmente
   const clienteX = (pageWidth - 2 * lineWidth - gapBetweenLines) / 2;
   const tecnicoX = clienteX + lineWidth + gapBetweenLines;
 
   // Desenhar a linha "Cliente"
   page.drawLine({
-    start: { x: clienteX, y: yPosition - 40 },
-    end: { x: clienteX + lineWidth, y: yPosition - 40 },
+    start: { x: clienteX, y: bottomMargin },
+    end: { x: clienteX + lineWidth, y: bottomMargin },
     thickness: BotlineHeight,
     color: rgb(0, 0, 0),
   });
@@ -923,7 +940,7 @@ async function generateServiceOrderPDF(serviceIdForPDF, order, client, equipment
   // Texto "(Cliente)" abaixo da linha
   page.drawText("(Cliente)", {
     x: clienteX + lineWidth / 2 - fontSize * 2, // Centraliza o texto no meio da linha
-    y: yPosition - 55,
+    y: bottomMargin - 15, // Ajuste para ficar abaixo da linha
     size: fontSize,
     font: helveticaFont,
     color: rgb(0, 0, 0),
@@ -931,8 +948,8 @@ async function generateServiceOrderPDF(serviceIdForPDF, order, client, equipment
 
   // Desenhar a linha "Técnico"
   page.drawLine({
-    start: { x: tecnicoX, y: yPosition - 40 },
-    end: { x: tecnicoX + lineWidth, y: yPosition - 40 },
+    start: { x: tecnicoX, y: bottomMargin },
+    end: { x: tecnicoX + lineWidth, y: bottomMargin },
     thickness: BotlineHeight,
     color: rgb(0, 0, 0),
   });
@@ -940,7 +957,7 @@ async function generateServiceOrderPDF(serviceIdForPDF, order, client, equipment
   // Texto "(Técnico)" abaixo da linha
   page.drawText("(Técnico)", {
     x: tecnicoX + lineWidth / 2 - fontSize * 2, // Centraliza o texto no meio da linha
-    y: yPosition - 55,
+    y: bottomMargin - 15, // Ajuste para ficar abaixo da linha
     size: fontSize,
     font: helveticaFont,
     color: rgb(0, 0, 0),
