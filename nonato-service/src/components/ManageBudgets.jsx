@@ -343,7 +343,10 @@ const ManageBudgets = () => {
           }`}
         >
           <UserSquare className="w-4 h-4 mr-2" />
-          Orçamentos e Despesas ({filteredSimpleBudgets.length})
+          {documentTypeFilter === "all" && "Orçamentos e Despesas"}
+          {documentTypeFilter === "budget" && "Orçamentos e Despesas"}
+          {documentTypeFilter === "expense" && "Orçamentos e Despesas"}
+          {` (${filteredSimpleBudgets.length})`}
         </button>
         <button
           onClick={() => setActiveTab("regular")}
@@ -368,7 +371,10 @@ const ManageBudgets = () => {
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-semibold text-white">
-              Orçamentos e Despesas ({filteredSimpleBudgets.length})
+              {documentTypeFilter === "all" && "Orçamentos e Despesas"}
+              {documentTypeFilter === "budget" && "Orçamentos"}
+              {documentTypeFilter === "expense" && "Despesas"}
+              {` (${filteredSimpleBudgets.length})`}
             </h3>
             <div className="flex gap-2">
               <button
