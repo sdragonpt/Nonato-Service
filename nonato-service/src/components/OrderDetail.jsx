@@ -43,7 +43,6 @@ const OrderDetail = () => {
   const [isClosing, setIsClosing] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [error, setError] = useState(null);
-  const [showTotals, setShowTotals] = useState(false);
   const [totals, setTotals] = useState(null);
 
   // Função auxiliar para calcular horas
@@ -374,33 +373,6 @@ const OrderDetail = () => {
               )}
               Gerar PDF
             </button>
-
-            <button
-              onClick={() => setShowTotals(!showTotals)}
-              className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              <BarChart className="w-4 h-4 mr-2" />
-              {showTotals ? "Ocultar Totais" : "Ver Totais"}
-            </button>
-
-            {showTotals && totals && (
-              <div className="absolute left-1/2 transform -translate-x-1/2 mt-16 p-4 bg-gray-800 rounded-lg shadow-lg border border-gray-700 w-64 z-50">
-                <div className="space-y-2">
-                  <p className="text-white">
-                    <span className="font-medium">Horas Trabalhadas:</span>{" "}
-                    {totals.totalWorkHours}
-                  </p>
-                  <p className="text-white">
-                    <span className="font-medium">Horas de Viagem:</span>{" "}
-                    {totals.totalTravelHours}
-                  </p>
-                  <p className="text-white">
-                    <span className="font-medium">KMs Percorridos:</span>{" "}
-                    {totals.totalKm} km
-                  </p>
-                </div>
-              </div>
-            )}
           </>
         )}
 

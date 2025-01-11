@@ -494,22 +494,25 @@ const AddBudget = () => {
         )}
       </div>
 
-      {selectedServices.length > 0 && (
-        <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center md:left-64">
-          <button
-            onClick={generatePDF}
-            disabled={isGeneratingPDF}
-            className="h-16 px-6 bg-[#117d49] text-white font-medium flex items-center justify-center rounded-full shadow-lg hover:bg-[#0d6238] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isGeneratingPDF ? (
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-            ) : (
-              <FileText className="w-5 h-5 mr-2" />
-            )}
-            {isGeneratingPDF ? "Gerando PDF..." : "Gerar Orçamento"}
-          </button>
-        </div>
-      )}
+      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center md:left-64">
+        <button
+          onClick={generatePDF}
+          disabled={
+            isGeneratingPDF ||
+            !selectedServices.length > 0 ||
+            !selectedClient ||
+            !selectedOrder
+          }
+          className="h-16 px-6 bg-[#117d49] text-white font-medium flex items-center justify-center rounded-full shadow-lg hover:bg-[#0d6238] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isGeneratingPDF ? (
+            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+          ) : (
+            <FileText className="w-5 h-5 mr-2" />
+          )}
+          {isGeneratingPDF ? "Gerando PDF..." : "Gerar Orçamento"}
+        </button>
+      </div>
     </div>
   );
 };
