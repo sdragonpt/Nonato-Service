@@ -24,11 +24,21 @@ import {
   UserPlus,
   UserSquare,
   Calendar,
+  Receipt,
+  FileCheck,
 } from "lucide-react";
 
 const BudgetCard = ({ budget, onDelete, onViewPDF, clientName }) => {
   const [activeMenu, setActiveMenu] = useState(false);
   const menuRef = useRef(null);
+
+  // Determina qual ícone usar baseado no tipo do documento
+  const Icon =
+    budget.type === "simple"
+      ? budget.isExpense
+        ? Receipt
+        : FileCheck // Para documentos sem cadastro
+      : FileText; // Para documentos com cadastro
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -45,7 +55,7 @@ const BudgetCard = ({ budget, onDelete, onViewPDF, clientName }) => {
     <div className="group flex items-center p-4 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors relative">
       <div className="flex items-center flex-grow min-w-0">
         <div className="h-12 w-12 rounded-full bg-[#117d49] flex items-center justify-center mr-4">
-          <FileText className="w-6 h-6 text-white" />
+          <Icon className="w-6 h-6 text-white" />
         </div>
         <div className="min-w-0 flex-grow">
           <h3 className="font-semibold text-white truncate">{clientName}</h3>
@@ -149,12 +159,12 @@ const ManageBudgets = () => {
   const navigate = useNavigate();
   const [simpleBudgets, setSimpleBudgets] = useState([]);
   const [regularBudgets, setRegularBudgets] = useState([]);
-  // Remover estados não utilizados
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [clientNames, setClientNames] = useState({});
   const [activeTab, setActiveTab] = useState("simple");
+  const [documentTypeFilter, setDocumentTypeFilter] = useState("all"); // "all", "budget", "expense"
 
   useEffect(() => {
     const fetchBudgets = async () => {
@@ -249,13 +259,21 @@ const ManageBudgets = () => {
     }
   };
 
-  const filteredSimpleBudgets = simpleBudgets.filter(
-    (budget) =>
+  const filteredSimpleBudgets = simpleBudgets.filter((budget) => {
+    const matchesSearch =
       budget.clientData.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (budget.budgetNumber || "")
         .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-  );
+        .includes(searchTerm.toLowerCase());
+
+    if (documentTypeFilter === "all") return matchesSearch;
+    if (documentTypeFilter === "budget")
+      return matchesSearch && !budget.isExpense;
+    if (documentTypeFilter === "expense")
+      return matchesSearch && budget.isExpense;
+
+    return matchesSearch;
+  });
 
   const filteredRegularBudgets = regularBudgets.filter(
     (budget) =>
@@ -325,7 +343,7 @@ const ManageBudgets = () => {
           }`}
         >
           <UserSquare className="w-4 h-4 mr-2" />
-          Sem Cadastro ({filteredSimpleBudgets.length})
+          Orçamentos e Despesas ({filteredSimpleBudgets.length})
         </button>
         <button
           onClick={() => setActiveTab("regular")}
@@ -336,7 +354,7 @@ const ManageBudgets = () => {
           }`}
         >
           <UserPlus className="w-4 h-4 mr-2" />
-          Com Cadastro ({filteredRegularBudgets.length})
+          Fechamentos ({regularBudgets.length})
         </button>
       </div>
 
@@ -348,9 +366,43 @@ const ManageBudgets = () => {
             activeTab !== "simple" ? "hidden lg:block" : ""
           }`}
         >
-          <h3 className="text-xl font-semibold text-white mb-4 hidden lg:block">
-            Orçamentos sem Cadastro ({filteredSimpleBudgets.length})
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-semibold text-white">
+              Orçamentos e Despesas ({filteredSimpleBudgets.length})
+            </h3>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDocumentTypeFilter("all")}
+                className={`p-2 rounded-lg flex items-center ${
+                  documentTypeFilter === "all"
+                    ? "bg-[#117d49] text-white"
+                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setDocumentTypeFilter("budget")}
+                className={`p-2 rounded-lg flex items-center ${
+                  documentTypeFilter === "budget"
+                    ? "bg-[#117d49] text-white"
+                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                }`}
+              >
+                <FileCheck className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setDocumentTypeFilter("expense")}
+                className={`p-2 rounded-lg flex items-center ${
+                  documentTypeFilter === "expense"
+                    ? "bg-[#117d49] text-white"
+                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                }`}
+              >
+                <Receipt className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
           {filteredSimpleBudgets.length > 0 ? (
             filteredSimpleBudgets.map((budget) => (
               <BudgetCard
@@ -363,7 +415,7 @@ const ManageBudgets = () => {
             ))
           ) : (
             <div className="text-white text-center py-8 bg-gray-800 rounded-lg">
-              <p className="mb-2">Nenhum orçamento encontrado.</p>
+              <p className="mb-2">Nenhum documento encontrado.</p>
             </div>
           )}
         </div>
@@ -375,7 +427,7 @@ const ManageBudgets = () => {
           }`}
         >
           <h3 className="text-xl font-semibold text-white mb-4 hidden lg:block">
-            Orçamentos com Cadastro ({filteredRegularBudgets.length})
+            Fechamentos de Ordens de Serviço ({filteredRegularBudgets.length})
           </h3>
           {filteredRegularBudgets.length > 0 ? (
             filteredRegularBudgets.map((budget) => (

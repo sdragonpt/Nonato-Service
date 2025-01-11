@@ -83,11 +83,14 @@ const generateSimpleBudgetPDF = async (budget) => {
   const currentDate = new Date().toLocaleDateString();
   writeText(`Data: ${currentDate}`, { y: topY, align: "right" });
   y = topY - 15;
-  writeText(`ORÇAMENTO Nº ${budget.budgetNumber}`, {
-    y,
-    align: "right",
-    useFont: boldFont,
-  });
+  writeText(
+    `${budget.isExpense ? "DESPESA" : "ORÇAMENTO"} Nº ${budget.budgetNumber}`,
+    {
+      y,
+      align: "right",
+      useFont: boldFont,
+    }
+  );
 
   // Dados do cliente
   y -= 40;

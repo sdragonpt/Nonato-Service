@@ -92,7 +92,7 @@ const generateBudgetPDF = async (
   const currentDate = new Date().toLocaleDateString();
   writeText(`Data: ${currentDate}`, { y: topY, align: "right" });
   y = topY - 15;
-  writeText(`ORÇAMENTO Nº ${orderNumber}`, {
+  writeText(`FECHAMENTO Nº ${orderNumber}`, {
     y,
     align: "right",
     useFont: boldFont,

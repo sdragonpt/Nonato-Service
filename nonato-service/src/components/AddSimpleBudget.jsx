@@ -14,6 +14,7 @@ import generateSimpleBudgetPDF from "./generateSimpleBudgetPDF";
 
 const AddSimpleBudget = () => {
   const navigate = useNavigate();
+  const [isExpense, setIsExpense] = useState(false);
   const [clientData, setClientData] = useState({
     name: "",
     phone: "",
@@ -74,18 +75,15 @@ const AddSimpleBudget = () => {
     try {
       setIsGeneratingPDF(true);
 
-      // Validate client data
       if (!clientData.name || !clientData.phone || !clientData.address) {
         setError("Por favor, preencha todos os dados do cliente.");
         return;
       }
 
-      // Get current month and year
       const now = new Date();
       const month = String(now.getMonth() + 1).padStart(2, "0");
       const year = String(now.getFullYear()).slice(-2);
 
-      // Get latest sequential number
       const budgetsRef = collection(db, "orcamentos");
       const q = query(
         budgetsRef,
@@ -94,14 +92,12 @@ const AddSimpleBudget = () => {
       );
       const querySnapshot = await getDocs(q);
 
-      // Get next sequential number starting from 1326
       let nextNumber = 1326;
       if (!querySnapshot.empty) {
         const lastBudget = querySnapshot.docs[0].data();
         nextNumber = (lastBudget.sequentialNumber || 1325) + 1;
       }
 
-      // Format budget number as MMYY-XXXX
       const budgetNumber = `${month}${year}-${String(nextNumber).padStart(
         4,
         "0"
@@ -116,9 +112,9 @@ const AddSimpleBudget = () => {
         services: selectedServices,
         total: selectedServices.reduce((acc, curr) => acc + curr.total, 0),
         createdAt: new Date(),
+        isExpense, // Adicionado o campo isExpense
       });
 
-      // Navigate to budgets list
       navigate("/app/manage-budgets");
     } catch (error) {
       setError("Erro ao gerar PDF. Por favor, tente novamente.");
@@ -147,6 +143,36 @@ const AddSimpleBudget = () => {
           <p className="text-red-500">{error}</p>
         </div>
       )}
+
+      {/* Toggle buttons */}
+      <div className="flex justify-center mb-6">
+        <div className="bg-gray-700 p-1 rounded-xl inline-flex relative shadow-lg">
+          {/* Background Slider */}
+          <div
+            className={`absolute top-1 bottom-1 w-[120px] rounded-lg bg-[#117d49] transition-all duration-300 ease-in-out ${
+              isExpense ? "translate-x-[120px]" : "translate-x-0"
+            }`}
+          />
+
+          {/* Buttons */}
+          <button
+            onClick={() => setIsExpense(false)}
+            className={`relative w-[120px] py-2 rounded-lg font-medium transition-colors duration-300 ${
+              !isExpense ? "text-white" : "text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            Orçamento
+          </button>
+          <button
+            onClick={() => setIsExpense(true)}
+            className={`relative w-[120px] py-2 rounded-lg font-medium transition-colors duration-300 ${
+              isExpense ? "text-white" : "text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            Despesa
+          </button>
+        </div>
+      </div>
 
       <div className="grid gap-6 mb-6">
         {/* Client Data Form */}
