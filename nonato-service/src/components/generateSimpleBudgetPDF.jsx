@@ -1,211 +1,380 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 const generateSimpleBudgetPDF = async (budget) => {
-  // Criar um novo documento PDF
   const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([595.28, 841.89]); // Tamanho A4
+  let currentPage = pdfDoc.addPage([595.28, 841.89]); // A4
+  let pageNumber = 1;
+  let totalPages = 1;
 
-  // Carregar a fonte
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
   // Configurações
   const fontSize = 10;
-  const titleSize = 14;
+  const titleSize = 16;
   const headerSize = 12;
   const margin = 50;
-  let y = page.getHeight() - margin;
+  let y = currentPage.getHeight() - margin;
   const initialX = margin;
-  const pageWidth = page.getWidth() - 2 * margin;
+  const pageWidth = currentPage.getWidth() - 2 * margin;
+  const minBottomMargin = 70;
 
-  // Configurações da tabela
-  const colWidths = [
-    pageWidth * 0.4, // Nome (40%)
-    pageWidth * 0.15, // Quantidade (15%)
-    pageWidth * 0.15, // Unidade (15%)
-    pageWidth * 0.15, // Valor Unit (15%)
-    pageWidth * 0.15, // Total (15%)
-  ];
+  // Configurações do logo
+  const imgWidth = 100;
+  const textStartX = margin + imgWidth + 20;
 
   // Funções auxiliares
   const writeText = (text, options = {}) => {
     const {
       x = initialX,
+      y: yPos = y,
       size = fontSize,
       useFont = font,
       color = rgb(0, 0, 0),
       align = "left",
-      width,
+      width = pageWidth,
     } = options;
 
     let xPos = x;
     const textWidth = useFont.widthOfTextAtSize(text, size);
 
     if (align === "right") {
-      xPos = width
-        ? x + width - textWidth
-        : page.getWidth() - margin - textWidth;
+      xPos = x + width - textWidth;
     } else if (align === "center") {
-      xPos = width
-        ? x + (width - textWidth) / 2
-        : (page.getWidth() - textWidth) / 2;
+      xPos = x + (width - textWidth) / 2;
     }
 
-    page.drawText(text, {
+    currentPage.drawText(text, {
       x: xPos,
-      y,
+      y: yPos,
       size,
       font: useFont,
       color,
     });
   };
 
-  const drawLine = (startX, endX) => {
-    page.drawLine({
-      start: { x: startX, y },
-      end: { x: endX, y },
-      thickness: 1,
-      color: rgb(0, 0, 0),
+  const drawRect = (x, y, width, height, color = rgb(0, 0, 0)) => {
+    currentPage.drawRectangle({
+      x,
+      y,
+      width,
+      height,
+      color,
     });
   };
 
+  const checkAndCreateNewPage = (requiredSpace) => {
+    if (y - requiredSpace < minBottomMargin) {
+      currentPage = pdfDoc.addPage([595.28, 841.89]);
+      pageNumber++;
+      totalPages++;
+      y = currentPage.getHeight() - margin;
+      return true;
+    }
+    return false;
+  };
+
+  // Tente carregar a imagem usando fetch
+  try {
+    const response = await fetch("/nonato2.png");
+    const arrayBuffer = await response.arrayBuffer();
+    const image = await pdfDoc.embedPng(arrayBuffer);
+
+    const imgHeight = (imgWidth * image.height) / image.width;
+
+    currentPage.drawImage(image, {
+      x: margin,
+      y: currentPage.getHeight() - margin - 100,
+      width: imgWidth,
+      height: imgHeight,
+    });
+  } catch (error) {
+    console.error("Erro ao carregar o logo:", error);
+  }
+
   // Cabeçalho
-  writeText("Assistência Técnica", { size: titleSize, useFont: boldFont });
+  writeText("Nonato Service", {
+    x: textStartX,
+    size: titleSize,
+    useFont: boldFont,
+  });
+  y -= 25;
+
+  writeText("nonato.service@gmail.com", {
+    x: textStartX,
+  });
   y -= 20;
 
-  // Informações de contato à esquerda
-  writeText("service.nonato@gmail.com");
-  y -= 15;
-  writeText("Contato: NONATO");
+  writeText("+351 911 115 479", {
+    x: textStartX,
+  });
+  y -= 20;
 
-  // Data e número do orçamento à direita
-  let topY = page.getHeight() - margin;
+  // Data à direita
   const currentDate = new Date().toLocaleDateString();
-  writeText(`Data: ${currentDate}`, { y: topY, align: "right" });
-  y = topY - 15;
+  writeText(currentDate, {
+    y: currentPage.getHeight() - margin,
+    align: "right",
+  });
+
+  y -= 30;
+  writeText("Procuramos fazer o melhor para a sua Empresa", {
+    useFont: boldFont,
+  });
+
+  // Caixa preta com número do orçamento
+  y -= 10;
+  const orderBoxHeight = 40;
+  drawRect(
+    initialX,
+    y - orderBoxHeight,
+    pageWidth,
+    orderBoxHeight,
+    rgb(0, 0, 0)
+  );
   writeText(
     `${budget.isExpense ? "DESPESA" : "ORÇAMENTO"} Nº ${budget.budgetNumber}`,
     {
-      y,
-      align: "right",
+      x: 58,
+      y: y - 25,
       useFont: boldFont,
+      color: rgb(1, 1, 1),
     }
   );
-
-  // Dados do cliente
-  y -= 40;
-  writeText("Dados do Cliente", { useFont: boldFont, size: headerSize });
-  y -= 20;
-  writeText(`Nome: ${budget.clientData.name}`);
-  y -= 15;
-  writeText(`Telefone: ${budget.clientData.phone || "N/A"}`);
-  y -= 15;
-  writeText(`Endereço: ${budget.clientData.address || "N/A"}`);
-
-  // Seção de serviços
-  y -= 40;
-  writeText("Serviços", { useFont: boldFont, size: headerSize });
-  y -= 20;
-
-  // Cabeçalho da tabela
-  let x = initialX;
-  const headers = ["Nome", "Quantidade", "Unidade", "Valor Unit.", "Total"];
-  drawLine(initialX, page.getWidth() - margin);
-  y -= 15;
-
-  headers.forEach((header, index) => {
-    const align = index === 0 ? "left" : "right";
-    writeText(header, {
-      x,
-      useFont: boldFont,
-      align,
-      width: colWidths[index],
-    });
-    x += colWidths[index];
+  writeText("Assistência Técnica", {
+    x: 40,
+    y: y - 25,
+    color: rgb(1, 1, 1),
+    align: "right",
   });
 
-  y -= 10;
-  drawLine(initialX, page.getWidth() - margin);
-  y -= 15;
+  // Cliente
+  y -= orderBoxHeight + 20;
+  writeText(`Cliente: ${budget.clientData.name}`, { useFont: boldFont });
 
-  // Dados da tabela
-  budget.services.forEach((service) => {
-    x = initialX;
+  // Serviços
+  y -= 14;
+  drawRect(initialX, y - 30, pageWidth, 30, rgb(0.95, 0.95, 0.95));
+  writeText("Serviços", {
+    x: 55,
+    y: y - 20,
+    useFont: boldFont,
+    size: headerSize,
+  });
 
-    writeText(service.name, { x, width: colWidths[0] });
-    x += colWidths[0];
+  // Cabeçalhos da tabela
+  y -= 50;
+  const columns = [
+    { header: "Descrição", width: pageWidth * 0.4, align: "left" },
+    { header: "Unidade", width: pageWidth * 0.15, align: "left" },
+    { header: "Preço unitário", width: pageWidth * 0.15, align: "right" },
+    { header: "Qtd.", width: pageWidth * 0.15, align: "right" },
+    { header: "Preço", width: pageWidth * 0.15, align: "right" },
+  ];
 
-    writeText(service.quantity.toFixed(3), {
-      x,
-      align: "right",
-      width: colWidths[1],
+  let xPos = initialX;
+  columns.forEach((col) => {
+    writeText(col.header, {
+      x: xPos,
+      useFont: boldFont,
+      width: col.width,
+      align: col.align,
     });
-    x += colWidths[1];
+    xPos += col.width;
+  });
 
-    writeText(service.type, { x, align: "right", width: colWidths[2] });
-    x += colWidths[2];
+  // Linhas de serviços
+  y -= 30;
+  budget.services.forEach((service) => {
+    if (checkAndCreateNewPage(60)) {
+      xPos = initialX;
+      columns.forEach((col) => {
+        writeText(col.header, {
+          x: xPos,
+          useFont: boldFont,
+          width: col.width,
+          align: col.align,
+        });
+        xPos += col.width;
+      });
+      y -= 30;
+    }
+
+    xPos = initialX;
+
+    writeText(service.name, {
+      x: xPos,
+      width: columns[0].width,
+      align: "left",
+    });
+
+    writeText(service.type, {
+      x: xPos + columns[0].width,
+      width: columns[1].width,
+      align: "left",
+    });
 
     writeText(`${service.value.toFixed(2)} €`, {
-      x,
+      x: xPos + columns[0].width + columns[1].width,
+      width: columns[2].width,
       align: "right",
-      width: colWidths[3],
     });
-    x += colWidths[3];
+
+    writeText(service.quantity.toString(), {
+      x: xPos + columns[0].width + columns[1].width + columns[2].width,
+      width: columns[3].width,
+      align: "right",
+    });
 
     writeText(`${service.total.toFixed(2)} €`, {
-      x,
+      x:
+        xPos +
+        columns[0].width +
+        columns[1].width +
+        columns[2].width +
+        columns[3].width,
+      width: columns[4].width,
       align: "right",
-      width: colWidths[4],
     });
 
-    y -= 7;
-    drawLine(initialX, page.getWidth() - margin);
-    y -= 15;
+    y -= 30;
   });
 
-  // Totais
-  y -= 20;
+  // Total
+  if (checkAndCreateNewPage(70)) {
+    y -= 30;
+  }
+
+  y -= 10;
   const total = budget.services.reduce((acc, curr) => acc + curr.total, 0);
-  const totalWidth = colWidths[3] + colWidths[4];
-  const totalX = page.getWidth() - margin - totalWidth;
-
-  writeText("Total Serviços:", { x: totalX, useFont: boldFont });
-  writeText(`${total.toFixed(2)} €`, {
-    x: totalX + totalWidth,
-    align: "right",
+  drawRect(295, y - 10, 250, 30, rgb(0, 0, 0));
+  writeText("Total", {
+    x: 300,
+    y: y,
+    color: rgb(1, 1, 1),
     useFont: boldFont,
   });
-  y -= 15;
-
-  writeText("Subtotal:", { x: totalX, useFont: boldFont });
   writeText(`${total.toFixed(2)} €`, {
-    x: totalX + totalWidth,
+    x: 40,
+    y: y,
     align: "right",
-    useFont: boldFont,
-  });
-  y -= 15;
-
-  writeText("Total Orçamento:", { x: totalX, useFont: boldFont });
-  writeText(`${total.toFixed(2)} €`, {
-    x: totalX + totalWidth,
-    align: "right",
+    color: rgb(1, 1, 1),
     useFont: boldFont,
   });
 
-  // Assinatura
-  y -= 100;
-  writeText("Assistência Técnica", { align: "center" });
+  // Pagamento
+  y -= 20;
+  drawRect(initialX, y - 30, pageWidth, 30, rgb(0.95, 0.95, 0.95));
+  writeText("Pagamento", {
+    y: y - 20,
+    useFont: boldFont,
+    size: headerSize,
+  });
+
+  y -= 50;
+  writeText("Meios de pagamento", { useFont: boldFont });
+  y -= 20;
+  writeText("Transferência bancária ou dinheiro.");
+
+  y -= -20;
+  writeText("Dados bancários", { useFont: boldFont, x: 300 });
+  y -= 20;
+  writeText("Número da conta: PT50003600569910021386913", { x: 300 });
+
   y -= 30;
-  writeText("NONATO", { align: "center", useFont: boldFont });
+  writeText("Condições de pagamento", { useFont: boldFont });
+  y -= 20;
+  writeText("À vista.");
 
-  // Gerar o PDF
+  // Informações adicionais
+  if (checkAndCreateNewPage(200)) {
+    y -= 30;
+  }
+
+  y -= 20;
+  drawRect(initialX, y - 30, pageWidth, 30, rgb(0.95, 0.95, 0.95));
+  writeText("Informações adicionais", {
+    y: y - 20,
+    useFont: boldFont,
+    size: headerSize,
+  });
+
+  y -= 50;
+  writeText(
+    "A Nonato Service agradece e fará o melhor por você e pela sua Empresa"
+  );
+
+  y -= 40;
+  writeText("A Nonato Service agradece pela sua preferência.", {
+    align: "center",
+    useFont: boldFont,
+  });
+
+  y -= 30;
+  writeText(currentDate, { align: "center" });
+
+  // Linhas de assinatura
+  y -= 60;
+
+  // Linha do Cliente
+  const lineWidth = 200;
+  const spacing = 50;
+  const startXClient = (pageWidth - lineWidth * 2 - spacing) / 2 + margin;
+
+  // Desenha linha do cliente
+  currentPage.drawLine({
+    start: { x: startXClient, y },
+    end: { x: startXClient + lineWidth, y },
+    thickness: 1,
+    color: rgb(0, 0, 0),
+  });
+
+  // Texto "Cliente" abaixo da linha
+  writeText("(Cliente)", {
+    y: y - 15,
+    x: startXClient,
+    width: lineWidth,
+    align: "center",
+  });
+
+  // Linha do Técnico
+  const startXTecnico = startXClient + lineWidth + spacing;
+
+  // Desenha linha do técnico
+  currentPage.drawLine({
+    start: { x: startXTecnico, y },
+    end: { x: startXTecnico + lineWidth, y },
+    thickness: 1,
+    color: rgb(0, 0, 0),
+  });
+
+  // Texto "Técnico" abaixo da linha
+  writeText("(Técnico)", {
+    y: y - 15,
+    x: startXTecnico,
+    width: lineWidth,
+    align: "center",
+  });
+
+  y -= 30;
+
+  // Adiciona número de página em todas as páginas
+  for (let i = 0; i < pdfDoc.getPageCount(); i++) {
+    currentPage = pdfDoc.getPage(i);
+    writeText(`Página ${i + 1}/${totalPages}`, {
+      y: margin,
+      align: "right",
+    });
+  }
+
+  // Gerar e baixar o PDF
   const pdfBytes = await pdfDoc.save();
-
-  // Download do arquivo
   const blob = new Blob([pdfBytes], { type: "application/pdf" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = `Orçamento_${budget.clientData.name}_${budget.budgetNumber}.pdf`;
+  link.download = `${budget.isExpense ? "Despesa" : "Orcamento"}_${
+    budget.clientData.name
+  }_${budget.budgetNumber}.pdf`;
   link.click();
   URL.revokeObjectURL(link.href);
 };

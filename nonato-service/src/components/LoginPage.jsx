@@ -19,11 +19,6 @@ const LoginPage = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const navigate = useNavigate();
 
-  const allowedEmails = [
-    "sergionunoribeiro@gmail.com",
-    "service.nonato@gmail.com",
-  ];
-
   const handleChange = (e) => {
     setFormData((prev) => ({
       ...prev,
@@ -34,11 +29,6 @@ const LoginPage = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
-    if (!allowedEmails.includes(formData.email)) {
-      setError("Acesso negado. Email não autorizado.");
-      return;
-    }
 
     try {
       setIsLoading(true);
@@ -60,12 +50,6 @@ const LoginPage = () => {
       setIsGoogleLoading(true);
       setError("");
       const result = await signInWithPopup(auth, provider);
-
-      if (!allowedEmails.includes(result.user.email)) {
-        setError("Acesso negado. Email não autorizado.");
-        return;
-      }
-
       navigate("/app");
     } catch (err) {
       setError("Falha no login com Google.");
