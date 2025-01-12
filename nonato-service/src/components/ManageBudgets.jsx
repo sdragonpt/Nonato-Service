@@ -165,13 +165,19 @@ const ManageBudgets = () => {
   const [clientNames, setClientNames] = useState({});
   const [activeTab, setActiveTab] = useState("simple");
   const [documentTypeFilter, setDocumentTypeFilter] = useState(() => {
-    const saved = localStorage.getItem("documentTypeFilter");
-    return saved || "all";
+    try {
+      const saved = localStorage.getItem("documentTypeFilter");
+      // Validar se o valor salvo é válido
+      if (saved && ["all", "budget", "expense"].includes(saved)) {
+        return saved;
+      }
+      // Se não for válido, resetar para "all"
+      localStorage.setItem("documentTypeFilter", "all");
+      return "all";
+    } catch {
+      return "all";
+    }
   });
-
-  useEffect(() => {
-    localStorage.setItem("documentTypeFilter", documentTypeFilter);
-  }, [documentTypeFilter]);
 
   useEffect(() => {
     const fetchBudgets = async () => {
@@ -186,15 +192,8 @@ const ManageBudgets = () => {
         }));
 
         // Separar orçamentos simples e regulares
-        const simple = [];
-        const regular = [];
-        budgetsData.forEach((budget) => {
-          if (budget.clientData) {
-            simple.push(budget);
-          } else if (budget.clientId) {
-            regular.push(budget);
-          }
-        });
+        const simple = budgetsData.filter((budget) => budget.clientData);
+        const regular = budgetsData.filter((budget) => budget.clientId);
 
         setSimpleBudgets(simple);
         setRegularBudgets(regular);
@@ -205,6 +204,7 @@ const ManageBudgets = () => {
 
         await Promise.all(
           clientIds.map(async (clientId) => {
+            if (!clientId) return; // Skip if clientId is undefined
             const clientDoc = await getDoc(doc(db, "clientes", clientId));
             if (clientDoc.exists()) {
               clientData[clientId] = clientDoc.data().name;
@@ -214,8 +214,8 @@ const ManageBudgets = () => {
 
         setClientNames(clientData);
       } catch (err) {
+        console.error("Error fetching budgets:", err);
         setError("Erro ao carregar orçamentos");
-        console.error(err);
       } finally {
         setIsLoading(false);
       }
@@ -229,6 +229,7 @@ const ManageBudgets = () => {
       setDocumentTypeFilter(newFilter);
     } catch (error) {
       console.error("Error changing filter:", error);
+      // Fallback to "all" if there's an error
       setDocumentTypeFilter("all");
     }
   };
@@ -405,7 +406,7 @@ const ManageBudgets = () => {
             </h3>
             <div className="flex gap-2">
               <button
-                onClick={() => setDocumentTypeFilter("all")}
+                onClick={() => handleFilterChange("all")}
                 className={`p-2 rounded-lg flex items-center ${
                   documentTypeFilter === "all"
                     ? "bg-[#117d49] text-white"
@@ -415,7 +416,7 @@ const ManageBudgets = () => {
                 <FileText className="w-4 h-4" />
               </button>
               <button
-                onClick={() => setDocumentTypeFilter("budget")}
+                onClick={() => handleFilterChange("budget")}
                 className={`p-2 rounded-lg flex items-center ${
                   documentTypeFilter === "budget"
                     ? "bg-[#117d49] text-white"
@@ -425,7 +426,7 @@ const ManageBudgets = () => {
                 <FileCheck className="w-4 h-4" />
               </button>
               <button
-                onClick={() => setDocumentTypeFilter("expense")}
+                onClick={() => handleFilterChange("expense")}
                 className={`p-2 rounded-lg flex items-center ${
                   documentTypeFilter === "expense"
                     ? "bg-[#117d49] text-white"
