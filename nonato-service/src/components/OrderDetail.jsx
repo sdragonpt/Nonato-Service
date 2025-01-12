@@ -11,8 +11,7 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
-import generateServiceOrderPDF from "./generatePDF.jsx";
-import generateServiceOrderPDFPlus from "./generatePDFPlus.jsx";
+import generateServiceOrderPDF from "./generateServiceOrderPDF.jsx";
 import {
   ArrowLeft,
   Loader2,
@@ -212,36 +211,14 @@ const OrderDetail = () => {
       setIsGeneratingPDF(true);
       setError(null);
 
-      const nonNullDescriptions = workdays.filter((day) =>
-        day.description?.trim()
-      ).length;
-
-      console.log("Workdays antes de gerar o PDF:", workdays);
-      console.log("É um array:", Array.isArray(workdays));
-
-      // Escolher versão do PDF baseado nas condições
-      if (
-        (workdays.length <= 3 && nonNullDescriptions === 2) ||
-        (workdays.length <= 6 && nonNullDescriptions === 1) ||
-        (workdays.length <= 7 && nonNullDescriptions === 1) ||
-        (workdays.length <= 8 && nonNullDescriptions === 0)
-      ) {
-        const pdfTotals = await generateServiceOrderPDF(
-          orderId,
-          order,
-          client,
-          equipment,
-          workdays
-        );
-      } else {
-        const pdfTotals = await generateServiceOrderPDFPlus(
-          orderId,
-          order,
-          client,
-          equipment,
-          workdays
-        );
-      }
+      // Remove a lógica de verificação de condições, pois agora temos apenas um gerador de PDF
+      await generateServiceOrderPDF(
+        orderId,
+        order,
+        client,
+        equipment,
+        workdays
+      );
     } catch (err) {
       console.error("Erro ao gerar PDF:", err);
       setError("Erro ao gerar PDF. Por favor, tente novamente.");
