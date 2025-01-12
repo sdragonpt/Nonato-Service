@@ -164,6 +164,7 @@ const ManageBudgets = () => {
   const [error, setError] = useState(null);
   const [clientNames, setClientNames] = useState({});
   const [activeTab, setActiveTab] = useState("simple");
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [documentTypeFilter, setDocumentTypeFilter] = useState(() => {
     const saved = localStorage.getItem("documentTypeFilter");
     return saved || "all";
@@ -249,30 +250,61 @@ const ManageBudgets = () => {
 
   const handleViewPDF = async (budget) => {
     try {
-      if (budget.clientData) {
-        await generateSimpleBudgetPDF(budget);
-      } else {
-        const clientDoc = await getDoc(doc(db, "clientes", budget.clientId));
-        const orderDoc = await getDoc(doc(db, "ordens", budget.orderId));
+      setIsGeneratingPDF(true);
 
-        if (!clientDoc.exists() || !orderDoc.exists()) {
-          setError("Erro ao carregar dados do orçamento");
-          return;
-        }
+      // Formatar os serviços considerando ambas as estruturas
+      const formattedServices = budget.services.map((service) => {
+        const value = parseFloat(service.value || 0);
+        const quantity = parseFloat(service.quantity || 1);
+        return {
+          name: service.name || "",
+          type: service.type || "un",
+          value: value,
+          quantity: quantity,
+          total: value * quantity,
+        };
+      });
 
-        const client = { id: clientDoc.id, ...clientDoc.data() };
-        const order = { id: orderDoc.id, ...orderDoc.data() };
+      const formattedBudget = {
+        ...budget,
+        budgetNumber: budget.budgetNumber || "",
+        clientData: {
+          name: budget.clientData?.name || "",
+          phone: budget.clientData?.phone || "",
+          address: budget.clientData?.address || "",
+        },
+        services: formattedServices,
+        total: formattedServices.reduce(
+          (acc, service) => acc + service.total,
+          0
+        ),
+        createdAt: budget.createdAt || new Date(),
+        isExpense: budget.isExpense || false,
+      };
 
-        await generateBudgetPDF(
-          order,
-          client,
-          budget.services,
-          budget.orderNumber
-        );
-      }
+      const pdfBlob = await generateSimpleBudgetPDF(formattedBudget);
+
+      // Criar o nome do arquivo
+      const fileName = `${
+        formattedBudget.isExpense ? "Despesa" : "Orçamento"
+      }_${formattedBudget.clientData?.name}_${
+        formattedBudget.budgetNumber
+      }.pdf`;
+
+      // Fazer download
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (error) {
-      setError("Erro ao gerar PDF");
+      setError("Erro ao gerar PDF. Por favor, tente novamente.");
       console.error("Erro ao gerar PDF:", error);
+    } finally {
+      setIsGeneratingPDF(false);
     }
   };
 

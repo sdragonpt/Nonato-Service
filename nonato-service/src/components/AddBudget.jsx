@@ -19,6 +19,7 @@ import {
   Plus,
   Trash2,
   Check,
+  Euro,
 } from "lucide-react";
 import generateBudgetPDF from "./generateBudgetPDF.jsx";
 
@@ -30,11 +31,14 @@ const AddBudget = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [order, setOrder] = useState(null); // Adicionado estado order
   const [services, setServices] = useState([]);
-  const [selectedServices, setSelectedServices] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [orderTotals, setOrderTotals] = useState(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [serviceValue, setServiceValue] = useState("");
+  const [serviceQuantity, setServiceQuantity] = useState("");
+  const [selectedServices, setSelectedServices] = useState([]);
 
   // Buscar clientes
   useEffect(() => {
@@ -197,17 +201,44 @@ const AddBudget = () => {
     fetchOrderTotals();
   }, [selectedOrder]);
 
-  const handleAddService = (service, quantity) => {
-    setSelectedServices((prev) => {
-      return [
-        ...prev,
-        {
-          ...service,
-          quantity,
-          total: quantity * parseFloat(service.value),
-        },
-      ];
-    });
+  const handleAddService = () => {
+    if (!selectedServiceId || serviceValue === "" || serviceQuantity === "")
+      return;
+
+    const serviceToAdd = services.find((s) => s.id === selectedServiceId);
+    if (!serviceToAdd) return;
+
+    const quantity = parseFloat(serviceQuantity) || 0;
+    const value = parseFloat(serviceValue) || 0;
+
+    setSelectedServices((prev) => [
+      ...prev,
+      {
+        id: serviceToAdd.id,
+        name: serviceToAdd.name,
+        type: serviceToAdd.type,
+        value: value,
+        quantity: quantity,
+        total: value * quantity,
+      },
+    ]);
+
+    // Reset form
+    setSelectedServiceId("");
+    setServiceValue("");
+    setServiceQuantity("");
+  };
+
+  // Função auxiliar para obter o rótulo da unidade
+  const getUnitLabel = (type) => {
+    const types = {
+      base: "un",
+      un: "un",
+      hour: "hora(s)",
+      day: "dia(s)",
+      km: "km",
+    };
+    return types[type] || type;
   };
 
   const handleRemoveService = (serviceId) => {
@@ -401,50 +432,75 @@ const AddBudget = () => {
               </h3>
             </div>
             <div className="p-6">
-              <div className="space-y-4">
-                {services.map((service) => (
-                  <div
-                    key={service.id}
-                    className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
+              <div className="grid gap-4">
+                {/* Seleção do Serviço */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
+                    Serviço
+                  </label>
+                  <select
+                    value={selectedServiceId}
+                    onChange={(e) => setSelectedServiceId(e.target.value)}
+                    className="w-full p-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   >
-                    <div className="flex-grow">
-                      <p className="text-white font-medium">{service.name}</p>
-                      <p className="text-gray-400 text-sm">
-                        {service.value}€ por {service.type}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center">
-                        <label className="text-gray-400 mr-2 text-sm">
-                          Quantidade:
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          className="w-24 p-1 bg-gray-600 border border-gray-500 rounded text-white text-sm"
-                          defaultValue="0"
-                          id={`qty-${service.id}`}
-                        />
-                      </div>
-                      <button
-                        onClick={() => {
-                          const qty = parseFloat(
-                            document.getElementById(`qty-${service.id}`).value
-                          );
-                          if (qty > 0) {
-                            handleAddService(service, qty);
-                            document.getElementById(`qty-${service.id}`).value =
-                              "0";
-                          }
-                        }}
-                        className="p-2 text-green-400 hover:text-green-300"
-                      >
-                        <Plus className="w-5 h-5" />
-                      </button>
+                    <option value="">Selecione um serviço...</option>
+                    {services.map((service) => (
+                      <option key={service.id} value={service.id}>
+                        {service.name} ({getUnitLabel(service.type)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Valor Unitário */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Valor Unitário
+                    </label>
+                    <div className="relative">
+                      <Euro className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="number"
+                        value={serviceValue}
+                        onChange={(e) => setServiceValue(e.target.value)}
+                        className="w-full p-2 pl-10 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        placeholder="0.00"
+                        step="0.01"
+                        min="0"
+                      />
                     </div>
                   </div>
-                ))}
+
+                  {/* Quantidade */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      Quantidade
+                    </label>
+                    <input
+                      type="number"
+                      value={serviceQuantity}
+                      onChange={(e) => setServiceQuantity(e.target.value)}
+                      className="w-full p-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      placeholder="0"
+                      step="1"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleAddService}
+                  disabled={
+                    !selectedServiceId ||
+                    serviceValue === "" ||
+                    serviceQuantity === ""
+                  }
+                  className="w-full p-2 bg-[#117d49] text-white rounded-lg hover:bg-[#0d6238] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  Adicionar Serviço
+                </button>
               </div>
             </div>
           </div>
@@ -468,7 +524,9 @@ const AddBudget = () => {
                     <div>
                       <p className="text-white font-medium">{service.name}</p>
                       <p className="text-gray-400 text-sm">
-                        {service.quantity} x {service.value}€ = {service.total}€
+                        {service.value.toFixed(2)}€ x {service.quantity}{" "}
+                        {getUnitLabel(service.type)} ={" "}
+                        {service.total.toFixed(2)}€
                       </p>
                     </div>
                     <button

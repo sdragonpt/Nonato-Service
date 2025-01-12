@@ -7,9 +7,7 @@ import {
   Loader2,
   Save,
   AlertCircle,
-  Euro,
   Tag,
-  FileText,
   Wrench,
 } from "lucide-react";
 
@@ -21,9 +19,7 @@ const EditService = () => {
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
-    value: "",
     type: "base",
-    description: "",
   });
 
   useEffect(() => {
@@ -37,9 +33,7 @@ const EditService = () => {
           const serviceData = serviceDoc.data();
           setFormData({
             name: serviceData.name || "",
-            value: serviceData.value || "",
             type: serviceData.type || "base",
-            description: serviceData.description || "",
           });
         } else {
           setError("Serviço não encontrado");
@@ -66,8 +60,8 @@ const EditService = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.name.trim() || !formData.value) {
-      setError("Nome e valor são obrigatórios");
+    if (!formData.name.trim()) {
+      setError("Nome é obrigatório");
       return;
     }
 
@@ -75,11 +69,8 @@ const EditService = () => {
       setIsSaving(true);
       setError(null);
 
-      const numericValue = Math.abs(Number(formData.value)) || 0;
-
       await updateDoc(doc(db, "servicos", serviceId), {
         ...formData,
-        value: numericValue,
         updatedAt: new Date(),
       });
 
@@ -121,7 +112,6 @@ const EditService = () => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Informações Básicas */}
         <div className="bg-gray-800 p-6 rounded-lg space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -143,29 +133,6 @@ const EditService = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
-              Valor
-            </label>
-            <div className="relative">
-              <Euro className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="number"
-                name="value"
-                value={formData.value}
-                onChange={handleChange}
-                placeholder="0.00"
-                step="0.01"
-                min="0"
-                className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Tipo e Descrição */}
-        <div className="bg-gray-800 p-6 rounded-lg space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
               Tipo de Valor
             </label>
             <div className="relative">
@@ -184,26 +151,8 @@ const EditService = () => {
               </select>
             </div>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Descrição
-            </label>
-            <div className="relative">
-              <FileText className="absolute left-3 top-3 text-gray-400" />
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="Descreva o serviço..."
-                rows="4"
-                className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
-              />
-            </div>
-          </div>
         </div>
 
-        {/* Botão Submit */}
         <button
           type="submit"
           disabled={isSaving}

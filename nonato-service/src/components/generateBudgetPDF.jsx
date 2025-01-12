@@ -287,6 +287,7 @@ const generateBudgetPDF = async (
   y -= 20;
   drawRect(initialX, y - 30, pageWidth, 30, rgb(0.95, 0.95, 0.95));
   writeText("Pagamento", {
+    x: 55,
     y: y - 20,
     useFont: boldFont,
     size: headerSize,
@@ -316,6 +317,7 @@ const generateBudgetPDF = async (
   y -= 20;
   drawRect(initialX, y - 30, pageWidth, 30, rgb(0.95, 0.95, 0.95));
   writeText("Informações adicionais", {
+    x: 55,
     y: y - 20,
     useFont: boldFont,
     size: headerSize,

@@ -19,6 +19,18 @@ const generateSimpleBudgetPDF = async (budget) => {
   const pageWidth = currentPage.getWidth() - 2 * margin;
   const minBottomMargin = 70;
 
+  // Função auxiliar para obter o rótulo da unidade
+  const getUnitLabel = (type) => {
+    const types = {
+      base: "un",
+      un: "un",
+      hour: "hora(s)",
+      day: "dia(s)",
+      km: "km",
+    };
+    return types[type] || type;
+  };
+
   // Configurações do logo
   const imgWidth = 100;
   const textStartX = margin + imgWidth + 20;
@@ -202,7 +214,7 @@ const generateSimpleBudgetPDF = async (budget) => {
 
     xPos = initialX;
 
-    writeText(service.name, {
+    writeText(service.name || "", {
       x: xPos,
       width: columns[0].width,
       align: "left",
@@ -214,19 +226,19 @@ const generateSimpleBudgetPDF = async (budget) => {
       align: "left",
     });
 
-    writeText(`${service.value.toFixed(2)} €`, {
+    writeText(`${(service.value || 0).toFixed(2)} €`, {
       x: xPos + columns[0].width + columns[1].width,
       width: columns[2].width,
       align: "right",
     });
 
-    writeText(service.quantity.toString(), {
+    writeText(`${service.quantity || 0}`, {
       x: xPos + columns[0].width + columns[1].width + columns[2].width,
       width: columns[3].width,
       align: "right",
     });
 
-    writeText(`${service.total.toFixed(2)} €`, {
+    writeText(`${(service.total || 0).toFixed(2)} €`, {
       x:
         xPos +
         columns[0].width +
@@ -266,6 +278,7 @@ const generateSimpleBudgetPDF = async (budget) => {
   y -= 20;
   drawRect(initialX, y - 30, pageWidth, 30, rgb(0.95, 0.95, 0.95));
   writeText("Pagamento", {
+    x: 55,
     y: y - 20,
     useFont: boldFont,
     size: headerSize,
@@ -294,6 +307,7 @@ const generateSimpleBudgetPDF = async (budget) => {
   y -= 20;
   drawRect(initialX, y - 30, pageWidth, 30, rgb(0.95, 0.95, 0.95));
   writeText("Informações adicionais", {
+    x: 55,
     y: y - 20,
     useFont: boldFont,
     size: headerSize,
@@ -367,16 +381,19 @@ const generateSimpleBudgetPDF = async (budget) => {
     });
   }
 
-  // Gerar e baixar o PDF
   const pdfBytes = await pdfDoc.save();
-  const blob = new Blob([pdfBytes], { type: "application/pdf" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `${budget.isExpense ? "Despesa" : "Orcamento"}_${
-    budget.clientData.name
-  }_${budget.budgetNumber}.pdf`;
-  link.click();
-  URL.revokeObjectURL(link.href);
+  return new Blob([pdfBytes], { type: "application/pdf" });
+
+  // Gerar e baixar o PDF
+  // const pdfBytes = await pdfDoc.save();
+  // const blob = new Blob([pdfBytes], { type: "application/pdf" });
+  // const link = document.createElement("a");
+  // link.href = URL.createObjectURL(blob);
+  // link.download = `${budget.isExpense ? "Despesa" : "Orcamento"}_${
+  //   budget.clientData.name
+  // }_${budget.budgetNumber}.pdf`;
+  // link.click();
+  // URL.revokeObjectURL(link.href);
 };
 
 export default generateSimpleBudgetPDF;

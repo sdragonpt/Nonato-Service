@@ -17,7 +17,6 @@ import {
   Edit2,
   Trash2,
   Wrench,
-  Euro,
 } from "lucide-react";
 
 const ManageServices = () => {
@@ -39,7 +38,6 @@ const ManageServices = () => {
         const servicesData = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-          value: Number(doc.data().value) || 0,
         }));
         setServices(servicesData);
         setError(null);
@@ -53,12 +51,43 @@ const ManageServices = () => {
     fetchServices();
   }, [sortOrder]);
 
-  // Fecha o menu quando clicar fora
   useEffect(() => {
     const handleClickOutside = () => setActiveMenu(null);
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
+
+  const handleViewPDF = async (budget) => {
+    try {
+      setIsGeneratingPDF(true);
+  
+      // Garantir que os serviços têm a estrutura correta
+      const formattedBudget = {
+        ...budget,
+        services: budget.services.map(service => ({
+          name: service.name,
+          value: typeof service.value === 'number' ? service.value : 
+                 typeof service.total === 'number' ? service.total : 
+                 parseFloat(service.value || service.total || 0),
+        })),
+        total: typeof budget.total === 'number' ? budget.total : 
+               budget.services.reduce((acc, service) => 
+                 acc + (parseFloat(service.value || service.total || 0)), 0),
+        createdAt: budget.createdAt || new Date(),
+      };
+  
+      const pdfBlob = await generateSimpleBudgetPDF(formattedBudget);
+      
+      // Criar URL e abrir em nova janela
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      window.open(pdfUrl, '_blank');
+    } catch (error) {
+      setError("Erro ao gerar PDF. Por favor, tente novamente.");
+      console.error("Erro ao gerar PDF:", error);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
 
   const handleDelete = async (serviceId, e) => {
     e.stopPropagation();
@@ -163,17 +192,8 @@ const ManageServices = () => {
                     {service.name}
                   </h3>
                   <div className="flex items-center text-gray-400">
-                    <Euro className="w-4 h-4 mr-1" />
-                    <span>
-                      {Number(service.value).toFixed(2)} (
-                      {getTypeLabel(service.type)})
-                    </span>
+                    <span>{getTypeLabel(service.type)}</span>
                   </div>
-                  {service.description && (
-                    <p className="text-gray-400 truncate mt-1">
-                      {service.description}
-                    </p>
-                  )}
                 </div>
               </div>
 
