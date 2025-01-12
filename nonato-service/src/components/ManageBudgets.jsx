@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import generateBudgetPDF from "./generateBudgetPDF";
 import generateSimpleBudgetPDF from "./generateSimpleBudgetPDF";
@@ -164,7 +164,14 @@ const ManageBudgets = () => {
   const [error, setError] = useState(null);
   const [clientNames, setClientNames] = useState({});
   const [activeTab, setActiveTab] = useState("simple");
-  const [documentTypeFilter, setDocumentTypeFilter] = useState("all"); // "all", "budget", "expense"
+  const [documentTypeFilter, setDocumentTypeFilter] = useState(() => {
+    const saved = localStorage.getItem("documentTypeFilter");
+    return saved || "all";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("documentTypeFilter", documentTypeFilter);
+  }, [documentTypeFilter]);
 
   useEffect(() => {
     const fetchBudgets = async () => {
@@ -217,6 +224,15 @@ const ManageBudgets = () => {
     fetchBudgets();
   }, []);
 
+  const handleFilterChange = (newFilter) => {
+    try {
+      setDocumentTypeFilter(newFilter);
+    } catch (error) {
+      console.error("Error changing filter:", error);
+      setDocumentTypeFilter("all");
+    }
+  };
+
   const handleDelete = async (budgetId) => {
     if (window.confirm("Tem certeza que deseja deletar este orçamento?")) {
       try {
@@ -259,21 +275,32 @@ const ManageBudgets = () => {
     }
   };
 
-  const filteredSimpleBudgets = simpleBudgets.filter((budget) => {
-    const matchesSearch =
-      budget.clientData.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (budget.budgetNumber || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+  const filteredSimpleBudgets = useMemo(() => {
+    try {
+      return simpleBudgets.filter((budget) => {
+        const matchesSearch =
+          budget.clientData?.name
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          (budget.budgetNumber || "")
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase());
 
-    if (documentTypeFilter === "all") return matchesSearch;
-    if (documentTypeFilter === "budget")
-      return matchesSearch && !budget.isExpense;
-    if (documentTypeFilter === "expense")
-      return matchesSearch && budget.isExpense;
-
-    return matchesSearch;
-  });
+        switch (documentTypeFilter) {
+          case "budget":
+            return matchesSearch && !budget.isExpense;
+          case "expense":
+            return matchesSearch && budget.isExpense;
+          case "all":
+          default:
+            return matchesSearch;
+        }
+      });
+    } catch (error) {
+      console.error("Error filtering budgets:", error);
+      return [];
+    }
+  }, [simpleBudgets, searchTerm, documentTypeFilter]);
 
   const filteredRegularBudgets = regularBudgets.filter(
     (budget) =>
