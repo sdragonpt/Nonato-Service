@@ -165,19 +165,13 @@ const ManageBudgets = () => {
   const [clientNames, setClientNames] = useState({});
   const [activeTab, setActiveTab] = useState("simple");
   const [documentTypeFilter, setDocumentTypeFilter] = useState(() => {
-    try {
-      const saved = localStorage.getItem("documentTypeFilter");
-      // Validar se o valor salvo é válido
-      if (saved && ["all", "budget", "expense"].includes(saved)) {
-        return saved;
-      }
-      // Se não for válido, resetar para "all"
-      localStorage.setItem("documentTypeFilter", "all");
-      return "all";
-    } catch {
-      return "all";
-    }
+    const saved = localStorage.getItem("documentTypeFilter");
+    return saved || "all";
   });
+
+  useEffect(() => {
+    localStorage.setItem("documentTypeFilter", documentTypeFilter);
+  }, [documentTypeFilter]);
 
   useEffect(() => {
     const fetchBudgets = async () => {
@@ -192,8 +186,15 @@ const ManageBudgets = () => {
         }));
 
         // Separar orçamentos simples e regulares
-        const simple = budgetsData.filter((budget) => budget.clientData);
-        const regular = budgetsData.filter((budget) => budget.clientId);
+        const simple = [];
+        const regular = [];
+        budgetsData.forEach((budget) => {
+          if (budget.clientData) {
+            simple.push(budget);
+          } else if (budget.clientId) {
+            regular.push(budget);
+          }
+        });
 
         setSimpleBudgets(simple);
         setRegularBudgets(regular);
@@ -204,7 +205,6 @@ const ManageBudgets = () => {
 
         await Promise.all(
           clientIds.map(async (clientId) => {
-            if (!clientId) return; // Skip if clientId is undefined
             const clientDoc = await getDoc(doc(db, "clientes", clientId));
             if (clientDoc.exists()) {
               clientData[clientId] = clientDoc.data().name;
