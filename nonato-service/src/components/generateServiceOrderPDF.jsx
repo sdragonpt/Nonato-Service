@@ -23,44 +23,23 @@ const generateServiceOrderPDF = async (
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
+  // Carregar a imagem do topo
+  const topImageBytes = await fetch("/nonato2.png").then((res) =>
+    res.arrayBuffer()
+  );
+  const topImage = await pdfDoc.embedPng(topImageBytes);
+
   // Função para criar nova página
   const createNewPage = () => {
     currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
     yPos = pageHeight - margin;
 
-    // Carregar imagens na nova página
-    try {
-      // Background image
-      const drawBackgroundImage = async () => {
-        const response = await fetch("/nonato3.png");
-        const imageBytes = await response.arrayBuffer();
-        const image = await pdfDoc.embedPng(imageBytes);
-        currentPage.drawImage(image, {
-          x: -60,
-          y: pageHeight - 1000 + 50,
-          width: 700,
-          height: 1000,
-        });
-      };
-
-      // Logo
-      const drawLogo = async () => {
-        const response = await fetch("/nonato2.png");
-        const imageBytes = await response.arrayBuffer();
-        const image = await pdfDoc.embedPng(imageBytes);
-        currentPage.drawImage(image, {
-          x: 40,
-          y: pageHeight - 65 - 40,
-          width: 65,
-          height: 85,
-        });
-      };
-
-      drawBackgroundImage();
-      drawLogo();
-    } catch (error) {
-      console.error("Erro ao carregar imagens:", error);
-    }
+    currentPage.drawImage(topImage, {
+      x: 40,
+      y: 790,
+      width: 65,
+      height: 85,
+    });
 
     return currentPage;
   };
@@ -91,13 +70,13 @@ const generateServiceOrderPDF = async (
       x: 220,
       y: pageHeight - 50,
       size: 16,
-      color: rgb(0.0667, 0.4902, 0.2863),
+      color: rgb(0, 0, 0),
       font: boldFont,
     });
 
     // Número do serviço
     currentPage.drawText(`Nº: ${orderIdForPDF}`, {
-      x: 500,
+      x: 508,
       y: pageHeight - 50,
       size: 12,
       font: boldFont,
@@ -119,7 +98,6 @@ const generateServiceOrderPDF = async (
       y: pageHeight - 70,
       size: 12,
       color: rgb(0.0667, 0.4902, 0.2863),
-      font: boldFont,
     });
 
     // Informações de contato
@@ -127,13 +105,41 @@ const generateServiceOrderPDF = async (
       "Tel (SERVIÇO): 911115479 - EMAIL: service.nonato@gmail.com",
       {
         x: 303,
-        y: pageHeight - 860,
+        y: pageHeight - 850,
         size: 8,
         font: font,
       }
     );
 
+    // Desenhar o retângulo ao redor das informações básicas
+    currentPage.drawRectangle({
+      x: 40,
+      y: 62,
+      width: 515,
+      height: 732,
+      borderColor: rgb(0, 0, 0), // Cor preta para a borda
+      borderWidth: 1, // Largura da borda
+    });
+
     yPos = pageHeight - 90;
+  };
+
+  // Adiciona número de página em todas as páginas
+  const addPageNumbers = () => {
+    const totalPages = pdfDoc.getPageCount(); // Total de páginas no documento
+
+    for (let i = 0; i < totalPages; i++) {
+      const page = pdfDoc.getPage(i); // Obtém a página atual
+
+      // Desenha o número da página no rodapé
+      page.drawText(`Página ${i + 1} / ${totalPages}`, {
+        x: page.getWidth() - margin - 50, // Ajusta a posição para a direita
+        y: margin - 20, // Posição no rodapé
+        size: 10,
+        font: font, // Usa a fonte carregada
+        color: rgb(0, 0, 0), // Cor preta
+      });
+    }
   };
 
   // Desenhar cabeçalho na primeira página
@@ -169,11 +175,11 @@ const generateServiceOrderPDF = async (
 
   // Desenhar informações básicas
   const drawBasicInfo = () => {
-    let localYPos = yPos;
+    let localYPos = yPos - 40;
 
     // Técnico e Data
-    localYPos = drawTextWithBox(`Técnico: Nonato`, 58, localYPos, 120);
-    drawTextWithBox(`Data: ${safeText(order.date)}`, 307, localYPos + 20, 120);
+    localYPos = drawTextWithBox(`Técnico: Nonato`, 58, localYPos, 230);
+    drawTextWithBox(`Data: ${safeText(order.date)}`, 307, localYPos + 20, 230);
 
     // Cliente e Máquina
     localYPos = drawTextWithBox(
@@ -214,8 +220,8 @@ const generateServiceOrderPDF = async (
     );
     drawTextWithBox(
       `Tipo de Serviço: ${safeText(order.serviceType)}`,
-      58,
-      localYPos - 20,
+      307,
+      localYPos + 20,
       230
     );
 
@@ -224,12 +230,12 @@ const generateServiceOrderPDF = async (
       x: 50,
       y: yPos - 110,
       width: 496,
-      height: yPos - localYPos + 50,
+      height: yPos - localYPos - 32,
       borderColor: rgb(0, 0, 0),
       borderWidth: 1,
     });
 
-    return localYPos - 40; // Retorna a posição final
+    return localYPos - 10; // Retorna a posição final
   };
 
   // Função para desenhar cabeçalho da tabela
@@ -261,7 +267,7 @@ const generateServiceOrderPDF = async (
       xPos += headerWidths[index];
     });
 
-    return yPos - 40;
+    return yPos - 20;
   };
 
   // Função para desenhar uma linha da tabela
@@ -398,8 +404,8 @@ const generateServiceOrderPDF = async (
         yPos -= 30;
         // Data do dia
         currentPage.drawText(`Dia: ${formatDate(day.workDate)}`, {
-          x: 50,
-          y: yPos,
+          x: 54,
+          y: yPos - 2,
           size: fontSize,
           font: font,
         });
@@ -408,22 +414,31 @@ const generateServiceOrderPDF = async (
         const boxHeight = fontSize + 20;
         currentPage.drawRectangle({
           x: 150,
-          y: yPos - 30,
+          y: yPos - 20,
           width: 396,
           height: boxHeight,
           borderColor: rgb(0, 0, 0),
           color: rgb(0.9, 0.9, 0.9),
         });
 
+        currentPage.drawRectangle({
+          x: 50,
+          y: yPos - 20,
+          width: 496,
+          height: boxHeight,
+          borderColor: rgb(0, 0, 0),
+          borderWidth: 1,
+        });
+
         // Texto da descrição
         currentPage.drawText(description, {
           x: 160,
-          y: yPos - 20,
+          y: yPos - 1,
           size: 8,
           font: font,
         });
 
-        yPos -= 50;
+        yPos -= 10;
       }
     });
 
@@ -589,8 +604,8 @@ const generateServiceOrderPDF = async (
     // Notas
     yPos -= 40;
     currentPage.drawText("Notas:", {
-      x: 100,
-      y: yPos,
+      x: 55,
+      y: yPos + 7,
       size: fontSize,
       font: font,
     });
@@ -603,6 +618,15 @@ const generateServiceOrderPDF = async (
       height: boxHeight,
       borderColor: rgb(0, 0, 0),
       color: rgb(0.9, 0.9, 0.9),
+    });
+
+    currentPage.drawRectangle({
+      x: 50,
+      y: yPos - 10,
+      width: 496,
+      height: boxHeight,
+      borderColor: rgb(0, 0, 0),
+      borderWidth: 1,
     });
 
     currentPage.drawText(safeText(order.resultDescription), {
@@ -681,27 +705,18 @@ const generateServiceOrderPDF = async (
     });
   };
 
-  // Desenhar o retângulo ao redor das informações básicas
-  currentPage.drawRectangle({
-    x: 40,
-    y: 100,
-    width: 300,
-    height: 300,
-    borderColor: rgb(0, 0, 0), // Cor preta para a borda
-    borderWidth: 1, // Largura da borda
-  });
-
   // Desenhar todas as seções
   yPos = drawDescriptions();
   drawResults();
   drawSignatures();
+  addPageNumbers();
 
   // Salvar e fazer download do PDF
   const pdfBytes = await pdfDoc.save();
   const blob = new Blob([pdfBytes], { type: "application/pdf" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = `Ordem_Servico_${client.name}.pdf`;
+  link.download = `Ordem_Servico_${client.name}_${orderIdForPDF}.pdf`;
   link.click();
 };
 
