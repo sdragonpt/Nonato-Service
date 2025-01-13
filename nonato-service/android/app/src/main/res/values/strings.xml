@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Nonato Service</string>
+    <string name="title_activity_main">Nonato Service</string>
+    <string name="package_name">com.nonatoservice.app</string>
+    <string name="custom_url_scheme">com.nonatoservice.app</string>
+</resources>

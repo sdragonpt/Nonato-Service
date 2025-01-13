@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import generateBudgetPDF from "./generateBudgetPDF";
 import generateSimpleBudgetPDF from "./generateSimpleBudgetPDF";
+import { Filesystem, Directory } from "@capacitor/filesystem";
 import {
   collection,
   getDocs,
@@ -291,15 +291,53 @@ const ManageBudgets = () => {
         formattedBudget.budgetNumber
       }.pdf`;
 
-      // Fazer download
-      const url = URL.createObjectURL(pdfBlob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      // Verificar se estamos em um dispositivo móvel
+      const isMobile = window?.Capacitor?.isNative;
+
+      if (isMobile) {
+        // Código para dispositivos móveis
+        try {
+          // Converter o Blob para Base64
+          const base64Data = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(",")[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(pdfBlob);
+          });
+
+          // Salvar o arquivo usando o Filesystem do Capacitor
+          const savedFile = await Filesystem.writeFile({
+            path: fileName,
+            data: base64Data,
+            directory: Directory.Documents,
+            recursive: true,
+          });
+
+          // Abrir o arquivo
+          const openResult = await Filesystem.getUri({
+            directory: Directory.Documents,
+            path: fileName,
+          });
+
+          if (openResult.uri) {
+            // Abrir com o visualizador nativo do dispositivo
+            window.open(openResult.uri, "_system");
+          }
+        } catch (error) {
+          console.error("Erro ao salvar/abrir arquivo no dispositivo:", error);
+          throw error;
+        }
+      } else {
+        // Código para web - fazer download do arquivo
+        const url = URL.createObjectURL(pdfBlob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
     } catch (error) {
       setError("Erro ao gerar PDF. Por favor, tente novamente.");
       console.error("Erro ao gerar PDF:", error);
