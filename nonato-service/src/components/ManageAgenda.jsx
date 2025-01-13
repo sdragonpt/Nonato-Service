@@ -12,6 +12,7 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle,
+  CheckCircle2,
 } from "lucide-react";
 
 const ManageAgenda = () => {
