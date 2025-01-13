@@ -12,6 +12,8 @@ import {
   Loader2,
   AlertCircle,
   Printer,
+  Plus,
+  Trash2,
 } from "lucide-react";
 
 const AddAgendamento = () => {
@@ -22,14 +24,17 @@ const AddAgendamento = () => {
   const [equipments, setEquipments] = useState([]);
   const [filteredEquipments, setFilteredEquipments] = useState([]);
 
+  // Array de datas selecionadas
+  const [selectedDates, setSelectedDates] = useState([""]);
+
   const [formData, setFormData] = useState({
-    data: "",
     hora: "",
     clientId: "",
     tipoServico: "",
     observacoes: "",
-    status: "agendado", // agendado, confirmado, cancelado
-    prioridade: "normal", // baixa, normal, alta
+    status: "agendado",
+    prioridade: "normal",
+    equipmentId: "",
   });
 
   useEffect(() => {
@@ -38,7 +43,6 @@ const AddAgendamento = () => {
         setIsLoading(true);
         setError(null);
 
-        // Buscar clientes e equipamentos em paralelo
         const [clientsSnapshot, equipmentsSnapshot] = await Promise.all([
           getDocs(collection(db, "clientes")),
           getDocs(collection(db, "equipamentos")),
@@ -72,7 +76,6 @@ const AddAgendamento = () => {
         (eq) => eq.clientId === formData.clientId
       );
       setFilteredEquipments(filtered);
-      // Resetar equipamento selecionado se não existir para este cliente
       if (!filtered.find((eq) => eq.id === formData.equipmentId)) {
         setFormData((prev) => ({ ...prev, equipmentId: "" }));
       }
@@ -89,6 +92,23 @@ const AddAgendamento = () => {
     }));
   };
 
+  const handleDateChange = (index, value) => {
+    const newDates = [...selectedDates];
+    newDates[index] = value;
+    setSelectedDates(newDates);
+  };
+
+  const addDate = () => {
+    setSelectedDates([...selectedDates, ""]);
+  };
+
+  const removeDate = (index) => {
+    if (selectedDates.length > 1) {
+      const newDates = selectedDates.filter((_, i) => i !== index);
+      setSelectedDates(newDates);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -96,16 +116,21 @@ const AddAgendamento = () => {
       setIsLoading(true);
       setError(null);
 
-      await addDoc(collection(db, "agendamentos"), {
-        ...formData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      // Criar um agendamento para cada data selecionada
+      const agendamentosPromises = selectedDates.map((data) =>
+        addDoc(collection(db, "agendamentos"), {
+          ...formData,
+          data,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+      );
 
+      await Promise.all(agendamentosPromises);
       navigate("/app/manage-agenda");
     } catch (err) {
-      console.error("Erro ao criar agendamento:", err);
-      setError("Erro ao salvar agendamento. Por favor, tente novamente.");
+      console.error("Erro ao criar agendamentos:", err);
+      setError("Erro ao salvar agendamentos. Por favor, tente novamente.");
       setIsLoading(false);
     }
   };
@@ -128,7 +153,7 @@ const AddAgendamento = () => {
       </button>
 
       <h2 className="text-2xl font-semibold text-center text-white mb-6">
-        Novo Agendamento
+        Novo Agendamento Múltiplo
       </h2>
 
       {error && (
@@ -139,24 +164,45 @@ const AddAgendamento = () => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Data e Hora */}
+        {/* Datas e Hora */}
         <div className="bg-gray-800 p-6 rounded-lg space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Data
-            </label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="date"
-                name="data"
-                value={formData.data}
-                onChange={handleChange}
-                className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
-              />
+          {selectedDates.map((date, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Data {index + 1}
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => handleDateChange(index, e.target.value)}
+                    className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    required
+                  />
+                </div>
+              </div>
+              {selectedDates.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeDate(index)}
+                  className="mt-6 p-2 text-red-400 hover:text-red-300 transition-colors"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              )}
             </div>
-          </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={addDate}
+            className="mt-2 flex items-center text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Adicionar outra data
+          </button>
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -308,7 +354,8 @@ const AddAgendamento = () => {
           ) : (
             <>
               <Save className="w-5 h-5 mr-2" />
-              Criar Agendamento
+              Criar {selectedDates.length} Agendamento
+              {selectedDates.length > 1 ? "s" : ""}
             </>
           )}
         </button>

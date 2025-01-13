@@ -5,6 +5,8 @@ import {
   updateDoc,
   collection,
   getDocs,
+  deleteDoc,
+  addDoc,
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 import { useNavigate, useParams } from "react-router-dom";
@@ -18,6 +20,8 @@ import {
   Loader2,
   AlertCircle,
   Printer,
+  Plus,
+  Trash2,
 } from "lucide-react";
 
 const EditAgendamento = () => {
@@ -29,15 +33,17 @@ const EditAgendamento = () => {
   const [error, setError] = useState(null);
   const [equipments, setEquipments] = useState([]);
   const [filteredEquipments, setFilteredEquipments] = useState([]);
+  const [selectedDates, setSelectedDates] = useState([""]);
+  const [originalAgendamento, setOriginalAgendamento] = useState(null);
 
   const [formData, setFormData] = useState({
-    data: "",
     hora: "",
     clientId: "",
     tipoServico: "",
     observacoes: "",
     status: "",
     prioridade: "",
+    equipmentId: "",
   });
 
   useEffect(() => {
@@ -50,10 +56,17 @@ const EditAgendamento = () => {
         const agendamentoDoc = await getDoc(
           doc(db, "agendamentos", agendamentoId)
         );
+
         if (!agendamentoDoc.exists()) {
           setError("Agendamento não encontrado");
           return;
         }
+
+        const agendamentoData = agendamentoDoc.data();
+        setOriginalAgendamento(agendamentoData);
+
+        // Inicializar selectedDates com a data do agendamento atual
+        setSelectedDates([agendamentoData.data]);
 
         // Buscar clientes e equipamentos em paralelo
         const [clientsSnapshot, equipmentsSnapshot] = await Promise.all([
@@ -74,13 +87,20 @@ const EditAgendamento = () => {
         setEquipments(equipmentsData);
 
         // Definir os dados do formulário com os dados existentes
-        setFormData(agendamentoDoc.data());
+        setFormData({
+          hora: agendamentoData.hora,
+          clientId: agendamentoData.clientId,
+          tipoServico: agendamentoData.tipoServico,
+          observacoes: agendamentoData.observacoes,
+          status: agendamentoData.status,
+          prioridade: agendamentoData.prioridade,
+          equipmentId: agendamentoData.equipmentId,
+        });
 
         // Filtrar equipamentos do cliente selecionado
-        const clientId = agendamentoDoc.data().clientId;
-        if (clientId) {
+        if (agendamentoData.clientId) {
           const filtered = equipmentsData.filter(
-            (eq) => eq.clientId === clientId
+            (eq) => eq.clientId === agendamentoData.clientId
           );
           setFilteredEquipments(filtered);
         }
@@ -101,7 +121,6 @@ const EditAgendamento = () => {
         (eq) => eq.clientId === formData.clientId
       );
       setFilteredEquipments(filtered);
-      // Resetar equipamento selecionado se não existir para este cliente
       if (!filtered.find((eq) => eq.id === formData.equipmentId)) {
         setFormData((prev) => ({ ...prev, equipmentId: "" }));
       }
@@ -118,6 +137,23 @@ const EditAgendamento = () => {
     }));
   };
 
+  const handleDateChange = (index, value) => {
+    const newDates = [...selectedDates];
+    newDates[index] = value;
+    setSelectedDates(newDates);
+  };
+
+  const addDate = () => {
+    setSelectedDates([...selectedDates, ""]);
+  };
+
+  const removeDate = (index) => {
+    if (selectedDates.length > 1) {
+      const newDates = selectedDates.filter((_, i) => i !== index);
+      setSelectedDates(newDates);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -125,11 +161,27 @@ const EditAgendamento = () => {
       setIsSaving(true);
       setError(null);
 
-      const agendamentoRef = doc(db, "agendamentos", agendamentoId);
-      await updateDoc(agendamentoRef, {
+      // Atualizar o agendamento original com a primeira data
+      const mainAgendamentoRef = doc(db, "agendamentos", agendamentoId);
+      await updateDoc(mainAgendamentoRef, {
         ...formData,
+        data: selectedDates[0],
         updatedAt: new Date(),
       });
+
+      // Se houver datas adicionais, criar novos agendamentos
+      if (selectedDates.length > 1) {
+        const additionalDatesPromises = selectedDates.slice(1).map((data) =>
+          addDoc(collection(db, "agendamentos"), {
+            ...formData,
+            data,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+        );
+
+        await Promise.all(additionalDatesPromises);
+      }
 
       navigate(-1);
     } catch (err) {
@@ -168,24 +220,45 @@ const EditAgendamento = () => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Data e Hora */}
+        {/* Datas e Hora */}
         <div className="bg-gray-800 p-6 rounded-lg space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Data
-            </label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="date"
-                name="data"
-                value={formData.data}
-                onChange={handleChange}
-                className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
-              />
+          {selectedDates.map((date, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Data {index + 1}
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => handleDateChange(index, e.target.value)}
+                    className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    required
+                  />
+                </div>
+              </div>
+              {selectedDates.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeDate(index)}
+                  className="mt-6 p-2 text-red-400 hover:text-red-300 transition-colors"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              )}
             </div>
-          </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={addDate}
+            className="mt-2 flex items-center text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Adicionar outra data
+          </button>
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -323,6 +396,7 @@ const EditAgendamento = () => {
           />
         </div>
 
+        {/* Botão Submit */}
         <button
           type="submit"
           disabled={isSaving}
@@ -336,7 +410,10 @@ const EditAgendamento = () => {
           ) : (
             <>
               <Save className="w-5 h-5 mr-2" />
-              Salvar Alterações
+              Salvar{" "}
+              {selectedDates.length > 1
+                ? `${selectedDates.length} Agendamentos`
+                : "Agendamento"}
             </>
           )}
         </button>

@@ -165,6 +165,7 @@ const ManageBudgets = () => {
   const [clientNames, setClientNames] = useState({});
   const [activeTab, setActiveTab] = useState("simple");
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isFilterLoading, setIsFilterLoading] = useState(false);
   const [documentTypeFilter, setDocumentTypeFilter] = useState(() => {
     const saved = localStorage.getItem("documentTypeFilter");
     return saved || "all";
@@ -225,13 +226,18 @@ const ManageBudgets = () => {
     fetchBudgets();
   }, []);
 
-  const handleFilterChange = (newFilter) => {
+  const handleFilterChange = async (newFilter) => {
     try {
+      setIsFilterLoading(true); // Adiciona loading state quando muda o filtro
       setDocumentTypeFilter(newFilter);
+
+      // Simula uma pequena espera para garantir que o estado foi atualizado
+      await new Promise((resolve) => setTimeout(resolve, 100));
     } catch (error) {
       console.error("Error changing filter:", error);
-      // Fallback to "all" if there's an error
-      setDocumentTypeFilter("all");
+      setDocumentTypeFilter("all"); // Fallback para "all" em caso de erro
+    } finally {
+      setIsFilterLoading(false);
     }
   };
 
@@ -383,7 +389,8 @@ const ManageBudgets = () => {
         .includes(searchTerm.toLowerCase())
   );
 
-  if (isLoading) {
+  // Adiciona verificação de loading para o filtro
+  if (isLoading || isFilterLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
@@ -477,6 +484,7 @@ const ManageBudgets = () => {
             <div className="flex gap-2">
               <button
                 onClick={() => handleFilterChange("all")}
+                disabled={isFilterLoading}
                 className={`p-2 rounded-lg flex items-center ${
                   documentTypeFilter === "all"
                     ? "bg-[#117d49] text-white"
@@ -487,6 +495,7 @@ const ManageBudgets = () => {
               </button>
               <button
                 onClick={() => handleFilterChange("budget")}
+                disabled={isFilterLoading}
                 className={`p-2 rounded-lg flex items-center ${
                   documentTypeFilter === "budget"
                     ? "bg-[#117d49] text-white"
@@ -497,6 +506,7 @@ const ManageBudgets = () => {
               </button>
               <button
                 onClick={() => handleFilterChange("expense")}
+                disabled={isFilterLoading}
                 className={`p-2 rounded-lg flex items-center ${
                   documentTypeFilter === "expense"
                     ? "bg-[#117d49] text-white"
