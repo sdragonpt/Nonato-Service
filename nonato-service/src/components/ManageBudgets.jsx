@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import generateSimpleBudgetPDF from "./generateSimpleBudgetPDF";
 import { Filesystem, Directory } from "@capacitor/filesystem";
+import { FileOpener } from "@capacitor-community/file-opener";
 import {
   collection,
   getDocs,
@@ -301,34 +302,31 @@ const ManageBudgets = () => {
       const isMobile = window?.Capacitor?.isNative;
 
       if (isMobile) {
-        // Código para dispositivos móveis
         try {
-          // Converter o Blob para Base64
           const base64Data = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onloadend = () => resolve(reader.result.split(",")[1]);
             reader.onerror = reject;
-            reader.readAsDataURL(pdfBlob);
+            reader.readAsDataURL(pdfBlob); // Era pdfData, agora é pdfBlob
           });
 
           // Salvar o arquivo usando o Filesystem do Capacitor
-          const savedFile = await Filesystem.writeFile({
+          await Filesystem.writeFile({
             path: fileName,
-            data: base64Data,
+            data: base64Data, // Usando base64Data aqui
             directory: Directory.Documents,
             recursive: true,
           });
 
-          // Abrir o arquivo
-          const openResult = await Filesystem.getUri({
+          const { uri } = await Filesystem.getUri({
             directory: Directory.Documents,
             path: fileName,
           });
 
-          if (openResult.uri) {
-            // Abrir com o visualizador nativo do dispositivo
-            window.open(openResult.uri, "_system");
-          }
+          await FileOpener.open({
+            filePath: uri,
+            contentType: "application/pdf",
+          });
         } catch (error) {
           console.error("Erro ao salvar/abrir arquivo no dispositivo:", error);
           throw error;

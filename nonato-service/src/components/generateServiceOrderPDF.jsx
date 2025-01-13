@@ -5,7 +5,8 @@ const generateServiceOrderPDF = async (
   order,
   client,
   equipment,
-  workdays
+  workdays,
+  fileName
 ) => {
   const pdfDoc = await PDFDocument.create();
   let currentPage = null;
@@ -734,11 +735,13 @@ const generateServiceOrderPDF = async (
 
   // Salvar e fazer download do PDF
   const pdfBytes = await pdfDoc.save();
-  const blob = new Blob([pdfBytes], { type: "application/pdf" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `Ordem_Servico_${client.name}_${orderIdForPDF}.pdf`;
-  link.click();
+  return { blob: new Blob([pdfBytes], { type: "application/pdf" }), fileName };
+  // const pdfBytes = await pdfDoc.save();
+  // const blob = new Blob([pdfBytes], { type: "application/pdf" });
+  // const link = document.createElement("a");
+  // link.href = URL.createObjectURL(blob);
+  // link.download = `Ordem_Servico_${client.name}_${orderIdForPDF}.pdf`;
+  // link.click();
 };
 
 // Funções auxiliares de cálculo

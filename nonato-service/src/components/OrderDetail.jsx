@@ -12,6 +12,8 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 import generateServiceOrderPDF from "./generateServiceOrderPDF.jsx";
+import { Filesystem, Directory } from "@capacitor/filesystem";
+import { FileOpener } from "@capacitor-community/file-opener";
 import {
   ArrowLeft,
   Loader2,
@@ -211,17 +213,92 @@ const OrderDetail = () => {
       setIsGeneratingPDF(true);
       setError(null);
 
-      // Remove a lógica de verificação de condições, pois agora temos apenas um gerador de PDF
-      await generateServiceOrderPDF(
+      // Formatar os dados para o PDF
+      const formattedData = {
         orderId,
-        order,
-        client,
-        equipment,
-        workdays
-      );
+        orderNumber: order.orderNumber || orderId,
+        clientData: {
+          name: client?.name || "",
+          phone: client?.phone || "",
+          address: client?.address || "",
+        },
+        equipmentData: {
+          brand: equipment?.brand || "",
+          model: equipment?.model || "",
+        },
+        services: order.services || [],
+        workdays: workdays || [],
+        date: order.date,
+        serviceType: order.serviceType || "",
+        status: order.status || "",
+      };
+
+      const fileName = `OrdemServico_${
+        client?.name || "Cliente"
+      }_${orderId}.pdf`;
+
+      const { blob: pdfBlob, fileName: pdfFileName } =
+        await generateServiceOrderPDF(
+          orderId,
+          formattedData,
+          client,
+          equipment,
+          workdays,
+          fileName
+        );
+
+      // const fileName = `OrdemServico_${
+      //   client?.name || "Cliente"
+      // }_${orderId}.pdf`;
+      const isMobile = window?.Capacitor?.isNative;
+
+      if (isMobile) {
+        try {
+          // Converter o Blob para Base64
+          const base64Data = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(",")[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(pdfBlob);
+          });
+
+          // Salvar o arquivo usando o Filesystem do Capacitor
+          await Filesystem.writeFile({
+            path: pdfFileName,
+            data: base64Data,
+            directory: Directory.Documents,
+            recursive: true,
+          });
+
+          // Obter o URI do arquivo e abrir com FileOpener
+          const { uri } = await Filesystem.getUri({
+            directory: Directory.Documents,
+            path: fileName,
+          });
+
+          await FileOpener.open({
+            filePath: uri,
+            contentType: "application/pdf",
+          });
+        } catch (error) {
+          console.error("Erro ao salvar/abrir arquivo no dispositivo:", error);
+          throw error;
+        }
+      } else {
+        // Código para web - fazer download do arquivo
+        const url = URL.createObjectURL(pdfBlob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = pdfFileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
     } catch (err) {
       console.error("Erro ao gerar PDF:", err);
       setError("Erro ao gerar PDF. Por favor, tente novamente.");
+      navigate(-1);
     } finally {
       setIsGeneratingPDF(false);
     }

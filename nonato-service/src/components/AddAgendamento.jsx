@@ -23,6 +23,7 @@ const AddAgendamento = () => {
   const [error, setError] = useState(null);
   const [equipments, setEquipments] = useState([]);
   const [filteredEquipments, setFilteredEquipments] = useState([]);
+  const [isDateLoading, setIsDateLoading] = useState(false);
 
   // Array de datas selecionadas
   const [selectedDates, setSelectedDates] = useState([""]);
@@ -102,10 +103,19 @@ const AddAgendamento = () => {
     setSelectedDates([...selectedDates, ""]);
   };
 
-  const removeDate = (index) => {
+  const removeDate = async (index) => {
     if (selectedDates.length > 1) {
-      const newDates = selectedDates.filter((_, i) => i !== index);
-      setSelectedDates(newDates);
+      try {
+        setIsDateLoading(true);
+        const newDates = selectedDates.filter((_, i) => i !== index);
+        setSelectedDates(newDates);
+        // Pequeno delay para garantir que o DOM foi atualizado
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error("Erro ao remover data:", error);
+      } finally {
+        setIsDateLoading(false);
+      }
     }
   };
 
@@ -135,7 +145,7 @@ const AddAgendamento = () => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || isDateLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
