@@ -639,15 +639,34 @@ const generateServiceOrderPDF = async (
     // Pontos em aberto
     yPos -= 60;
     currentPage.drawText("Pontos em Aberto:", {
-      x: 50,
-      y: yPos,
+      x: 55,
+      y: yPos + 7,
       size: fontSize,
-      font: boldFont,
+      font: font,
     });
-    currentPage.drawText(safeText(order.openPoints), {
+
+    currentPage.drawRectangle({
+      x: 150,
+      y: yPos - 10,
+      width: 396,
+      height: boxHeight,
+      borderColor: rgb(0, 0, 0),
+      color: rgb(0.9, 0.9, 0.9),
+    });
+
+    currentPage.drawRectangle({
       x: 50,
-      y: yPos - 20,
-      size: fontSize,
+      y: yPos - 10,
+      width: 496,
+      height: boxHeight,
+      borderColor: rgb(0, 0, 0),
+      borderWidth: 1,
+    });
+
+    currentPage.drawText(safeText(order.pontosEmAberto), {
+      x: 160,
+      y: yPos + 8,
+      size: 8,
       font: font,
     });
   };

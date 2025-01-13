@@ -444,11 +444,13 @@ const AddBudget = () => {
                     className="w-full p-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   >
                     <option value="">Selecione um serviço...</option>
-                    {services.map((service) => (
-                      <option key={service.id} value={service.id}>
-                        {service.name} ({getUnitLabel(service.type)})
-                      </option>
-                    ))}
+                    {services
+                      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+                      .map((service) => (
+                        <option key={service.id} value={service.id}>
+                          {service.name} ({getUnitLabel(service.type)})
+                        </option>
+                      ))}
                   </select>
                 </div>
 

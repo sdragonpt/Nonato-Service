@@ -47,6 +47,7 @@ const EditOrder = () => {
     producao: false,
     pecas: false,
     resultDescription: "",
+    pontosEmAberto: "", // novo campo
   });
 
   const [clients, setClients] = useState([]);
@@ -96,6 +97,7 @@ const EditOrder = () => {
           producao: orderData.producao || false,
           pecas: orderData.pecas || false,
           resultDescription: orderData.resultDescription || "",
+          pontosEmAberto: orderData.pontosEmAberto || "", // novo campo
         });
 
         // Processar clientes e equipamentos
@@ -444,6 +446,21 @@ const EditOrder = () => {
               value={checklist.resultDescription}
               onChange={handleChecklistChange}
               placeholder="Adicione notas ou observações importantes"
+              rows="4"
+              className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+            />
+          </div>
+
+          {/* Nova seção de Pontos em Aberto */}
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Pontos em Aberto
+            </label>
+            <textarea
+              name="pontosEmAberto"
+              value={checklist.pontosEmAberto}
+              onChange={handleChecklistChange}
+              placeholder="Descreva os pontos que ainda precisam ser resolvidos"
               rows="4"
               className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
             />

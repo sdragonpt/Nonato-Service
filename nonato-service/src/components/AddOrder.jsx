@@ -59,6 +59,7 @@ const AddOrder = () => {
     producao: false,
     pecas: false,
     resultDescription: "",
+    pontosEmAberto: "", // novo campo
   });
 
   useEffect(() => {
@@ -423,6 +424,21 @@ const AddOrder = () => {
               onChange={handleChecklistChange}
               rows="4"
               placeholder="Adicione notas ou observações importantes"
+              className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+            />
+          </div>
+
+          {/* Nova seção de Pontos em Aberto */}
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Pontos em Aberto
+            </label>
+            <textarea
+              name="pontosEmAberto"
+              value={checklist.pontosEmAberto}
+              onChange={handleChecklistChange}
+              rows="4"
+              placeholder="Descreva os pontos que ainda precisam ser resolvidos"
               className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
             />
           </div>

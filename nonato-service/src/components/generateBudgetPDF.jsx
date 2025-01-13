@@ -24,6 +24,10 @@ const generateBudgetPDF = async (
   const pageWidth = currentPage.getWidth() - 2 * margin;
   const minBottomMargin = 70;
 
+  function getTotalWidth(columns) {
+    return columns.reduce((total, col) => total + col.width, 0);
+  }
+
   // Configurações do logo
   const imgWidth = 100;
   const textStartX = margin + imgWidth + 20; // Texto começa 20 pontos após a imagem
@@ -105,17 +109,17 @@ const generateBudgetPDF = async (
     size: titleSize,
     useFont: boldFont,
   });
-  y -= 25;
+  y -= 20;
 
   writeText("nonato.service@gmail.com", {
     x: textStartX,
   });
-  y -= 20;
+  y -= 15;
 
   writeText("+351 911 115 479", {
     x: textStartX,
   });
-  y -= 20;
+  y -= 35;
 
   // Data à direita
   const currentDate = new Date().toLocaleDateString();
@@ -250,6 +254,14 @@ const generateBudgetPDF = async (
         columns[3].width,
       width: columns[4].width,
       align: "right",
+    });
+
+    // Desenha a linha abaixo do serviço
+    currentPage.drawLine({
+      start: { x: initialX, y: y - 10 },
+      end: { x: initialX + getTotalWidth(columns), y: y - 10 },
+      thickness: 0.5,
+      color: rgb(0.8, 0.8, 0.8), // Cinza claro
     });
 
     y -= 30;

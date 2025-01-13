@@ -19,6 +19,10 @@ const generateSimpleBudgetPDF = async (budget) => {
   const pageWidth = currentPage.getWidth() - 2 * margin;
   const minBottomMargin = 70;
 
+  function getTotalWidth(columns) {
+    return columns.reduce((total, col) => total + col.width, 0);
+  }
+
   // Função auxiliar para obter o rótulo da unidade
   const getUnitLabel = (type) => {
     const types = {
@@ -110,17 +114,17 @@ const generateSimpleBudgetPDF = async (budget) => {
     size: titleSize,
     useFont: boldFont,
   });
-  y -= 25;
+  y -= 20;
 
   writeText("nonato.service@gmail.com", {
     x: textStartX,
   });
-  y -= 20;
+  y -= 15;
 
   writeText("+351 911 115 479", {
     x: textStartX,
   });
-  y -= 20;
+  y -= 35;
 
   // Data à direita
   const currentDate = new Date().toLocaleDateString();
@@ -247,6 +251,14 @@ const generateSimpleBudgetPDF = async (budget) => {
         columns[3].width,
       width: columns[4].width,
       align: "right",
+    });
+
+    // Desenha a linha abaixo do serviço
+    currentPage.drawLine({
+      start: { x: initialX, y: y - 10 },
+      end: { x: initialX + getTotalWidth(columns), y: y - 10 },
+      thickness: 0.5,
+      color: rgb(0.8, 0.8, 0.8), // Cinza claro
     });
 
     y -= 30;
