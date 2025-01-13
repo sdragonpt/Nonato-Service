@@ -357,8 +357,10 @@ const generateServiceOrderPDF = async (
   // Desenhar cabeçalho da tabela
   yPos = drawTableHeader();
 
+  const sortedWorkdays = [...workdays].sort((a, b) => a.workDate - b.workDate);
+
   // Desenhar linhas da tabela
-  workdays.forEach((workday) => {
+  sortedWorkdays.forEach((workday) => {
     if (checkAndCreateNewPage(40)) {
       drawPageHeader();
       yPos = drawTableHeader();
@@ -390,7 +392,7 @@ const generateServiceOrderPDF = async (
     });
 
     // Desenhar cada descrição
-    workdays.forEach((day) => {
+    sortedWorkdays.forEach((day) => {
       const description = safeText(day.description);
       if (
         description.trim() !== "" &&

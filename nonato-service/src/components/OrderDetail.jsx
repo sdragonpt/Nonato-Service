@@ -335,9 +335,7 @@ const OrderDetail = () => {
               )}
               Fechar Ordem
             </button>
-          </>
-        ) : (
-          <>
+
             <button
               onClick={handleGeneratePDF}
               disabled={isGeneratingPDF}
@@ -351,6 +349,19 @@ const OrderDetail = () => {
               Gerar PDF
             </button>
           </>
+        ) : (
+          <button
+            onClick={handleGeneratePDF}
+            disabled={isGeneratingPDF}
+            className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50"
+          >
+            {isGeneratingPDF ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <FileText className="w-4 h-4 mr-2" />
+            )}
+            Gerar PDF
+          </button>
         )}
 
         <button
