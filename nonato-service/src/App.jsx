@@ -51,6 +51,7 @@ import EditService from "./components/EditService"; // Novo import
 import AddBudget from "./components/AddBudget";
 import ManageBudgets from "./components/ManageBudgets";
 import AddSimpleBudget from "./components/AddSimpleBudget";
+import ErrorBoundary from "./ErrorBoundary";
 
 // Configuração das rotas e navegação
 const NAVIGATION_ITEMS = [
