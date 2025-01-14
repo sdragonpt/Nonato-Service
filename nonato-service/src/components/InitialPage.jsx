@@ -12,7 +12,7 @@ const InitialPage = () => {
         className="absolute inset-0"
         initial={{ scale: 1.1, opacity: 0 }}
         animate={{ scale: 1, opacity: 0.6 }}
-        transition={{ duration: 1.5 }}
+        transition={{ duration: 2, delay: 0.5 }}
         style={{
           backgroundImage: "url('/background3.png')",
           backgroundPosition: "center",
@@ -27,13 +27,13 @@ const InitialPage = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 1, delay: 1 }}
           className="flex flex-col items-center"
         >
           <motion.h1
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 1.2, duration: 1 }}
             className="text-4xl md:text-5xl font-bold text-white mb-8 text-center"
           >
             Bem-vindo à Nonato Service
@@ -55,7 +55,7 @@ const InitialPage = () => {
         className="absolute bottom-8 text-gray-400 text-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
+        transition={{ delay: 1.5, duration: 1 }}
       >
         <p className="text-sm">
           © 2025 Nonato Service. Todos os direitos reservados.
