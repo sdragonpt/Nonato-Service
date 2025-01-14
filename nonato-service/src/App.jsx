@@ -21,6 +21,7 @@ import {
   X,
   Calendar,
   FileText,
+  ClipboardCheck,
 } from "lucide-react";
 
 // Componentes
@@ -52,6 +53,11 @@ import AddBudget from "./components/AddBudget";
 import ManageBudgets from "./components/ManageBudgets";
 import AddSimpleBudget from "./components/AddSimpleBudget";
 import ErrorBoundary from "./ErrorBoundary";
+import ManageChecklist from "./components/ManageCheckList";
+import AddChecklistType from "./components/AddChecklistType";
+import EditChecklistType from "./components/EditCheckListType"; // Use consistentemente este formato
+import ManageInspection from "./components/ManageInspection";
+import AddInspection from "./components/AddInspection";
 
 // Configuração das rotas e navegação
 const NAVIGATION_ITEMS = [
@@ -76,6 +82,11 @@ const NAVIGATION_ITEMS = [
       { path: "/app/manage-agenda", icon: Calendar, label: "Agenda" },
       { path: "/app/manage-report", icon: BarChart, label: "Relatório" },
       { path: "/app/manage-checklist", icon: CheckSquare, label: "Check List" },
+      {
+        path: "/app/manage-inspection",
+        icon: ClipboardCheck,
+        label: "Inspeções",
+      },
     ],
   },
 ];
@@ -320,6 +331,26 @@ const App = () => {
                       <Route
                         path="add-simple-budget"
                         element={<AddSimpleBudget />}
+                      />
+                      <Route
+                        path="manage-checklist"
+                        element={<ManageChecklist />}
+                      />
+                      <Route
+                        path="add-checklist-type"
+                        element={<AddChecklistType />}
+                      />
+                      <Route
+                        path="edit-checklist-type/:typeId"
+                        element={<EditChecklistType />}
+                      />
+                      <Route
+                        path="manage-inspection"
+                        element={<ManageInspection />}
+                      />
+                      <Route
+                        path="add-inspection"
+                        element={<AddInspection />}
                       />
                     </Routes>
                   </div>
