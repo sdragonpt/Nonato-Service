@@ -10,6 +10,9 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 import { useNavigate } from "react-router-dom";
+import { Filesystem, Directory } from "@capacitor/filesystem";
+import { FileOpener } from "@capacitor-community/file-opener";
+import generateInspectionPDF from "./generateInspectionPDF";
 import {
   Search,
   Plus,
@@ -22,6 +25,7 @@ import {
   User,
   Package,
   CheckSquare,
+  FileText, // Adicione esta linha
 } from "lucide-react";
 
 const ManageInspection = () => {
@@ -30,6 +34,7 @@ const ManageInspection = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeMenu, setActiveMenu] = useState(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -130,6 +135,161 @@ const ManageInspection = () => {
       inspection.checklistType.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const formatDate = (timestamp) => {
+    if (!timestamp) return "";
+    const date = timestamp.toDate();
+    return new Intl.DateTimeFormat("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  };
+
+  // Adicione a função handleGeneratePDF aqui
+  const handleGeneratePDF = async (inspection) => {
+    try {
+      setIsGeneratingPDF(true);
+      setError(null);
+
+      // Fetch related data
+      const [clientDoc, equipmentDoc, checklistDoc] = await Promise.all([
+        getDoc(doc(db, "clientes", inspection.clientId)),
+        getDoc(doc(db, "equipamentos", inspection.equipmentId)),
+        getDoc(doc(db, "checklist_machines", inspection.checklistTypeId)),
+      ]);
+
+      // Verificar se todos os documentos existem
+      if (!clientDoc.exists()) {
+        throw new Error("Cliente não encontrado");
+      }
+      if (!equipmentDoc.exists()) {
+        throw new Error("Equipamento não encontrado");
+      }
+      if (!checklistDoc.exists()) {
+        throw new Error("Tipo de checklist não encontrado");
+      }
+
+      const client = { id: clientDoc.id, ...clientDoc.data() };
+      const equipment = { id: equipmentDoc.id, ...equipmentDoc.data() };
+      const checklistType = { id: checklistDoc.id, ...checklistDoc.data() };
+
+      // Verificar dados obrigatórios
+      if (!client.name) {
+        throw new Error("Nome do cliente não encontrado");
+      }
+
+      const pdfBlob = await generateInspectionPDF(
+        {
+          id: inspection.id,
+          date: inspection.createdAt,
+          characteristics: inspection.characteristics || [],
+          status: inspection.status,
+          ...inspection,
+        },
+        {
+          name: client.name,
+          address: client.address || "N/A",
+          phone: client.phone || "N/A",
+          ...client,
+        },
+        {
+          type: equipment.type || "N/A",
+          brand: equipment.brand || "N/A",
+          model: equipment.model || "N/A",
+          serialNumber: equipment.serialNumber || "N/A",
+          ...equipment,
+        },
+        {
+          type: checklistType.type,
+          characteristics: checklistType.characteristics || [],
+          ...checklistType,
+        }
+      );
+
+      // Criar nome do arquivo (remover caracteres especiais)
+      const sanitizedClientName = client.name.replace(/[^a-z0-9]/gi, "_");
+      const fileName = `Checklist_${sanitizedClientName}_${inspection.id}.pdf`;
+
+      // Verificar se estamos em um dispositivo móvel
+      const isMobile = window?.Capacitor?.isNative;
+
+      if (isMobile) {
+        try {
+          // Converter o Blob para Base64
+          const base64Data = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(",")[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(pdfBlob);
+          });
+
+          // Salvar o arquivo usando o Filesystem do Capacitor
+          await Filesystem.writeFile({
+            path: fileName,
+            data: base64Data,
+            directory: Directory.Documents,
+            recursive: true,
+          });
+
+          // Obter o URI do arquivo
+          const { uri } = await Filesystem.getUri({
+            directory: Directory.Documents,
+            path: fileName,
+          });
+
+          // Abrir o arquivo com FileOpener
+          await FileOpener.open({
+            filePath: uri,
+            contentType: "application/pdf",
+          });
+        } catch (error) {
+          console.error(
+            "Erro ao processar arquivo no dispositivo móvel:",
+            error
+          );
+          throw new Error("Erro ao gerar/abrir PDF no dispositivo móvel");
+        }
+      } else {
+        try {
+          // Download para web
+          const url = URL.createObjectURL(pdfBlob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        } catch (error) {
+          console.error("Erro ao fazer download do PDF:", error);
+          throw new Error("Erro ao fazer download do PDF");
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      let errorMessage = "Erro ao gerar PDF. Por favor, tente novamente.";
+
+      // Personalizar mensagens de erro específicas
+      if (error.message.includes("Cliente não encontrado")) {
+        errorMessage = "Não foi possível encontrar os dados do cliente.";
+      } else if (error.message.includes("Equipamento não encontrado")) {
+        errorMessage = "Não foi possível encontrar os dados do equipamento.";
+      } else if (error.message.includes("Tipo de checklist não encontrado")) {
+        errorMessage = "Não foi possível encontrar o tipo de checklist.";
+      } else if (error.message.includes("dispositivo móvel")) {
+        errorMessage =
+          "Erro ao gerar PDF no dispositivo móvel. Verifique as permissões de arquivo.";
+      }
+
+      setError(errorMessage);
+    } finally {
+      setIsGeneratingPDF(false);
+      setActiveMenu(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -183,9 +343,14 @@ const ManageInspection = () => {
                   <ClipboardCheck className="w-6 h-6 text-white" />
                 </div>
                 <div className="min-w-0 flex-grow">
-                  <h3 className="font-semibold text-white truncate">
-                    {inspection.clientName}
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-white truncate">
+                      {inspection.clientName}
+                    </h3>
+                    <span className="text-xs text-gray-400 ml-2">
+                      {formatDate(inspection.createdAt)}
+                    </span>
+                  </div>
                   <div className="flex flex-col text-sm text-gray-400">
                     <div className="flex items-center">
                       <Package className="w-4 h-4 mr-1" />
@@ -215,6 +380,26 @@ const ManageInspection = () => {
                   className="absolute right-0 top-full mt-2 w-48 bg-gray-800 rounded-lg shadow-lg z-50 py-1 border border-gray-700"
                   onClick={(e) => e.stopPropagation()}
                 >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleGeneratePDF(inspection);
+                    }}
+                    className="w-full px-4 py-2 text-left text-white hover:bg-gray-700 flex items-center"
+                    disabled={isGeneratingPDF}
+                  >
+                    {isGeneratingPDF ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Gerando...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-4 h-4 mr-2" />
+                        Gerar PDF
+                      </>
+                    )}
+                  </button>
                   <button
                     onClick={(e) =>
                       navigate(`/app/edit-inspection/${inspection.id}`)

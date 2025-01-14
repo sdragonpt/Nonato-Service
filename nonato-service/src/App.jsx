@@ -58,6 +58,8 @@ import AddChecklistType from "./components/AddChecklistType";
 import EditChecklistType from "./components/EditCheckListType"; // Use consistentemente este formato
 import ManageInspection from "./components/ManageInspection";
 import AddInspection from "./components/AddInspection";
+import EditInspection from "./components/EditInspection";
+import InspectionDetail from "./components/InspectionDetail";
 
 // Configuração das rotas e navegação
 const NAVIGATION_ITEMS = [
@@ -351,6 +353,14 @@ const App = () => {
                       <Route
                         path="add-inspection"
                         element={<AddInspection />}
+                      />
+                      <Route
+                        path="edit-inspection/:inspectionId"
+                        element={<EditInspection />}
+                      />
+                      <Route
+                        path="inspection-detail/:inspectionId"
+                        element={<InspectionDetail />}
                       />
                     </Routes>
                   </div>
