@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import generateSimpleBudgetPDF from "./generateSimpleBudgetPDF";
+import generateBudgetPDF from "./generateBudgetPDF";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { FileOpener } from "@capacitor-community/file-opener";
 import {
@@ -259,61 +260,89 @@ const ManageBudgets = () => {
     try {
       setIsGeneratingPDF(true);
 
-      // Formatar os serviços considerando ambas as estruturas
-      const formattedServices = budget.services.map((service) => {
-        const value = parseFloat(service.value || 0);
-        const quantity = parseFloat(service.quantity || 1);
-        return {
-          name: service.name || "",
-          type: service.type || "un",
-          value: value,
-          quantity: quantity,
-          total: value * quantity,
-        };
-      });
-
-      const formattedBudget = {
-        ...budget,
-        budgetNumber: budget.budgetNumber || "",
-        clientData: {
-          name: budget.clientData?.name || "",
-          phone: budget.clientData?.phone || "",
-          address: budget.clientData?.address || "",
-        },
-        services: formattedServices,
-        total: formattedServices.reduce(
-          (acc, service) => acc + service.total,
-          0
-        ),
-        createdAt: budget.createdAt || new Date(),
-        isExpense: budget.isExpense || false,
-      };
-
-      const pdfBlob = await generateSimpleBudgetPDF(formattedBudget);
-
-      // Criar o nome do arquivo
-      const fileName = `${
-        formattedBudget.isExpense ? "Despesa" : "Orçamento"
-      }_${formattedBudget.clientData?.name}_${
-        formattedBudget.budgetNumber
-      }.pdf`;
-
-      // Verificar se estamos em um dispositivo móvel
+      // Define mobile environment first
       const isMobile = window?.Capacitor?.isNative;
 
+      // Determine if this is a regular budget (with registration) or simple budget
+      const isRegularBudget = Boolean(budget.clientId);
+      let pdfBlob;
+
+      if (isRegularBudget) {
+        // Handle regular budget (com cadastro)
+        const formattedServices = budget.services.map((service) => ({
+          ...service,
+          value: parseFloat(service.value || 0),
+          quantity: parseFloat(service.quantity || 1),
+          total:
+            parseFloat(service.value || 0) * parseFloat(service.quantity || 1),
+        }));
+
+        const clientData = {
+          name: clientNames[budget.clientId] || "Cliente não encontrado",
+        };
+
+        pdfBlob = await generateBudgetPDF(
+          budget,
+          clientData,
+          formattedServices,
+          budget.orderNumber
+        );
+
+        if (!isMobile || !pdfBlob) {
+          return;
+        }
+      } else {
+        // Handle simple budget (sem cadastro)
+        const formattedServices = budget.services.map((service) => ({
+          name: service.name || "",
+          type: service.type || "un",
+          value: parseFloat(service.value || 0),
+          quantity: parseFloat(service.quantity || 1),
+          total:
+            parseFloat(service.value || 0) * parseFloat(service.quantity || 1),
+        }));
+
+        const formattedBudget = {
+          ...budget,
+          budgetNumber: budget.budgetNumber || "",
+          clientData: {
+            name: budget.clientData?.name || "",
+            phone: budget.clientData?.phone || "",
+            address: budget.clientData?.address || "",
+          },
+          services: formattedServices,
+          total: formattedServices.reduce(
+            (acc, service) => acc + service.total,
+            0
+          ),
+          createdAt: budget.createdAt || new Date(),
+          isExpense: budget.isExpense || false,
+        };
+
+        pdfBlob = await generateSimpleBudgetPDF(formattedBudget);
+      }
+
+      // Handle file saving/opening based on platform
       if (isMobile) {
         try {
           const base64Data = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onloadend = () => resolve(reader.result.split(",")[1]);
             reader.onerror = reject;
-            reader.readAsDataURL(pdfBlob); // Era pdfData, agora é pdfBlob
+            reader.readAsDataURL(pdfBlob);
           });
 
-          // Salvar o arquivo usando o Filesystem do Capacitor
+          const fileName = isRegularBudget
+            ? `Fechamento_${clientNames[budget.clientId]}_${
+                budget.orderNumber
+              }.pdf`
+            : `${budget.isExpense ? "Despesa" : "Orçamento"}_${
+                budget.clientData?.name
+              }_${budget.budgetNumber}.pdf`;
+
           await Filesystem.writeFile({
             path: fileName,
-            data: base64Data, // Usando base64Data aqui
+            data: base64Data,
             directory: Directory.Documents,
             recursive: true,
           });
@@ -328,14 +357,21 @@ const ManageBudgets = () => {
             contentType: "application/pdf",
           });
         } catch (error) {
-          console.error("Erro ao salvar/abrir arquivo no dispositivo:", error);
+          console.error("Error saving/opening file on device:", error);
           throw error;
         }
       } else {
-        // Código para web - fazer download do arquivo
+        // Web download handling
         const url = URL.createObjectURL(pdfBlob);
         const link = document.createElement("a");
         link.href = url;
+        const fileName = isRegularBudget
+          ? `Fechamento_${clientNames[budget.clientId]}_${
+              budget.orderNumber
+            }.pdf`
+          : `${budget.isExpense ? "Despesa" : "Orçamento"}_${
+              budget.clientData?.name
+            }_${budget.budgetNumber}.pdf`;
         link.download = fileName;
         document.body.appendChild(link);
         link.click();
@@ -344,7 +380,7 @@ const ManageBudgets = () => {
       }
     } catch (error) {
       setError("Erro ao gerar PDF. Por favor, tente novamente.");
-      console.error("Erro ao gerar PDF:", error);
+      console.error("Error generating PDF:", error);
     } finally {
       setIsGeneratingPDF(false);
     }

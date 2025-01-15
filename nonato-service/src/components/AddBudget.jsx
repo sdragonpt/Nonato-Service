@@ -22,6 +22,7 @@ import {
   Euro,
 } from "lucide-react";
 import generateBudgetPDF from "./generateBudgetPDF.jsx";
+import ServiceInput from "./ServiceInput"; // Novo import
 
 const AddBudget = () => {
   const navigate = useNavigate();
@@ -201,32 +202,14 @@ const AddBudget = () => {
     fetchOrderTotals();
   }, [selectedOrder]);
 
-  const handleAddService = () => {
-    if (!selectedServiceId || serviceValue === "" || serviceQuantity === "")
-      return;
+  const handleAddService = (serviceData) => {
+    if (!serviceData) return;
 
-    const serviceToAdd = services.find((s) => s.id === selectedServiceId);
-    if (!serviceToAdd) return;
+    // Adiciona o serviço com os dados recebidos do ServiceInput
+    setSelectedServices((prev) => [...prev, serviceData]);
 
-    const quantity = parseFloat(serviceQuantity) || 0;
-    const value = parseFloat(serviceValue) || 0;
-
-    setSelectedServices((prev) => [
-      ...prev,
-      {
-        id: serviceToAdd.id,
-        name: serviceToAdd.name,
-        type: serviceToAdd.type,
-        value: value,
-        quantity: quantity,
-        total: value * quantity,
-      },
-    ]);
-
-    // Reset form
+    // Reset do serviço selecionado
     setSelectedServiceId("");
-    setServiceValue("");
-    setServiceQuantity("");
   };
 
   // Função auxiliar para obter o rótulo da unidade
@@ -249,17 +232,12 @@ const AddBudget = () => {
     try {
       setIsGeneratingPDF(true);
 
-      // Gerar número do orçamento (MMYY-XXX)
       const now = new Date();
       const month = String(now.getMonth() + 1).padStart(2, "0");
       const year = String(now.getFullYear()).slice(-2);
-      const randomNum = String(Math.floor(Math.random() * 999)).padStart(
-        3,
-        "0"
-      );
       const orderNumber = `${month}${year}-${order.id}`;
 
-      // Gerar o PDF
+      // Passar os serviços com detalhes dos valores múltiplos
       await generateBudgetPDF(
         selectedOrder,
         selectedClient,
@@ -267,18 +245,16 @@ const AddBudget = () => {
         orderNumber
       );
 
-      // Salvar o orçamento no Firestore
       const orcamentosRef = collection(db, "orcamentos");
       await addDoc(orcamentosRef, {
         orderNumber,
         clientId: selectedClient.id,
         orderId: selectedOrder.id,
-        services: selectedServices,
+        services: selectedServices, // Agora inclui informação sobre valores múltiplos
         total: selectedServices.reduce((acc, curr) => acc + curr.total, 0),
         createdAt: new Date(),
       });
 
-      // Navegar para a lista de orçamentos
       navigate("/app/manage-budgets");
     } catch (error) {
       setError("Erro ao gerar PDF. Por favor, tente novamente.");
@@ -354,7 +330,7 @@ const AddBudget = () => {
                     (o) => o.id === e.target.value
                   );
                   setSelectedOrder(selectedOrder);
-                  setOrder(selectedOrder); // Atualiza o estado order também
+                  setOrder(selectedOrder);
                 }}
                 value={selectedOrder?.id || ""}
               >
@@ -432,78 +408,12 @@ const AddBudget = () => {
               </h3>
             </div>
             <div className="p-6">
-              <div className="grid gap-4">
-                {/* Seleção do Serviço */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Serviço
-                  </label>
-                  <select
-                    value={selectedServiceId}
-                    onChange={(e) => setSelectedServiceId(e.target.value)}
-                    className="w-full p-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="">Selecione um serviço...</option>
-                    {services
-                      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
-                      .map((service) => (
-                        <option key={service.id} value={service.id}>
-                          {service.name} ({getUnitLabel(service.type)})
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Valor Unitário */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
-                      Valor Unitário
-                    </label>
-                    <div className="relative">
-                      <Euro className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="number"
-                        value={serviceValue}
-                        onChange={(e) => setServiceValue(e.target.value)}
-                        className="w-full p-2 pl-10 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                        placeholder="0.00"
-                        step="0.01"
-                        min="0"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Quantidade */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">
-                      Quantidade
-                    </label>
-                    <input
-                      type="number"
-                      value={serviceQuantity}
-                      onChange={(e) => setServiceQuantity(e.target.value)}
-                      className="w-full p-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                      placeholder="0"
-                      step="1"
-                      min="0"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleAddService}
-                  disabled={
-                    !selectedServiceId ||
-                    serviceValue === "" ||
-                    serviceQuantity === ""
-                  }
-                  className="w-full p-2 bg-[#117d49] text-white rounded-lg hover:bg-[#0d6238] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                >
-                  <Plus className="w-5 h-5 mr-2" />
-                  Adicionar Serviço
-                </button>
-              </div>
+              <ServiceInput
+                services={services}
+                selectedServiceId={selectedServiceId}
+                setSelectedServiceId={setSelectedServiceId}
+                onAddService={handleAddService}
+              />
             </div>
           </div>
         )}
@@ -526,10 +436,24 @@ const AddBudget = () => {
                     <div>
                       <p className="text-white font-medium">{service.name}</p>
                       <p className="text-gray-400 text-sm">
-                        {service.value.toFixed(2)}€ x {service.quantity}{" "}
-                        {getUnitLabel(service.type)} ={" "}
-                        {service.total.toFixed(2)}€
+                        {service.multipleEntries
+                          ? // Se for múltiplos valores, mostra o total direto
+                            `Total: ${service.total.toFixed(2)}€`
+                          : // Se for valor único, mostra o cálculo
+                            `${service.value.toFixed(2)}€ x ${
+                              service.quantity
+                            } = ${service.total.toFixed(2)}€`}
                       </p>
+                      {/* Se tiver valores múltiplos, mostra o detalhe */}
+                      {service.multipleEntries && (
+                        <div className="mt-1 text-xs text-gray-400">
+                          {service.multipleEntries.map((entry, idx) => (
+                            <div key={idx}>
+                              Valor {idx + 1}: {entry.value}€ x {entry.quantity}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <button
                       onClick={() => handleRemoveService(service.id)}

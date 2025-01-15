@@ -403,14 +403,23 @@ const generateBudgetPDF = async (
     });
   }
 
-  // Gerar e baixar o PDF
   const pdfBytes = await pdfDoc.save();
   const blob = new Blob([pdfBytes], { type: "application/pdf" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `Fechamento_${client.name}_${orderNumber}.pdf`;
-  link.click();
-  URL.revokeObjectURL(link.href);
+
+  // Verifica se estamos no ambiente mobile
+  const isMobile = window?.Capacitor?.isNative;
+
+  if (isMobile) {
+    // Se for mobile, retorna o blob para ser processado pelo handleViewPDF
+    return blob;
+  } else {
+    // Se for web, faz o download direto como estava antes
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `Fechamento_${client.name}_${orderNumber}.pdf`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
 };
 
 export default generateBudgetPDF;
