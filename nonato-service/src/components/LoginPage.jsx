@@ -34,7 +34,11 @@ const LoginPage = () => {
       setIsLoading(true);
       setError("");
       await signInWithEmailAndPassword(auth, formData.email, formData.password);
-      navigate("/app");
+
+      // Adicione um breve estado de carregamento enquanto navega
+      setTimeout(() => {
+        navigate("/app");
+      }, 500); // Dá tempo para sincronizar o estado
     } catch (err) {
       setError("Falha no login. Verifique suas credenciais.");
       console.error("Erro no login:", err);

@@ -22,6 +22,7 @@ import {
   Calendar,
   FileText,
   ClipboardCheck,
+  Loader2,
 } from "lucide-react";
 
 // Componentes
@@ -207,9 +208,20 @@ const ScrollToTop = () => {
 
 const App = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Adiciona estado de carregamento global
+  const auth = getAuth();
 
   const toggleNavbar = () => setIsOpen(!isOpen);
   const closeNavbar = () => setIsOpen(false);
+
+  useEffect(() => {
+    // Simula carregamento inicial (ex.: autenticação, configurações globais)
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsLoading(false); // Define como carregado após verificar o estado do usuário
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -225,6 +237,15 @@ const App = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
+
+  // Exibe um spinner enquanto está carregando
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="h-12 w-12 animate-spin text-white" />
+      </div>
+    );
+  }
 
   return (
     <Router>
