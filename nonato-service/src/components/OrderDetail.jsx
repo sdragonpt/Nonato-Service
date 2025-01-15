@@ -298,7 +298,6 @@ const OrderDetail = () => {
     } catch (err) {
       console.error("Erro ao gerar PDF:", err);
       setError("Erro ao gerar PDF. Por favor, tente novamente.");
-      navigate(-1);
     } finally {
       setIsGeneratingPDF(false);
     }

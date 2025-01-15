@@ -12,8 +12,8 @@ const generateServiceOrderPDF = async (
   let currentPage = null;
 
   // Configurações gerais
-  const pageWidth = 600;
-  const pageHeight = 900;
+  const pageWidth = 595.28;
+  const pageHeight = 841.89;
   const fontSize = 10;
   const tableFontSize = 8;
   const margin = 50;
@@ -30,16 +30,24 @@ const generateServiceOrderPDF = async (
   );
   const topImage = await pdfDoc.embedPng(topImageBytes);
 
+  const response = await fetch("/nonato2.png");
+  const arrayBuffer = await response.arrayBuffer();
+  const image = await pdfDoc.embedPng(arrayBuffer);
+
   // Função para criar nova página
   const createNewPage = () => {
     currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
     yPos = pageHeight - margin;
 
+    // Calcular dimensões da imagem mantendo proporção
+    const imgWidth = 100;
+    const imgHeight = (imgWidth * image.height) / image.width;
+
     currentPage.drawImage(topImage, {
-      x: 40,
-      y: 790,
-      width: 65,
-      height: 85,
+      x: margin,
+      y: currentPage.getHeight() - margin - 100,
+      width: imgWidth,
+      height: imgHeight,
     });
 
     return currentPage;
@@ -66,9 +74,11 @@ const generateServiceOrderPDF = async (
 
   // Função para desenhar cabeçalho da página
   const drawPageHeader = () => {
+    const topOffset = 50;
+
     // Título
     currentPage.drawText("Relatório de Serviço", {
-      x: 220,
+      x: 170,
       y: pageHeight - 50,
       size: 16,
       color: rgb(0, 0, 0),
@@ -95,7 +105,7 @@ const generateServiceOrderPDF = async (
 
     // Subtítulo
     currentPage.drawText("ASSISTÊNCIA TÉCNICA", {
-      x: 228,
+      x: 170,
       y: pageHeight - 70,
       size: 12,
       color: rgb(0.0667, 0.4902, 0.2863),
@@ -117,12 +127,12 @@ const generateServiceOrderPDF = async (
       x: 40,
       y: 62,
       width: 515,
-      height: 732,
+      height: 638,
       borderColor: rgb(0, 0, 0), // Cor preta para a borda
       borderWidth: 1, // Largura da borda
     });
 
-    yPos = pageHeight - 90;
+    yPos = pageHeight - (topOffset + 80);
   };
 
   // Adiciona número de página em todas as páginas

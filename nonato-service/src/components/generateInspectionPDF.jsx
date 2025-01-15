@@ -87,7 +87,7 @@ const generateInspectionPDF = async (
 
     currentPage.drawImage(image, {
       x: margin,
-      y: currentPage.getHeight() - margin - imgHeight,
+      y: currentPage.getHeight() - margin - 100,
       width: imgWidth,
       height: imgHeight,
     });
