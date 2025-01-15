@@ -40,6 +40,7 @@ const AddBudget = () => {
   const [serviceValue, setServiceValue] = useState("");
   const [serviceQuantity, setServiceQuantity] = useState("");
   const [selectedServices, setSelectedServices] = useState([]);
+  const [totalAmount, setTotalAmount] = useState(0);
 
   // Buscar clientes
   useEffect(() => {
@@ -264,6 +265,15 @@ const AddBudget = () => {
     }
   };
 
+  // Adicionar este useEffect após os outros useEffects:
+  useEffect(() => {
+    const newTotal = selectedServices.reduce(
+      (acc, curr) => acc + curr.total,
+      0
+    );
+    setTotalAmount(newTotal);
+  }, [selectedServices]);
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -465,11 +475,7 @@ const AddBudget = () => {
                 ))}
                 <div className="pt-4 border-t border-gray-700">
                   <p className="text-white text-right font-medium">
-                    Total:{" "}
-                    {selectedServices
-                      .reduce((acc, curr) => acc + curr.total, 0)
-                      .toFixed(2)}
-                    €
+                    Total: {totalAmount.toFixed(2)}€
                   </p>
                 </div>
               </div>

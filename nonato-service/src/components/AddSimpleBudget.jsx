@@ -27,6 +27,7 @@ const AddSimpleBudget = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [totalAmount, setTotalAmount] = useState(0);
 
   // Fetch available services
   useEffect(() => {
@@ -136,6 +137,15 @@ const AddSimpleBudget = () => {
       setIsGeneratingPDF(false);
     }
   };
+
+  // Adicionar este useEffect após os outros useEffects:
+  useEffect(() => {
+    const newTotal = selectedServices.reduce(
+      (acc, curr) => acc + curr.total,
+      0
+    );
+    setTotalAmount(newTotal);
+  }, [selectedServices]);
 
   if (isLoading) {
     return (
@@ -303,11 +313,7 @@ const AddSimpleBudget = () => {
                 ))}
                 <div className="pt-4 border-t border-gray-700">
                   <p className="text-white text-right font-medium">
-                    Total:{" "}
-                    {selectedServices
-                      .reduce((acc, curr) => acc + curr.total, 0)
-                      .toFixed(2)}
-                    €
+                    Total: {totalAmount.toFixed(2)}€
                   </p>
                 </div>
               </div>
