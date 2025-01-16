@@ -21,6 +21,7 @@ import {
   Package,
   CheckSquare,
   Search,
+  ListChecks,
 } from "lucide-react";
 
 const EditInspection = () => {
@@ -31,7 +32,7 @@ const EditInspection = () => {
   const [selectedClient, setSelectedClient] = useState(null);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
-  const [selectedCharacteristics, setSelectedCharacteristics] = useState([]);
+  const [selectedGroups, setSelectedGroups] = useState([]);
 
   // Estados para as listas de dados
   const [clients, setClients] = useState([]);
@@ -44,9 +45,9 @@ const EditInspection = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Buscar dados da inspeção
+  // Carregar dados da inspeção existente
   useEffect(() => {
-    const fetchInspection = async () => {
+    const fetchInspectionData = async () => {
       try {
         setIsLoading(true);
         const inspectionDoc = await getDoc(doc(db, "inspections", id));
@@ -76,7 +77,8 @@ const EditInspection = () => {
         );
         setSelectedType({ id: typeDoc.id, ...typeDoc.data() });
 
-        setSelectedCharacteristics(inspectionData.characteristics || []);
+        // Definir grupos selecionados
+        setSelectedGroups(inspectionData.selectedGroups || []);
       } catch (err) {
         console.error("Erro ao carregar inspeção:", err);
         setError("Erro ao carregar dados da inspeção");
@@ -85,7 +87,7 @@ const EditInspection = () => {
       }
     };
 
-    fetchInspection();
+    fetchInspectionData();
   }, [id]);
 
   // Fetch inicial de clientes
@@ -183,11 +185,11 @@ const EditInspection = () => {
       return;
     }
     if (currentStep === 3 && !selectedType) {
-      setError("Selecione um tipo para continuar");
+      setError("Selecione um tipo de checklist para continuar");
       return;
     }
-    if (currentStep === 4 && selectedCharacteristics.length === 0) {
-      setError("Selecione pelo menos uma característica");
+    if (currentStep === 4 && selectedGroups.length === 0) {
+      setError("Selecione pelo menos um grupo");
       return;
     }
 
@@ -209,7 +211,7 @@ const EditInspection = () => {
         clientId: selectedClient.id,
         equipmentId: selectedEquipment.id,
         checklistTypeId: selectedType.id,
-        characteristics: selectedCharacteristics,
+        selectedGroups: selectedGroups,
         updatedAt: new Date(),
       });
 
@@ -222,12 +224,12 @@ const EditInspection = () => {
     }
   };
 
-  const handleCharacteristicToggle = (characteristic) => {
-    setSelectedCharacteristics((prev) => {
-      if (prev.includes(characteristic)) {
-        return prev.filter((c) => c !== characteristic);
+  const handleGroupToggle = (group) => {
+    setSelectedGroups((prev) => {
+      if (prev.find((g) => g.name === group.name)) {
+        return prev.filter((g) => g.name !== group.name);
       } else {
-        return [...prev, characteristic];
+        return [...prev, group];
       }
     });
   };
@@ -263,7 +265,7 @@ const EditInspection = () => {
                   }`}
                 >
                   <User className="w-5 h-5 mr-3 text-gray-400" />
-                  <span className="text-white">{client.name}</span>
+                  <span className="text-white">{client.name || ""}</span>
                 </div>
               ))}
             </div>
@@ -275,7 +277,9 @@ const EditInspection = () => {
           <div className="space-y-4">
             <div className="p-4 bg-gray-700 rounded-lg">
               <p className="text-sm text-gray-400">Cliente selecionado:</p>
-              <p className="text-white font-medium">{selectedClient.name}</p>
+              <p className="text-white font-medium">
+                {selectedClient?.name || ""}
+              </p>
             </div>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {equipments.map((equipment) => (
@@ -290,9 +294,11 @@ const EditInspection = () => {
                 >
                   <Package className="w-5 h-5 mr-3 text-gray-400" />
                   <div>
-                    <span className="text-white block">{equipment.type}</span>
+                    <span className="text-white block">
+                      {equipment.type || ""}
+                    </span>
                     <span className="text-sm text-gray-400">
-                      {equipment.brand} {equipment.model}
+                      {equipment.brand || ""} {equipment.model || ""}
                     </span>
                   </div>
                 </div>
@@ -306,7 +312,9 @@ const EditInspection = () => {
           <div className="space-y-4">
             <div className="p-4 bg-gray-700 rounded-lg">
               <p className="text-sm text-gray-400">Equipamento selecionado:</p>
-              <p className="text-white font-medium">{selectedEquipment.type}</p>
+              <p className="text-white font-medium">
+                {selectedEquipment?.type || ""}
+              </p>
             </div>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {types.map((type) => (
@@ -321,9 +329,9 @@ const EditInspection = () => {
                 >
                   <CheckSquare className="w-5 h-5 mr-3 text-gray-400" />
                   <div>
-                    <span className="text-white block">{type.type}</span>
+                    <span className="text-white block">{type.type || ""}</span>
                     <span className="text-sm text-gray-400">
-                      {type.characteristics?.length || 0} característica(s)
+                      {type.groups?.length || 0} grupo(s)
                     </span>
                   </div>
                 </div>
@@ -335,34 +343,135 @@ const EditInspection = () => {
       case 4:
         return (
           <div className="space-y-4">
-            <div className="p-4 bg-gray-700 rounded-lg">
-              <p className="text-sm text-gray-400">Tipo selecionado:</p>
-              <p className="text-white font-medium">{selectedType.type}</p>
-            </div>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {selectedType.characteristics.map((characteristic, index) => (
-                <div
-                  key={index}
-                  onClick={() => handleCharacteristicToggle(characteristic)}
-                  className={`p-4 rounded-lg cursor-pointer flex items-center ${
-                    selectedCharacteristics.includes(characteristic)
-                      ? "bg-blue-600"
-                      : "bg-gray-700 hover:bg-gray-600"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedCharacteristics.includes(characteristic)}
-                    onChange={() => {}}
-                    className="mr-3"
-                  />
-                  <span className="text-white">{characteristic}</span>
+            {/* Header do checklist */}
+            <div className="p-4 bg-gray-800 rounded-lg space-y-2">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-gray-400">Checklist selecionado</p>
+                  <h3 className="text-lg text-white font-medium">
+                    {selectedType?.type || ""}
+                  </h3>
                 </div>
-              ))}
+                <div className="bg-blue-500/10 px-3 py-1 rounded-full">
+                  <span className="text-blue-400 text-sm">
+                    {selectedGroups.length} grupo(s) selecionado(s)
+                  </span>
+                </div>
+              </div>
+              <p className="text-sm text-gray-400">
+                Selecione os grupos que deseja incluir nesta inspeção
+              </p>
             </div>
+
+            {/* Lista de grupos */}
+            <div className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto pr-2">
+              {selectedType?.groups?.map((group, index) => {
+                const isSelected = selectedGroups.find(
+                  (g) => g.name === group.name
+                );
+
+                return (
+                  <div
+                    key={index}
+                    className={`bg-gray-800 rounded-lg overflow-hidden transition-all duration-200 ${
+                      isSelected
+                        ? "border border-blue-500/50"
+                        : "hover:bg-gray-700"
+                    }`}
+                  >
+                    {/* Header do grupo */}
+                    <div
+                      onClick={() => handleGroupToggle(group)}
+                      className="p-4 cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-3">
+                          <div
+                            className={`p-2 rounded-lg ${
+                              isSelected ? "bg-blue-500/10" : "bg-gray-700"
+                            }`}
+                          >
+                            <ListChecks
+                              className={`w-5 h-5 ${
+                                isSelected ? "text-blue-400" : "text-gray-400"
+                              }`}
+                            />
+                          </div>
+                          <div>
+                            <h4 className="text-white font-medium">
+                              {group.name}
+                            </h4>
+                            <p className="text-sm text-gray-400">
+                              {group.characteristics?.length || 0}{" "}
+                              característica(s)
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center">
+                          <div
+                            className={`
+                                w-5 h-5 rounded border-2 flex items-center justify-center
+                                transition-all duration-200 cursor-pointer
+                                ${
+                                  isSelected
+                                    ? "bg-blue-500 border-blue-500"
+                                    : "border-gray-500 hover:border-gray-400"
+                                }
+                              `}
+                          >
+                            {isSelected && (
+                              <svg
+                                className="w-3 h-3 text-white"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={3}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Lista de características */}
+                    {isSelected && (
+                      <div className="px-4 pb-4">
+                        <div className="pl-11">
+                          <div className="border-l-2 border-blue-500/20 pl-4 space-y-2">
+                            {group.characteristics?.map((char, charIndex) => (
+                              <div
+                                key={charIndex}
+                                className="text-sm text-gray-300 py-2 px-3 bg-gray-700/50 rounded-lg"
+                              >
+                                {char}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Mensagem quando não há grupos */}
+            {(!selectedType?.groups || selectedType.groups.length === 0) && (
+              <div className="text-center py-8 bg-gray-800 rounded-lg">
+                <ListChecks className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+                <p className="text-gray-400">
+                  Este checklist não possui grupos definidos
+                </p>
+              </div>
+            )}
           </div>
         );
-
       default:
         return null;
     }
@@ -396,9 +505,9 @@ const EditInspection = () => {
                 key={step}
                 className={`w-3 h-3 rounded-full ${
                   step === currentStep
-                    ? "bg-blue-500"
+                    ? "bg-green-500"
                     : step < currentStep
-                    ? "bg-blue-500"
+                    ? "bg-green-600"
                     : "bg-gray-600"
                 }`}
               />
@@ -407,8 +516,8 @@ const EditInspection = () => {
           <span className="text-gray-400">
             {currentStep === 1 && "Selecione o cliente"}
             {currentStep === 2 && "Selecione o equipamento"}
-            {currentStep === 3 && "Selecione o tipo"}
-            {currentStep === 4 && "Selecione as características"}
+            {currentStep === 3 && "Selecione o checklist"}
+            {currentStep === 4 && "Selecione os grupos"}
           </span>
         </div>
       </div>

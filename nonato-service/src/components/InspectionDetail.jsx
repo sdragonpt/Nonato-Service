@@ -10,6 +10,8 @@ import {
   Package,
   CheckSquare,
   Save,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 const InspectionDetail = () => {
@@ -19,7 +21,8 @@ const InspectionDetail = () => {
   const [client, setClient] = useState(null);
   const [equipment, setEquipment] = useState(null);
   const [checklistType, setChecklistType] = useState(null);
-  const [characteristics, setCharacteristics] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [expandedGroups, setExpandedGroups] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -54,17 +57,31 @@ const InspectionDetail = () => {
         const checklistDoc = await getDoc(
           doc(db, "checklist_machines", inspectionData.checklistTypeId)
         );
-        setChecklistType(checklistDoc.data());
+        const checklistData = checklistDoc.data();
+        setChecklistType(checklistData);
 
-        // Inicializar características com estados
-        const characteristicsWithStates = inspectionData.characteristics.map(
-          (char) => ({
+        // Verificar se há grupos selecionados na inspeção
+        const selectedGroups = inspectionData.selectedGroups || [];
+
+        // Inicializar grupos com estados
+        const initialGroups = selectedGroups.map((group) => ({
+          ...group,
+          characteristics: group.characteristics.map((char) => ({
             name: char,
-            state: inspectionData.states?.[char]?.state || "",
-            description: inspectionData.states?.[char]?.description || "",
-          })
-        );
-        setCharacteristics(characteristicsWithStates);
+            state: inspectionData.states?.[group.name]?.[char]?.state || "",
+            description:
+              inspectionData.states?.[group.name]?.[char]?.description || "",
+          })),
+        }));
+
+        setGroups(initialGroups);
+
+        // Inicializar todos os grupos como expandidos
+        const initialExpandedState = {};
+        initialGroups.forEach((group) => {
+          initialExpandedState[group.name] = true;
+        });
+        setExpandedGroups(initialExpandedState);
       } catch (err) {
         console.error("Erro ao carregar detalhes:", err);
         setError("Erro ao carregar detalhes da inspeção");
@@ -81,15 +98,18 @@ const InspectionDetail = () => {
       setIsSaving(true);
       setError(null);
 
-      // Converter características para o formato de estados
+      // Converter grupos e características para o formato de estados
       const states = {};
-      characteristics.forEach((char) => {
-        if (char.state || char.description) {
-          states[char.name] = {
-            state: char.state,
-            description: char.description,
-          };
-        }
+      groups.forEach((group) => {
+        states[group.name] = {};
+        group.characteristics.forEach((char) => {
+          if (char.state || char.description) {
+            states[group.name][char.name] = {
+              state: char.state,
+              description: char.description,
+            };
+          }
+        });
       });
 
       await updateDoc(doc(db, "inspections", id), {
@@ -107,22 +127,49 @@ const InspectionDetail = () => {
     }
   };
 
-  const handleStateChange = (characteristicName, newState) => {
-    setCharacteristics((prev) =>
-      prev.map((char) =>
-        char.name === characteristicName ? { ...char, state: newState } : char
+  const handleStateChange = (groupName, characteristicName, newState) => {
+    setGroups((prev) =>
+      prev.map((group) =>
+        group.name === groupName
+          ? {
+              ...group,
+              characteristics: group.characteristics.map((char) =>
+                char.name === characteristicName
+                  ? { ...char, state: newState }
+                  : char
+              ),
+            }
+          : group
       )
     );
   };
 
-  const handleDescriptionChange = (characteristicName, newDescription) => {
-    setCharacteristics((prev) =>
-      prev.map((char) =>
-        char.name === characteristicName
-          ? { ...char, description: newDescription }
-          : char
+  const handleDescriptionChange = (
+    groupName,
+    characteristicName,
+    newDescription
+  ) => {
+    setGroups((prev) =>
+      prev.map((group) =>
+        group.name === groupName
+          ? {
+              ...group,
+              characteristics: group.characteristics.map((char) =>
+                char.name === characteristicName
+                  ? { ...char, description: newDescription }
+                  : char
+              ),
+            }
+          : group
       )
     );
+  };
+
+  const toggleGroup = (groupName) => {
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [groupName]: !prev[groupName],
+    }));
   };
 
   if (isLoading) {
@@ -171,39 +218,78 @@ const InspectionDetail = () => {
           </div>
         </div>
 
-        <div className="space-y-4">
-          {characteristics.map((char, index) => (
-            <div key={index} className="p-4 bg-gray-800 rounded-lg space-y-3">
-              <h3 className="text-lg text-white font-medium">{char.name}</h3>
+        {groups.length > 0 ? (
+          <div className="space-y-4">
+            {groups.map((group, groupIndex) => (
+              <div
+                key={groupIndex}
+                className="bg-gray-800 rounded-lg overflow-hidden"
+              >
+                <div
+                  onClick={() => toggleGroup(group.name)}
+                  className="p-4 flex justify-between items-center cursor-pointer hover:bg-gray-700"
+                >
+                  <h3 className="text-lg text-white font-medium">
+                    {group.name}
+                  </h3>
+                  {expandedGroups[group.name] ? (
+                    <ChevronUp className="w-5 h-5 text-gray-400" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                  )}
+                </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {states.map((state) => (
-                  <button
-                    key={state}
-                    onClick={() => handleStateChange(char.name, state)}
-                    className={`p-2 rounded-lg text-sm font-medium transition-colors ${
-                      char.state === state
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                    }`}
-                  >
-                    {state}
-                  </button>
-                ))}
+                {expandedGroups[group.name] && (
+                  <div className="p-4 space-y-4 border-t border-gray-700">
+                    {group.characteristics.map((char, charIndex) => (
+                      <div key={charIndex} className="space-y-3">
+                        <h4 className="text-white">{char.name}</h4>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {states.map((state) => (
+                            <button
+                              key={state}
+                              onClick={() =>
+                                handleStateChange(group.name, char.name, state)
+                              }
+                              className={`p-2 rounded-lg text-sm font-medium transition-colors ${
+                                char.state === state
+                                  ? "bg-blue-600 text-white"
+                                  : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                              }`}
+                            >
+                              {state}
+                            </button>
+                          ))}
+                        </div>
+
+                        <textarea
+                          value={char.description}
+                          onChange={(e) =>
+                            handleDescriptionChange(
+                              group.name,
+                              char.name,
+                              e.target.value
+                            )
+                          }
+                          placeholder="Adicionar descrição..."
+                          className="w-full p-3 bg-gray-700 text-white rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          rows="2"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-
-              <textarea
-                value={char.description}
-                onChange={(e) =>
-                  handleDescriptionChange(char.name, e.target.value)
-                }
-                placeholder="Adicionar descrição..."
-                className="w-full p-3 bg-gray-700 text-white rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows="2"
-              />
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 bg-gray-800 rounded-lg">
+            <p className="text-gray-400">
+              Nenhum grupo selecionado nesta inspeção.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="fixed bottom-4 left-0 right-0 px-4 flex justify-center items-center md:left-64">

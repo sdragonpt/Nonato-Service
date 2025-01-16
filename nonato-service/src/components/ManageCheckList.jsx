@@ -18,6 +18,10 @@ import {
   Trash2,
   Settings,
   AlertCircle,
+  ChevronRight,
+  ChevronDown,
+  Layers,
+  ListChecks,
 } from "lucide-react";
 
 const ManageChecklist = () => {
@@ -26,6 +30,7 @@ const ManageChecklist = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeMenu, setActiveMenu] = useState(null);
+  const [expandedTypes, setExpandedTypes] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -77,6 +82,13 @@ const ManageChecklist = () => {
     setActiveMenu(activeMenu === typeId ? null : typeId);
   };
 
+  const toggleExpand = (typeId) => {
+    setExpandedTypes((prev) => ({
+      ...prev,
+      [typeId]: !prev[typeId],
+    }));
+  };
+
   const filteredTypes = types.filter((type) =>
     type.type.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -120,55 +132,102 @@ const ManageChecklist = () => {
       <div className="space-y-4 mb-32">
         {filteredTypes.length > 0 ? (
           filteredTypes.map((type) => (
-            <div
-              key={type.id}
-              onClick={() => navigate(`/app/checklist-type/${type.id}`)}
-              className="group flex items-center p-4 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors relative"
-            >
-              <div className="flex items-center flex-grow min-w-0">
-                <div className="h-12 w-12 rounded-full bg-[#117d49] flex items-center justify-center mr-4">
-                  <Settings className="w-6 h-6 text-white" />
+            <div key={type.id} className="bg-gray-700 rounded-lg overflow-hidden">
+              <div
+                className="group flex items-center p-4 cursor-pointer hover:bg-gray-600/50 transition-colors relative"
+                onClick={() => toggleExpand(type.id)}
+              >
+                <div className="flex items-center flex-grow min-w-0">
+                  <div className="h-12 w-12 rounded-full bg-[#117d49] flex items-center justify-center mr-4">
+                    <Settings className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="min-w-0 flex-grow">
+                    <div className="flex items-center">
+                      <h3 className="font-semibold text-white truncate">
+                        {type.type}
+                      </h3>
+                      {expandedTypes[type.id] ? (
+                        <ChevronDown className="w-5 h-5 text-gray-400 ml-2" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-gray-400 ml-2" />
+                      )}
+                    </div>
+                    <div className="flex items-center text-gray-400 text-sm">
+                      <Layers className="w-4 h-4 mr-1" />
+                      <span>{type.groups?.length || 0} grupo(s)</span>
+                      <ListChecks className="w-4 h-4 ml-3 mr-1" />
+                      <span>
+                        {type.groups?.reduce(
+                          (total, group) =>
+                            total + (group.characteristics?.length || 0),
+                          0
+                        )}{" "}
+                        característica(s)
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-grow">
-                  <h3 className="font-semibold text-white truncate">
-                    {type.type}
-                  </h3>
-                  <p className="text-gray-400 text-sm">
-                    {type.characteristics?.length || 0} característica(s)
-                  </p>
-                </div>
+
+                <button
+                  onClick={(e) => toggleMenu(e, type.id)}
+                  className="p-2 ml-2 text-gray-400 hover:text-white rounded-full focus:outline-none"
+                >
+                  <MoreVertical className="w-5 h-5" />
+                </button>
+
+                {activeMenu === type.id && (
+                  <div
+                    className="absolute right-0 top-full mt-2 w-48 bg-gray-800 rounded-lg shadow-lg z-50 py-1 border border-gray-700"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/app/edit-checklist-type/${type.id}`);
+                      }}
+                      className="w-full px-4 py-2 text-left text-white hover:bg-gray-700 flex items-center"
+                    >
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      Editar
+                    </button>
+                    <button
+                      onClick={(e) => handleDelete(type.id, e)}
+                      className="w-full px-4 py-2 text-left text-red-400 hover:bg-gray-700 flex items-center"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Excluir
+                    </button>
+                  </div>
+                )}
               </div>
 
-              <button
-                onClick={(e) => toggleMenu(e, type.id)}
-                className="p-2 ml-2 text-gray-400 hover:text-white rounded-full focus:outline-none"
-              >
-                <MoreVertical className="w-5 h-5" />
-              </button>
-
-              {activeMenu === type.id && (
-                <div
-                  className="absolute right-0 top-full mt-2 w-48 bg-gray-800 rounded-lg shadow-lg z-50 py-1 border border-gray-700"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    onClick={(e) =>
-                      navigate(`/app/edit-checklist-type/${type.id}`)
-                    }
-                    className="w-full px-4 py-2 text-left text-white hover:bg-gray-700 flex items-center"
-                  >
-                    <Edit2 className="w-4 h-4 mr-2" />
-                    Editar
-                  </button>
-                  <button
-                    onClick={(e) => handleDelete(type.id, e)}
-                    className="w-full px-4 py-2 text-left text-red-400 hover:bg-gray-700 flex items-center"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Excluir
-                  </button>
-                </div>
-              )}
+              {/* Lista de Grupos Expandida */}
+              {expandedTypes[type.id] &&
+                type.groups &&
+                type.groups.length > 0 && (
+                  <div className="border-t border-gray-600">
+                    {type.groups.map((group, index) => (
+                      <div
+                        key={index}
+                        className="p-4 border-b last:border-b-0 border-gray-600 hover:bg-gray-600/50"
+                      >
+                        <h4 className="text-white font-medium mb-2">
+                          {group.name}
+                        </h4>
+                        <div className="pl-4 space-y-1">
+                          {group.characteristics?.map((char, charIndex) => (
+                            <div
+                              key={charIndex}
+                              className="text-gray-400 text-sm"
+                            >
+                              • {char}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
             </div>
           ))
         ) : (

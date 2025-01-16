@@ -25,8 +25,11 @@ const AddAgendamento = () => {
   const [filteredEquipments, setFilteredEquipments] = useState([]);
   const [isDateLoading, setIsDateLoading] = useState(false);
 
-  // Array de datas selecionadas
-  const [selectedDates, setSelectedDates] = useState([""]);
+  // Start and end date for consecutive appointments
+  const [dateRange, setDateRange] = useState({
+    startDate: "",
+    endDate: "",
+  });
 
   const [formData, setFormData] = useState({
     hora: "",
@@ -93,41 +96,46 @@ const AddAgendamento = () => {
     }));
   };
 
-  const handleDateChange = (index, value) => {
-    const newDates = [...selectedDates];
-    newDates[index] = value;
-    setSelectedDates(newDates);
+  const handleDateRangeChange = (e) => {
+    const { name, value } = e.target;
+    setDateRange((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const addDate = () => {
-    setSelectedDates([...selectedDates, ""]);
-  };
+  const generateDatesBetween = (start, end) => {
+    const dates = [];
+    const currentDate = new Date(start);
+    const endDate = new Date(end);
 
-  const removeDate = async (index) => {
-    if (selectedDates.length > 1) {
-      try {
-        setIsDateLoading(true);
-        const newDates = selectedDates.filter((_, i) => i !== index);
-        setSelectedDates(newDates);
-        // Pequeno delay para garantir que o DOM foi atualizado
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      } catch (error) {
-        console.error("Erro ao remover data:", error);
-      } finally {
-        setIsDateLoading(false);
-      }
+    while (currentDate <= endDate) {
+      dates.push(currentDate.toISOString().split("T")[0]);
+      currentDate.setDate(currentDate.getDate() + 1);
     }
+
+    return dates;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!dateRange.startDate || !dateRange.endDate) {
+      setError("Por favor, selecione as datas inicial e final.");
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
 
-      // Criar um agendamento para cada data selecionada
-      const agendamentosPromises = selectedDates.map((data) =>
+      const dates = generateDatesBetween(
+        dateRange.startDate,
+        dateRange.endDate
+      );
+
+      // Criar um agendamento para cada data no intervalo
+      const agendamentosPromises = dates.map((data) =>
         addDoc(collection(db, "agendamentos"), {
           ...formData,
           data,
@@ -163,7 +171,7 @@ const AddAgendamento = () => {
       </button>
 
       <h2 className="text-2xl font-semibold text-center text-white mb-6">
-        Novo Agendamento Múltiplo
+        Novo Agendamento
       </h2>
 
       {error && (
@@ -176,43 +184,40 @@ const AddAgendamento = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Datas e Hora */}
         <div className="bg-gray-800 p-6 rounded-lg space-y-4">
-          {selectedDates.map((date, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Data {index + 1}
-                </label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => handleDateChange(index, e.target.value)}
-                    className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    required
-                  />
-                </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Data Inicial
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="date"
+                  name="startDate"
+                  value={dateRange.startDate}
+                  onChange={handleDateRangeChange}
+                  className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  required
+                />
               </div>
-              {selectedDates.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeDate(index)}
-                  className="mt-6 p-2 text-red-400 hover:text-red-300 transition-colors"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              )}
             </div>
-          ))}
-
-          <button
-            type="button"
-            onClick={addDate}
-            className="mt-2 flex items-center text-blue-400 hover:text-blue-300 transition-colors"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Adicionar outra data
-          </button>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Data Final
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="date"
+                  name="endDate"
+                  value={dateRange.endDate}
+                  onChange={handleDateRangeChange}
+                  className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  required
+                />
+              </div>
+            </div>
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -232,6 +237,7 @@ const AddAgendamento = () => {
           </div>
         </div>
 
+        {/* Rest of the form remains the same */}
         {/* Cliente e Tipo de Serviço */}
         <div className="bg-gray-800 p-6 rounded-lg space-y-4">
           <div>
@@ -364,8 +370,7 @@ const AddAgendamento = () => {
           ) : (
             <>
               <Save className="w-5 h-5 mr-2" />
-              Criar {selectedDates.length} Agendamento
-              {selectedDates.length > 1 ? "s" : ""}
+              Criar Agendamento
             </>
           )}
         </button>

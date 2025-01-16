@@ -9,19 +9,31 @@ import {
   Trash2,
   Save,
   AlertCircle,
+  Settings,
 } from "lucide-react";
 
 const AddChecklistType = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    type: "",
-    characteristics: [""], // Inicializa com uma característica vazia
+    type: "", // Nome do checklist
+    groups: [
+      {
+        name: "", // Nome do grupo
+        characteristics: [""], // Características do grupo
+      },
+    ],
   });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [touched, setTouched] = useState({
     type: false,
-    characteristics: [false],
+    groups: [
+      {
+        name: false,
+        characteristics: [false],
+      },
+    ],
   });
 
   const handleChange = (e) => {
@@ -32,37 +44,132 @@ const AddChecklistType = () => {
     }));
   };
 
-  const handleCharacteristicChange = (index, value) => {
+  const handleGroupNameChange = (groupIndex, value) => {
     setFormData((prev) => {
-      const newCharacteristics = [...prev.characteristics];
-      newCharacteristics[index] = value;
+      const newGroups = [...prev.groups];
+      newGroups[groupIndex] = {
+        ...newGroups[groupIndex],
+        name: value,
+      };
       return {
         ...prev,
-        characteristics: newCharacteristics,
+        groups: newGroups,
       };
     });
   };
 
-  const addCharacteristic = () => {
+  const handleCharacteristicChange = (groupIndex, charIndex, value) => {
+    setFormData((prev) => {
+      const newGroups = [...prev.groups];
+      newGroups[groupIndex] = {
+        ...newGroups[groupIndex],
+        characteristics: newGroups[groupIndex].characteristics.map((char, i) =>
+          i === charIndex ? value : char
+        ),
+      };
+      return {
+        ...prev,
+        groups: newGroups,
+      };
+    });
+  };
+
+  const addGroup = () => {
     setFormData((prev) => ({
       ...prev,
-      characteristics: [...prev.characteristics, ""],
+      groups: [
+        ...prev.groups,
+        {
+          name: "",
+          characteristics: [""],
+        },
+      ],
     }));
     setTouched((prev) => ({
       ...prev,
-      characteristics: [...prev.characteristics, false],
+      groups: [
+        ...prev.groups,
+        {
+          name: false,
+          characteristics: [false],
+        },
+      ],
     }));
   };
 
-  const removeCharacteristic = (index) => {
+  const removeGroup = (groupIndex) => {
+    if (formData.groups.length === 1) {
+      setError("É necessário ter pelo menos um grupo");
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
-      characteristics: prev.characteristics.filter((_, i) => i !== index),
+      groups: prev.groups.filter((_, i) => i !== groupIndex),
     }));
     setTouched((prev) => ({
       ...prev,
-      characteristics: prev.characteristics.filter((_, i) => i !== index),
+      groups: prev.groups.filter((_, i) => i !== groupIndex),
     }));
+  };
+
+  const addCharacteristic = (groupIndex) => {
+    setFormData((prev) => {
+      const newGroups = [...prev.groups];
+      newGroups[groupIndex] = {
+        ...newGroups[groupIndex],
+        characteristics: [...newGroups[groupIndex].characteristics, ""],
+      };
+      return {
+        ...prev,
+        groups: newGroups,
+      };
+    });
+    setTouched((prev) => {
+      const newGroups = [...prev.groups];
+      newGroups[groupIndex] = {
+        ...newGroups[groupIndex],
+        characteristics: [...newGroups[groupIndex].characteristics, false],
+      };
+      return {
+        ...prev,
+        groups: newGroups,
+      };
+    });
+  };
+
+  const removeCharacteristic = (groupIndex, charIndex) => {
+    if (formData.groups[groupIndex].characteristics.length === 1) {
+      setError("É necessário ter pelo menos uma característica no grupo");
+      return;
+    }
+
+    setFormData((prev) => {
+      const newGroups = [...prev.groups];
+      newGroups[groupIndex] = {
+        ...newGroups[groupIndex],
+        characteristics: newGroups[groupIndex].characteristics.filter(
+          (_, i) => i !== charIndex
+        ),
+      };
+      return {
+        ...prev,
+        groups: newGroups,
+      };
+    });
+    setTouched((prev) => {
+      const newGroups = [...prev.groups];
+      newGroups[groupIndex] = {
+        ...newGroups[groupIndex],
+        characteristics: newGroups[groupIndex].characteristics.filter(
+          (_, i) => i !== charIndex
+        ),
+      };
+      return {
+        ...prev,
+        groups: newGroups,
+      };
+    });
   };
 
   const handleBlur = (field) => {
@@ -72,13 +179,34 @@ const AddChecklistType = () => {
     }));
   };
 
-  const handleCharacteristicBlur = (index) => {
-    setTouched((prev) => ({
-      ...prev,
-      characteristics: prev.characteristics.map((t, i) =>
-        i === index ? true : t
-      ),
-    }));
+  const handleGroupBlur = (groupIndex) => {
+    setTouched((prev) => {
+      const newGroups = [...prev.groups];
+      newGroups[groupIndex] = {
+        ...newGroups[groupIndex],
+        name: true,
+      };
+      return {
+        ...prev,
+        groups: newGroups,
+      };
+    });
+  };
+
+  const handleCharacteristicBlur = (groupIndex, charIndex) => {
+    setTouched((prev) => {
+      const newGroups = [...prev.groups];
+      newGroups[groupIndex] = {
+        ...newGroups[groupIndex],
+        characteristics: newGroups[groupIndex].characteristics.map((t, i) =>
+          i === charIndex ? true : t
+        ),
+      };
+      return {
+        ...prev,
+        groups: newGroups,
+      };
+    });
   };
 
   const getNextTypeId = async () => {
@@ -103,23 +231,22 @@ const AddChecklistType = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Marca todos os campos como touched
-    setTouched({
-      type: true,
-      characteristics: formData.characteristics.map(() => true),
-    });
-
     // Validações
     if (!formData.type.trim()) {
-      setError("O tipo é obrigatório");
+      setError("O nome do checklist é obrigatório");
       return;
     }
 
-    const validCharacteristics = formData.characteristics.filter((char) =>
-      char.trim()
+    // Validar grupos e características
+    const invalidGroup = formData.groups.find(
+      (group) =>
+        !group.name.trim() || !group.characteristics.some((char) => char.trim())
     );
-    if (validCharacteristics.length === 0) {
-      setError("Adicione pelo menos uma característica");
+
+    if (invalidGroup) {
+      setError(
+        "Todos os grupos precisam ter um nome e pelo menos uma característica"
+      );
       return;
     }
 
@@ -129,16 +256,22 @@ const AddChecklistType = () => {
 
       const newTypeId = await getNextTypeId();
 
+      // Limpar características vazias antes de salvar
+      const cleanedGroups = formData.groups.map((group) => ({
+        name: group.name,
+        characteristics: group.characteristics.filter((char) => char.trim()),
+      }));
+
       await setDoc(doc(db, "checklist_machines", newTypeId.toString()), {
         type: formData.type,
-        characteristics: validCharacteristics,
+        groups: cleanedGroups,
         createdAt: new Date(),
       });
 
       navigate("/app/manage-checklist");
     } catch (err) {
-      console.error("Erro ao adicionar tipo:", err);
-      setError("Erro ao adicionar tipo. Por favor, tente novamente.");
+      console.error("Erro ao adicionar checklist:", err);
+      setError("Erro ao adicionar checklist. Por favor, tente novamente.");
     } finally {
       setIsSubmitting(false);
     }
@@ -154,7 +287,7 @@ const AddChecklistType = () => {
       </button>
 
       <h2 className="text-2xl text-center text-white font-semibold mb-6">
-        Novo Tipo no Checklist
+        Novo Checklist
       </h2>
 
       {error && (
@@ -165,11 +298,11 @@ const AddChecklistType = () => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Tipo */}
+        {/* Nome do Checklist */}
         <div className="bg-gray-800 p-6 rounded-lg">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
-              Tipo
+              Nome do Checklist
             </label>
             <input
               type="text"
@@ -177,60 +310,106 @@ const AddChecklistType = () => {
               value={formData.type}
               onChange={handleChange}
               onBlur={() => handleBlur("type")}
-              className={`w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-                touched.type && !formData.type ? "border border-red-500" : ""
-              }`}
-              placeholder="Ex: Impressora, Scanner, etc."
+              className="w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+              placeholder="Ex: Checklist de Manutenção de Impressoras"
             />
-            {touched.type && !formData.type && (
-              <p className="mt-1 text-sm text-red-500">Tipo é obrigatório</p>
-            )}
           </div>
         </div>
 
-        {/* Características */}
-        <div className="bg-gray-800 p-6 rounded-lg space-y-4">
-          <div className="flex justify-between items-center">
-            <label className="block text-sm font-medium text-gray-300">
-              Características
-            </label>
-            <button
-              type="button"
-              onClick={addCharacteristic}
-              className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+        {/* Grupos */}
+        <div className="space-y-4">
+          {formData.groups.map((group, groupIndex) => (
+            <div
+              key={groupIndex}
+              className="bg-gray-800 p-6 rounded-lg space-y-4"
             >
-              <Plus className="w-4 h-4 mr-1" />
-              Adicionar
-            </button>
-          </div>
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                    Nome do Grupo {groupIndex + 1}
+                  </label>
+                  <input
+                    type="text"
+                    value={group.name}
+                    onChange={(e) =>
+                      handleGroupNameChange(groupIndex, e.target.value)
+                    }
+                    onBlur={() => handleGroupBlur(groupIndex)}
+                    className="w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                    placeholder="Ex: Verificação Inicial"
+                  />
+                </div>
+                {formData.groups.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeGroup(groupIndex)}
+                    className="ml-2 p-2 text-red-400 hover:text-red-300 transition-colors"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
 
-          {formData.characteristics.map((characteristic, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <input
-                type="text"
-                value={characteristic}
-                onChange={(e) =>
-                  handleCharacteristicChange(index, e.target.value)
-                }
-                onBlur={() => handleCharacteristicBlur(index)}
-                placeholder={`Característica ${index + 1}`}
-                className={`flex-1 p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-                  touched.characteristics[index] && !characteristic.trim()
-                    ? "border border-red-500"
-                    : ""
-                }`}
-              />
-              {formData.characteristics.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeCharacteristic(index)}
-                  className="p-2 text-red-400 hover:text-red-300 transition-colors"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              )}
+              {/* Características do Grupo */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <label className="block text-sm font-medium text-gray-300">
+                    Características do Grupo
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => addCharacteristic(groupIndex)}
+                    className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Adicionar
+                  </button>
+                </div>
+
+                {group.characteristics.map((characteristic, charIndex) => (
+                  <div key={charIndex} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={characteristic}
+                      onChange={(e) =>
+                        handleCharacteristicChange(
+                          groupIndex,
+                          charIndex,
+                          e.target.value
+                        )
+                      }
+                      onBlur={() =>
+                        handleCharacteristicBlur(groupIndex, charIndex)
+                      }
+                      placeholder={`Característica ${charIndex + 1}`}
+                      className="flex-1 p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                    />
+                    {group.characteristics.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          removeCharacteristic(groupIndex, charIndex)
+                        }
+                        className="p-2 text-red-400 hover:text-red-300 transition-colors"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
+
+          {/* Botão para adicionar novo grupo */}
+          <button
+            type="button"
+            onClick={addGroup}
+            className="w-full p-4 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors flex items-center justify-center"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Adicionar Novo Grupo
+          </button>
         </div>
 
         {/* Botão Submit */}
@@ -247,7 +426,7 @@ const AddChecklistType = () => {
           ) : (
             <>
               <Save className="w-5 h-5 mr-2" />
-              Adicionar Tipo
+              Criar Checklist
             </>
           )}
         </button>
