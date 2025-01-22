@@ -36,9 +36,8 @@ const ManageAgenda = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [agendamentos, setAgendamentos] = useState([]);
-  const [viewMode, setViewMode] = useState("calendar"); // 'calendar' or 'list'
+  const [viewMode, setViewMode] = useState("calendar");
   const [filterStatus, setFilterStatus] = useState("all");
-
   const [stats, setStats] = useState({
     total: 0,
     hoje: 0,
@@ -180,7 +179,6 @@ const ManageAgenda = () => {
     let currentWeek = [];
     let currentDate = new Date(firstDay);
 
-    // Ajusta para o primeiro dia do mês
     while (currentDate.getMonth() === selectedMonth) {
       if (currentDate.getDay() === 0 && currentWeek.length > 0) {
         weeks.push(currentWeek);
@@ -236,78 +234,193 @@ const ManageAgenda = () => {
     }
   };
 
-  const AgendamentoCard = ({ agendamento }) => (
-    <div className="bg-gray-800 p-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300">
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex items-center">
-          <Clock className="w-4 h-4 text-gray-400 mr-2" />
-          <span className="text-white font-medium">{agendamento.hora}</span>
-        </div>
-        <span
-          className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-            agendamento.status
-          )}`}
-        >
-          {agendamento.status}
-        </span>
-      </div>
+  const StatsCard = ({ icon: Icon, value, label, variant }) => {
+    const variants = {
+      blue: "bg-blue-500/10 border-blue-500/50 text-blue-400",
+      purple:
+        "bg-gradient-to-br from-purple-500/20 to-purple-600/20 border-purple-500/30 text-purple-400",
+      red: "bg-gradient-to-br from-red-500/20 to-red-600/20 border-red-500/30 text-red-400",
+      green:
+        "bg-gradient-to-br from-green-500/20 to-green-600/20 border-green-500/30 text-green-400",
+    };
 
-      <div className="flex items-start space-x-3 mb-4">
-        <User className="w-5 h-5 text-gray-400 flex-shrink-0 mt-1" />
-        <div>
-          <p className="text-white font-medium">
-            {agendamento.cliente?.name || "Cliente não encontrado"}
-          </p>
-          {agendamento.equipment && (
-            <div className="flex items-center mt-1 text-gray-400 text-sm">
-              <Printer className="w-4 h-4 mr-1" />
-              <span>
-                {agendamento.equipment.brand} - {agendamento.equipment.model}
-              </span>
-            </div>
-          )}
+    return (
+      <div className={`${variants[variant]} border p-4 rounded-lg`}>
+        <div className="flex items-center justify-between mb-2">
+          <Icon className="w-6 h-6" />
+          <span className="text-2xl font-bold">{value}</span>
+        </div>
+        <p className="text-sm font-medium">{label}</p>
+      </div>
+    );
+  };
+
+  const StatsGrid = () => {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <StatsCard
+          icon={Calendar}
+          value={stats.total}
+          label="Total Mensal"
+          variant="blue"
+        />
+        <StatsCard
+          icon={Clock}
+          value={stats.hoje}
+          label="Hoje"
+          variant="purple"
+        />
+        <StatsCard
+          icon={AlertTriangle}
+          value={stats.urgentes}
+          label="Urgentes"
+          variant="red"
+        />
+        <StatsCard
+          icon={CheckCircle}
+          value={stats.concluidos}
+          label="Concluídos"
+          variant="green"
+        />
+      </div>
+    );
+  };
+
+  const AgendamentoCard = ({ agendamento }) => {
+    return (
+      <div className="bg-gray-800 p-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className="flex justify-between items-start mb-3">
+          <div className="flex items-center">
+            <Clock className="w-4 h-4 text-gray-400 mr-2" />
+            <span className="text-white font-medium">{agendamento.hora}</span>
+          </div>
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+              agendamento.status
+            )}`}
+          >
+            {agendamento.status}
+          </span>
+        </div>
+
+        <div className="flex items-start space-x-3 mb-4">
+          <User className="w-5 h-5 text-gray-400 flex-shrink-0 mt-1" />
+          <div>
+            <p className="text-white font-medium">
+              {agendamento.cliente?.name || "Cliente não encontrado"}
+            </p>
+            {agendamento.equipment && (
+              <div className="flex items-center mt-1 text-gray-400 text-sm">
+                <Printer className="w-4 h-4 mr-1" />
+                <span>
+                  {agendamento.equipment.brand} - {agendamento.equipment.model}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() => navigate(`/app/edit-agendamento/${agendamento.id}`)}
+            className="p-2 text-blue-400 hover:bg-blue-400/20 rounded-lg transition-colors"
+            title="Editar"
+          >
+            <Edit2 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() =>
+              handleToggleComplete(agendamento.id, agendamento.concluido)
+            }
+            className={`p-2 ${
+              agendamento.concluido
+                ? "text-blue-400 hover:bg-blue-400/20"
+                : "text-green-400 hover:bg-green-400/20"
+            } rounded-lg transition-colors`}
+            title={
+              agendamento.concluido
+                ? "Desfazer conclusão"
+                : "Marcar como concluído"
+            }
+          >
+            {agendamento.concluido ? (
+              <RotateCcw className="w-4 h-4" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4" />
+            )}
+          </button>
+          <button
+            onClick={() => handleDelete(agendamento.id)}
+            className="p-2 text-red-400 hover:bg-red-400/20 rounded-lg transition-colors"
+            title="Excluir"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       </div>
+    );
+  };
 
-      <div className="flex justify-end gap-2">
-        <button
-          onClick={() => navigate(`/app/edit-agendamento/${agendamento.id}`)}
-          className="p-2 text-blue-400 hover:bg-blue-400/20 rounded-lg transition-colors"
-          title="Editar"
-        >
-          <Edit2 className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() =>
-            handleToggleComplete(agendamento.id, agendamento.concluido)
-          }
-          className={`p-2 ${
-            agendamento.concluido
-              ? "text-blue-400 hover:bg-blue-400/20"
-              : "text-green-400 hover:bg-green-400/20"
-          } rounded-lg transition-colors`}
-          title={
-            agendamento.concluido
-              ? "Desfazer conclusão"
-              : "Marcar como concluído"
-          }
-        >
-          {agendamento.concluido ? (
-            <RotateCcw className="w-4 h-4" />
-          ) : (
-            <CheckCircle2 className="w-4 h-4" />
-          )}
-        </button>
-        <button
-          onClick={() => handleDelete(agendamento.id)}
-          className="p-2 text-red-400 hover:bg-red-400/20 rounded-lg transition-colors"
-          title="Excluir"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+  const CalendarView = () => {
+    return getWeeksInMonth().map((week, weekIndex) => {
+      const hasAgendamentos = week.some(
+        (date) => getAgendamentosByDate(date).length > 0
+      );
+
+      if (!hasAgendamentos) return null;
+
+      return (
+        <div key={weekIndex} className="bg-gray-800 p-4 rounded-lg">
+          <h4 className="text-white font-medium mb-4 flex items-center">
+            <Calendar className="w-5 h-5 mr-2 text-blue-400" />
+            Semana {weekIndex + 1} ({week[0].toLocaleDateString()} -{" "}
+            {week[week.length - 1].toLocaleDateString()})
+          </h4>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {week.map((date, dateIndex) => {
+              const dayAgendamentos = getAgendamentosByDate(date);
+              if (dayAgendamentos.length === 0) return null;
+
+              return (
+                <div
+                  key={dateIndex}
+                  className="border-l-4 border-blue-500 bg-gray-700/50 backdrop-blur-sm rounded-lg p-4"
+                >
+                  <h5 className="text-white font-medium mb-4 flex items-center">
+                    <Calendar className="w-4 h-4 mr-2 text-blue-400" />
+                    {date.toLocaleDateString("pt-BR", {
+                      weekday: "long",
+                      day: "numeric",
+                    })}
+                  </h5>
+
+                  <div className="space-y-4">
+                    {dayAgendamentos.map((agendamento) => (
+                      <AgendamentoCard
+                        key={agendamento.id}
+                        agendamento={agendamento}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    });
+  };
+
+  const ListView = () => {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {agendamentos.map((agendamento) => (
+          <AgendamentoCard key={agendamento.id} agendamento={agendamento} />
+        ))}
       </div>
-    </div>
-  );
+    );
+  };
 
   if (isLoading) {
     return (
@@ -330,48 +443,7 @@ const ManageAgenda = () => {
         </div>
       )}
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-blue-500/10 border border-blue-500/50 p-4 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <Calendar className="w-6 h-6 text-blue-400" />
-            <span className="text-2xl font-bold text-blue-400">
-              {stats.total}
-            </span>
-          </div>
-          <p className="text-blue-400 text-sm font-medium">Total Mensal</p>
-        </div>
-
-        <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 border border-purple-500/30 p-4 rounded-xl">
-          <div className="flex items-center justify-between mb-2">
-            <Clock className="w-6 h-6 text-purple-400" />
-            <span className="text-2xl font-bold text-purple-400">
-              {stats.hoje}
-            </span>
-          </div>
-          <p className="text-purple-400 text-sm font-medium">Hoje</p>
-        </div>
-
-        <div className="bg-gradient-to-br from-red-500/20 to-red-600/20 border border-red-500/30 p-4 rounded-xl">
-          <div className="flex items-center justify-between mb-2">
-            <AlertTriangle className="w-6 h-6 text-red-400" />
-            <span className="text-2xl font-bold text-red-400">
-              {stats.urgentes}
-            </span>
-          </div>
-          <p className="text-red-400 text-sm font-medium">Urgentes</p>
-        </div>
-
-        <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 border border-green-500/30 p-4 rounded-xl">
-          <div className="flex items-center justify-between mb-2">
-            <CheckCircle className="w-6 h-6 text-green-400" />
-            <span className="text-2xl font-bold text-green-400">
-              {stats.concluidos}
-            </span>
-          </div>
-          <p className="text-green-400 text-sm font-medium">Concluídos</p>
-        </div>
-      </div>
+      <StatsGrid />
 
       {/* Controls Section */}
       <div className="bg-gray-800 p-4 rounded-lg mb-6">
@@ -442,62 +514,7 @@ const ManageAgenda = () => {
 
       {/* Content Section */}
       <div className="space-y-6">
-        {viewMode === "calendar" ? (
-          getWeeksInMonth().map((week, weekIndex) => {
-            const hasAgendamentos = week.some(
-              (date) => getAgendamentosByDate(date).length > 0
-            );
-
-            if (!hasAgendamentos) return null;
-
-            return (
-              <div key={weekIndex} className="bg-gray-800 p-4 rounded-lg">
-                <h4 className="text-white font-medium mb-4 flex items-center">
-                  <Calendar className="w-5 h-5 mr-2 text-blue-400" />
-                  Semana {weekIndex + 1} ({week[0].toLocaleDateString()} -{" "}
-                  {week[week.length - 1].toLocaleDateString()})
-                </h4>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {week.map((date, dateIndex) => {
-                    const dayAgendamentos = getAgendamentosByDate(date);
-                    if (dayAgendamentos.length === 0) return null;
-
-                    return (
-                      <div
-                        key={dateIndex}
-                        className="border-l-4 border-blue-500 bg-gray-700/50 backdrop-blur-sm rounded-lg p-4"
-                      >
-                        <h5 className="text-white font-medium mb-4 flex items-center">
-                          <Calendar className="w-4 h-4 mr-2 text-blue-400" />
-                          {date.toLocaleDateString("pt-BR", {
-                            weekday: "long",
-                            day: "numeric",
-                          })}
-                        </h5>
-
-                        <div className="space-y-4">
-                          {dayAgendamentos.map((agendamento) => (
-                            <AgendamentoCard
-                              key={agendamento.id}
-                              agendamento={agendamento}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {agendamentos.map((agendamento) => (
-              <AgendamentoCard key={agendamento.id} agendamento={agendamento} />
-            ))}
-          </div>
-        )}
+        {viewMode === "calendar" ? <CalendarView /> : <ListView />}
       </div>
 
       {/* Botão flutuante para novo agendamento */}

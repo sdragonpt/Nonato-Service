@@ -140,35 +140,33 @@ const AddWorkday = () => {
           </div>
         </div>
 
-        {/* Quilometragem */}
+        {/* Horário do Serviço */}
         <div className="bg-gray-800 p-6 rounded-lg">
           <div className="flex items-center mb-4">
-            <Car className="w-5 h-5 text-gray-400 mr-2" />
-            <h3 className="text-lg font-medium text-white">Quilometragem</h3>
+            <Clock className="w-5 h-5 text-gray-400 mr-2" />
+            <h3 className="text-lg font-medium text-white">
+              Horário do Serviço
+            </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">KM Ida</label>
+              <label className="block text-sm text-gray-400 mb-1">Início</label>
               <input
-                type="number"
-                name="kmDeparture"
-                value={formData.kmDeparture}
+                type="time"
+                name="startHour"
+                value={formData.startHour}
                 onChange={handleChange}
                 className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="0"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">
-                KM Volta
-              </label>
+              <label className="block text-sm text-gray-400 mb-1">Fim</label>
               <input
-                type="number"
-                name="kmReturn"
-                value={formData.kmReturn}
+                type="time"
+                name="endHour"
+                value={formData.endHour}
                 onChange={handleChange}
                 className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="0"
               />
             </div>
           </div>
@@ -208,33 +206,35 @@ const AddWorkday = () => {
           </div>
         </div>
 
-        {/* Horário do Serviço */}
+        {/* Quilometragem */}
         <div className="bg-gray-800 p-6 rounded-lg">
           <div className="flex items-center mb-4">
-            <Clock className="w-5 h-5 text-gray-400 mr-2" />
-            <h3 className="text-lg font-medium text-white">
-              Horário do Serviço
-            </h3>
+            <Car className="w-5 h-5 text-gray-400 mr-2" />
+            <h3 className="text-lg font-medium text-white">Quilometragem</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Início</label>
+              <label className="block text-sm text-gray-400 mb-1">KM Ida</label>
               <input
-                type="time"
-                name="startHour"
-                value={formData.startHour}
+                type="number"
+                name="kmDeparture"
+                value={formData.kmDeparture}
                 onChange={handleChange}
                 className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                placeholder="0"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Fim</label>
+              <label className="block text-sm text-gray-400 mb-1">
+                KM Volta
+              </label>
               <input
-                type="time"
-                name="endHour"
-                value={formData.endHour}
+                type="number"
+                name="kmReturn"
+                value={formData.kmReturn}
                 onChange={handleChange}
                 className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                placeholder="0"
               />
             </div>
           </div>

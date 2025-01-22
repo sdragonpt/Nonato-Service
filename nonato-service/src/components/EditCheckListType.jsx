@@ -469,12 +469,14 @@ const EditChecklistType = () => {
             Adicionar Novo Grupo
           </button>
         </div>
+      </form>
 
-        {/* Botão Submit */}
+      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center md:left-64">
         <button
           type="submit"
+          onClick={handleSubmit}
           disabled={isSubmitting || !hasChanges()}
-          className="w-full p-4 flex items-center justify-center text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:hover:bg-blue-600"
+          className="h-16 px-6 bg-[#117d49] text-white font-medium flex items-center justify-center rounded-full shadow-lg hover:bg-[#0d6238] transition-colors disabled:opacity-50 disabled:hover:bg-[#117d49]"
         >
           {isSubmitting ? (
             <>
@@ -488,7 +490,7 @@ const EditChecklistType = () => {
             </>
           )}
         </button>
-      </form>
+      </div>
     </div>
   );
 };
