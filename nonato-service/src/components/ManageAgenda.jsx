@@ -25,6 +25,8 @@ import {
   Trash2,
   RotateCcw,
   CheckCircle2,
+  Calendar as CalendarIcon,
+  Filter,
 } from "lucide-react";
 
 const ManageAgenda = () => {
@@ -34,6 +36,8 @@ const ManageAgenda = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [agendamentos, setAgendamentos] = useState([]);
+  const [viewMode, setViewMode] = useState("calendar"); // 'calendar' or 'list'
+  const [filterStatus, setFilterStatus] = useState("all");
 
   const [stats, setStats] = useState({
     total: 0,
@@ -42,7 +46,6 @@ const ManageAgenda = () => {
     concluidos: 0,
   });
 
-  // Define os meses do ano
   const months = [
     "Janeiro",
     "Fevereiro",
@@ -72,7 +75,6 @@ const ManageAgenda = () => {
           ...doc.data(),
         }));
 
-        // Buscar informações de clientes e equipamentos
         const agendamentosWithDetails = await Promise.all(
           agendamentosData.map(async (agendamento) => {
             if (agendamento.clientId) {
@@ -93,27 +95,33 @@ const ManageAgenda = () => {
           })
         );
 
-        // Filtrar agendamentos do mês selecionado
         const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
         const lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
         const firstDayStr = firstDayOfMonth.toISOString().split("T")[0];
         const lastDayStr = lastDayOfMonth.toISOString().split("T")[0];
 
-        const monthAgendamentos = agendamentosWithDetails.filter(
+        let filteredAgendamentos = agendamentosWithDetails.filter(
           (ag) => ag.data >= firstDayStr && ag.data <= lastDayStr
         );
 
+        if (filterStatus !== "all") {
+          filteredAgendamentos = filteredAgendamentos.filter(
+            (ag) => ag.status === filterStatus
+          );
+        }
+
         setStats({
-          total: monthAgendamentos.length,
-          hoje: monthAgendamentos.filter(
+          total: filteredAgendamentos.length,
+          hoje: filteredAgendamentos.filter(
             (ag) => ag.data === new Date().toISOString().split("T")[0]
           ).length,
-          urgentes: monthAgendamentos.filter((ag) => ag.prioridade === "alta")
-            .length,
-          concluidos: monthAgendamentos.filter((ag) => ag.concluido).length,
+          urgentes: filteredAgendamentos.filter(
+            (ag) => ag.prioridade === "alta"
+          ).length,
+          concluidos: filteredAgendamentos.filter((ag) => ag.concluido).length,
         });
 
-        setAgendamentos(monthAgendamentos);
+        setAgendamentos(filteredAgendamentos);
       } catch (err) {
         console.error("Erro ao carregar dados:", err);
         setError("Erro ao carregar dados. Por favor, tente novamente.");
@@ -123,7 +131,7 @@ const ManageAgenda = () => {
     };
 
     fetchData();
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, filterStatus]);
 
   const handleDelete = async (agendamentoId) => {
     if (!window.confirm("Tem certeza que deseja excluir este agendamento?")) {
@@ -165,33 +173,15 @@ const ManageAgenda = () => {
     }
   };
 
-  const handleCancel = async (agendamentoId) => {
-    try {
-      await updateDoc(doc(db, "agendamentos", agendamentoId), {
-        status: "cancelado",
-        concluido: false,
-      });
-      fetchData();
-    } catch (error) {
-      console.error("Erro ao cancelar agendamento:", error);
-    }
-  };
-
-  // Função para obter as semanas do mês
   const getWeeksInMonth = () => {
     const firstDay = new Date(selectedYear, selectedMonth, 1);
     const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
     const weeks = [];
-
     let currentWeek = [];
     let currentDate = new Date(firstDay);
 
-    // Ajustar para começar no domingo da semana do primeiro dia
-    if (currentDate.getDay() !== 0) {
-      currentDate.setDate(currentDate.getDate() - currentDate.getDay());
-    }
-
-    while (currentDate <= lastDay) {
+    // Ajusta para o primeiro dia do mês
+    while (currentDate.getMonth() === selectedMonth) {
       if (currentDate.getDay() === 0 && currentWeek.length > 0) {
         weeks.push(currentWeek);
         currentWeek = [];
@@ -208,13 +198,11 @@ const ManageAgenda = () => {
     return weeks;
   };
 
-  // Função para obter agendamentos de um dia específico
   const getAgendamentosByDate = (date) => {
     const dateStr = date.toISOString().split("T")[0];
     return agendamentos.filter((ag) => ag.data === dateStr);
   };
 
-  // Função para navegar entre os meses
   const navigateMonth = (direction) => {
     if (direction === "next") {
       if (selectedMonth === 11) {
@@ -248,6 +236,79 @@ const ManageAgenda = () => {
     }
   };
 
+  const AgendamentoCard = ({ agendamento }) => (
+    <div className="bg-gray-800 p-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300">
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex items-center">
+          <Clock className="w-4 h-4 text-gray-400 mr-2" />
+          <span className="text-white font-medium">{agendamento.hora}</span>
+        </div>
+        <span
+          className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+            agendamento.status
+          )}`}
+        >
+          {agendamento.status}
+        </span>
+      </div>
+
+      <div className="flex items-start space-x-3 mb-4">
+        <User className="w-5 h-5 text-gray-400 flex-shrink-0 mt-1" />
+        <div>
+          <p className="text-white font-medium">
+            {agendamento.cliente?.name || "Cliente não encontrado"}
+          </p>
+          {agendamento.equipment && (
+            <div className="flex items-center mt-1 text-gray-400 text-sm">
+              <Printer className="w-4 h-4 mr-1" />
+              <span>
+                {agendamento.equipment.brand} - {agendamento.equipment.model}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={() => navigate(`/app/edit-agendamento/${agendamento.id}`)}
+          className="p-2 text-blue-400 hover:bg-blue-400/20 rounded-lg transition-colors"
+          title="Editar"
+        >
+          <Edit2 className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() =>
+            handleToggleComplete(agendamento.id, agendamento.concluido)
+          }
+          className={`p-2 ${
+            agendamento.concluido
+              ? "text-blue-400 hover:bg-blue-400/20"
+              : "text-green-400 hover:bg-green-400/20"
+          } rounded-lg transition-colors`}
+          title={
+            agendamento.concluido
+              ? "Desfazer conclusão"
+              : "Marcar como concluído"
+          }
+        >
+          {agendamento.concluido ? (
+            <RotateCcw className="w-4 h-4" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4" />
+          )}
+        </button>
+        <button
+          onClick={() => handleDelete(agendamento.id)}
+          className="p-2 text-red-400 hover:bg-red-400/20 rounded-lg transition-colors"
+          title="Excluir"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -257,7 +318,7 @@ const ManageAgenda = () => {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-4">
+    <div className="w-full max-w-3xl mx-auto rounded-lg p-4">
       <h2 className="text-2xl font-semibold text-center text-white mb-6">
         Agenda
       </h2>
@@ -269,7 +330,7 @@ const ManageAgenda = () => {
         </div>
       )}
 
-      {/* Stats Cards */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-blue-500/10 border border-blue-500/50 p-4 rounded-lg">
           <div className="flex items-center justify-between mb-2">
@@ -278,201 +339,165 @@ const ManageAgenda = () => {
               {stats.total}
             </span>
           </div>
-          <p className="text-blue-400 text-sm">Total Mensal</p>
+          <p className="text-blue-400 text-sm font-medium">Total Mensal</p>
         </div>
 
-        <div className="bg-purple-500/10 border border-purple-500/50 p-4 rounded-lg">
+        <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 border border-purple-500/30 p-4 rounded-xl">
           <div className="flex items-center justify-between mb-2">
             <Clock className="w-6 h-6 text-purple-400" />
             <span className="text-2xl font-bold text-purple-400">
               {stats.hoje}
             </span>
           </div>
-          <p className="text-purple-400 text-sm">Hoje</p>
+          <p className="text-purple-400 text-sm font-medium">Hoje</p>
         </div>
 
-        <div className="bg-red-500/10 border border-red-500/50 p-4 rounded-lg">
+        <div className="bg-gradient-to-br from-red-500/20 to-red-600/20 border border-red-500/30 p-4 rounded-xl">
           <div className="flex items-center justify-between mb-2">
             <AlertTriangle className="w-6 h-6 text-red-400" />
             <span className="text-2xl font-bold text-red-400">
               {stats.urgentes}
             </span>
           </div>
-          <p className="text-red-400 text-sm">Urgentes</p>
+          <p className="text-red-400 text-sm font-medium">Urgentes</p>
         </div>
 
-        <div className="bg-green-500/10 border border-green-500/50 p-4 rounded-lg">
+        <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 border border-green-500/30 p-4 rounded-xl">
           <div className="flex items-center justify-between mb-2">
             <CheckCircle className="w-6 h-6 text-green-400" />
             <span className="text-2xl font-bold text-green-400">
               {stats.concluidos}
             </span>
           </div>
-          <p className="text-green-400 text-sm">Concluídos</p>
+          <p className="text-green-400 text-sm font-medium">Concluídos</p>
         </div>
       </div>
 
-      {/* Month Selector */}
+      {/* Controls Section */}
       <div className="bg-gray-800 p-4 rounded-lg mb-6">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => navigateMonth("prev")}
-            className="p-2 text-gray-400 hover:text-white transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center bg-gray-700 rounded-lg">
+              <button
+                onClick={() => navigateMonth("prev")}
+                className="p-2 text-gray-400 hover:text-white transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
 
-          <div className="flex items-center">
-            <Calendar className="w-5 h-5 text-blue-400 mr-2" />
-            <h3 className="text-lg font-medium text-white">
-              {months[selectedMonth]} {selectedYear}
-            </h3>
+              <div className="flex items-center px-4">
+                <CalendarIcon className="w-5 h-5 text-blue-400 mr-2" />
+                <h3 className="text-lg font-medium text-white">
+                  {months[selectedMonth]} {selectedYear}
+                </h3>
+              </div>
+
+              <button
+                onClick={() => navigateMonth("next")}
+                className="p-2 text-gray-400 hover:text-white transition-colors"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setViewMode("calendar")}
+                className={`p-2 rounded-lg ${
+                  viewMode === "calendar"
+                    ? "bg-blue-500/20 text-blue-400"
+                    : "text-gray-400 hover:bg-gray-700"
+                }`}
+              >
+                <Calendar className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-2 rounded-lg ${
+                  viewMode === "list"
+                    ? "bg-blue-500/20 text-blue-400"
+                    : "text-gray-400 hover:bg-gray-700"
+                }`}
+              >
+                <Filter className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
-          <button
-            onClick={() => navigateMonth("next")}
-            className="p-2 text-gray-400 hover:text-white transition-colors"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+            >
+              <option value="all">Todos os status</option>
+              <option value="agendado">Agendado</option>
+              <option value="confirmado">Confirmado</option>
+              <option value="terminado">Terminado</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Weeks Grid */}
+      {/* Content Section */}
       <div className="space-y-6">
-        {getWeeksInMonth().map((week, weekIndex) => {
-          const hasAgendamentos = week.some(
-            (date) => getAgendamentosByDate(date).length > 0
-          );
+        {viewMode === "calendar" ? (
+          getWeeksInMonth().map((week, weekIndex) => {
+            const hasAgendamentos = week.some(
+              (date) => getAgendamentosByDate(date).length > 0
+            );
 
-          if (!hasAgendamentos) {
+            if (!hasAgendamentos) return null;
+
             return (
               <div key={weekIndex} className="bg-gray-800 p-4 rounded-lg">
-                <h4 className="text-white font-medium mb-2">
+                <h4 className="text-white font-medium mb-4 flex items-center">
+                  <Calendar className="w-5 h-5 mr-2 text-blue-400" />
                   Semana {weekIndex + 1} ({week[0].toLocaleDateString()} -{" "}
                   {week[week.length - 1].toLocaleDateString()})
                 </h4>
-                <p className="text-gray-400 text-sm">
-                  Nenhum agendamento nesta semana
-                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {week.map((date, dateIndex) => {
+                    const dayAgendamentos = getAgendamentosByDate(date);
+                    if (dayAgendamentos.length === 0) return null;
+
+                    return (
+                      <div
+                        key={dateIndex}
+                        className="border-l-4 border-blue-500 bg-gray-700/50 backdrop-blur-sm rounded-lg p-4"
+                      >
+                        <h5 className="text-white font-medium mb-4 flex items-center">
+                          <Calendar className="w-4 h-4 mr-2 text-blue-400" />
+                          {date.toLocaleDateString("pt-BR", {
+                            weekday: "long",
+                            day: "numeric",
+                          })}
+                        </h5>
+
+                        <div className="space-y-4">
+                          {dayAgendamentos.map((agendamento) => (
+                            <AgendamentoCard
+                              key={agendamento.id}
+                              agendamento={agendamento}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             );
-          }
-
-          return (
-            <div key={weekIndex} className="bg-gray-800 p-4 rounded-lg">
-              <h4 className="text-white font-medium mb-4">
-                Semana {weekIndex + 1} ({week[0].toLocaleDateString()} -{" "}
-                {week[week.length - 1].toLocaleDateString()})
-              </h4>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {week.map((date, dateIndex) => {
-                  const dayAgendamentos = getAgendamentosByDate(date);
-
-                  if (dayAgendamentos.length === 0) return null;
-
-                  return (
-                    <div
-                      key={dateIndex}
-                      className="border-l-4 border-blue-500 bg-gray-700/50 rounded-lg p-4 flex flex-col"
-                    >
-                      <h5 className="text-white font-medium mb-3">
-                        {date.toLocaleDateString("pt-BR", {
-                          weekday: "long",
-                          day: "numeric",
-                        })}
-                      </h5>
-
-                      <div className="space-y-3">
-                        {dayAgendamentos.map((agendamento) => (
-                          <div
-                            key={agendamento.id}
-                            className="bg-gray-800 p-3 rounded-lg"
-                          >
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="flex items-center">
-                                <Clock className="w-4 h-4 text-gray-400 mr-2" />
-                                <span className="text-white">
-                                  {agendamento.hora}
-                                </span>
-                              </div>
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs ${getStatusColor(
-                                  agendamento.status
-                                )}`}
-                              >
-                                {agendamento.status}
-                              </span>
-                            </div>
-
-                            <div className="flex items-start space-x-2 mb-2">
-                              <User className="w-4 h-4 text-gray-400 flex-shrink-0 mt-1" />
-                              <div>
-                                <p className="text-white text-sm">
-                                  {agendamento.cliente?.name ||
-                                    "Cliente não encontrado"}
-                                </p>
-                                {agendamento.equipment && (
-                                  <div className="flex items-center mt-1 text-gray-400 text-xs">
-                                    <Printer className="w-3 h-3 mr-1" />
-                                    <span>
-                                      {agendamento.equipment.brand} -{" "}
-                                      {agendamento.equipment.model}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="flex justify-end gap-1">
-                              <button
-                                onClick={() =>
-                                  navigate(
-                                    `/app/edit-agendamento/${agendamento.id}`
-                                  )
-                                }
-                                className="p-1.5 text-blue-400 hover:bg-blue-400/20 rounded-lg transition-colors"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleToggleComplete(
-                                    agendamento.id,
-                                    agendamento.concluido
-                                  );
-                                }}
-                                className={`p-2 ${
-                                  agendamento.concluido
-                                    ? "text-blue-400 hover:bg-blue-400/20"
-                                    : "text-green-400 hover:bg-green-400/20"
-                                } rounded-lg transition-colors`}
-                              >
-                                {agendamento.concluido ? (
-                                  <RotateCcw className="w-5 h-5" />
-                                ) : (
-                                  <CheckCircle2 className="w-5 h-5" />
-                                )}
-                              </button>
-                              <button
-                                onClick={() => handleDelete(agendamento.id)}
-                                className="p-1.5 text-red-400 hover:bg-red-400/20 rounded-lg transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
+          })
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {agendamentos.map((agendamento) => (
+              <AgendamentoCard key={agendamento.id} agendamento={agendamento} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Botão flutuante para novo agendamento */}
