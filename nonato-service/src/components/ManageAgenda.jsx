@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  updateDoc,
+  deleteDoc,
+} from "firebase/firestore";
 import { db } from "../firebase.jsx";
 import { useNavigate } from "react-router-dom";
 import {
@@ -12,6 +19,11 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle,
+  User,
+  Printer,
+  Edit2,
+  Trash2,
+  RotateCcw,
   CheckCircle2,
 } from "lucide-react";
 
@@ -60,13 +72,34 @@ const ManageAgenda = () => {
           ...doc.data(),
         }));
 
+        // Buscar informações de clientes e equipamentos
+        const agendamentosWithDetails = await Promise.all(
+          agendamentosData.map(async (agendamento) => {
+            if (agendamento.clientId) {
+              const clientDoc = await getDoc(
+                doc(db, "clientes", agendamento.clientId)
+              );
+              const equipmentDoc = agendamento.equipmentId
+                ? await getDoc(doc(db, "equipamentos", agendamento.equipmentId))
+                : null;
+
+              return {
+                ...agendamento,
+                cliente: clientDoc.exists() ? clientDoc.data() : null,
+                equipment: equipmentDoc?.exists() ? equipmentDoc.data() : null,
+              };
+            }
+            return agendamento;
+          })
+        );
+
         // Filtrar agendamentos do mês selecionado
         const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
         const lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
         const firstDayStr = firstDayOfMonth.toISOString().split("T")[0];
         const lastDayStr = lastDayOfMonth.toISOString().split("T")[0];
 
-        const monthAgendamentos = agendamentosData.filter(
+        const monthAgendamentos = agendamentosWithDetails.filter(
           (ag) => ag.data >= firstDayStr && ag.data <= lastDayStr
         );
 
@@ -80,7 +113,7 @@ const ManageAgenda = () => {
           concluidos: monthAgendamentos.filter((ag) => ag.concluido).length,
         });
 
-        setAgendamentos(agendamentosData);
+        setAgendamentos(monthAgendamentos);
       } catch (err) {
         console.error("Erro ao carregar dados:", err);
         setError("Erro ao carregar dados. Por favor, tente novamente.");
@@ -92,6 +125,58 @@ const ManageAgenda = () => {
     fetchData();
   }, [selectedMonth, selectedYear]);
 
+  const handleDelete = async (agendamentoId) => {
+    if (!window.confirm("Tem certeza que deseja excluir este agendamento?")) {
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, "agendamentos", agendamentoId));
+      setAgendamentos((prev) => prev.filter((a) => a.id !== agendamentoId));
+    } catch (err) {
+      console.error("Erro ao deletar:", err);
+      setError("Erro ao deletar agendamento");
+    }
+  };
+
+  const handleToggleComplete = async (agendamentoId, isConcluido) => {
+    try {
+      const agendamentoRef = doc(db, "agendamentos", agendamentoId);
+      await updateDoc(agendamentoRef, {
+        concluido: !isConcluido,
+        status: !isConcluido ? "terminado" : "agendado",
+        updatedAt: new Date(),
+      });
+
+      setAgendamentos((prev) =>
+        prev.map((ag) =>
+          ag.id === agendamentoId
+            ? {
+                ...ag,
+                concluido: !isConcluido,
+                status: !isConcluido ? "terminado" : "agendado",
+              }
+            : ag
+        )
+      );
+    } catch (err) {
+      console.error("Erro ao atualizar agendamento:", err);
+      setError("Erro ao atualizar agendamento");
+    }
+  };
+
+  const handleCancel = async (agendamentoId) => {
+    try {
+      await updateDoc(doc(db, "agendamentos", agendamentoId), {
+        status: "cancelado",
+        concluido: false,
+      });
+      fetchData();
+    } catch (error) {
+      console.error("Erro ao cancelar agendamento:", error);
+    }
+  };
+
   // Função para obter as semanas do mês
   const getWeeksInMonth = () => {
     const firstDay = new Date(selectedYear, selectedMonth, 1);
@@ -101,9 +186,8 @@ const ManageAgenda = () => {
     let currentWeek = [];
     let currentDate = new Date(firstDay);
 
-    // Ajustar para pegar os dias corretos de cada semana
+    // Ajustar para começar no domingo da semana do primeiro dia
     if (currentDate.getDay() !== 0) {
-      // Se não começar no domingo, ajustar para o início dessa semana
       currentDate.setDate(currentDate.getDate() - currentDate.getDay());
     }
 
@@ -113,11 +197,7 @@ const ManageAgenda = () => {
         currentWeek = [];
       }
 
-      // Só adicionar o dia se ele pertencer ao mês atual
-      if (currentDate.getMonth() === selectedMonth) {
-        currentWeek.push(new Date(currentDate));
-      }
-
+      currentWeek.push(new Date(currentDate));
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
@@ -128,54 +208,11 @@ const ManageAgenda = () => {
     return weeks;
   };
 
-  const getAgendamentosUrgentes = (week) => {
-    const startOfWeek = week[0].toISOString().split("T")[0];
-    const endOfWeek = week[week.length - 1].toISOString().split("T")[0];
-
-    return agendamentos.filter(
-      (agendamento) =>
-        agendamento.data >= startOfWeek &&
-        agendamento.data <= endOfWeek &&
-        agendamento.prioridade === "alta"
-    ).length;
+  // Função para obter agendamentos de um dia específico
+  const getAgendamentosByDate = (date) => {
+    const dateStr = date.toISOString().split("T")[0];
+    return agendamentos.filter((ag) => ag.data === dateStr);
   };
-
-  const getAgendamentosConcluidos = (week) => {
-    const startOfWeek = week[0].toISOString().split("T")[0];
-    const endOfWeek = week[week.length - 1].toISOString().split("T")[0];
-
-    return agendamentos.filter(
-      (agendamento) =>
-        agendamento.data >= startOfWeek &&
-        agendamento.data <= endOfWeek &&
-        agendamento.concluido
-    ).length;
-  };
-
-  // Função para contar agendamentos por semana
-  const getAgendamentosCount = (week) => {
-    const startOfWeek = week[0].toISOString().split("T")[0];
-    const endOfWeek = week[week.length - 1].toISOString().split("T")[0];
-
-    return agendamentos.filter((agendamento) => {
-      return agendamento.data >= startOfWeek && agendamento.data <= endOfWeek;
-    }).length;
-  };
-
-  //   const getAgendamentosInfo = (week) => {
-  //     const startOfWeek = week[0].toISOString().split("T")[0];
-  //     const endOfWeek = week[week.length - 1].toISOString().split("T")[0];
-
-  //     const weekAgendamentos = agendamentos.filter(
-  //       (agendamento) =>
-  //         agendamento.data >= startOfWeek && agendamento.data <= endOfWeek
-  //     );
-
-  //     return {
-  //       total: weekAgendamentos.length,
-  //       urgentes: weekAgendamentos.filter((a) => a.prioridade === "alta").length,
-  //     };
-  //   };
 
   // Função para navegar entre os meses
   const navigateMonth = (direction) => {
@@ -193,6 +230,21 @@ const ManageAgenda = () => {
       } else {
         setSelectedMonth((prev) => prev - 1);
       }
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "agendado":
+        return "text-blue-400 bg-blue-400/20";
+      case "confirmado":
+        return "text-yellow-400 bg-yellow-400/20";
+      case "cancelado":
+        return "text-red-400 bg-red-400/20";
+      case "terminado":
+        return "text-green-400 bg-green-400/20";
+      default:
+        return "text-gray-400 bg-gray-400/20";
     }
   };
 
@@ -217,8 +269,8 @@ const ManageAgenda = () => {
         </div>
       )}
 
+      {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {/* Total de Agendamentos */}
         <div className="bg-blue-500/10 border border-blue-500/50 p-4 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <Calendar className="w-6 h-6 text-blue-400" />
@@ -229,7 +281,6 @@ const ManageAgenda = () => {
           <p className="text-blue-400 text-sm">Total Mensal</p>
         </div>
 
-        {/* Agendamentos de Hoje */}
         <div className="bg-purple-500/10 border border-purple-500/50 p-4 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <Clock className="w-6 h-6 text-purple-400" />
@@ -240,7 +291,6 @@ const ManageAgenda = () => {
           <p className="text-purple-400 text-sm">Hoje</p>
         </div>
 
-        {/* Agendamentos Urgentes */}
         <div className="bg-red-500/10 border border-red-500/50 p-4 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <AlertTriangle className="w-6 h-6 text-red-400" />
@@ -251,7 +301,6 @@ const ManageAgenda = () => {
           <p className="text-red-400 text-sm">Urgentes</p>
         </div>
 
-        {/* Agendamentos Concluídos */}
         <div className="bg-green-500/10 border border-green-500/50 p-4 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <CheckCircle className="w-6 h-6 text-green-400" />
@@ -263,7 +312,7 @@ const ManageAgenda = () => {
         </div>
       </div>
 
-      {/* Seletor de Mês */}
+      {/* Month Selector */}
       <div className="bg-gray-800 p-4 rounded-lg mb-6">
         <div className="flex items-center justify-between">
           <button
@@ -289,59 +338,143 @@ const ManageAgenda = () => {
         </div>
       </div>
 
-      {/* Grid de Semanas */}
-      <div className="grid gap-4">
-        {getWeeksInMonth().map((week, index) => (
-          <div
-            key={index}
-            className="bg-gray-800 p-4 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer"
-            onClick={() =>
-              navigate(
-                `/app/agenda/${selectedYear}/${selectedMonth + 1}/week/${
-                  index + 1
-                }`
-              )
-            }
-          >
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center space-y-3 sm:space-y-0">
-              <div>
-                <h4 className="text-white font-medium">Semana {index + 1}</h4>
-                <p className="text-gray-400 text-sm mt-1">
-                  {week[0].toLocaleDateString()} -{" "}
-                  {week[week.length - 1].toLocaleDateString()}
+      {/* Weeks Grid */}
+      <div className="space-y-6">
+        {getWeeksInMonth().map((week, weekIndex) => {
+          const hasAgendamentos = week.some(
+            (date) => getAgendamentosByDate(date).length > 0
+          );
+
+          if (!hasAgendamentos) {
+            return (
+              <div key={weekIndex} className="bg-gray-800 p-4 rounded-lg">
+                <h4 className="text-white font-medium mb-2">
+                  Semana {weekIndex + 1} ({week[0].toLocaleDateString()} -{" "}
+                  {week[week.length - 1].toLocaleDateString()})
+                </h4>
+                <p className="text-gray-400 text-sm">
+                  Nenhum agendamento nesta semana
                 </p>
               </div>
-              <div className="flex items-center bg-blue-500/20 px-3 py-2 rounded-full self-start sm:self-auto">
-                <Clock className="w-4 h-4 text-blue-400 mr-1.5" />
-                <span className="text-blue-400 font-medium text-sm">
-                  {getAgendamentosCount(week)}
-                  <span className="ml-1">
-                    {getAgendamentosCount(week) === 1
-                      ? "agendamento"
-                      : "agendamentos"}
-                  </span>
-                </span>
+            );
+          }
+
+          return (
+            <div key={weekIndex} className="bg-gray-800 p-4 rounded-lg">
+              <h4 className="text-white font-medium mb-4">
+                Semana {weekIndex + 1} ({week[0].toLocaleDateString()} -{" "}
+                {week[week.length - 1].toLocaleDateString()})
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {week.map((date, dateIndex) => {
+                  const dayAgendamentos = getAgendamentosByDate(date);
+
+                  if (dayAgendamentos.length === 0) return null;
+
+                  return (
+                    <div
+                      key={dateIndex}
+                      className="border-l-4 border-blue-500 bg-gray-700/50 rounded-lg p-4 flex flex-col"
+                    >
+                      <h5 className="text-white font-medium mb-3">
+                        {date.toLocaleDateString("pt-BR", {
+                          weekday: "long",
+                          day: "numeric",
+                        })}
+                      </h5>
+
+                      <div className="space-y-3">
+                        {dayAgendamentos.map((agendamento) => (
+                          <div
+                            key={agendamento.id}
+                            className="bg-gray-800 p-3 rounded-lg"
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex items-center">
+                                <Clock className="w-4 h-4 text-gray-400 mr-2" />
+                                <span className="text-white">
+                                  {agendamento.hora}
+                                </span>
+                              </div>
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs ${getStatusColor(
+                                  agendamento.status
+                                )}`}
+                              >
+                                {agendamento.status}
+                              </span>
+                            </div>
+
+                            <div className="flex items-start space-x-2 mb-2">
+                              <User className="w-4 h-4 text-gray-400 flex-shrink-0 mt-1" />
+                              <div>
+                                <p className="text-white text-sm">
+                                  {agendamento.cliente?.name ||
+                                    "Cliente não encontrado"}
+                                </p>
+                                {agendamento.equipment && (
+                                  <div className="flex items-center mt-1 text-gray-400 text-xs">
+                                    <Printer className="w-3 h-3 mr-1" />
+                                    <span>
+                                      {agendamento.equipment.brand} -{" "}
+                                      {agendamento.equipment.model}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex justify-end gap-1">
+                              <button
+                                onClick={() =>
+                                  navigate(
+                                    `/app/edit-agendamento/${agendamento.id}`
+                                  )
+                                }
+                                className="p-1.5 text-blue-400 hover:bg-blue-400/20 rounded-lg transition-colors"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleComplete(
+                                    agendamento.id,
+                                    agendamento.concluido
+                                  );
+                                }}
+                                className={`p-2 ${
+                                  agendamento.concluido
+                                    ? "text-blue-400 hover:bg-blue-400/20"
+                                    : "text-green-400 hover:bg-green-400/20"
+                                } rounded-lg transition-colors`}
+                              >
+                                {agendamento.concluido ? (
+                                  <RotateCcw className="w-5 h-5" />
+                                ) : (
+                                  <CheckCircle2 className="w-5 h-5" />
+                                )}
+                              </button>
+                              <button
+                                onClick={() => handleDelete(agendamento.id)}
+                                className="p-1.5 text-red-400 hover:bg-red-400/20 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-
-            {/* Indicadores adicionais para mobile */}
-            <div className="flex gap-2 mt-3 sm:hidden">
-              {getAgendamentosUrgentes(week) > 0 && (
-                <span className="text-xs px-2 py-1 bg-red-500/10 text-red-400 rounded-full flex items-center">
-                  <AlertTriangle className="w-3 h-3 mr-1" />
-                  {getAgendamentosUrgentes(week)} urgentes
-                </span>
-              )}
-              {getAgendamentosConcluidos(week) > 0 && (
-                <span className="text-xs px-2 py-1 bg-green-500/10 text-green-400 rounded-full flex items-center">
-                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                  {getAgendamentosConcluidos(week)} concluídos
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
+
       {/* Botão flutuante para novo agendamento */}
       <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center md:left-64">
         <button

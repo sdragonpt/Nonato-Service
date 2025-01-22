@@ -521,18 +521,26 @@ const generateServiceOrderPDF = async (
   const calculateTotalTravelHours = (workdays) => {
     let totalMinutes = 0;
     workdays.forEach((day) => {
-      // Calcular tempo de ida
-      const goingHours = calculateHours(day.departureTime, day.arrivalTime);
-      const [goingH, goingM] = goingHours.split(":").map(Number);
-      totalMinutes += goingH * 60 + goingM;
+      // Calcular tempo de ida apenas se todos os campos estiverem preenchidos
+      if (day.departureTime && day.arrivalTime) {
+        const goingHours = calculateHours(day.departureTime, day.arrivalTime);
+        if (goingHours !== "0") {
+          const [goingH, goingM] = goingHours.split(":").map(Number);
+          totalMinutes += goingH * 60 + goingM;
+        }
+      }
 
-      // Calcular tempo de volta
-      const returnHours = calculateHours(
-        day.returnDepartureTime,
-        day.returnArrivalTime
-      );
-      const [returnH, returnM] = returnHours.split(":").map(Number);
-      totalMinutes += returnH * 60 + returnM;
+      // Calcular tempo de volta apenas se todos os campos estiverem preenchidos
+      if (day.returnDepartureTime && day.returnArrivalTime) {
+        const returnHours = calculateHours(
+          day.returnDepartureTime,
+          day.returnArrivalTime
+        );
+        if (returnHours !== "0") {
+          const [returnH, returnM] = returnHours.split(":").map(Number);
+          totalMinutes += returnH * 60 + returnM;
+        }
+      }
     });
 
     const hours = Math.floor(totalMinutes / 60);
