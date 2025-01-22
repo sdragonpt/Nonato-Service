@@ -540,7 +540,143 @@ const generateServiceOrderPDF = async (
     return `${hours}:${minutes.toString().padStart(2, "0")}`;
   };
 
-  // Desenhar resultados e checkboxes
+  // Função auxiliar para tratar o texto antes de renderizar
+  const sanitizeText = (text) => {
+    if (!text) return "";
+    // Substituir quebras de linha por espaços e remover caracteres especiais
+    return text
+      .replace(/\n/g, " ")
+      .replace(/\r/g, " ")
+      .replace(/\t/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  // Função auxiliar para calcular a altura necessária do texto
+  const calculateTextHeight = (text, maxWidth, fontSize, font) => {
+    const sanitizedText = sanitizeText(text);
+    const words = sanitizedText.split(" ");
+    let currentLine = "";
+    let lines = 1;
+
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const width = font.widthOfTextAtSize(testLine, fontSize);
+
+      if (width <= maxWidth) {
+        currentLine = testLine;
+      } else {
+        currentLine = word;
+        lines++;
+      }
+    }
+
+    return lines * (fontSize + 2);
+  };
+
+  // Função para desenhar texto com quebra de linha
+  const drawWrappedText = (page, text, x, y, maxWidth, fontSize, font) => {
+    const sanitizedText = sanitizeText(text);
+    const words = sanitizedText.split(" ");
+    let currentLine = "";
+    let currentY = y;
+    const lineHeight = fontSize + 2;
+
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const width = font.widthOfTextAtSize(testLine, fontSize);
+
+      if (width <= maxWidth) {
+        currentLine = testLine;
+      } else {
+        if (currentLine) {
+          page.drawText(currentLine, {
+            x,
+            y: currentY,
+            size: fontSize,
+            font: font,
+          });
+          currentY -= lineHeight;
+        }
+        currentLine = word;
+      }
+    }
+
+    if (currentLine) {
+      page.drawText(currentLine, {
+        x,
+        y: currentY,
+        size: fontSize,
+        font: font,
+      });
+    }
+
+    return currentY;
+  };
+
+  // Função principal para desenhar a caixa de texto ajustável
+  const drawAdjustableTextBox = (page, label, text, x, y, options = {}) => {
+    const {
+      fontSize = 10,
+      boxWidth = 396,
+      labelWidth = 100,
+      font,
+      minHeight = 30,
+      padding = 10,
+    } = options;
+
+    // Desenhar o label
+    page.drawText(label, {
+      x: x + 5,
+      y: y - 7,
+      size: fontSize,
+      font: font,
+    });
+
+    // Calcular altura necessária para o texto
+    const maxTextWidth = boxWidth - padding * 2;
+    const textHeight = Math.max(
+      minHeight,
+      calculateTextHeight(safeText(text), maxTextWidth, fontSize - 2, font) +
+        padding * 2
+    );
+
+    // Desenhar o retângulo cinza (background)
+    page.drawRectangle({
+      x: x + labelWidth,
+      y: y - textHeight + padding,
+      width: boxWidth,
+      height: textHeight,
+      borderColor: rgb(0, 0, 0),
+      color: rgb(0.9, 0.9, 0.9),
+    });
+
+    // Desenhar o retângulo da borda
+    page.drawRectangle({
+      x: x,
+      y: y - textHeight + padding,
+      width: boxWidth + labelWidth,
+      height: textHeight,
+      borderColor: rgb(0, 0, 0),
+      borderWidth: 1,
+    });
+
+    // Desenhar o texto com quebra de linha
+    drawWrappedText(
+      page,
+      safeText(text),
+      x + labelWidth + padding,
+      y - padding / 2,
+      maxTextWidth,
+      fontSize - 2,
+      font
+    );
+
+    // Retornar a nova posição Y
+    return y - textHeight - 20;
+  };
+
+  // Função para desenhar resultados com os checkboxes originais
   const drawResults = () => {
     if (checkAndCreateNewPage(300)) {
       drawPageHeader();
@@ -598,90 +734,73 @@ const generateServiceOrderPDF = async (
 
     // Primeira coluna de checkboxes
     yPos -= 30;
-    drawCheckbox(50, yPos, order.concluido, "Serviço Concluído");
+    drawCheckbox(50, yPos, order.checklist.concluido, "Serviço Concluído");
     yPos -= 20;
-    drawCheckbox(50, yPos, order.retorno, "Retorno Necessário");
+    drawCheckbox(50, yPos, order.checklist.retorno, "Retorno Necessário");
 
     // Segunda coluna
     yPos += 20;
-    drawCheckbox(170, yPos, order.funcionarios, "Instrução dos Funcionários");
+    drawCheckbox(
+      170,
+      yPos,
+      order.checklist.funcionarios,
+      "Instrução dos Funcionários"
+    );
     yPos -= 20;
-    drawCheckbox(170, yPos, order.documentacao, "Entrega da Documentação");
+    drawCheckbox(
+      170,
+      yPos,
+      order.checklist.documentacao,
+      "Entrega da Documentação"
+    );
 
     // Terceira coluna
     yPos += 20;
-    drawCheckbox(340, yPos, order.producao, "Liberação para Produção");
+    drawCheckbox(
+      340,
+      yPos,
+      order.checklist.producao,
+      "Liberação para Produção"
+    );
     yPos -= 20;
-    drawCheckbox(340, yPos, order.pecas, "Envio do Orçamento de Peças");
+    drawCheckbox(
+      340,
+      yPos,
+      order.checklist.pecas,
+      "Envio do Orçamento de Peças"
+    );
 
-    // Notas
     yPos -= 40;
-    currentPage.drawText("Notas:", {
-      x: 55,
-      y: yPos + 7,
-      size: fontSize,
-      font: font,
-    });
 
-    const boxHeight = fontSize + 20;
-    currentPage.drawRectangle({
-      x: 150,
-      y: yPos - 10,
-      width: 396,
-      height: boxHeight,
-      borderColor: rgb(0, 0, 0),
-      color: rgb(0.9, 0.9, 0.9),
-    });
+    // Notas com altura ajustável
+    yPos = drawAdjustableTextBox(
+      currentPage,
+      "Notas:",
+      order.resultDescription,
+      50,
+      yPos,
+      {
+        font,
+        fontSize,
+        boxWidth: 396,
+        minHeight: 10,
+      }
+    );
 
-    currentPage.drawRectangle({
-      x: 50,
-      y: yPos - 10,
-      width: 496,
-      height: boxHeight,
-      borderColor: rgb(0, 0, 0),
-      borderWidth: 1,
-    });
-
-    currentPage.drawText(safeText(order.resultDescription), {
-      x: 160,
-      y: yPos + 8,
-      size: 8,
-      font: font,
-    });
-
-    // Pontos em aberto
-    yPos -= 60;
-    currentPage.drawText("Pontos em Aberto:", {
-      x: 55,
-      y: yPos + 7,
-      size: fontSize,
-      font: font,
-    });
-
-    currentPage.drawRectangle({
-      x: 150,
-      y: yPos - 10,
-      width: 396,
-      height: boxHeight,
-      borderColor: rgb(0, 0, 0),
-      color: rgb(0.9, 0.9, 0.9),
-    });
-
-    currentPage.drawRectangle({
-      x: 50,
-      y: yPos - 10,
-      width: 496,
-      height: boxHeight,
-      borderColor: rgb(0, 0, 0),
-      borderWidth: 1,
-    });
-
-    currentPage.drawText(safeText(order.pontosEmAberto), {
-      x: 160,
-      y: yPos + 8,
-      size: 8,
-      font: font,
-    });
+    // Pontos em aberto com altura ajustável
+    yPos = drawAdjustableTextBox(
+      currentPage,
+      "Pontos em Aberto:",
+      order.pontosEmAberto,
+      50,
+      yPos,
+      {
+        font,
+        fontSize,
+        boxWidth: 396,
+        minHeight: 10,
+      }
+    );
   };
 
   // Função para desenhar área de assinaturas
@@ -690,7 +809,7 @@ const generateServiceOrderPDF = async (
       drawPageHeader();
     }
 
-    yPos -= 40;
+    yPos -= 20;
     currentPage.drawText("Assinatura Cliente e Técnico:", {
       x: 50,
       y: yPos,

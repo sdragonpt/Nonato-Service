@@ -38,6 +38,8 @@ const AddOrder = () => {
     priority: "normal", // novo campo
     description: "", // novo campo
     status: "Aberto",
+    resultDescription: "",
+    pontosEmAberto: "",
   };
 
   const [formData, setFormData] = useState(initialForm);
@@ -58,8 +60,6 @@ const AddOrder = () => {
     documentacao: false,
     producao: false,
     pecas: false,
-    resultDescription: "",
-    pontosEmAberto: "", // novo campo
   });
 
   useEffect(() => {
@@ -420,8 +420,8 @@ const AddOrder = () => {
             </label>
             <textarea
               name="resultDescription"
-              value={checklist.resultDescription}
-              onChange={handleChecklistChange}
+              value={formData.resultDescription}
+              onChange={handleChange}
               rows="4"
               placeholder="Adicione notas ou observações importantes"
               className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
@@ -435,8 +435,8 @@ const AddOrder = () => {
             </label>
             <textarea
               name="pontosEmAberto"
-              value={checklist.pontosEmAberto}
-              onChange={handleChecklistChange}
+              value={formData.pontosEmAberto}
+              onChange={handleChange}
               rows="4"
               placeholder="Descreva os pontos que ainda precisam ser resolvidos"
               className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"

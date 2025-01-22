@@ -37,6 +37,8 @@ const EditOrder = () => {
     equipmentId: "",
     serviceType: "",
     priority: "normal",
+    resultDescription: "",
+    pontosEmAberto: "",
   });
 
   const [checklist, setChecklist] = useState({
@@ -46,8 +48,6 @@ const EditOrder = () => {
     documentacao: false,
     producao: false,
     pecas: false,
-    resultDescription: "",
-    pontosEmAberto: "", // novo campo
   });
 
   const [clients, setClients] = useState([]);
@@ -86,6 +86,8 @@ const EditOrder = () => {
           equipmentId: orderData.equipmentId || "",
           serviceType: orderData.serviceType || "",
           priority: orderData.priority || "normal",
+          resultDescription: orderData.resultDescription || "",
+          pontosEmAberto: orderData.pontosEmAberto || "", // novo campo
         });
 
         // Processar checklist
@@ -96,8 +98,6 @@ const EditOrder = () => {
           documentacao: orderData.documentacao || false,
           producao: orderData.producao || false,
           pecas: orderData.pecas || false,
-          resultDescription: orderData.resultDescription || "",
-          pontosEmAberto: orderData.pontosEmAberto || "", // novo campo
         });
 
         // Processar clientes e equipamentos
@@ -186,7 +186,7 @@ const EditOrder = () => {
 
       const serviceData = {
         ...formData,
-        ...checklist,
+        checklist,
         lastUpdated: new Date(),
       };
 
@@ -443,8 +443,8 @@ const EditOrder = () => {
             </label>
             <textarea
               name="resultDescription"
-              value={checklist.resultDescription}
-              onChange={handleChecklistChange}
+              value={formData.resultDescription}
+              onChange={handleChange}
               placeholder="Adicione notas ou observações importantes"
               rows="4"
               className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
@@ -458,8 +458,8 @@ const EditOrder = () => {
             </label>
             <textarea
               name="pontosEmAberto"
-              value={checklist.pontosEmAberto}
-              onChange={handleChecklistChange}
+              value={formData.pontosEmAberto}
+              onChange={handleChange}
               placeholder="Descreva os pontos que ainda precisam ser resolvidos"
               rows="4"
               className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"

@@ -1,4 +1,5 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import formatEuroNumber from "./formatEuroNumber";
 
 const generateBudgetPDF = async (
   order,
@@ -233,7 +234,7 @@ const generateBudgetPDF = async (
       align: "left",
     });
 
-    writeText(`${service.value.toFixed(2)} €`, {
+    writeText(`${formatEuroNumber(service.value || 0)} €`, {
       x: xPos + columns[0].width + columns[1].width,
       width: columns[2].width,
       align: "right",
@@ -245,7 +246,7 @@ const generateBudgetPDF = async (
       align: "right",
     });
 
-    writeText(`${service.total.toFixed(2)} €`, {
+    writeText(`${formatEuroNumber(service.total || 0)} €`, {
       x:
         xPos +
         columns[0].width +
@@ -281,7 +282,7 @@ const generateBudgetPDF = async (
     color: rgb(1, 1, 1),
     useFont: boldFont,
   });
-  writeText(`${total.toFixed(2)} €`, {
+  writeText(`${formatEuroNumber(total)} €`, {
     x: 40,
     y: y,
     align: "right",

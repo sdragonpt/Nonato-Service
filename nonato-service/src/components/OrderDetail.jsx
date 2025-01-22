@@ -231,6 +231,17 @@ const OrderDetail = () => {
         date: order.date,
         serviceType: order.serviceType || "",
         status: order.status || "",
+        resultDescription: order.resultDescription,
+        pontosEmAberto: order.pontosEmAberto,
+        checklist: order.checklist || {
+          // Adicionando o checklist com valores padrão
+          concluido: false,
+          retorno: false,
+          funcionarios: false,
+          documentacao: false,
+          producao: false,
+          pecas: false,
+        },
       };
 
       const fileName = `OrdemServico_${
