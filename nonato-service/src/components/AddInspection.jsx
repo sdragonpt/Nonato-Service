@@ -54,15 +54,13 @@ const AddInspection = () => {
         const clientsRef = collection(db, "clientes");
         const q = query(clientsRef, orderBy("name"));
         const querySnapshot = await getDocs(q);
-
-        const clientsData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        setClients(clientsData);
+        setClients(
+          querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+        );
       } catch (err) {
-        console.error("Erro ao carregar clientes:", err);
         setError("Erro ao carregar clientes");
       } finally {
         setIsLoading(false);
@@ -76,7 +74,6 @@ const AddInspection = () => {
   useEffect(() => {
     const fetchEquipments = async () => {
       if (!selectedClient) return;
-
       try {
         setIsLoading(true);
         const equipmentsRef = collection(db, "equipamentos");
@@ -85,15 +82,13 @@ const AddInspection = () => {
           where("clientId", "==", selectedClient.id)
         );
         const querySnapshot = await getDocs(q);
-
-        const equipmentsData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        setEquipments(equipmentsData);
+        setEquipments(
+          querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+        );
       } catch (err) {
-        console.error("Erro ao carregar equipamentos:", err);
         setError("Erro ao carregar equipamentos");
       } finally {
         setIsLoading(false);
@@ -106,51 +101,80 @@ const AddInspection = () => {
   // Fetch de tipos de checklist
   useEffect(() => {
     const fetchTypes = async () => {
+      if (currentStep !== 3) return;
       try {
         setIsLoading(true);
         const typesRef = collection(db, "checklist_machines");
         const q = query(typesRef, orderBy("type"));
         const querySnapshot = await getDocs(q);
-
-        const typesData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        setTypes(typesData);
+        setTypes(
+          querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+        );
       } catch (err) {
-        console.error("Erro ao carregar tipos:", err);
         setError("Erro ao carregar tipos de checklist");
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (currentStep === 3) {
-      fetchTypes();
-    }
+    fetchTypes();
   }, [currentStep]);
 
-  const handleNext = () => {
-    if (currentStep === 1 && !selectedClient) {
-      setError("Selecione um cliente para continuar");
-      return;
-    }
-    if (currentStep === 2 && !selectedEquipment) {
-      setError("Selecione um equipamento para continuar");
-      return;
-    }
-    if (currentStep === 3 && !selectedType) {
-      setError("Selecione um tipo de checklist para continuar");
-      return;
-    }
-    if (currentStep === 4 && selectedGroups.length === 0) {
-      setError("Selecione pelo menos um grupo");
+  const handleNext = async () => {
+    const validationMap = {
+      1: {
+        condition: !selectedClient,
+        message: "Selecione um cliente para continuar",
+      },
+      2: {
+        condition: !selectedEquipment,
+        message: "Selecione um equipamento para continuar",
+      },
+      3: {
+        condition: !selectedType,
+        message: "Selecione um tipo de checklist para continuar",
+      },
+      4: {
+        condition: selectedGroups.length === 0,
+        message: "Selecione pelo menos um grupo",
+      },
+    };
+
+    const currentValidation = validationMap[currentStep];
+    if (currentValidation?.condition) {
+      setError(currentValidation.message);
       return;
     }
 
     setError(null);
-    setCurrentStep((prev) => prev + 1);
+    setIsLoading(true);
+
+    if (currentStep === 1) {
+      try {
+        const equipmentsRef = collection(db, "equipamentos");
+        const q = query(
+          equipmentsRef,
+          where("clientId", "==", selectedClient.id)
+        );
+        const querySnapshot = await getDocs(q);
+        const equipmentsData = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setEquipments(equipmentsData);
+        setCurrentStep((prev) => prev + 1);
+      } catch (err) {
+        setError("Erro ao carregar equipamentos");
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      setCurrentStep((prev) => prev + 1);
+      setIsLoading(false);
+    }
   };
 
   const handleBack = () => {
@@ -167,12 +191,11 @@ const AddInspection = () => {
         const currentCounter = counterSnapshot.data().count;
         await setDoc(counterRef, { count: increment(1) }, { merge: true });
         return currentCounter + 1;
-      } else {
-        await setDoc(counterRef, { count: 1 });
-        return 1;
       }
+
+      await setDoc(counterRef, { count: 1 });
+      return 1;
     } catch (error) {
-      console.error("Erro ao gerar ID:", error);
       throw new Error("Falha ao gerar ID da inspeção");
     }
   };
@@ -181,21 +204,19 @@ const AddInspection = () => {
     try {
       setIsLoading(true);
       setError(null);
-
       const newInspectionId = await getNextInspectionId();
 
       await setDoc(doc(db, "inspections", newInspectionId.toString()), {
         clientId: selectedClient.id,
         equipmentId: selectedEquipment.id,
         checklistTypeId: selectedType.id,
-        selectedGroups: selectedGroups,
+        selectedGroups,
         status: "pending",
         createdAt: new Date(),
       });
 
       navigate("/app/manage-inspection");
     } catch (err) {
-      console.error("Erro ao criar inspeção:", err);
       setError("Erro ao criar inspeção. Por favor, tente novamente.");
     } finally {
       setIsLoading(false);
@@ -204,11 +225,28 @@ const AddInspection = () => {
 
   const handleGroupToggle = (group) => {
     setSelectedGroups((prev) => {
-      if (prev.find((g) => g.name === group.name)) {
+      const existingGroup = prev.find((g) => g.name === group.name);
+      if (existingGroup) {
         return prev.filter((g) => g.name !== group.name);
-      } else {
-        return [...prev, group];
       }
+      return [...prev, { ...group, selectedCharacteristics: [] }];
+    });
+  };
+
+  const handleCharacteristicToggle = (groupName, characteristic) => {
+    setSelectedGroups((prev) => {
+      return prev.map((group) => {
+        if (group.name === groupName) {
+          const characteristics = group.selectedCharacteristics || [];
+          return {
+            ...group,
+            selectedCharacteristics: characteristics.includes(characteristic)
+              ? characteristics.filter((c) => c !== characteristic)
+              : [...characteristics, characteristic],
+          };
+        }
+        return group;
+      });
     });
   };
 
@@ -217,6 +255,14 @@ const AddInspection = () => {
   );
 
   const renderStep = () => {
+    if (isLoading) {
+      return (
+        <div className="flex justify-center items-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-white" />
+        </div>
+      );
+    }
+
     switch (currentStep) {
       case 1:
         return (
@@ -321,7 +367,6 @@ const AddInspection = () => {
       case 4:
         return (
           <div className="space-y-4">
-            {/* Header do checklist */}
             <div className="p-4 bg-gray-800 rounded-lg space-y-2">
               <div className="flex items-start justify-between">
                 <div>
@@ -337,27 +382,25 @@ const AddInspection = () => {
                 </div>
               </div>
               <p className="text-sm text-gray-400">
-                Selecione os grupos que deseja incluir nesta inspeção
+                Selecione os grupos e características que deseja incluir nesta
+                inspeção
               </p>
             </div>
 
-            {/* Lista de grupos */}
             <div className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto pr-2">
               {selectedType?.groups?.map((group, index) => {
-                const isSelected = selectedGroups.find(
+                const selectedGroup = selectedGroups.find(
                   (g) => g.name === group.name
                 );
-
                 return (
                   <div
                     key={index}
                     className={`bg-gray-800 rounded-lg overflow-hidden transition-all duration-200 ${
-                      isSelected
+                      selectedGroup
                         ? "border border-blue-500/50"
                         : "hover:bg-gray-700"
                     }`}
                   >
-                    {/* Header do grupo */}
                     <div
                       onClick={() => handleGroupToggle(group)}
                       className="p-4 cursor-pointer"
@@ -366,12 +409,14 @@ const AddInspection = () => {
                         <div className="flex items-center space-x-3">
                           <div
                             className={`p-2 rounded-lg ${
-                              isSelected ? "bg-blue-500/10" : "bg-gray-700"
+                              selectedGroup ? "bg-blue-500/10" : "bg-gray-700"
                             }`}
                           >
                             <ListChecks
                               className={`w-5 h-5 ${
-                                isSelected ? "text-blue-400" : "text-gray-400"
+                                selectedGroup
+                                  ? "text-blue-400"
+                                  : "text-gray-400"
                               }`}
                             />
                           </div>
@@ -380,20 +425,28 @@ const AddInspection = () => {
                               {group.name}
                             </h4>
                             <p className="text-sm text-gray-400">
-                              {group.characteristics?.length || 0}{" "}
-                              característica(s)
+                              {selectedGroup
+                                ? `${
+                                    selectedGroup.selectedCharacteristics
+                                      ?.length || 0
+                                  } de ${
+                                    group.characteristics?.length || 0
+                                  } característica(s)`
+                                : `${
+                                    group.characteristics?.length || 0
+                                  } característica(s)`}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center">
                           <div
                             className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 cursor-pointer ${
-                              isSelected
+                              selectedGroup
                                 ? "bg-blue-500 border-blue-500"
                                 : "border-gray-500 hover:border-gray-400"
                             }`}
                           >
-                            {isSelected && (
+                            {selectedGroup && (
                               <svg
                                 className="w-3 h-3 text-white"
                                 fill="none"
@@ -412,20 +465,56 @@ const AddInspection = () => {
                         </div>
                       </div>
                     </div>
-
-                    {/* Lista de características */}
-                    {isSelected && (
+                    {selectedGroup && (
                       <div className="px-4 pb-4">
                         <div className="pl-11">
                           <div className="border-l-2 border-blue-500/20 pl-4 space-y-2">
-                            {group.characteristics?.map((char, charIndex) => (
-                              <div
-                                key={charIndex}
-                                className="text-sm text-gray-300 py-2 px-3 bg-gray-700/50 rounded-lg"
-                              >
-                                {char}
-                              </div>
-                            ))}
+                            {group.characteristics?.map((char, charIndex) => {
+                              const isCharSelected =
+                                selectedGroup.selectedCharacteristics?.includes(
+                                  char
+                                );
+                              return (
+                                <div
+                                  key={charIndex}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCharacteristicToggle(
+                                      group.name,
+                                      char
+                                    );
+                                  }}
+                                  className={`text-sm text-gray-300 py-2 px-3 bg-gray-700/50 rounded-lg flex items-center justify-between cursor-pointer ${
+                                    isCharSelected ? "bg-blue-500/10" : ""
+                                  }`}
+                                >
+                                  <span>{char}</span>
+                                  <div
+                                    className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-200 ${
+                                      isCharSelected
+                                        ? "bg-blue-500 border-blue-500"
+                                        : "border-gray-400"
+                                    }`}
+                                  >
+                                    {isCharSelected && (
+                                      <svg
+                                        className="w-3 h-3 text-white"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={3}
+                                          d="M5 13l4 4L19 7"
+                                        />
+                                      </svg>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>
@@ -435,7 +524,6 @@ const AddInspection = () => {
               })}
             </div>
 
-            {/* Mensagem quando não há grupos */}
             {(!selectedType?.groups || selectedType.groups.length === 0) && (
               <div className="text-center py-8 bg-gray-800 rounded-lg">
                 <ListChecks className="w-12 h-12 text-gray-500 mx-auto mb-3" />
@@ -451,6 +539,14 @@ const AddInspection = () => {
         return null;
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-white" />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-2xl mx-auto p-4">

@@ -51,7 +51,6 @@ const EditInspection = () => {
       try {
         setIsLoading(true);
         const inspectionDoc = await getDoc(doc(db, "inspections", id));
-
         if (!inspectionDoc.exists()) {
           setError("Inspeção não encontrada");
           return;
@@ -78,9 +77,14 @@ const EditInspection = () => {
         setSelectedType({ id: typeDoc.id, ...typeDoc.data() });
 
         // Definir grupos selecionados
-        setSelectedGroups(inspectionData.selectedGroups || []);
+        // Preservar selectedCharacteristics dos grupos
+        setSelectedGroups(
+          inspectionData.selectedGroups.map((group) => ({
+            ...group,
+            selectedCharacteristics: group.selectedCharacteristics || [],
+          })) || []
+        );
       } catch (err) {
-        console.error("Erro ao carregar inspeção:", err);
         setError("Erro ao carregar dados da inspeção");
       } finally {
         setIsLoading(false);
@@ -175,26 +179,39 @@ const EditInspection = () => {
     }
   }, [currentStep]);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep === 1 && !selectedClient) {
       setError("Selecione um cliente para continuar");
       return;
     }
-    if (currentStep === 2 && !selectedEquipment) {
-      setError("Selecione um equipamento para continuar");
-      return;
-    }
-    if (currentStep === 3 && !selectedType) {
-      setError("Selecione um tipo de checklist para continuar");
-      return;
-    }
-    if (currentStep === 4 && selectedGroups.length === 0) {
-      setError("Selecione pelo menos um grupo");
+
+    setError(null);
+    setIsLoading(true);
+
+    if (currentStep === 1) {
+      try {
+        const equipmentsRef = collection(db, "equipamentos");
+        const q = query(
+          equipmentsRef,
+          where("clientId", "==", selectedClient.id)
+        );
+        const querySnapshot = await getDocs(q);
+        const equipmentsData = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setEquipments(equipmentsData);
+        setCurrentStep((prev) => prev + 1);
+      } catch (err) {
+        setError("Erro ao carregar equipamentos");
+      } finally {
+        setIsLoading(false);
+      }
       return;
     }
 
-    setError(null);
     setCurrentStep((prev) => prev + 1);
+    setIsLoading(false);
   };
 
   const handleBack = () => {
@@ -206,6 +223,13 @@ const EditInspection = () => {
     try {
       setIsLoading(true);
       setError(null);
+
+      if (
+        selectedGroups.some((group) => !group.selectedCharacteristics?.length)
+      ) {
+        setError("Selecione pelo menos uma característica em cada grupo");
+        return;
+      }
 
       await updateDoc(doc(db, "inspections", id), {
         clientId: selectedClient.id,
@@ -226,11 +250,35 @@ const EditInspection = () => {
 
   const handleGroupToggle = (group) => {
     setSelectedGroups((prev) => {
-      if (prev.find((g) => g.name === group.name)) {
+      const existingGroup = prev.find((g) => g.name === group.name);
+      if (existingGroup) {
         return prev.filter((g) => g.name !== group.name);
       } else {
-        return [...prev, group];
+        return [
+          ...prev,
+          {
+            ...group,
+            selectedCharacteristics: [],
+          },
+        ];
       }
+    });
+  };
+
+  const handleCharacteristicToggle = (groupName, characteristic) => {
+    setSelectedGroups((prev) => {
+      return prev.map((group) => {
+        if (group.name === groupName) {
+          const characteristics = group.selectedCharacteristics || [];
+          return {
+            ...group,
+            selectedCharacteristics: characteristics.includes(characteristic)
+              ? characteristics.filter((c) => c !== characteristic)
+              : [...characteristics, characteristic],
+          };
+        }
+        return group;
+      });
     });
   };
 
@@ -239,6 +287,14 @@ const EditInspection = () => {
   );
 
   const renderStep = () => {
+    if (isLoading) {
+      return (
+        <div className="flex justify-center items-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-white" />
+        </div>
+      );
+    }
+
     switch (currentStep) {
       case 1:
         return (
@@ -343,7 +399,6 @@ const EditInspection = () => {
       case 4:
         return (
           <div className="space-y-4">
-            {/* Header do checklist */}
             <div className="p-4 bg-gray-800 rounded-lg space-y-2">
               <div className="flex items-start justify-between">
                 <div>
@@ -359,27 +414,25 @@ const EditInspection = () => {
                 </div>
               </div>
               <p className="text-sm text-gray-400">
-                Selecione os grupos que deseja incluir nesta inspeção
+                Selecione os grupos e características que deseja incluir nesta
+                inspeção
               </p>
             </div>
 
-            {/* Lista de grupos */}
             <div className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto pr-2">
               {selectedType?.groups?.map((group, index) => {
-                const isSelected = selectedGroups.find(
+                const selectedGroup = selectedGroups.find(
                   (g) => g.name === group.name
                 );
-
                 return (
                   <div
                     key={index}
                     className={`bg-gray-800 rounded-lg overflow-hidden transition-all duration-200 ${
-                      isSelected
+                      selectedGroup
                         ? "border border-blue-500/50"
                         : "hover:bg-gray-700"
                     }`}
                   >
-                    {/* Header do grupo */}
                     <div
                       onClick={() => handleGroupToggle(group)}
                       className="p-4 cursor-pointer"
@@ -388,12 +441,14 @@ const EditInspection = () => {
                         <div className="flex items-center space-x-3">
                           <div
                             className={`p-2 rounded-lg ${
-                              isSelected ? "bg-blue-500/10" : "bg-gray-700"
+                              selectedGroup ? "bg-blue-500/10" : "bg-gray-700"
                             }`}
                           >
                             <ListChecks
                               className={`w-5 h-5 ${
-                                isSelected ? "text-blue-400" : "text-gray-400"
+                                selectedGroup
+                                  ? "text-blue-400"
+                                  : "text-gray-400"
                               }`}
                             />
                           </div>
@@ -402,24 +457,28 @@ const EditInspection = () => {
                               {group.name}
                             </h4>
                             <p className="text-sm text-gray-400">
-                              {group.characteristics?.length || 0}{" "}
-                              característica(s)
+                              {selectedGroup
+                                ? `${
+                                    selectedGroup.selectedCharacteristics
+                                      ?.length || 0
+                                  } de ${
+                                    group.characteristics?.length || 0
+                                  } característica(s)`
+                                : `${
+                                    group.characteristics?.length || 0
+                                  } característica(s)`}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center">
                           <div
-                            className={`
-                                w-5 h-5 rounded border-2 flex items-center justify-center
-                                transition-all duration-200 cursor-pointer
-                                ${
-                                  isSelected
-                                    ? "bg-blue-500 border-blue-500"
-                                    : "border-gray-500 hover:border-gray-400"
-                                }
-                              `}
+                            className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 cursor-pointer ${
+                              selectedGroup
+                                ? "bg-blue-500 border-blue-500"
+                                : "border-gray-500 hover:border-gray-400"
+                            }`}
                           >
-                            {isSelected && (
+                            {selectedGroup && (
                               <svg
                                 className="w-3 h-3 text-white"
                                 fill="none"
@@ -439,19 +498,56 @@ const EditInspection = () => {
                       </div>
                     </div>
 
-                    {/* Lista de características */}
-                    {isSelected && (
+                    {selectedGroup && (
                       <div className="px-4 pb-4">
                         <div className="pl-11">
                           <div className="border-l-2 border-blue-500/20 pl-4 space-y-2">
-                            {group.characteristics?.map((char, charIndex) => (
-                              <div
-                                key={charIndex}
-                                className="text-sm text-gray-300 py-2 px-3 bg-gray-700/50 rounded-lg"
-                              >
-                                {char}
-                              </div>
-                            ))}
+                            {group.characteristics?.map((char, charIndex) => {
+                              const isCharSelected =
+                                selectedGroup.selectedCharacteristics?.includes(
+                                  char
+                                );
+                              return (
+                                <div
+                                  key={charIndex}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCharacteristicToggle(
+                                      group.name,
+                                      char
+                                    );
+                                  }}
+                                  className={`text-sm text-gray-300 py-2 px-3 bg-gray-700/50 rounded-lg flex items-center justify-between cursor-pointer ${
+                                    isCharSelected ? "bg-blue-500/10" : ""
+                                  }`}
+                                >
+                                  <span>{char}</span>
+                                  <div
+                                    className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-200 ${
+                                      isCharSelected
+                                        ? "bg-blue-500 border-blue-500"
+                                        : "border-gray-400"
+                                    }`}
+                                  >
+                                    {isCharSelected && (
+                                      <svg
+                                        className="w-3 h-3 text-white"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={3}
+                                          d="M5 13l4 4L19 7"
+                                        />
+                                      </svg>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>
@@ -461,7 +557,6 @@ const EditInspection = () => {
               })}
             </div>
 
-            {/* Mensagem quando não há grupos */}
             {(!selectedType?.groups || selectedType.groups.length === 0) && (
               <div className="text-center py-8 bg-gray-800 rounded-lg">
                 <ListChecks className="w-12 h-12 text-gray-500 mx-auto mb-3" />
@@ -476,6 +571,14 @@ const EditInspection = () => {
         return null;
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-white" />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-2xl mx-auto p-4">

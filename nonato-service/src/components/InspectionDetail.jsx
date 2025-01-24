@@ -75,7 +75,7 @@ const InspectionDetail = () => {
         // Inicializar grupos com estados
         const initialGroups = selectedGroups.map((group) => ({
           ...group,
-          characteristics: group.characteristics.map((char) => ({
+          characteristics: group.selectedCharacteristics.map((char) => ({
             name: char,
             state: inspectionData.states?.[group.name]?.[char]?.state || "",
             description:

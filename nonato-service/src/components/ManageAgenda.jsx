@@ -60,7 +60,6 @@ const ManageAgenda = () => {
     "Dezembro",
   ];
 
-  // Função para buscar agendamentos
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -178,12 +177,10 @@ const ManageAgenda = () => {
     const weeks = [];
     let currentWeek = [];
 
-    // Get Monday of the first week
     const firstDayOfWeek = firstDay.getDay() || 7;
     const mondayOfFirstWeek = new Date(firstDay);
     mondayOfFirstWeek.setDate(firstDay.getDate() - firstDayOfWeek + 1);
 
-    // Get Sunday of the last week
     const lastDayOfWeek = lastDay.getDay() || 7;
     const sundayOfLastWeek = new Date(lastDay);
     sundayOfLastWeek.setDate(lastDay.getDate() + (7 - lastDayOfWeek));
@@ -296,87 +293,88 @@ const ManageAgenda = () => {
     );
   };
 
-  const monthColors = {
-    0: {
-      bg: "bg-blue-500/10",
-      border: "border-blue-500/30",
-      text: "text-blue-400",
-    },
-    1: {
-      bg: "bg-purple-500/10",
-      border: "border-purple-500/30",
-      text: "text-purple-400",
-    },
-    2: {
-      bg: "bg-green-500/10",
-      border: "border-green-500/30",
-      text: "text-green-400",
-    },
-    3: {
-      bg: "bg-yellow-500/10",
-      border: "border-yellow-500/30",
-      text: "text-yellow-400",
-    },
-    4: {
-      bg: "bg-pink-500/10",
-      border: "border-pink-500/30",
-      text: "text-pink-400",
-    },
-    5: {
-      bg: "bg-orange-500/10",
-      border: "border-orange-500/30",
-      text: "text-orange-400",
-    },
-    6: {
-      bg: "bg-indigo-500/10",
-      border: "border-indigo-500/30",
-      text: "text-indigo-400",
-    },
-    7: {
-      bg: "bg-teal-500/10",
-      border: "border-teal-500/30",
-      text: "text-teal-400",
-    },
-    8: {
-      bg: "bg-red-500/10",
-      border: "border-red-500/30",
-      text: "text-red-400",
-    },
-    9: {
-      bg: "bg-amber-500/10",
-      border: "border-amber-500/30",
-      text: "text-amber-400",
-    },
-    10: {
-      bg: "bg-cyan-500/10",
-      border: "border-cyan-500/30",
-      text: "text-cyan-400",
-    },
-    11: {
-      bg: "bg-rose-500/10",
-      border: "border-rose-500/30",
-      text: "text-rose-400",
-    },
+  const getClientColor = (clientId) => {
+    const colors = [
+      {
+        bg: "bg-blue-500/10",
+        border: "border-blue-500/30",
+        text: "text-blue-400",
+      },
+      {
+        bg: "bg-purple-500/10",
+        border: "border-purple-500/30",
+        text: "text-purple-400",
+      },
+      {
+        bg: "bg-green-500/10",
+        border: "border-green-500/30",
+        text: "text-green-400",
+      },
+      {
+        bg: "bg-yellow-500/10",
+        border: "border-yellow-500/30",
+        text: "text-yellow-400",
+      },
+      {
+        bg: "bg-pink-500/10",
+        border: "border-pink-500/30",
+        text: "text-pink-400",
+      },
+      {
+        bg: "bg-orange-500/10",
+        border: "border-orange-500/30",
+        text: "text-orange-400",
+      },
+      {
+        bg: "bg-indigo-500/10",
+        border: "border-indigo-500/30",
+        text: "text-indigo-400",
+      },
+      {
+        bg: "bg-teal-500/10",
+        border: "border-teal-500/30",
+        text: "text-teal-400",
+      },
+    ];
+
+    if (!clientId) return colors[0];
+
+    let hash = 0;
+    for (let i = 0; i < clientId.length; i++) {
+      hash = clientId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    return colors[Math.abs(hash) % colors.length];
   };
 
   const AgendamentoCard = ({ agendamento }) => {
-    const monthColor = monthColors[new Date(agendamento.data).getMonth()];
     const isToday = agendamento.data === new Date().toISOString().split("T")[0];
+    const isUrgent = agendamento.prioridade === "alta";
+    const clientColor = isUrgent
+      ? {
+          bg: "bg-red-500/10",
+          border: "border-red-500/30",
+          text: "text-red-400",
+        }
+      : getClientColor(agendamento.clientId);
 
     return (
       <div
-        className={`${monthColor.bg} ${
-          monthColor.border
+        className={`${clientColor.bg} ${
+          clientColor.border
         } border p-2 rounded-lg ${isToday ? "ring-2 ring-green-400" : ""}`}
       >
         <div className="flex justify-between items-center">
-          <span
-            className={`${
-              isToday ? "text-green-400" : monthColor.text
-            } text-sm font-medium ${isToday ? "font-bold" : ""}`}
-          >
-            {agendamento.hora}
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className={`${
+                isToday ? "text-green-400" : clientColor.text
+              } text-sm font-medium ${isToday ? "font-bold" : ""}`}
+            >
+              {agendamento.hora}
+            </span>
+            {isUrgent && <AlertTriangle className="w-4 h-4 text-red-400" />}
+          </div>
           <span
             className={`text-white text-sm truncate max-w-[150px] ${
               isToday ? "font-bold" : "font-medium"
@@ -413,6 +411,9 @@ const ManageAgenda = () => {
             </button>
           </div>
         </div>
+        <span className={`text-xs ${clientColor.text} mt-1`}>
+          {agendamento.status}
+        </span>
       </div>
     );
   };
@@ -430,13 +431,12 @@ const ManageAgenda = () => {
             const dayAgendamentos = getAgendamentosByDate(date);
             if (dayAgendamentos.length === 0) return null;
 
-            const monthColor = monthColors[date.getMonth()];
             return (
               <div
                 key={dateIndex}
-                className={`${monthColor.bg} ${monthColor.border} border rounded-lg p-2`}
+                className="bg-gray-800/50 border border-gray-700 rounded-lg p-2"
               >
-                <h5 className={`${monthColor.text} text-sm font-medium mb-2`}>
+                <h5 className="text-gray-400 text-sm font-medium mb-2">
                   {date.toLocaleDateString("pt-BR", {
                     weekday: "long",
                     day: "numeric",
@@ -459,9 +459,15 @@ const ManageAgenda = () => {
   };
 
   const ListView = () => {
+    // Sort appointments by time
+    const sortedAgendamentos = [...agendamentos].sort((a, b) => {
+      if (a.data !== b.data) return a.data.localeCompare(b.data);
+      return a.hora.localeCompare(b.hora);
+    });
+
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {agendamentos.map((agendamento) => (
+        {sortedAgendamentos.map((agendamento) => (
           <AgendamentoCard key={agendamento.id} agendamento={agendamento} />
         ))}
       </div>
@@ -481,7 +487,6 @@ const ManageAgenda = () => {
       <h2 className="text-2xl font-semibold text-center text-white mb-6">
         Agenda
       </h2>
-
       {error && (
         <div className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded-lg flex items-center">
           <AlertCircle className="w-5 h-5 text-red-500 mr-2" />

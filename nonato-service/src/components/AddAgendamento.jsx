@@ -23,13 +23,9 @@ const AddAgendamento = () => {
   const [error, setError] = useState(null);
   const [equipments, setEquipments] = useState([]);
   const [filteredEquipments, setFilteredEquipments] = useState([]);
-  const [isDateLoading, setIsDateLoading] = useState(false);
-
-  // Start and end date for consecutive appointments
-  const [dateRange, setDateRange] = useState({
-    startDate: "",
-    endDate: "",
-  });
+  const [isMultipleDates, setIsMultipleDates] = useState(false);
+  const [selectedDates, setSelectedDates] = useState([""]);
+  const [singleDate, setSingleDate] = useState("");
 
   const [formData, setFormData] = useState({
     hora: "",
@@ -96,55 +92,52 @@ const AddAgendamento = () => {
     }));
   };
 
-  const handleDateRangeChange = (e) => {
-    const { name, value } = e.target;
-    setDateRange((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const handleDateChange = (index, value) => {
+    const newDates = [...selectedDates];
+    newDates[index] = value;
+    setSelectedDates(newDates);
   };
 
-  const generateDatesBetween = (start, end) => {
-    const dates = [];
-    const currentDate = new Date(start);
-    const endDate = new Date(end);
+  const addDate = () => {
+    setSelectedDates([...selectedDates, ""]);
+  };
 
-    while (currentDate <= endDate) {
-      dates.push(currentDate.toISOString().split("T")[0]);
-      currentDate.setDate(currentDate.getDate() + 1);
+  const removeDate = (index) => {
+    if (selectedDates.length > 1) {
+      const newDates = selectedDates.filter((_, i) => i !== index);
+      setSelectedDates(newDates);
     }
-
-    return dates;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!dateRange.startDate || !dateRange.endDate) {
-      setError("Por favor, selecione as datas inicial e final.");
-      return;
-    }
-
     try {
       setIsLoading(true);
       setError(null);
 
-      const dates = generateDatesBetween(
-        dateRange.startDate,
-        dateRange.endDate
-      );
+      if (isMultipleDates) {
+        // Create an appointment for each date
+        const agendamentosPromises = selectedDates.map((data) =>
+          addDoc(collection(db, "agendamentos"), {
+            ...formData,
+            data,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+        );
 
-      // Criar um agendamento para cada data no intervalo
-      const agendamentosPromises = dates.map((data) =>
-        addDoc(collection(db, "agendamentos"), {
+        await Promise.all(agendamentosPromises);
+      } else {
+        // Create single appointment
+        await addDoc(collection(db, "agendamentos"), {
           ...formData,
-          data,
+          data: singleDate,
           createdAt: new Date(),
           updatedAt: new Date(),
-        })
-      );
+        });
+      }
 
-      await Promise.all(agendamentosPromises);
       navigate("/app/manage-agenda");
     } catch (err) {
       console.error("Erro ao criar agendamentos:", err);
@@ -153,7 +146,7 @@ const AddAgendamento = () => {
     }
   };
 
-  if (isLoading || isDateLoading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
@@ -182,42 +175,99 @@ const AddAgendamento = () => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Toggle buttons */}
+        <div className="flex justify-center mb-6">
+          <div className="bg-gray-700 p-1 rounded-xl inline-flex relative shadow-lg">
+            <div
+              className={`absolute top-1 bottom-1 w-[120px] rounded-lg bg-green-600 transition-all duration-300 ease-in-out ${
+                isMultipleDates ? "translate-x-[120px]" : "translate-x-0"
+              }`}
+            />
+            <button
+              type="button"
+              onClick={() => setIsMultipleDates(false)}
+              className={`relative w-[120px] py-2 rounded-lg font-medium transition-colors duration-300 ${
+                !isMultipleDates
+                  ? "text-white"
+                  : "text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              Data Única
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsMultipleDates(true)}
+              className={`relative w-[120px] py-2 rounded-lg font-medium transition-colors duration-300 ${
+                isMultipleDates
+                  ? "text-white"
+                  : "text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              Múltiplas
+            </button>
+          </div>
+        </div>
+
         {/* Datas e Hora */}
         <div className="bg-gray-800 p-6 rounded-lg space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {isMultipleDates ? (
+            <>
+              {selectedDates.map((date, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Data {index + 1}
+                    </label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="date"
+                        value={date}
+                        onChange={(e) =>
+                          handleDateChange(index, e.target.value)
+                        }
+                        className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        required
+                      />
+                    </div>
+                  </div>
+                  {selectedDates.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeDate(index)}
+                      className="mt-6 p-2 text-red-400 hover:text-red-300 transition-colors"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addDate}
+                className="mt-2 flex items-center text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Adicionar outra data
+              </button>
+            </>
+          ) : (
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
-                Data Inicial
+                Data
               </label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="date"
-                  name="startDate"
-                  value={dateRange.startDate}
-                  onChange={handleDateRangeChange}
+                  value={singleDate}
+                  onChange={(e) => setSingleDate(e.target.value)}
                   className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   required
                 />
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Data Final
-              </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="date"
-                  name="endDate"
-                  value={dateRange.endDate}
-                  onChange={handleDateRangeChange}
-                  className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  required
-                />
-              </div>
-            </div>
-          </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -359,7 +409,11 @@ const AddAgendamento = () => {
         {/* Botão Submit */}
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={
+            isLoading ||
+            (!isMultipleDates && !singleDate) ||
+            (isMultipleDates && selectedDates.some((date) => !date))
+          }
           className="w-full p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center"
         >
           {isLoading ? (
@@ -370,7 +424,9 @@ const AddAgendamento = () => {
           ) : (
             <>
               <Save className="w-5 h-5 mr-2" />
-              Criar Agendamento
+              {isMultipleDates
+                ? `Criar ${selectedDates.length} Agendamentos`
+                : "Criar Agendamento"}
             </>
           )}
         </button>
