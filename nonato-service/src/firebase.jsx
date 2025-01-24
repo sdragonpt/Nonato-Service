@@ -2,6 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
+import { getStorage } from "firebase/storage";
 
 // Configurações do Firebase
 const firebaseConfig = {
@@ -24,3 +25,4 @@ const db = getFirestore(app);
 const analytics = getAnalytics(app);
 
 export { db, app as firebaseApp };
+export const storage = getStorage(app, "gs://nonato-service.firebasestorage.app");

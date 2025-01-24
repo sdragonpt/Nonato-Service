@@ -177,14 +177,24 @@ const ManageAgenda = () => {
     const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
     const weeks = [];
     let currentWeek = [];
-    let currentDate = new Date(firstDay);
 
-    while (currentDate.getMonth() === selectedMonth) {
-      if (currentDate.getDay() === 0 && currentWeek.length > 0) {
+    // Get Monday of the first week
+    const firstDayOfWeek = firstDay.getDay() || 7;
+    const mondayOfFirstWeek = new Date(firstDay);
+    mondayOfFirstWeek.setDate(firstDay.getDate() - firstDayOfWeek + 1);
+
+    // Get Sunday of the last week
+    const lastDayOfWeek = lastDay.getDay() || 7;
+    const sundayOfLastWeek = new Date(lastDay);
+    sundayOfLastWeek.setDate(lastDay.getDate() + (7 - lastDayOfWeek));
+
+    let currentDate = new Date(mondayOfFirstWeek);
+
+    while (currentDate <= sundayOfLastWeek) {
+      if (currentDate.getDay() === 1 && currentWeek.length > 0) {
         weeks.push(currentWeek);
         currentWeek = [];
       }
-
       currentWeek.push(new Date(currentDate));
       currentDate.setDate(currentDate.getDate() + 1);
     }
@@ -286,76 +296,122 @@ const ManageAgenda = () => {
     );
   };
 
+  const monthColors = {
+    0: {
+      bg: "bg-blue-500/10",
+      border: "border-blue-500/30",
+      text: "text-blue-400",
+    },
+    1: {
+      bg: "bg-purple-500/10",
+      border: "border-purple-500/30",
+      text: "text-purple-400",
+    },
+    2: {
+      bg: "bg-green-500/10",
+      border: "border-green-500/30",
+      text: "text-green-400",
+    },
+    3: {
+      bg: "bg-yellow-500/10",
+      border: "border-yellow-500/30",
+      text: "text-yellow-400",
+    },
+    4: {
+      bg: "bg-pink-500/10",
+      border: "border-pink-500/30",
+      text: "text-pink-400",
+    },
+    5: {
+      bg: "bg-orange-500/10",
+      border: "border-orange-500/30",
+      text: "text-orange-400",
+    },
+    6: {
+      bg: "bg-indigo-500/10",
+      border: "border-indigo-500/30",
+      text: "text-indigo-400",
+    },
+    7: {
+      bg: "bg-teal-500/10",
+      border: "border-teal-500/30",
+      text: "text-teal-400",
+    },
+    8: {
+      bg: "bg-red-500/10",
+      border: "border-red-500/30",
+      text: "text-red-400",
+    },
+    9: {
+      bg: "bg-amber-500/10",
+      border: "border-amber-500/30",
+      text: "text-amber-400",
+    },
+    10: {
+      bg: "bg-cyan-500/10",
+      border: "border-cyan-500/30",
+      text: "text-cyan-400",
+    },
+    11: {
+      bg: "bg-rose-500/10",
+      border: "border-rose-500/30",
+      text: "text-rose-400",
+    },
+  };
+
   const AgendamentoCard = ({ agendamento }) => {
+    const monthColor = monthColors[new Date(agendamento.data).getMonth()];
+    const isToday = agendamento.data === new Date().toISOString().split("T")[0];
+
     return (
-      <div className="bg-gray-800 p-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300">
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex items-center">
-            <Clock className="w-4 h-4 text-gray-400 mr-2" />
-            <span className="text-white font-medium">{agendamento.hora}</span>
-          </div>
+      <div
+        className={`${monthColor.bg} ${
+          monthColor.border
+        } border p-2 rounded-lg ${isToday ? "ring-2 ring-green-400" : ""}`}
+      >
+        <div className="flex justify-between items-center">
           <span
-            className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-              agendamento.status
-            )}`}
+            className={`${
+              isToday ? "text-green-400" : monthColor.text
+            } text-sm font-medium ${isToday ? "font-bold" : ""}`}
           >
-            {agendamento.status}
+            {agendamento.hora}
           </span>
-        </div>
-
-        <div className="flex items-start space-x-3 mb-4">
-          <User className="w-5 h-5 text-gray-400 flex-shrink-0 mt-1" />
-          <div>
-            <p className="text-white font-medium">
-              {agendamento.cliente?.name || "Cliente não encontrado"}
-            </p>
-            {agendamento.equipment && (
-              <div className="flex items-center mt-1 text-gray-400 text-sm">
-                <Printer className="w-4 h-4 mr-1" />
-                <span>
-                  {agendamento.equipment.brand} - {agendamento.equipment.model}
-                </span>
-              </div>
-            )}
+          <span
+            className={`text-white text-sm truncate max-w-[150px] ${
+              isToday ? "font-bold" : "font-medium"
+            }`}
+          >
+            {agendamento.cliente?.name || "Cliente não encontrado"}
+          </span>
+          <div className="flex gap-0.5">
+            <button
+              onClick={() =>
+                navigate(`/app/edit-agendamento/${agendamento.id}`)
+              }
+              className="p-1 hover:bg-gray-700/50 rounded"
+            >
+              <Edit2 className="w-3.5 h-3.5 text-gray-400" />
+            </button>
+            <button
+              onClick={() =>
+                handleToggleComplete(agendamento.id, agendamento.concluido)
+              }
+              className="p-1 hover:bg-gray-700/50 rounded"
+            >
+              {agendamento.concluido ? (
+                <RotateCcw className="w-3.5 h-3.5 text-gray-400" />
+              ) : (
+                <CheckCircle2 className="w-3.5 h-3.5 text-gray-400" />
+              )}
+            </button>
+            <button
+              onClick={() => handleDelete(agendamento.id)}
+              className="p-1 hover:bg-gray-700/50 rounded"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-gray-400" />
+            </button>
           </div>
-        </div>
-
-        <div className="flex justify-end gap-2">
-          <button
-            onClick={() => navigate(`/app/edit-agendamento/${agendamento.id}`)}
-            className="p-2 text-blue-400 hover:bg-blue-400/20 rounded-lg transition-colors"
-            title="Editar"
-          >
-            <Edit2 className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() =>
-              handleToggleComplete(agendamento.id, agendamento.concluido)
-            }
-            className={`p-2 ${
-              agendamento.concluido
-                ? "text-blue-400 hover:bg-blue-400/20"
-                : "text-green-400 hover:bg-green-400/20"
-            } rounded-lg transition-colors`}
-            title={
-              agendamento.concluido
-                ? "Desfazer conclusão"
-                : "Marcar como concluído"
-            }
-          >
-            {agendamento.concluido ? (
-              <RotateCcw className="w-4 h-4" />
-            ) : (
-              <CheckCircle2 className="w-4 h-4" />
-            )}
-          </button>
-          <button
-            onClick={() => handleDelete(agendamento.id)}
-            className="p-2 text-red-400 hover:bg-red-400/20 rounded-lg transition-colors"
-            title="Excluir"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
         </div>
       </div>
     );
@@ -366,47 +422,37 @@ const ManageAgenda = () => {
       const hasAgendamentos = week.some(
         (date) => getAgendamentosByDate(date).length > 0
       );
-
       if (!hasAgendamentos) return null;
 
       return (
-        <div key={weekIndex} className="bg-gray-800 p-4 rounded-lg">
-          <h4 className="text-white font-medium mb-4 flex items-center">
-            <Calendar className="w-5 h-5 mr-2 text-blue-400" />
-            Semana {weekIndex + 1} ({week[0].toLocaleDateString()} -{" "}
-            {week[week.length - 1].toLocaleDateString()})
-          </h4>
+        <div key={weekIndex} className="space-y-2">
+          {week.map((date, dateIndex) => {
+            const dayAgendamentos = getAgendamentosByDate(date);
+            if (dayAgendamentos.length === 0) return null;
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {week.map((date, dateIndex) => {
-              const dayAgendamentos = getAgendamentosByDate(date);
-              if (dayAgendamentos.length === 0) return null;
-
-              return (
-                <div
-                  key={dateIndex}
-                  className="border-l-4 border-blue-500 bg-gray-700/50 backdrop-blur-sm rounded-lg p-4"
-                >
-                  <h5 className="text-white font-medium mb-4 flex items-center">
-                    <Calendar className="w-4 h-4 mr-2 text-blue-400" />
-                    {date.toLocaleDateString("pt-BR", {
-                      weekday: "long",
-                      day: "numeric",
-                    })}
-                  </h5>
-
-                  <div className="space-y-4">
-                    {dayAgendamentos.map((agendamento) => (
-                      <AgendamentoCard
-                        key={agendamento.id}
-                        agendamento={agendamento}
-                      />
-                    ))}
-                  </div>
+            const monthColor = monthColors[date.getMonth()];
+            return (
+              <div
+                key={dateIndex}
+                className={`${monthColor.bg} ${monthColor.border} border rounded-lg p-2`}
+              >
+                <h5 className={`${monthColor.text} text-sm font-medium mb-2`}>
+                  {date.toLocaleDateString("pt-BR", {
+                    weekday: "long",
+                    day: "numeric",
+                  })}
+                </h5>
+                <div className="space-y-1">
+                  {dayAgendamentos.map((agendamento) => (
+                    <AgendamentoCard
+                      key={agendamento.id}
+                      agendamento={agendamento}
+                    />
+                  ))}
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
       );
     });

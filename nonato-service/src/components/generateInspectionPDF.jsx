@@ -1,4 +1,6 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { ref, getDownloadURL } from "firebase/storage";
+import { storage } from "../firebase.jsx";
 
 const generateInspectionPDF = async (
   inspection,
@@ -75,13 +77,11 @@ const generateInspectionPDF = async (
     return false;
   };
 
-  // Tente carregar a imagem usando fetch
+  // Header logo
   try {
     const response = await fetch("/nonato2.png");
     const arrayBuffer = await response.arrayBuffer();
     const image = await pdfDoc.embedPng(arrayBuffer);
-
-    // Calcular dimensões da imagem mantendo proporção
     const imgWidth = 100;
     const imgHeight = (imgWidth * image.height) / image.width;
 
@@ -116,7 +116,6 @@ const generateInspectionPDF = async (
     y: currentPage.getHeight() - margin,
     align: "right",
   });
-
   writeText(`Relatório #: Check_${inspection.id}`, {
     y: currentPage.getHeight() - margin - 20,
     align: "right",
@@ -137,9 +136,7 @@ const generateInspectionPDF = async (
   writeText(`Nome do inspetor: Nonato`, { y });
   y -= 40;
 
-  writeText("Detalhes dos ativos", {
-    useFont: boldFont,
-  });
+  writeText("Detalhes dos ativos", { useFont: boldFont });
   y -= 20;
 
   writeText(`Categoria de ativos: ${equipment.type || "N/A"}`, { y });
@@ -151,48 +148,92 @@ const generateInspectionPDF = async (
   writeText(`Ano modelo: ${equipment.model || "N/A"}`, { y });
   y -= 40;
 
-  // Características
-  if (checklistType && checklistType.characteristics) {
-    const characteristics = checklistType.characteristics;
-
-    for (let i = 0; i < characteristics.length; i++) {
-      if (checkAndCreateNewPage(100)) {
+  // Grupos e características
+  if (inspection.selectedGroups) {
+    for (const group of inspection.selectedGroups) {
+      if (checkAndCreateNewPage(80)) {
         y -= 30;
       }
 
-      const characteristic = characteristics[i];
-      const isChecked = inspection.characteristics.includes(characteristic);
-
-      // Desenhar caixa de verificação
-      drawRect(initialX, y - 20, pageWidth, 30, rgb(0.95, 0.95, 0.95));
-
-      // Checkbox
-      currentPage.drawRectangle({
-        x: initialX + 10,
-        y: y - 15,
-        width: 12,
-        height: 12,
-        borderColor: rgb(0, 0, 0),
-        borderWidth: 1,
+      // Título do grupo
+      drawRect(initialX, y - 30, pageWidth, 30, rgb(0.95, 0.95, 0.95));
+      writeText(group.name, {
+        y: y - 20,
+        useFont: boldFont,
       });
-
-      if (isChecked) {
-        // Usando 'X' em vez de checkmark unicode
-        writeText("X", {
-          x: initialX + 12,
-          y: y - 13,
-          size: 10,
-          useFont: boldFont, // Usando fonte bold para maior destaque
-        });
-      }
-
-      // Texto da característica
-      writeText(characteristic, {
-        x: initialX + 30,
-        y: y - 12,
-      });
-
       y -= 40;
+
+      // Características do grupo
+      for (const char of group.characteristics) {
+        if (checkAndCreateNewPage(150)) {
+          y -= 30;
+        }
+
+        const state = inspection.states?.[group.name]?.[char]?.state || "N/D";
+        const description =
+          inspection.states?.[group.name]?.[char]?.description || "";
+        const imageUrl = inspection.states?.[group.name]?.[char]?.imageUrl;
+
+        // Característica e estado
+        writeText(char, { y });
+        writeText(`Estado: ${state}`, { y, x: initialX + 300 });
+        y -= 20;
+
+        // Descrição
+        if (description) {
+          writeText("Descrição:", { y, useFont: boldFont });
+          y -= 15;
+          writeText(description, { y });
+          y -= 20;
+        }
+
+        // Imagem
+        if (imageUrl) {
+          try {
+            // Gere um URL pré-assinado com Firebase Storage
+            const storageRef = ref(storage, imageUrl); // `imageUrl` deve ser o caminho relativo no bucket, como "inspections/5/image.jpg"
+            const preSignedUrl = await getDownloadURL(storageRef);
+
+            // Faça o fetch da imagem usando o URL pré-assinado
+            const imgResponse = await fetch(preSignedUrl);
+            if (!imgResponse.ok) {
+              throw new Error(
+                `Falha ao buscar imagem: ${imgResponse.status} ${imgResponse.statusText}`
+              );
+            }
+
+            // Converta a imagem para um ArrayBuffer
+            const imgArrayBuffer = await imgResponse.arrayBuffer();
+
+            // Embeda a imagem no PDF
+            const pdfImage = await pdfDoc.embedJpg(imgArrayBuffer); // ou embedPng se for PNG
+
+            // Dimensione a imagem para caber no PDF
+            const maxWidth = 200;
+            const maxHeight = 150;
+            const imgDims = pdfImage.scale(maxWidth / pdfImage.width);
+
+            // Verifique se há espaço suficiente na página
+            if (checkAndCreateNewPage(imgDims.height + 20)) {
+              y -= 30;
+            }
+
+            // Desenhe a imagem na página
+            currentPage.drawImage(pdfImage, {
+              x: initialX,
+              y: y - imgDims.height,
+              width: imgDims.width,
+              height: imgDims.height,
+            });
+
+            y -= imgDims.height + 20; // Ajuste o cursor para evitar sobreposição
+          } catch (error) {
+            console.error("Erro ao carregar imagem da característica:", error);
+          }
+        }
+
+        y -= 20;
+      }
     }
   }
 
@@ -206,12 +247,12 @@ const generateInspectionPDF = async (
   }
 
   // Assinaturas
-  y -= 60;
+  currentPage = pdfDoc.getPage(pdfDoc.getPageCount() - 1);
+  y = margin + 100;
   const lineWidth = 200;
   const spacing = 50;
   const startXClient = (pageWidth - lineWidth * 2 - spacing) / 2 + margin;
 
-  // Linha do Cliente
   currentPage.drawLine({
     start: { x: startXClient, y },
     end: { x: startXClient + lineWidth, y },
@@ -226,7 +267,6 @@ const generateInspectionPDF = async (
     align: "center",
   });
 
-  // Linha do Técnico
   const startXTecnico = startXClient + lineWidth + spacing;
   currentPage.drawLine({
     start: { x: startXTecnico, y },
@@ -242,7 +282,6 @@ const generateInspectionPDF = async (
     align: "center",
   });
 
-  // Gerar o PDF
   const pdfBytes = await pdfDoc.save();
   return new Blob([pdfBytes], { type: "application/pdf" });
 };
