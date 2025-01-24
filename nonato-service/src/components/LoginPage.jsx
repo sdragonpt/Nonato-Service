@@ -7,7 +7,15 @@ import {
 } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { firebaseApp } from "../firebase";
-import { Mail, Lock, Loader2, AlertCircle, LogIn } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  Loader2,
+  AlertCircle,
+  LogIn,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { motion } from "framer-motion";
 
 const auth = getAuth(firebaseApp);
@@ -17,6 +25,7 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -55,6 +64,10 @@ const LoginPage = () => {
     } finally {
       setIsGoogleLoading(false);
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -110,14 +123,25 @@ const LoginPage = () => {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 bg-zinc-700 border border-zinc-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
+                  className="w-full pl-10 pr-10 py-3 bg-zinc-700 border border-zinc-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
                   placeholder="Sua senha"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 focus:outline-none"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
               </div>
             </div>
 

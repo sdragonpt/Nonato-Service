@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useNavigate } from "react";
+import React, { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -6,6 +6,7 @@ import {
   Navigate,
   useLocation,
   Link,
+  useNavigate,
 } from "react-router-dom";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import {
