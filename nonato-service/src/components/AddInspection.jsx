@@ -124,55 +124,36 @@ const AddInspection = () => {
   }, [currentStep]);
 
   const handleNext = async () => {
-    const validationMap = {
-      1: {
-        condition: !selectedClient,
-        message: "Selecione um cliente para continuar",
-      },
-      2: {
-        condition: !selectedEquipment,
-        message: "Selecione um equipamento para continuar",
-      },
-      3: {
-        condition: !selectedType,
-        message: "Selecione um tipo de checklist para continuar",
-      },
-      4: {
-        condition: selectedGroups.length === 0,
-        message: "Selecione pelo menos um grupo",
-      },
-    };
-
-    const currentValidation = validationMap[currentStep];
-    if (currentValidation?.condition) {
-      setError(currentValidation.message);
+    if (currentStep === 1 && !selectedClient) {
+      setError("Selecione um cliente para continuar");
       return;
     }
 
     setError(null);
     setIsLoading(true);
 
-    if (currentStep === 1) {
-      try {
+    try {
+      if (currentStep === 1) {
         const equipmentsRef = collection(db, "equipamentos");
         const q = query(
           equipmentsRef,
           where("clientId", "==", selectedClient.id)
         );
         const querySnapshot = await getDocs(q);
-        const equipmentsData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setEquipments(equipmentsData);
-        setCurrentStep((prev) => prev + 1);
-      } catch (err) {
-        setError("Erro ao carregar equipamentos");
-      } finally {
-        setIsLoading(false);
+        setEquipments(
+          querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+        );
+      } else if (currentStep === 3) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
-    } else {
+
       setCurrentStep((prev) => prev + 1);
+    } catch (err) {
+      setError("Erro ao carregar dados");
+    } finally {
       setIsLoading(false);
     }
   };
