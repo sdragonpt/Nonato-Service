@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useNavigate } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -101,24 +101,6 @@ const LoadingSpinner = () => (
   </div>
 );
 
-// Componente de Proteção de Rotas
-const ProtectedRoute = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const auth = getAuth();
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
-    });
-    return unsubscribe;
-  }, [auth]);
-
-  if (loading) return <LoadingSpinner />;
-  return user ? children : <Navigate to="/login" />;
-};
-
 // Componente de Navegação
 const Navigation = ({ isOpen, onClose }) => {
   const auth = getAuth();
@@ -210,6 +192,35 @@ const App = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true); // Adiciona estado de carregamento global
   const auth = getAuth();
+
+  // Componente de Proteção de Rotas
+  const ProtectedRoute = ({ children }) => {
+    const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState(null);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user) {
+          setUser(user);
+        } else {
+          navigate("/login");
+        }
+        setLoading(false);
+      });
+      return unsubscribe;
+    }, [navigate]);
+
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-white" />
+        </div>
+      );
+    }
+
+    return user ? children : null;
+  };
 
   const toggleNavbar = () => setIsOpen(!isOpen);
   const closeNavbar = () => setIsOpen(false);

@@ -164,7 +164,7 @@ const generateInspectionPDF = async (
       y -= 40;
 
       // Características do grupo
-      for (const char of group.characteristics) {
+      for (const char of group.selectedCharacteristics || []) {
         if (checkAndCreateNewPage(150)) {
           y -= 30;
         }
