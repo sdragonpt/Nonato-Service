@@ -193,22 +193,33 @@ const ScrollToTop = () => {
 const App = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDelayed, setIsDelayed] = useState(true);
   const auth = getAuth();
 
   useEffect(() => {
+    // Verifica o estado do usuário com Firebase
     const unsubscribe = onAuthStateChanged(auth, () => {
-      setIsLoading(false);
+      setIsLoading(false); // Carregamento do Firebase concluído
     });
 
     return () => unsubscribe();
   }, [auth]);
 
+  useEffect(() => {
+    // Aplica o atraso de 500ms
+    const delay = setTimeout(() => {
+      setIsDelayed(false); // Atraso concluído
+    }, 500);
+
+    return () => clearTimeout(delay); // Limpa o timeout se o componente desmontar
+  }, []);
+
   const toggleNavbar = () => setIsOpen(!isOpen);
   const closeNavbar = () => setIsOpen(false);
 
-  if (isLoading) {
+  if (isLoading || isDelayed) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-screen bg-gray-900">
         <Loader2 className="h-12 w-12 animate-spin text-white" />
       </div>
     );

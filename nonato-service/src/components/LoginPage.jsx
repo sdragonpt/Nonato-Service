@@ -42,7 +42,12 @@ const LoginPage = () => {
       setIsLoading(true);
       setError("");
       await signInWithEmailAndPassword(auth, formData.email, formData.password);
+
+      // Navega para o app
       navigate("/app");
+
+      // Força um refresh após a navegação
+      window.location.reload();
     } catch (err) {
       setError("Falha no login. Verifique suas credenciais.");
     } finally {
