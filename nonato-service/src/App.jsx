@@ -62,6 +62,7 @@ import ManageInspection from "./components/ManageInspection";
 import AddInspection from "./components/AddInspection";
 import EditInspection from "./components/EditInspection";
 import InspectionDetail from "./components/InspectionDetail";
+import ProtectedRoute from "./ProtectedRoute";
 
 // Configuração das rotas e navegação
 const NAVIGATION_ITEMS = [
@@ -191,66 +192,20 @@ const ScrollToTop = () => {
 
 const App = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // Adiciona estado de carregamento global
+  const [isLoading, setIsLoading] = useState(true);
   const auth = getAuth();
 
-  // Componente de Proteção de Rotas
-  const ProtectedRoute = ({ children }) => {
-    const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState(null);
-    const navigate = useNavigate();
-
-    useEffect(() => {
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
-        if (user) {
-          setUser(user);
-        } else {
-          navigate("/login");
-        }
-        setLoading(false);
-      });
-      return unsubscribe;
-    }, [navigate]);
-
-    if (loading) {
-      return (
-        <div className="flex justify-center items-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-white" />
-        </div>
-      );
-    }
-
-    return user ? children : null;
-  };
-
-  const toggleNavbar = () => setIsOpen(!isOpen);
-  const closeNavbar = () => setIsOpen(false);
-
   useEffect(() => {
-    // Simula carregamento inicial (ex.: autenticação, configurações globais)
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setIsLoading(false); // Define como carregado após verificar o estado do usuário
+    const unsubscribe = onAuthStateChanged(auth, () => {
+      setIsLoading(false);
     });
 
     return () => unsubscribe();
   }, [auth]);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        isOpen &&
-        !event.target.closest("nav") &&
-        !event.target.closest("button")
-      ) {
-        closeNavbar();
-      }
-    };
+  const toggleNavbar = () => setIsOpen(!isOpen);
+  const closeNavbar = () => setIsOpen(false);
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen]);
-
-  // Exibe um spinner enquanto está carregando
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -261,7 +216,6 @@ const App = () => {
 
   return (
     <Router>
-      <ScrollToTop />
       <Routes>
         <Route path="/" element={<Navigate to="/start" />} />
         <Route path="/start" element={<InitialPage />} />
@@ -271,6 +225,7 @@ const App = () => {
           element={
             <ProtectedRoute>
               <div className="min-h-screen bg-zinc-900">
+                {/* Navegação */}
                 <button
                   onClick={toggleNavbar}
                   className="fixed top-4 left-4 z-50 md:hidden bg-zinc-800 p-2 rounded-lg"

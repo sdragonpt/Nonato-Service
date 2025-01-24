@@ -1,7 +1,10 @@
 // firebase.jsx
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAnalytics } from "firebase/analytics";
+import {
+  getAnalytics,
+  setAnalyticsCollectionEnabled,
+} from "firebase/analytics";
 import { getStorage } from "firebase/storage";
 
 // Configurações do Firebase
@@ -24,5 +27,11 @@ const db = getFirestore(app);
 // Inicializa Analytics (opcional)
 const analytics = getAnalytics(app);
 
-export { db, app as firebaseApp };
-export const storage = getStorage(app, "gs://nonato-service.firebasestorage.app");
+// Habilita a coleta de dados para o Analytics (opcional, dependendo do ambiente)
+setAnalyticsCollectionEnabled(analytics, true);
+
+export { db, app as firebaseApp, analytics };
+export const storage = getStorage(
+  app,
+  "gs://nonato-service.firebasestorage.app"
+);
