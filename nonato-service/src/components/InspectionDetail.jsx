@@ -35,6 +35,12 @@ const InspectionDetail = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [overallCondition, setOverallCondition] = useState("");
+  const [safeToUse, setSafeToUse] = useState("");
+  const [maintenanceRequired, setMaintenanceRequired] = useState("");
+  const [assetStatus, setAssetStatus] = useState("");
+  const [maintenancePriority, setMaintenancePriority] = useState("");
+  const [additionalNotes, setAdditionalNotes] = useState("");
 
   useEffect(() => {
     const fetchInspectionDetails = async () => {
@@ -49,6 +55,12 @@ const InspectionDetail = () => {
 
         const inspectionData = inspectionDoc.data();
         setInspection(inspectionData);
+        setOverallCondition(inspectionData.overallCondition || "");
+        setSafeToUse(inspectionData.safeToUse || "");
+        setMaintenanceRequired(inspectionData.maintenanceRequired || "");
+        setAssetStatus(inspectionData.assetStatus || "");
+        setMaintenancePriority(inspectionData.maintenancePriority || "");
+        setAdditionalNotes(inspectionData.additionalNotes || "");
 
         // Buscar dados do cliente
         const clientDoc = await getDoc(
@@ -119,6 +131,12 @@ const InspectionDetail = () => {
         states,
         status: "completed",
         completedAt: new Date(),
+        overallCondition,
+        safeToUse,
+        maintenanceRequired,
+        assetStatus,
+        maintenancePriority,
+        additionalNotes,
       });
 
       navigate("/app/manage-inspection");
@@ -346,7 +364,7 @@ const InspectionDetail = () => {
         {showOptions && (
           <div className="absolute bottom-full left-0 mb-2 w-48 bg-gray-800 rounded-lg shadow-lg overflow-hidden z-50">
             <label className="block w-full">
-              <div className="px-4 py-2 hover:bg-gray-700 cursor-pointer">
+              <div className="px-4 py-2 hover:bg-gray-700 text-white cursor-pointer">
                 Escolher da Galeria
                 <input
                   type="file"
@@ -358,7 +376,7 @@ const InspectionDetail = () => {
             </label>
 
             <label className="block w-full">
-              <div className="px-4 py-2 hover:bg-gray-700 cursor-pointer">
+              <div className="px-4 py-2 hover:bg-gray-700 text-white cursor-pointer">
                 Tirar Foto
                 <input
                   type="file"
@@ -408,6 +426,104 @@ const InspectionDetail = () => {
           <div className="flex items-center">
             <CheckSquare className="w-5 h-5 text-gray-400 mr-2" />
             <span className="text-white">{checklistType?.type}</span>
+          </div>
+        </div>
+
+        <div className="p-4 bg-gray-800 rounded-lg space-y-4">
+          <h3 className="text-lg text-white font-medium mb-4">
+            Avaliação Geral
+          </h3>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-white mb-2 block">Condição Geral</label>
+              <select
+                value={overallCondition}
+                onChange={(e) => setOverallCondition(e.target.value)}
+                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Selecionar...</option>
+                <option value="Excelente condição">Excelente condição</option>
+                <option value="Boa condição">Boa condição</option>
+                <option value="Condição regular">Condição regular</option>
+                <option value="Condição ruim">Condição ruim</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-white mb-2 block">
+                Ativo seguro para usar
+              </label>
+              <select
+                value={safeToUse}
+                onChange={(e) => setSafeToUse(e.target.value)}
+                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Selecionar...</option>
+                <option value="Sim">Sim</option>
+                <option value="Não">Não</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-white mb-2 block">
+                Manutenção requerida
+              </label>
+              <select
+                value={maintenanceRequired}
+                onChange={(e) => setMaintenanceRequired(e.target.value)}
+                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Selecionar...</option>
+                <option value="Sim">Sim</option>
+                <option value="Não">Não</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-white mb-2 block">Status do ativo</label>
+              <select
+                value={assetStatus}
+                onChange={(e) => setAssetStatus(e.target.value)}
+                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Selecionar...</option>
+                <option value="Operacional">Operacional</option>
+                <option value="Manutenção requerida">
+                  Manutenção requerida
+                </option>
+                <option value="Em manutenção">Em manutenção</option>
+                <option value="Inoperante">Inoperante</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-white mb-2 block">
+                Prioridade de manutenção
+              </label>
+              <select
+                value={maintenancePriority}
+                onChange={(e) => setMaintenancePriority(e.target.value)}
+                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Selecionar...</option>
+                <option value="Baixo">Baixo</option>
+                <option value="Médio">Médio</option>
+                <option value="Alto">Alto</option>
+                <option value="Crítico">Crítico</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-white mb-2 block">Notas Adicionais</label>
+              <textarea
+                value={additionalNotes}
+                onChange={(e) => setAdditionalNotes(e.target.value)}
+                placeholder="Digite notas adicionais aqui..."
+                className="w-full p-3 bg-gray-700 text-white rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows="4"
+              />
+            </div>
           </div>
         </div>
 

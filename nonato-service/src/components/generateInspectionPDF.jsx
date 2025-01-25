@@ -66,6 +66,19 @@ const generateInspectionPDF = async (
     });
   };
 
+  const getStateColor = (state) => {
+    switch (state) {
+      case "Bom":
+        return { color: rgb(0, 0.5, 0), opacity: 0.8 };
+      case "Reparar":
+        return { color: rgb(0.9, 0.7, 0), opacity: 0.8 };
+      case "Substituir":
+        return { color: rgb(0.5, 0, 0.5), opacity: 0.8 };
+      default:
+        return { color: rgb(0.7, 0.7, 0.7), opacity: 0.6 };
+    }
+  };
+
   const checkAndCreateNewPage = (requiredSpace) => {
     if (y - requiredSpace < minBottomMargin) {
       currentPage = pdfDoc.addPage([595.28, 841.89]);
@@ -112,12 +125,8 @@ const generateInspectionPDF = async (
 
   // Data e número do relatório
   const currentDate = new Date().toLocaleDateString();
-  writeText(`Data da inspeção: ${currentDate}`, {
+  writeText(`${currentDate}`, {
     y: currentPage.getHeight() - margin,
-    align: "right",
-  });
-  writeText(`Relatório #: Check_${inspection.id}`, {
-    y: currentPage.getHeight() - margin - 20,
     align: "right",
   });
 
@@ -126,26 +135,35 @@ const generateInspectionPDF = async (
   drawRect(initialX, y - 130, pageWidth, 130, rgb(0.95, 0.95, 0.95));
 
   writeText("Detalhes da inspeção", {
+    x: 60,
     y: y - 20,
     useFont: boldFont,
   });
   y -= 40;
 
-  writeText(`Localização: ${client.address || "N/A"}`, { y });
+  writeText(`Localização: ${client.address || "N/A"}`, { y, x: 60 });
   y -= 20;
-  writeText(`Nome do inspetor: Nonato`, { y });
-  y -= 40;
+  writeText(`Nome do inspetor: Nonato`, { y, x: 60 });
+  y -= 20;
+  writeText(`Relatório: Check_${inspection.id}`, {
+    y,
+    x: 60,
+  });
+  y -= -60;
 
-  writeText("Detalhes dos ativos", { useFont: boldFont });
+  writeText("Detalhes dos ativos", { useFont: boldFont, x: 320 });
   y -= 20;
 
-  writeText(`Categoria de ativos: ${equipment.type || "N/A"}`, { y });
+  writeText(`Nome do Cliente: ${client.name || "N/A"}`, { y, x: 320 });
   y -= 20;
-  writeText(`Nome do ativo: ${client.name || "N/A"}`, { y });
+  writeText(`Equipamento: ${equipment.type || "N/A"}`, { y, x: 320 });
   y -= 20;
-  writeText(`Ativo #: ${equipment.serialNumber || "N/A"}`, { y });
+  writeText(`Ativo: ${(checklistType.type || "N/A").replace(":", "")}`, {
+    y,
+    x: 320,
+  });
   y -= 20;
-  writeText(`Ano modelo: ${equipment.model || "N/A"}`, { y });
+  writeText(`Modelo: ${equipment.model || "N/A"}`, { y, x: 320 });
   y -= 40;
 
   // Grupos e características
@@ -157,7 +175,8 @@ const generateInspectionPDF = async (
 
       // Título do grupo
       drawRect(initialX, y - 30, pageWidth, 30, rgb(0.95, 0.95, 0.95));
-      writeText(group.name, {
+      writeText(group.name.replace(":", ""), {
+        x: 60,
         y: y - 20,
         useFont: boldFont,
       });
@@ -173,17 +192,45 @@ const generateInspectionPDF = async (
         const description =
           inspection.states?.[group.name]?.[char]?.description || "";
         const imageUrl = inspection.states?.[group.name]?.[char]?.imageUrl;
+        const stateColor = getStateColor(state);
 
         // Característica e estado
-        writeText(char, { y });
-        writeText(`Estado: ${state}`, { y, x: initialX + 300 });
-        y -= 20;
+        writeText(char, { y: y - 5, x: 55 });
+
+        // Texto "Estado:" em preto
+        writeText("Estado: ", {
+          y: y - 5,
+          x: initialX + 400,
+          color: rgb(0, 0, 0),
+        });
+
+        // Calcula posição após "Estado: "
+        const labelWidth = font.widthOfTextAtSize("Estado: ", fontSize);
+        const stateWidth = font.widthOfTextAtSize(state, fontSize);
+        const boxPadding = 4;
+
+        // Desenha retângulo colorido apenas para o valor do estado
+        drawRect(
+          initialX + 400 + labelWidth - 2,
+          y - fontSize - boxPadding + 3,
+          stateWidth + 8,
+          fontSize + boxPadding * 2,
+          stateColor.color
+        );
+
+        // Texto do valor do estado em branco
+        writeText(state, {
+          y: y - 5,
+          x: initialX + 400 + labelWidth + 2,
+          color: rgb(1, 1, 1),
+        });
+        y -= 25;
 
         // Descrição
         if (description) {
-          writeText("Descrição:", { y, useFont: boldFont });
+          writeText("Observação:", { y, useFont: boldFont, x: 55 });
           y -= 15;
-          writeText(description, { y });
+          writeText(description, { y, x: 55 });
           y -= 20;
         }
 
@@ -209,9 +256,14 @@ const generateInspectionPDF = async (
             const pdfImage = await pdfDoc.embedJpg(imgArrayBuffer); // ou embedPng se for PNG
 
             // Dimensione a imagem para caber no PDF
-            const maxWidth = 200;
-            const maxHeight = 150;
-            const imgDims = pdfImage.scale(maxWidth / pdfImage.width);
+            const maxWidth = 150;
+            const maxHeight = 100;
+            // Dimensione a imagem mantendo a proporção
+            const scale = Math.min(
+              maxWidth / pdfImage.width,
+              maxHeight / pdfImage.height
+            );
+            const imgDims = pdfImage.scale(scale);
 
             // Verifique se há espaço suficiente na página
             if (checkAndCreateNewPage(imgDims.height + 20)) {
@@ -232,9 +284,107 @@ const generateInspectionPDF = async (
           }
         }
 
+        // Desenha uma linha horizontal entre as características
+        currentPage.drawLine({
+          start: { x: 50, y },
+          end: { x: 595.28 - 50, y },
+          thickness: 0.5,
+          color: rgb(0.8, 0.8, 0.8), // Cor cinza claro
+        });
+
         y -= 20;
       }
     }
+  }
+
+  // Avaliação Geral
+  if (y < margin + 350) {
+    // Se não houver espaço suficiente para avaliação + assinaturas
+    currentPage = pdfDoc.addPage([595.28, 841.89]);
+    pageNumber++;
+    totalPages++;
+    y = currentPage.getHeight() - margin;
+  }
+
+  y -= 30;
+  drawRect(initialX, y - 30, pageWidth, 30, rgb(0, 0, 0));
+  writeText("Avaliação Geral", {
+    x: 60,
+    y: y - 20,
+    useFont: boldFont,
+    color: rgb(1, 1, 1), // Branco
+  });
+  y -= 50;
+
+  writeText(`Condição Geral: ${inspection.overallCondition || "N/A"}`, {
+    y,
+    x: 60,
+  });
+  y -= 20;
+  // Status de segurança com indicador visual
+  writeText("Ativo seguro para usar: ", { y, x: 60, useFont: boldFont });
+  const baseTextWidth = boldFont.widthOfTextAtSize(
+    "Ativo seguro para usar: ",
+    fontSize
+  );
+  const statusText = inspection.safeToUse || "N/A";
+  const statusWidth = boldFont.widthOfTextAtSize(statusText, fontSize);
+  const boxPadding = 5;
+  const leftPadding = 8;
+
+  if (inspection.safeToUse === "Sim") {
+    drawRect(
+      60 + baseTextWidth - 2,
+      y - boxPadding,
+      statusWidth + boxPadding * 2 + leftPadding,
+      fontSize + boxPadding * 2,
+      rgb(0, 0.5, 0)
+    );
+    writeText(statusText, {
+      y,
+      x: 60 + baseTextWidth + leftPadding,
+      color: rgb(1, 1, 1),
+      useFont: boldFont,
+    });
+  } else if (inspection.safeToUse === "Não") {
+    drawRect(
+      60 + baseTextWidth - 2,
+      y - boxPadding,
+      statusWidth + boxPadding * 2 + leftPadding,
+      fontSize + boxPadding * 2,
+      rgb(0.8, 0, 0)
+    );
+    writeText(statusText, {
+      y,
+      x: 60 + baseTextWidth + leftPadding,
+      color: rgb(1, 1, 1),
+      useFont: boldFont,
+    });
+  } else {
+    writeText(statusText, { y, x: 60 + baseTextWidth, useFont: boldFont });
+  }
+  y -= 20;
+  writeText(
+    `Manutenção requerida: ${inspection.maintenanceRequired || "N/A"}`,
+    { y, x: 60 }
+  );
+  y -= 20;
+  writeText(`Status do ativo: ${inspection.assetStatus || "N/A"}`, {
+    y,
+    x: 60,
+  });
+  y -= 20;
+  writeText(
+    `Prioridade de manutenção: ${inspection.maintenancePriority || "N/A"}`,
+    { y, x: 60 }
+  );
+  y -= 30;
+
+  if (inspection.additionalNotes) {
+    writeText("Notas Adicionais:", { y, useFont: boldFont, x: 60 });
+    y -= 15;
+    writeText(inspection.additionalNotes, { y, x: 60 });
+    y -= 50;
   }
 
   // Adiciona número de página em todas as páginas
@@ -247,7 +397,14 @@ const generateInspectionPDF = async (
   }
 
   // Assinaturas
-  currentPage = pdfDoc.getPage(pdfDoc.getPageCount() - 1);
+  // Garantir espaço para assinaturas
+  if (y < margin + 150) {
+    currentPage = pdfDoc.addPage([595.28, 841.89]);
+    pageNumber++;
+    totalPages++;
+    y = currentPage.getHeight() - margin;
+  }
+
   y = margin + 100;
   const lineWidth = 200;
   const spacing = 50;

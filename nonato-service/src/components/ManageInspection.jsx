@@ -209,8 +209,7 @@ const ManageInspection = () => {
       );
 
       // Criar nome do arquivo (remover caracteres especiais)
-      const sanitizedClientName = client.name.replace(/[^a-z0-9]/gi, "_");
-      const fileName = `Checklist_${sanitizedClientName}_${inspection.id}.pdf`;
+      const fileName = `Checklist_${client.name}_${inspection.id}.pdf`;
 
       // Verificar se estamos em um dispositivo móvel
       const isMobile = window?.Capacitor?.isNative;
