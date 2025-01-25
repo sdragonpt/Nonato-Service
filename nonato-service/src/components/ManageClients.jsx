@@ -185,7 +185,7 @@ const ManageClients = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="rounded-full hover:bg-zinc-700"
+                    className="rounded-full hover:bg-zinc-800 text-white hover:text-white/50"
                   >
                     <span className="sr-only">Abrir menu</span>
                     <MoreVertical className="h-4 w-4" />
