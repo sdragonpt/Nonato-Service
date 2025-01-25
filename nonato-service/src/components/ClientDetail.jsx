@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   doc,
   getDoc,
@@ -11,6 +10,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   Loader2,
   ArrowLeft,
@@ -23,8 +23,10 @@ import {
   Mail,
   Phone,
   FileText,
-  Clipboard,
+  AlertTriangle,
 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const ClientDetail = () => {
   const { clientId } = useParams();
@@ -206,11 +208,17 @@ const ClientDetail = () => {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <p className="text-red-500 mb-4">{error}</p>
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          <div className="flex items-center">
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            <p className="font-bold">Erro</p>
+          </div>
+          <p>{error}</p>
+        </div>
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Voltar
@@ -222,183 +230,159 @@ const ClientDetail = () => {
   if (!client) return null;
 
   return (
-    <div className="w-full max-w-3xl mx-auto rounded-lg p-4">
-      <button
-        onClick={() => navigate(-1)}
-        className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all hover:scale-105 flex items-center justify-center"
-        aria-label="Voltar"
-      >
-        <ArrowLeft className="w-5 h-5" />
-      </button>
+    <div className="container max-w-4xl mx-auto px-4 py-4 md:py-8">
+      <nav className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+        <div className="hidden md:block">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center text-gray-400 hover:text-blue-500 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Voltar
+          </button>
+        </div>
+        <div className="md:hidden fixed top-4 right-4 z-50">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center justify-center bg-gray-700 text-white p-3 rounded-full hover:bg-gray-600 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="flex w-full md:w-auto gap-2">
+          <Link
+            to={`/app/add-order?clientId=${client.id}`}
+            className="flex-1 md:flex-none bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center justify-center hover:bg-gray-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Ordem
+          </Link>
+          <button
+            onClick={() => navigate(`/app/edit-client/${clientId}`)}
+            className="flex-1 md:flex-none bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center justify-center hover:bg-blue-600"
+          >
+            <Edit className="w-4 h-4 mr-2" />
+            Editar
+          </button>
+        </div>
+      </nav>
 
-      <h2 className="text-2xl font-medium mb-6 text-white text-center">
-        {client.name}
-      </h2>
-
-      <div className="flex flex-col items-center mb-6">
-        <label className="relative cursor-pointer group">
-          <div className="relative">
+      <div className="bg-zinc-800 rounded-lg p-6 mb-6">
+        <div className="flex flex-col md:flex-row items-center text-center md:text-left gap-4">
+          <div className="relative group">
             <img
               src={newPhotoURL || "/nonato.png"}
-              alt="Foto de Perfil"
-              className="w-24 h-24 rounded-full mb-2 border-zinc-800 border-2 object-cover"
+              alt={client.name}
+              className="w-24 h-24 md:w-20 md:h-20 rounded-full object-cover border-2 border-gray-700"
             />
-            <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <Camera className="w-8 h-8 text-white" />
-            </div>
+            <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+              <Camera className="w-6 h-6 text-white" />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                className="hidden"
+              />
+            </label>
           </div>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handlePhotoChange}
-            className="hidden"
-          />
-        </label>
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold text-white">{client.name}</h2>
+            <p className="text-gray-400">{client.nif || "NIF não definido"}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+          <div className="flex items-center text-gray-300">
+            <Map className="w-5 h-5 mr-3 shrink-0 text-gray-400" />
+            <span>{client.address || "Endereço não definido"}</span>
+          </div>
+          <div className="flex items-center text-gray-300">
+            <Mail className="w-5 h-5 mr-3 shrink-0 text-gray-400" />
+            <span>{client.postalCode || "Código postal não definido"}</span>
+          </div>
+          <div className="flex items-center text-gray-300">
+            <Phone className="w-5 h-5 mr-3 shrink-0 text-gray-400" />
+            <span>{client.phone || "Telefone não definido"}</span>
+          </div>
+          <div className="flex items-center text-gray-300">
+            <FileText className="w-5 h-5 mr-3 shrink-0 text-gray-400" />
+            <span>{client.nif || "NIF não definido"}</span>
+          </div>
+        </div>
+      </div>
 
-        <div className="flex flex-wrap justify-center gap-2 mt-4">
-          <button
-            onClick={handleRemovePhoto}
-            disabled={photoLoading}
-            className="flex items-center px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors disabled:opacity-50"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Remover Foto
-          </button>
+      <div className="bg-zinc-800 rounded-lg p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold text-white">Equipamentos</h3>
+          <span className="text-sm text-gray-400">
+            {equipments.length} equipamento(s)
+          </span>
+        </div>
+        <div className="space-y-4">
+          {equipments.length > 0 ? (
+            equipments.map((equipment) => (
+              <div
+                key={equipment.id}
+                onClick={() => navigate(`/app/equipment/${equipment.id}`)}
+                className="flex items-center p-4 bg-zinc-700 hover:bg-zinc-700/50 rounded-lg cursor-pointer transition-colors"
+              >
+                <img
+                  src={equipment.equipmentPic || "/nonato.png"}
+                  alt={equipment.model}
+                  className="w-12 h-12 rounded-full mr-4 object-cover"
+                  onError={(e) => {
+                    e.target.src = "/nonato.png";
+                    e.target.onerror = null;
+                  }}
+                />
+                <div>
+                  <h4 className="font-medium text-white">{equipment.type}</h4>
+                  <p className="text-sm text-gray-400">
+                    {[equipment.brand, equipment.model, equipment.serialNumber]
+                      .filter(Boolean)
+                      .join(" - ")}
+                  </p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8 text-gray-400">
+              Nenhum equipamento cadastrado
+            </div>
+          )}
+        </div>
+      </div>
 
+      <div className="fixed bottom-6 right-6 flex flex-col items-end gap-4 z-50">
+        <div className="flex gap-2">
           <button
             onClick={handleDeleteClient}
             disabled={deleteLoading}
-            className="flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50"
+            className="bg-red-500 p-3 md:p-3 rounded-full shadow-lg hover:bg-red-600 hover:scale-105 transition-all text-white"
+            title="Apagar Cliente"
           >
             {deleteLoading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
-              <Trash2 className="w-4 h-4 mr-2" />
+              <Trash2 className="w-5 h-5" />
             )}
-            Apagar Cliente
+            <span className="sr-only">Apagar Cliente</span>
           </button>
-
-          <button className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50">
-            <Link
-              to={`/app/add-order?clientId=${client.id}`}
-              className="flex items-center"
-            >
-              <Clipboard className="w-4 h-4 mr-2" />
-              Nova Ordem de Serviço
-            </Link>
-          </button>
-        </div>
-
-        {photoChanged && (
           <button
-            onClick={handleSavePhoto}
-            disabled={photoLoading}
-            className="mt-4 flex items-center px-6 py-2 bg-[#9df767] hover:bg-[#8be656] text-white rounded-lg transition-colors disabled:opacity-50"
+            onClick={() => navigate(`/app/manage-services/${clientId}`)}
+            className="bg-gray-600 p-3 md:p-3 rounded-full shadow-lg hover:bg-gray-700 hover:scale-105 transition-all text-white"
+            title="Serviços"
           >
-            {photoLoading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Camera className="w-4 h-4 mr-2" />
-            )}
-            Salvar Foto
+            <Wrench className="w-5 h-5" />
+            <span className="sr-only">Serviços</span>
           </button>
-        )}
-      </div>
-
-      <div className="bg-zinc-800 p-4 mb-6 rounded-lg space-y-3">
-        <div className="flex items-center text-gray-300">
-          <Map className="w-5 h-5 mr-3" />
-          <span className="font-medium mr-2">Endereço:</span>
-          {client.address || "Não definido"}
         </div>
-        <div className="flex items-center text-gray-300">
-          <Mail className="w-5 h-5 mr-3" />
-          <span className="font-medium mr-2">Código Postal:</span>
-          {client.postalCode || "Não definido"}
-        </div>
-        <div className="flex items-center text-gray-300">
-          <Phone className="w-5 h-5 mr-3" />
-          <span className="font-medium mr-2">Telefone:</span>
-          {client.phone || "Não definido"}
-        </div>
-        <div className="flex items-center text-gray-300">
-          <FileText className="w-5 h-5 mr-3" />
-          <span className="font-medium mr-2">NIF:</span>
-          {client.nif || "Não definido"}
-        </div>
-      </div>
-
-      <div className="mb-4 flex justify-between items-center">
-        <h3 className="text-lg text-white font-medium">Equipamentos:</h3>
-        <span className="text-gray-400 text-sm">
-          {equipments.length} equipamento(s)
-        </span>
-      </div>
-
-      <div className="space-y-4 mb-32">
-        {equipments.length > 0 ? (
-          equipments.map((equipment) => (
-            <div
-              key={equipment.id}
-              onClick={() => navigate(`/app/equipment/${equipment.id}`)}
-              className="flex items-center p-4 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors"
-            >
-              <img
-                src={equipment.equipmentPic || "/nonato.png"}
-                alt={equipment.model}
-                className="w-12 h-12 rounded-full mr-4 object-cover"
-                onError={(e) => {
-                  e.target.src = "/nonato.png";
-                  e.target.onerror = null;
-                }}
-              />
-              <div className="flex-grow">
-                <h4 className="font-semibold text-white">{equipment.type}</h4>
-                <p className="text-gray-400">
-                  {[equipment.brand, equipment.model, equipment.serialNumber]
-                    .filter(Boolean) // Filtra apenas os valores não vazios
-                    .join(" - ")}{" "}
-                  {/* Junta os valores com " - " */}
-                </p>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="text-center py-8 text-gray-400">
-            Nenhum equipamento cadastrado
-          </div>
-        )}
-      </div>
-
-      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center md:left-64">
-        <p className="absolute bottom-24 text-white mb-2 text-center">
-          Clique + para adicionar novo equipamento
-        </p>
-
-        <button
-          className="w-32 h-16 bg-[#1d2d50] hover:bg-[#283b6a] mr-4 text-white flex items-center justify-center rounded-full transition-colors"
-          onClick={() => navigate(`/app/manage-services/${clientId}`)}
-          aria-label="Serviços do Cliente"
-        >
-          <Wrench className="w-5 h-5 mr-2" />
-          Serviços
-        </button>
-
         <button
           onClick={() => navigate(`/app/client/${clientId}/add-equipment`)}
-          className="h-20 w-20 -mt-8 bg-[#117d49] hover:bg-[#117d49] text-white flex items-center justify-center rounded-full shadow-lg transition-all hover:scale-105"
-          aria-label="Adicionar Equipamento"
+          className="bg-green-500 p-4 md:p-4 rounded-full shadow-lg hover:bg-green-600 hover:scale-105 transition-all text-white"
+          title="Adicionar Equipamento"
         >
-          <Plus className="w-8 h-8" />
-        </button>
-
-        <button
-          className="w-32 h-16 bg-[#1d2d50] hover:bg-[#283b6a] ml-4 text-white flex items-center justify-center rounded-full transition-colors"
-          onClick={() => navigate(`/app/edit-client/${clientId}`)}
-          aria-label="Editar Cliente"
-        >
-          <Edit className="w-5 h-5 mr-2" />
-          Editar
+          <Plus className="w-6 h-6" />
+          <span className="sr-only">Adicionar Equipamento</span>
         </button>
       </div>
     </div>
