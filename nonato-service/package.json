@@ -20,6 +20,9 @@
     "@fortawesome/free-solid-svg-icons": "^6.6.0",
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@radix-ui/react-slot": "^1.1.1",
+    "@radix-ui/react-tabs": "^1.1.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "cordova-plugin-file-opener2": "^4.0.0",
     "firebase": "^10.14.1",
     "framer-motion": "^11.16.1",
@@ -30,11 +33,14 @@
     "react-big-calendar": "^1.15.0",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.27.0",
-    "tailwind-scrollbar": "^3.1.0"
+    "tailwind-merge": "^2.6.0",
+    "tailwind-scrollbar": "^3.1.0",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.11.1",
     "@shadcn/ui": "^0.0.4",
+    "@types/node": "^22.10.10",
     "@types/react": "^18.3.10",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.2",
@@ -45,6 +51,7 @@
     "eslint-plugin-react-refresh": "^0.4.12",
     "globals": "^15.9.0",
     "postcss": "^8.4.47",
+    "shadcn-ui": "^0.9.4",
     "tailwindcss": "^3.4.13",
     "vite": "^5.4.8"
   }
