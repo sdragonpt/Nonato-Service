@@ -7,15 +7,17 @@ import {
   Camera,
   Loader2,
   Trash2,
-  Edit2,
+  Edit,
   Plus,
-  Wrench,
-  UserCircle,
   Package,
   Barcode,
   Tag,
   Shapes,
+  AlertTriangle,
 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 const EquipmentDetail = () => {
   const { equipmentId } = useParams();
@@ -48,7 +50,6 @@ const EquipmentDetail = () => {
         setEquipment(equipmentInfo);
         setNewPhotoURL(equipmentInfo.equipmentPic || "/nonato.png");
 
-        // Buscar nome do cliente
         const clientDoc = doc(db, "clientes", equipmentInfo.clientId);
         const clientData = await getDoc(clientDoc);
 
@@ -72,8 +73,7 @@ const EquipmentDetail = () => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        // 2MB limit
-        alert("A imagem deve ter menos de 2MB");
+        setError("A imagem deve ter menos de 2MB");
         return;
       }
 
@@ -89,7 +89,7 @@ const EquipmentDetail = () => {
 
   const handleSavePhoto = async () => {
     if (!imageFile) {
-      alert("Por favor, selecione uma imagem para salvar.");
+      setError("Por favor, selecione uma imagem para salvar.");
       return;
     }
 
@@ -105,19 +105,16 @@ const EquipmentDetail = () => {
         equipmentPic: newPhotoURL,
       }));
       setPhotoChanged(false);
-      alert("Foto do equipamento atualizada com sucesso!");
     } catch (err) {
       console.error("Erro ao salvar foto:", err);
-      alert("Erro ao salvar foto. Por favor, tente novamente.");
+      setError("Erro ao salvar foto. Por favor, tente novamente.");
     } finally {
       setPhotoLoading(false);
     }
   };
 
   const handleRemovePhoto = async () => {
-    if (!window.confirm("Tem certeza que deseja remover a foto?")) {
-      return;
-    }
+    if (!window.confirm("Tem certeza que deseja remover a foto?")) return;
 
     try {
       setPhotoLoading(true);
@@ -129,10 +126,9 @@ const EquipmentDetail = () => {
       setNewPhotoURL("/nonato.png");
       setImageFile(null);
       setPhotoChanged(false);
-      alert("Foto do equipamento removida com sucesso!");
     } catch (err) {
       console.error("Erro ao remover foto:", err);
-      alert("Erro ao remover foto. Por favor, tente novamente.");
+      setError("Erro ao remover foto. Por favor, tente novamente.");
     } finally {
       setPhotoLoading(false);
     }
@@ -143,18 +139,16 @@ const EquipmentDetail = () => {
       !window.confirm(
         "Tem certeza que deseja apagar este equipamento? Esta ação não pode ser desfeita."
       )
-    ) {
+    )
       return;
-    }
 
     try {
       setDeleteLoading(true);
-      const equipmentDocRef = doc(db, "equipamentos", equipmentId);
-      await deleteDoc(equipmentDocRef);
+      await deleteDoc(doc(db, "equipamentos", equipmentId));
       navigate(`/app/client/${equipment.clientId}`);
     } catch (err) {
       console.error("Erro ao apagar equipamento:", err);
-      alert("Erro ao apagar equipamento. Por favor, tente novamente.");
+      setError("Erro ao apagar equipamento. Por favor, tente novamente.");
     } finally {
       setDeleteLoading(false);
     }
@@ -171,14 +165,20 @@ const EquipmentDetail = () => {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <p className="text-red-500 mb-4">{error}</p>
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        <Alert
+          variant="destructive"
+          className="mb-6 border-red-500 bg-red-500/10"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-red-400">{error}</AlertDescription>
+        </Alert>
+        <Button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
           Voltar
-        </button>
+        </Button>
       </div>
     );
   }
@@ -186,126 +186,97 @@ const EquipmentDetail = () => {
   if (!equipment) return null;
 
   return (
-    <div className="w-full max-w-3xl mx-auto rounded-lg p-4">
-      <button
-        onClick={() => navigate(-1)}
-        className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all hover:scale-105 flex items-center justify-center"
-        aria-label="Voltar"
-      >
-        <ArrowLeft className="w-5 h-5" />
-      </button>
+    <div className="container max-w-4xl mx-auto px-4 py-4 md:py-8">
+      <nav className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+        <div className="hidden md:block">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center text-gray-400 hover:text-blue-500 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Voltar
+          </button>
+        </div>
+        <div className="md:hidden fixed top-4 right-4 z-50">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center justify-center bg-gray-700 text-white p-3 rounded-full hover:bg-gray-600 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="flex w-full md:w-auto gap-2">
+          <button
+            onClick={() => navigate(`/app/edit-equipment/${equipmentId}`)}
+            className="flex-1 md:flex-none bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center justify-center hover:bg-blue-600"
+          >
+            <Edit className="w-4 h-4 mr-2" />
+            Editar
+          </button>
+        </div>
+      </nav>
 
-      <h2 className="text-2xl font-medium mb-6 text-white text-center">
-        {equipment.type}
-      </h2>
-
-      <div className="flex flex-col items-center mb-6">
-        <label className="relative cursor-pointer group">
-          <div className="relative">
+      <div className="bg-zinc-800 rounded-lg p-6 mb-6">
+        <div className="flex flex-col md:flex-row items-center text-center md:text-left gap-4">
+          <div className="relative group">
             <img
               src={newPhotoURL}
-              alt="Foto do Equipamento"
-              className="w-24 h-24 rounded-full mb-2 border-zinc-800 border-2 object-cover"
+              alt={equipment.type}
+              className="w-24 h-24 md:w-20 md:h-20 rounded-full object-cover border-2 border-gray-700"
             />
-            <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <Camera className="w-8 h-8 text-white" />
-            </div>
+            <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+              <Camera className="w-6 h-6 text-white" />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                className="hidden"
+              />
+            </label>
           </div>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handlePhotoChange}
-            className="hidden"
-          />
-        </label>
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold text-white">{equipment.type}</h2>
+            <p className="text-gray-400">
+              {equipment.brand} {equipment.model}
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+          <div className="flex items-center text-gray-300">
+            <Package className="w-5 h-5 mr-3 shrink-0 text-gray-400" />
+            <span>{equipment.brand || "Marca não definida"}</span>
+          </div>
+          <div className="flex items-center text-gray-300">
+            <Shapes className="w-5 h-5 mr-3 shrink-0 text-gray-400" />
+            <span>{equipment.type || "Tipo não definido"}</span>
+          </div>
+          <div className="flex items-center text-gray-300">
+            <Tag className="w-5 h-5 mr-3 shrink-0 text-gray-400" />
+            <span>{equipment.model || "Modelo não definido"}</span>
+          </div>
+          <div className="flex items-center text-gray-300">
+            <Barcode className="w-5 h-5 mr-3 shrink-0 text-gray-400" />
+            <span>{equipment.serialNumber || "Nº Série não definido"}</span>
+          </div>
+        </div>
+      </div>
 
-        <div className="flex flex-wrap justify-center gap-2 mt-4">
-          <button
-            onClick={handleRemovePhoto}
-            disabled={photoLoading}
-            className="flex items-center px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors disabled:opacity-50"
-          >
-            {photoLoading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Trash2 className="w-4 h-4 mr-2" />
-            )}
-            Remover Foto
-          </button>
-
+      <div className="fixed bottom-6 right-6 flex flex-col items-end gap-4 z-50">
+        <div className="flex gap-2">
           <button
             onClick={handleDeleteEquipment}
             disabled={deleteLoading}
-            className="flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50"
+            className="bg-red-500 p-3 md:p-3 rounded-full shadow-lg hover:bg-red-600 hover:scale-105 transition-all text-white"
+            title="Apagar Equipamento"
           >
             {deleteLoading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
-              <Trash2 className="w-4 h-4 mr-2" />
+              <Trash2 className="w-5 h-5" />
             )}
-            Apagar Equipamento
+            <span className="sr-only">Apagar Equipamento</span>
           </button>
         </div>
-
-        {photoChanged && (
-          <button
-            onClick={handleSavePhoto}
-            disabled={photoLoading}
-            className="mt-4 flex items-center px-6 py-2 bg-[#9df767] hover:bg-[#8be656] text-white rounded-lg transition-colors disabled:opacity-50"
-          >
-            {photoLoading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Camera className="w-4 h-4 mr-2" />
-            )}
-            Salvar Foto
-          </button>
-        )}
-      </div>
-
-      <div className="bg-zinc-800 p-4 mb-6 rounded-lg space-y-3">
-        <button
-          onClick={() => navigate(`/app/client/${equipment.clientId}`)}
-          className="w-full flex items-center text-gray-300 hover:text-white transition-colors"
-        >
-          <UserCircle className="w-5 h-5 mr-3" />
-          <span className="font-medium mr-2">Cliente:</span>
-          <span className="text-blue-400 hover:underline">{clientName}</span>
-        </button>
-
-        <div className="flex items-center text-gray-300">
-          <Shapes className="w-5 h-5 mr-3" />
-          <span className="font-medium mr-2">Tipo:</span>
-          {equipment.type}
-        </div>
-
-        <div className="flex items-center text-gray-300">
-          <Package className="w-5 h-5 mr-3" />
-          <span className="font-medium mr-2">Marca:</span>
-          {equipment.brand}
-        </div>
-
-        <div className="flex items-center text-gray-300">
-          <Tag className="w-5 h-5 mr-3" />
-          <span className="font-medium mr-2">Modelo:</span>
-          {equipment.model}
-        </div>
-
-        <div className="flex items-center text-gray-300">
-          <Barcode className="w-5 h-5 mr-3" />
-          <span className="font-medium mr-2">Nº Série:</span>
-          {equipment.serialNumber}
-        </div>
-      </div>
-
-      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center gap-4 md:left-64">
-        <button
-          className="h-16 px-6 bg-[#1d2d50] hover:bg-[#283b6a] text-white font-bold flex items-center justify-center rounded-full transition-colors"
-          onClick={() => navigate(`/app/edit-equipment/${equipmentId}`)}
-        >
-          <Edit2 className="w-5 h-5 mr-2" />
-          Editar
-        </button>
       </div>
     </div>
   );
