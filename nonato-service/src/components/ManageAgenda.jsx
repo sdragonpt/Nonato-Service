@@ -13,21 +13,30 @@ import {
   Calendar,
   PlusCircle,
   Loader2,
-  AlertCircle,
+  AlertTriangle,
   ChevronLeft,
   ChevronRight,
   Clock,
-  AlertTriangle,
-  CheckCircle,
   User,
-  Printer,
   Edit2,
   Trash2,
   RotateCcw,
   CheckCircle2,
-  Calendar as CalendarIcon,
+  CalendarIcon,
   Filter,
+  MoreVertical,
 } from "lucide-react";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const ManageAgenda = () => {
   const navigate = useNavigate();
@@ -38,6 +47,7 @@ const ManageAgenda = () => {
   const [agendamentos, setAgendamentos] = useState([]);
   const [viewMode, setViewMode] = useState("calendar");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
   const [stats, setStats] = useState({
     total: 0,
     hoje: 0,
@@ -108,6 +118,16 @@ const ManageAgenda = () => {
           );
         }
 
+        if (searchTerm) {
+          filteredAgendamentos = filteredAgendamentos.filter(
+            (ag) =>
+              ag.cliente?.name
+                ?.toLowerCase()
+                .includes(searchTerm.toLowerCase()) ||
+              ag.hora?.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+        }
+
         setStats({
           total: filteredAgendamentos.length,
           hoje: filteredAgendamentos.filter(
@@ -129,9 +149,10 @@ const ManageAgenda = () => {
     };
 
     fetchData();
-  }, [selectedMonth, selectedYear, filterStatus]);
+  }, [selectedMonth, selectedYear, filterStatus, searchTerm]);
 
-  const handleDelete = async (agendamentoId) => {
+  const handleDelete = async (agendamentoId, e) => {
+    if (e) e.stopPropagation();
     if (!window.confirm("Tem certeza que deseja excluir este agendamento?")) {
       return;
     }
@@ -145,7 +166,8 @@ const ManageAgenda = () => {
     }
   };
 
-  const handleToggleComplete = async (agendamentoId, isConcluido) => {
+  const handleToggleComplete = async (agendamentoId, isConcluido, e) => {
+    if (e) e.stopPropagation();
     try {
       const agendamentoRef = doc(db, "agendamentos", agendamentoId);
       await updateDoc(agendamentoRef, {
@@ -171,61 +193,6 @@ const ManageAgenda = () => {
     }
   };
 
-  const getWeeksInMonth = () => {
-    const firstDay = new Date(selectedYear, selectedMonth, 1);
-    const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
-    const weeks = [];
-    let currentWeek = [];
-
-    const firstDayOfWeek = firstDay.getDay() || 7;
-    const mondayOfFirstWeek = new Date(firstDay);
-    mondayOfFirstWeek.setDate(firstDay.getDate() - firstDayOfWeek + 1);
-
-    const lastDayOfWeek = lastDay.getDay() || 7;
-    const sundayOfLastWeek = new Date(lastDay);
-    sundayOfLastWeek.setDate(lastDay.getDate() + (7 - lastDayOfWeek));
-
-    let currentDate = new Date(mondayOfFirstWeek);
-
-    while (currentDate <= sundayOfLastWeek) {
-      if (currentDate.getDay() === 1 && currentWeek.length > 0) {
-        weeks.push(currentWeek);
-        currentWeek = [];
-      }
-      currentWeek.push(new Date(currentDate));
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    if (currentWeek.length > 0) {
-      weeks.push(currentWeek);
-    }
-
-    return weeks;
-  };
-
-  const getAgendamentosByDate = (date) => {
-    const dateStr = date.toISOString().split("T")[0];
-    return agendamentos.filter((ag) => ag.data === dateStr);
-  };
-
-  const navigateMonth = (direction) => {
-    if (direction === "next") {
-      if (selectedMonth === 11) {
-        setSelectedMonth(0);
-        setSelectedYear((prev) => prev + 1);
-      } else {
-        setSelectedMonth((prev) => prev + 1);
-      }
-    } else {
-      if (selectedMonth === 0) {
-        setSelectedMonth(11);
-        setSelectedYear((prev) => prev - 1);
-      } else {
-        setSelectedMonth((prev) => prev - 1);
-      }
-    }
-  };
-
   const getStatusColor = (status) => {
     switch (status) {
       case "agendado":
@@ -243,53 +210,22 @@ const ManageAgenda = () => {
 
   const StatsCard = ({ icon: Icon, value, label, variant }) => {
     const variants = {
-      blue: "bg-blue-500/10 border-blue-500/50 text-blue-400",
-      purple:
-        "bg-gradient-to-br from-purple-500/20 to-purple-600/20 border-purple-500/30 text-purple-400",
-      red: "bg-gradient-to-br from-red-500/20 to-red-600/20 border-red-500/30 text-red-400",
-      green:
-        "bg-gradient-to-br from-green-500/20 to-green-600/20 border-green-500/30 text-green-400",
+      blue: "bg-blue-500/10 border-blue-500/30 text-blue-400",
+      purple: "bg-purple-500/10 border-purple-500/30 text-purple-400",
+      red: "bg-red-500/10 border-red-500/30 text-red-400",
+      green: "bg-green-500/10 border-green-500/30 text-green-400",
     };
 
     return (
-      <div className={`${variants[variant]} border p-4 rounded-lg`}>
-        <div className="flex items-center justify-between mb-2">
-          <Icon className="w-6 h-6" />
-          <span className="text-2xl font-bold">{value}</span>
-        </div>
-        <p className="text-sm font-medium">{label}</p>
-      </div>
-    );
-  };
-
-  const StatsGrid = () => {
-    return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <StatsCard
-          icon={Calendar}
-          value={stats.total}
-          label="Total Mensal"
-          variant="blue"
-        />
-        <StatsCard
-          icon={Clock}
-          value={stats.hoje}
-          label="Hoje"
-          variant="purple"
-        />
-        <StatsCard
-          icon={AlertTriangle}
-          value={stats.urgentes}
-          label="Urgentes"
-          variant="red"
-        />
-        <StatsCard
-          icon={CheckCircle}
-          value={stats.concluidos}
-          label="Concluídos"
-          variant="green"
-        />
-      </div>
+      <Card className={`${variants[variant]} border`}>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-2">
+            <Icon className="w-6 h-6" />
+            <span className="text-2xl font-bold">{value}</span>
+          </div>
+          <p className="text-sm font-medium">{label}</p>
+        </CardContent>
+      </Card>
     );
   };
 
@@ -343,7 +279,6 @@ const ManageAgenda = () => {
     for (let i = 0; i < clientId.length; i++) {
       hash = clientId.charCodeAt(i) + ((hash << 5) - hash);
     }
-
     return colors[Math.abs(hash) % colors.length];
   };
 
@@ -358,119 +293,120 @@ const ManageAgenda = () => {
         }
       : getClientColor(agendamento.clientId);
 
+    const date = new Date(agendamento.data);
+    const formattedDate = new Intl.DateTimeFormat("pt-BR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    }).format(date);
+
     return (
-      <div
+      <Card
         className={`${clientColor.bg} ${
           clientColor.border
-        } border p-2 rounded-lg ${isToday ? "ring-2 ring-green-400" : ""}`}
+        } hover:bg-opacity-20 transition-colors ${
+          isToday ? "ring-2 ring-green-400" : ""
+        }`}
       >
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <span
-              className={`${
-                isToday ? "text-green-400" : clientColor.text
-              } text-sm font-medium ${isToday ? "font-bold" : ""}`}
-            >
-              {agendamento.hora}
-            </span>
-            {isUrgent && <AlertTriangle className="w-4 h-4 text-red-400" />}
-          </div>
-          <span
-            className={`text-white text-sm truncate max-w-[150px] ${
-              isToday ? "font-bold" : "font-medium"
-            }`}
-          >
-            {agendamento.cliente?.name || "Cliente não encontrado"}
-          </span>
-          <div className="flex gap-0.5">
-            <button
-              onClick={() =>
-                navigate(`/app/edit-agendamento/${agendamento.id}`)
-              }
-              className="p-1 hover:bg-gray-700/50 rounded"
-            >
-              <Edit2 className="w-3.5 h-3.5 text-gray-400" />
-            </button>
-            <button
-              onClick={() =>
-                handleToggleComplete(agendamento.id, agendamento.concluido)
-              }
-              className="p-1 hover:bg-gray-700/50 rounded"
-            >
-              {agendamento.concluido ? (
-                <RotateCcw className="w-3.5 h-3.5 text-gray-400" />
-              ) : (
-                <CheckCircle2 className="w-3.5 h-3.5 text-gray-400" />
-              )}
-            </button>
-            <button
-              onClick={() => handleDelete(agendamento.id)}
-              className="p-1 hover:bg-gray-700/50 rounded"
-            >
-              <Trash2 className="w-3.5 h-3.5 text-gray-400" />
-            </button>
-          </div>
-        </div>
-        <span className={`text-xs ${clientColor.text} mt-1`}>
-          {agendamento.status}
-        </span>
-      </div>
-    );
-  };
-
-  const CalendarView = () => {
-    return getWeeksInMonth().map((week, weekIndex) => {
-      const hasAgendamentos = week.some(
-        (date) => getAgendamentosByDate(date).length > 0
-      );
-      if (!hasAgendamentos) return null;
-
-      return (
-        <div key={weekIndex} className="space-y-2">
-          {week.map((date, dateIndex) => {
-            const dayAgendamentos = getAgendamentosByDate(date);
-            if (dayAgendamentos.length === 0) return null;
-
-            return (
-              <div
-                key={dateIndex}
-                className="bg-gray-800/50 border border-gray-700 rounded-lg p-2"
+        <CardContent className="p-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Clock className={`w-4 h-4 ${clientColor.text}`} />
+              <span
+                className={`font-medium ${
+                  isToday ? "text-green-400 font-bold" : "text-white"
+                }`}
               >
-                <h5 className="text-gray-400 text-sm font-medium mb-2">
-                  {date.toLocaleDateString("pt-BR", {
-                    weekday: "long",
-                    day: "numeric",
-                  })}
-                </h5>
-                <div className="space-y-1">
-                  {dayAgendamentos.map((agendamento) => (
-                    <AgendamentoCard
-                      key={agendamento.id}
-                      agendamento={agendamento}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      );
-    });
-  };
+                {agendamento.hora}
+              </span>
+              {isUrgent && <AlertTriangle className="w-4 h-4 text-red-400" />}
+            </div>
 
-  const ListView = () => {
-    // Sort appointments by time
-    const sortedAgendamentos = [...agendamentos].sort((a, b) => {
-      if (a.data !== b.data) return a.data.localeCompare(b.data);
-      return a.hora.localeCompare(b.hora);
-    });
+            <div className="flex items-center gap-2">
+              <User className={`w-4 h-4 ${clientColor.text}`} />
+              <span
+                className={`font-medium ${
+                  isToday ? "font-bold" : ""
+                } text-white`}
+              >
+                {agendamento.cliente?.name || "Cliente não encontrado"}
+              </span>
+            </div>
 
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {sortedAgendamentos.map((agendamento) => (
-          <AgendamentoCard key={agendamento.id} agendamento={agendamento} />
-        ))}
-      </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full hover:bg-zinc-800 text-white hover:text-white/50"
+                >
+                  <span className="sr-only">Abrir menu</span>
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="bg-zinc-800 border-zinc-700"
+              >
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/app/edit-agendamento/${agendamento.id}`);
+                  }}
+                  className="text-white hover:bg-zinc-700"
+                >
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) =>
+                    handleToggleComplete(
+                      agendamento.id,
+                      agendamento.concluido,
+                      e
+                    )
+                  }
+                  className="text-white hover:bg-zinc-700"
+                >
+                  {agendamento.concluido ? (
+                    <>
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Reabrir
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                      Concluir
+                    </>
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-red-400 hover:bg-zinc-700 focus:text-red-400"
+                  onClick={(e) => handleDelete(agendamento.id, e)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Excluir
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <div className="mt-2 flex items-center gap-2">
+            <span
+              className={`text-xs px-2 py-1 rounded ${getStatusColor(
+                agendamento.status
+              )}`}
+            >
+              {agendamento.status}
+            </span>
+            {isToday && (
+              <span className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-400">
+                Hoje
+              </span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     );
   };
 
@@ -483,100 +419,242 @@ const ManageAgenda = () => {
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto rounded-lg p-4">
-      <h2 className="text-2xl font-semibold text-center text-white mb-6">
-        Agenda
-      </h2>
-      {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded-lg flex items-center">
-          <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
-          <p className="text-red-500">{error}</p>
-        </div>
-      )}
+    <div className="container max-w-4xl mx-auto p-4">
+      <Card className="mb-8 bg-zinc-800 border-zinc-700">
+        <CardHeader>
+          <CardTitle className="text-2xl text-center text-white">
+            Agenda
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatsCard
+              icon={Calendar}
+              value={stats.total}
+              label="Total Mensal"
+              variant="blue"
+            />
+            <StatsCard
+              icon={Clock}
+              value={stats.hoje}
+              label="Hoje"
+              variant="purple"
+            />
+            <StatsCard
+              icon={AlertTriangle}
+              value={stats.urgentes}
+              label="Urgentes"
+              variant="red"
+            />
+            <StatsCard
+              icon={CheckCircle2}
+              value={stats.concluidos}
+              label="Concluídos"
+              variant="green"
+            />
+          </div>
 
-      <StatsGrid />
-
-      {/* Controls Section */}
-      <div className="bg-gray-800 p-4 rounded-lg mb-6">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center bg-gray-700 rounded-lg">
-              <button
-                onClick={() => navigateMonth("prev")}
-                className="p-2 text-gray-400 hover:text-white transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-
-              <div className="flex items-center px-4">
-                <CalendarIcon className="w-5 h-5 text-blue-400 mr-2" />
-                <h3 className="text-lg font-medium text-white">
-                  {months[selectedMonth]} {selectedYear}
-                </h3>
-              </div>
-
-              <button
-                onClick={() => navigateMonth("next")}
-                className="p-2 text-gray-400 hover:text-white transition-colors"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <Input
+                placeholder="Buscar por cliente ou horário..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+              />
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setViewMode("calendar")}
-                className={`p-2 rounded-lg ${
-                  viewMode === "calendar"
-                    ? "bg-blue-500/20 text-blue-400"
-                    : "text-gray-400 hover:bg-gray-700"
-                }`}
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="bg-zinc-900 text-white rounded-md px-3 py-2 border border-zinc-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
               >
-                <Calendar className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`p-2 rounded-lg ${
-                  viewMode === "list"
-                    ? "bg-blue-500/20 text-blue-400"
-                    : "text-gray-400 hover:bg-gray-700"
-                }`}
-              >
-                <Filter className="w-5 h-5" />
-              </button>
+                <option value="all">Todos os status</option>
+                <option value="agendado">Agendado</option>
+                <option value="confirmado">Confirmado</option>
+                <option value="terminado">Terminado</option>
+                <option value="cancelado">Cancelado</option>
+              </select>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+          {error && (
+            <Alert
+              variant="destructive"
+              className="border-red-500 bg-red-500/10"
             >
-              <option value="all">Todos os status</option>
-              <option value="agendado">Agendado</option>
-              <option value="confirmado">Confirmado</option>
-              <option value="terminado">Terminado</option>
-              <option value="cancelado">Cancelado</option>
-            </select>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-red-400">
+                {error}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center bg-zinc-900 rounded-lg">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (selectedMonth === 0) {
+                    setSelectedMonth(11);
+                    setSelectedYear((prev) => prev - 1);
+                  } else {
+                    setSelectedMonth((prev) => prev - 1);
+                  }
+                }}
+                className="text-zinc-400 hover:text-white"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </Button>
+
+              <div className="flex items-center px-4">
+                <CalendarIcon className="w-5 h-5 text-blue-400 mr-2" />
+                <span className="text-lg font-medium text-white">
+                  {months[selectedMonth]} {selectedYear}
+                </span>
+              </div>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (selectedMonth === 11) {
+                    setSelectedMonth(0);
+                    setSelectedYear((prev) => prev + 1);
+                  } else {
+                    setSelectedMonth((prev) => prev + 1);
+                  }
+                }}
+                className="text-zinc-400 hover:text-white"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="hidden md:flex items-center bg-zinc-900 rounded-lg p-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewMode("calendar")}
+                className={`flex items-center gap-2 ${
+                  viewMode === "calendar"
+                    ? "bg-green-600 text-white hover:bg-green-700"
+                    : "text-zinc-400 hover:bg-zinc-700 hover:text-white"
+                }`}
+              >
+                <Calendar className="w-4 h-4" />
+                <span className="text-sm">Calendário</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewMode("list")}
+                className={`flex items-center gap-2 ${
+                  viewMode === "list"
+                    ? "bg-green-600 text-white hover:bg-green-700"
+                    : "text-zinc-400 hover:bg-zinc-700 hover:text-white"
+                }`}
+              >
+                <Filter className="w-4 h-4" />
+                <span className="text-sm">Lista</span>
+              </Button>
+            </div>
+            <div className="md:hidden">
+              <select
+                value={viewMode}
+                onChange={(e) => setViewMode(e.target.value)}
+                className="bg-zinc-900 text-white rounded-lg px-3 py-2 border border-zinc-700 focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none"
+              >
+                <option value="calendar">Calendário</option>
+                <option value="list">Lista</option>
+              </select>
+            </div>
           </div>
-        </div>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-4 mb-24">
+        {viewMode === "calendar"
+          ? agendamentos
+              .reduce((acc, agendamento) => {
+                const date = new Date(agendamento.data);
+                const dateStr = new Intl.DateTimeFormat("pt-BR", {
+                  weekday: "long",
+                  day: "numeric",
+                }).format(date);
+
+                const existingGroup = acc.find(
+                  (group) => group.date === dateStr
+                );
+                if (existingGroup) {
+                  existingGroup.agendamentos.push(agendamento);
+                } else {
+                  acc.push({
+                    date: dateStr,
+                    agendamentos: [agendamento],
+                  });
+                }
+                return acc;
+              }, [])
+              .map((group, index) => (
+                <Card key={index} className="bg-zinc-800 border-zinc-700">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-white capitalize">
+                      {group.date}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {group.agendamentos
+                      .sort((a, b) => a.hora.localeCompare(b.hora))
+                      .map((agendamento) => (
+                        <AgendamentoCard
+                          key={agendamento.id}
+                          agendamento={agendamento}
+                        />
+                      ))}
+                  </CardContent>
+                </Card>
+              ))
+          : agendamentos
+              .sort((a, b) => {
+                const dateCompare = a.data.localeCompare(b.data);
+                return dateCompare === 0
+                  ? a.hora.localeCompare(b.hora)
+                  : dateCompare;
+              })
+              .map((agendamento) => (
+                <AgendamentoCard
+                  key={agendamento.id}
+                  agendamento={agendamento}
+                />
+              ))}
+
+        {agendamentos.length === 0 && (
+          <Card className="py-12 bg-zinc-800 border-zinc-700">
+            <CardContent className="text-center">
+              <Calendar className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
+              <p className="text-lg font-medium mb-2 text-white">
+                Nenhum agendamento encontrado
+              </p>
+              <p className="text-zinc-400">
+                Tente ajustar os filtros ou adicione um novo agendamento
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
-      {/* Content Section */}
-      <div className="space-y-6">
-        {viewMode === "calendar" ? <CalendarView /> : <ListView />}
-      </div>
-
-      {/* Botão flutuante para novo agendamento */}
-      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center md:left-64">
-        <button
+      <div className="fixed bottom-6 right-6">
+        <Button
+          size="lg"
           onClick={() => navigate("/app/add-agendamento")}
-          className="h-16 px-6 bg-[#117d49] text-white font-medium flex items-center justify-center rounded-full shadow-lg hover:bg-[#0d6238] transition-all hover:scale-105"
+          className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
         >
-          <PlusCircle className="w-5 h-5 mr-2" />
-          Novo Agendamento
-        </button>
+          <PlusCircle className="w-5 h-5 md:mr-2" />
+          <span className="hidden md:inline">Novo Agendamento</span>
+        </Button>
       </div>
     </div>
   );

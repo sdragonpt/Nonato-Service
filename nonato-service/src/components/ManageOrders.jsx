@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 import {
   PlusCircle,
@@ -12,9 +12,41 @@ import {
   Loader2,
   Calendar,
 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+
+const StatsCard = ({ Icon, value, label, color, onClick }) => (
+  <Card
+    onClick={onClick}
+    className={`bg-${color}-500/10 border-${color}-500/50 hover:bg-${color}-500/20 transition-colors cursor-pointer`}
+  >
+    <CardContent className="p-4">
+      <div className="flex items-center justify-between mb-2">
+        <Icon className={`w-6 h-6 text-${color}-400`} />
+        <span className={`text-2xl font-bold text-${color}-400`}>{value}</span>
+      </div>
+      <p className={`text-${color}-400 text-sm`}>{label}</p>
+    </CardContent>
+  </Card>
+);
+
+const ActionCard = ({ Icon, title, description, onClick }) => (
+  <Card
+    onClick={onClick}
+    className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+  >
+    <CardContent className="p-6 text-center">
+      <div className="flex justify-center mb-3">
+        <Icon className="w-8 h-8 text-blue-400 group-hover:scale-110 transition-transform" />
+      </div>
+      <h3 className="text-lg font-medium text-white mb-2">{title}</h3>
+      <p className="text-sm text-zinc-400">{description}</p>
+    </CardContent>
+  </Card>
+);
 
 const ManageOrders = () => {
-  const navigate = useNavigate();
   const [stats, setStats] = useState({
     open: 0,
     closed: 0,
@@ -23,21 +55,16 @@ const ManageOrders = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         setIsLoading(true);
-        setError(null);
-
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // Buscar todas as ordens de serviço
-        const ordersRef = collection(db, "ordens");
-
-        // Buscar todos os serviços de uma vez
-        const ordersSnapshot = await getDocs(ordersRef);
+        const ordersSnapshot = await getDocs(collection(db, "ordens"));
         const orders = ordersSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
@@ -45,8 +72,7 @@ const ManageOrders = () => {
             doc.data().createdAt?.toDate() || new Date(doc.data().date),
         }));
 
-        // Calcular estatísticas
-        const stats = {
+        setStats({
           open: orders.filter((order) => order.status === "Aberto").length,
           closed: orders.filter((order) => order.status === "Fechado").length,
           urgent: orders.filter((order) => order.priority === "high").length,
@@ -55,9 +81,8 @@ const ManageOrders = () => {
             orderDate.setHours(0, 0, 0, 0);
             return orderDate.getTime() === today.getTime();
           }).length,
-        };
-
-        setStats(stats);
+        });
+        setError(null);
       } catch (err) {
         console.error("Erro ao buscar estatísticas:", err);
         setError("Erro ao carregar dados. Por favor, tente novamente.");
@@ -78,114 +103,81 @@ const ManageOrders = () => {
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto rounded-lg p-4">
-      <h2 className="text-2xl font-semibold text-center text-white mb-6">
-        Ordens de Serviço
-      </h2>
+    <div className="container max-w-3xl mx-auto p-4">
+      <Card className="mb-8 bg-zinc-800 border-zinc-700">
+        <CardHeader>
+          <CardTitle className="text-2xl text-center text-white">
+            Ordens de Serviço
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {error && (
+            <Alert
+              variant="destructive"
+              className="border-red-500 bg-red-500/10"
+            >
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-red-400">
+                {error}
+              </AlertDescription>
+            </Alert>
+          )}
 
-      {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded-lg flex items-center text-red-500">
-          <AlertCircle className="w-5 h-5 mr-2" />
-          {error}
-        </div>
-      )}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatsCard
+              Icon={ClipboardList}
+              value={stats.open}
+              label="Ordens Abertas"
+              color="blue"
+              onClick={() => navigate("/app/open-orders")}
+            />
+            <StatsCard
+              Icon={ClipboardCheck}
+              value={stats.closed}
+              label="Ordens Fechadas"
+              color="green"
+              onClick={() => navigate("/app/closed-orders")}
+            />
+            <StatsCard
+              Icon={AlertCircle}
+              value={stats.urgent}
+              label="Ordens Urgentes"
+              color="red"
+            />
+            <StatsCard
+              Icon={Calendar}
+              value={stats.todayTotal}
+              label="Ordens de Hoje"
+              color="purple"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {/* Card - Ordens Abertas */}
-        <div
+      <div className="grid grid-cols-2 gap-4 mb-24">
+        <ActionCard
+          Icon={Clock}
+          title="Ordens Abertas"
+          description="Visualizar e gerenciar ordens em andamento"
           onClick={() => navigate("/app/open-orders")}
-          className="bg-blue-500/10 border border-blue-500/50 p-4 rounded-lg cursor-pointer hover:bg-blue-500/20 transition-colors"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <ClipboardList className="w-6 h-6 text-blue-400" />
-            <span className="text-2xl font-bold text-blue-400">
-              {stats.open}
-            </span>
-          </div>
-          <p className="text-blue-400 text-sm">Ordens Abertas</p>
-        </div>
-
-        {/* Card - Ordens Fechadas */}
-        <div
+        />
+        <ActionCard
+          Icon={CheckCircle2}
+          title="Ordens Fechadas"
+          description="Histórico de ordens concluídas"
           onClick={() => navigate("/app/closed-orders")}
-          className="bg-green-500/10 border border-green-500/50 p-4 rounded-lg cursor-pointer hover:bg-green-500/20 transition-colors"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <ClipboardCheck className="w-6 h-6 text-green-400" />
-            <span className="text-2xl font-bold text-green-400">
-              {stats.closed}
-            </span>
-          </div>
-          <p className="text-green-400 text-sm">Ordens Fechadas</p>
-        </div>
-
-        {/* Card - Urgentes */}
-        <div className="bg-red-500/10 border border-red-500/50 p-4 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <AlertCircle className="w-6 h-6 text-red-400" />
-            <span className="text-2xl font-bold text-red-400">
-              {stats.urgent}
-            </span>
-          </div>
-          <p className="text-red-400 text-sm">Ordens Urgentes</p>
-        </div>
-
-        {/* Card - Hoje */}
-        <div className="bg-purple-500/10 border border-purple-500/50 p-4 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <Calendar className="w-6 h-6 text-purple-400" />
-            <span className="text-2xl font-bold text-purple-400">
-              {stats.todayTotal}
-            </span>
-          </div>
-          <p className="text-purple-400 text-sm">Ordens de Hoje</p>
-        </div>
+        />
       </div>
 
-      {/* Status Cards */}
-      <div className="grid grid-cols-2 gap-4 mb-32">
-        {/* Ordens Abertas Card */}
-        <button
-          onClick={() => navigate("/app/open-orders")}
-          className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors group"
-        >
-          <div className="flex items-center justify-center mb-3">
-            <Clock className="w-8 h-8 text-blue-400 group-hover:scale-110 transition-transform" />
-          </div>
-          <h3 className="text-lg font-medium text-center text-white mb-2">
-            Ordens Abertas
-          </h3>
-          <p className="text-sm text-gray-400 text-center">
-            Visualizar e gerenciar ordens em andamento
-          </p>
-        </button>
-
-        {/* Ordens Fechadas Card */}
-        <button
-          onClick={() => navigate("/app/closed-orders")}
-          className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors group"
-        >
-          <div className="flex items-center justify-center mb-3">
-            <CheckCircle2 className="w-8 h-8 text-green-400 group-hover:scale-110 transition-transform" />
-          </div>
-          <h3 className="text-lg font-medium text-center text-white mb-2">
-            Ordens Fechadas
-          </h3>
-          <p className="text-sm text-gray-400 text-center">
-            Histórico de ordens concluídas
-          </p>
-        </button>
-      </div>
-
-      {/* Botão flutuante para nova ordem */}
-      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center md:left-64">
-        <button
+      <div className="fixed bottom-6 right-6">
+        <Button
+          size="lg"
           onClick={() => navigate("/app/add-order")}
-          className="h-16 px-6 bg-[#117d49] text-white font-medium flex items-center justify-center rounded-full shadow-lg hover:bg-[#0d6238] transition-all hover:scale-105"
+          className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
         >
-          <PlusCircle className="w-5 h-5 mr-2" />
-          Nova Ordem de Serviço
-        </button>
+          <PlusCircle className="w-5 h-5 md:mr-2" />
+          <span className="hidden md:inline">Nova Ordem de Serviço</span>
+        </Button>
       </div>
     </div>
   );
