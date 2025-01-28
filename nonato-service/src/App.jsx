@@ -172,14 +172,32 @@ const NAVIGATION_ITEMS = [
 
 // Componente para renderizar a navegação com base no role do usuário
 const Navigation = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  // Se não tiver usuário ou role, não mostra nada
+  if (!user?.role) {
+    console.warn("Navigation: Missing user or role", { user });
+    return null;
+  }
+
+  // Garante que NAVIGATION_ITEMS existe
+  if (!Array.isArray(NAVIGATION_ITEMS)) {
+    console.error("Navigation: NAVIGATION_ITEMS is not an array");
+    return null;
+  }
 
   const filteredNavigation = NAVIGATION_ITEMS.map((section) => ({
     ...section,
-    items: section.items.filter((item) =>
-      item.roles.includes(user?.role || "client")
+    items: section.items.filter(
+      (item) => Array.isArray(item.roles) && item.roles.includes(user.role)
     ),
   })).filter((section) => section.items.length > 0);
+
+  // Se não tiver items após filtro, mostra mensagem
+  if (filteredNavigation.length === 0) {
+    console.warn("No navigation items available for role:", user.role);
+    return null;
+  }
 
   return (
     <nav>
@@ -276,21 +294,26 @@ const UserNav = () => {
 
 // DashboardShell component that wraps the main content
 const DashboardShell = ({ children }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Começa fechado no mobile
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
-  const { user, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
 
-  // Fecha o sidebar quando a rota muda no mobile
+  // Movemos a definição da função toggleSidebar para dentro do componente
+  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
+
   useEffect(() => {
     if (window.innerWidth < 768) {
       setIsSidebarOpen(false);
     }
   }, [location]);
 
-  // Verifica se o user está carregando
-  if (isLoading) {
-    return <div>Loading...</div>; // Exibe um estado de carregamento
+  if (loading || !user?.role) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-zinc-900">
+        <Loader2 className="h-12 w-12 animate-spin text-white" />
+      </div>
+    );
   }
 
   const isActiveLink = (path) => {
@@ -298,25 +321,36 @@ const DashboardShell = ({ children }) => {
   };
 
   if (!NAVIGATION_ITEMS || NAVIGATION_ITEMS.length === 0) {
-    return <div>Carregando...</div>; // Placeholder
+    console.warn("Navigation items não disponíveis:", { NAVIGATION_ITEMS });
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-zinc-900">
+        <Loader2 className="h-12 w-12 animate-spin text-white" />
+      </div>
+    );
   }
 
-  // Filtra os itens de navegação com base no papel do usuário
-  const filteredNavigation = NAVIGATION_ITEMS.map((section) => ({
-    ...section,
-    items: section.items.filter((item) =>
-      item.roles.includes(user?.role || "client")
-    ),
-  })).filter((section) => section.items.length > 0); // Remove seções sem itens
-
-  // Adiciona overlay para mobile
-  const toggleSidebar = () => {
-    setIsSidebarOpen((prev) => !prev);
-  };
+  const filteredNavigation = NAVIGATION_ITEMS.map((section) => {
+    console.log("Filtrando seção:", {
+      title: section.title,
+      userRole: user.role,
+      items: section.items,
+    });
+    return {
+      ...section,
+      items: section.items.filter((item) => {
+        const hasAccess = item.roles.includes(user.role);
+        console.log(`Item ${item.label}:`, {
+          roles: item.roles,
+          userRole: user.role,
+          hasAccess,
+        });
+        return hasAccess;
+      }),
+    };
+  }).filter((section) => section.items.length > 0);
 
   return (
     <div className="min-h-screen bg-zinc-900">
-      {/* Overlay para mobile */}
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-30 md:hidden"
@@ -324,14 +358,12 @@ const DashboardShell = ({ children }) => {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`fixed top-0 left-0 z-40 h-screen transition-transform duration-300 w-[280px] bg-zinc-900 border-r border-zinc-800 ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         } md:translate-x-0`}
       >
         <div className="h-full px-4 py-4 flex flex-col">
-          {/* Logo/Brand */}
           <div className="flex items-center justify-between mb-8 h-16">
             <h1 className="text-2xl font-bold text-white">Dashboard</h1>
             <Button
@@ -344,7 +376,6 @@ const DashboardShell = ({ children }) => {
             </Button>
           </div>
 
-          {/* Navigation Sections */}
           <div className="flex-1 space-y-4 overflow-y-auto">
             {filteredNavigation.map((section, idx) => (
               <div key={idx} className="space-y-1">
@@ -388,16 +419,13 @@ const DashboardShell = ({ children }) => {
             ))}
           </div>
 
-          {/* User Profile Section */}
           <div className="mt-auto pt-4 border-t border-zinc-800">
             <UserNav />
           </div>
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="transition-[margin] duration-300 md:ml-[280px]">
-        {/* Top Navigation Bar */}
         <header className="sticky top-0 z-30 bg-zinc-800/95 backdrop-blur supports-[backdrop-filter]:bg-zinc-800/75 border-b border-zinc-700">
           <div className="flex h-16 items-center gap-4 px-4">
             <Button
@@ -409,14 +437,12 @@ const DashboardShell = ({ children }) => {
               <Menu className="h-6 w-6 text-zinc-400" />
             </Button>
 
-            {/* Right Side Nav Items */}
             <div className="ml-auto flex items-center gap-4">
               <NotificationsDropdown />
             </div>
           </div>
         </header>
 
-        {/* Page Content */}
         <div className="p-4 sm:p-6 lg:p-8">
           <ErrorBoundary>{children}</ErrorBoundary>
         </div>

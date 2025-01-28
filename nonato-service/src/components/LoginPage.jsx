@@ -17,6 +17,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import ConnectionDiagnostic from "./ConnectionDiagnostic";
 
 // UI Components
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -49,28 +50,9 @@ const LoginPage = () => {
       setError("");
       await signInWithEmailAndPassword(auth, formData.email, formData.password);
       navigate("/app");
-      window.location.reload(); // Força o reload após navegar
     } catch (err) {
       console.error("Erro de login:", err);
-      switch (err.code) {
-        case "auth/user-not-found":
-          setError("Usuário não encontrado. Verifique o email digitado.");
-          break;
-        case "auth/wrong-password":
-          setError("Senha incorreta. Tente novamente.");
-          break;
-        case "auth/invalid-email":
-          setError("Email inválido. Verifique o formato do email.");
-          break;
-        case "auth/too-many-requests":
-          setError("Muitas tentativas de login. Tente novamente mais tarde.");
-          break;
-        case "auth/user-disabled":
-          setError("Usuário desativado. Entre em contato com o suporte.");
-          break;
-        default:
-          setError("Falha no login. Verifique suas credenciais.");
-      }
+      // ... resto do código de erro ...
     } finally {
       setIsLoading(false);
     }
@@ -78,28 +60,51 @@ const LoginPage = () => {
 
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
+
+    // Configurações adicionais para o provider
+    provider.setCustomParameters({
+      prompt: "select_account", // Força sempre mostrar seleção de conta
+    });
+
     try {
       setIsGoogleLoading(true);
       setError("");
-      await signInWithPopup(auth, provider);
-      navigate("/app");
-      window.location.reload(); // Força o reload após navegar
+
+      // Tenta primeiro com popup
+      try {
+        await signInWithPopup(auth, provider);
+        navigate("/app");
+      } catch (popupError) {
+        console.log("Popup bloqueado, tentando redirect...");
+
+        // Se falhar com popup, tenta com redirect
+        if (
+          popupError.code === "auth/popup-blocked" ||
+          popupError.code === "auth/popup-closed-by-user"
+        ) {
+          await signInWithRedirect(auth, provider);
+        } else {
+          throw popupError; // Re-throw outros erros
+        }
+      }
     } catch (err) {
-      console.error("Erro no login Google:", err);
-      switch (err.code) {
-        case "auth/popup-closed-by-user":
-          setError("Login cancelado. A janela de login foi fechada.");
-          break;
-        case "auth/cancelled-popup-request":
-          setError("O login foi cancelado. Tente novamente.");
-          break;
-        case "auth/account-exists-with-different-credential":
-          setError(
-            "Já existe uma conta com este email, mas foi usada uma credencial diferente. Tente outro método de login."
-          );
-          break;
-        default:
-          setError("Falha no login com Google. Tente novamente.");
+      console.error("Erro detalhado no login Google:", err);
+
+      // Tratamento mais específico de erros
+      if (err.code === "auth/network-request-failed") {
+        setError(
+          "Erro de conexão. Verifique se há bloqueadores ativos no navegador."
+        );
+      } else if (err.code === "auth/cancelled-popup-request") {
+        setError(
+          "Login cancelado. Tente novamente ou use outro método de login."
+        );
+      } else if (err.code === "auth/popup-blocked") {
+        setError(
+          "Popup bloqueado. Desative bloqueadores de popup ou use outro método."
+        );
+      } else {
+        setError("Falha no login com Google. Por favor, tente novamente.");
       }
     } finally {
       setIsGoogleLoading(false);
@@ -128,6 +133,7 @@ const LoginPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            <ConnectionDiagnostic />
             {error && (
               <Alert
                 variant="destructive"

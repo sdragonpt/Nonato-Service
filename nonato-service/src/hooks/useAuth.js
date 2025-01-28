@@ -10,44 +10,49 @@ export function useAuth() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        console.log("Auth state changed:", firebaseUser); // Debug
       if (firebaseUser) {
         try {
-            const authorizedEmails = ["sergionunoribeiro@gmail.com", "service.nonato@gmail.com"];
+          const authorizedEmails = ["sergionunoribeiro@gmail.com", "service.nonato@gmail.com"];
   
-            // Verificar se o email está autorizado
-            if (!authorizedEmails.includes(firebaseUser.email)) {
-              console.warn("Usuário não autorizado:", firebaseUser.email);
-              setUser(null);
-              setLoading(false);
-              return;
-            }
+          // Verificar se o email está autorizado
+          if (!authorizedEmails.includes(firebaseUser.email)) {
+            console.warn("Usuário não autorizado:", firebaseUser.email);
+            setUser(null);
+            setLoading(false);
+            return;
+          }
+
           // Verificar/criar documento do usuário no Firestore
           const userDoc = doc(db, 'users', firebaseUser.uid);
           const userSnapshot = await getDoc(userDoc);
 
+          let userData;
           if (!userSnapshot.exists()) {
-            // Se é a primeira vez do usuário, criar documento
-            await setDoc(userDoc, {
+            // Se é a primeira vez do usuário, criar documento com role padrão
+            userData = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
               displayName: firebaseUser.displayName || '',
               photoURL: firebaseUser.photoURL || '',
               createdAt: new Date(),
-              lastLogin: new Date()
-            });
+              lastLogin: new Date(),
+              role: firebaseUser.email === "sergionunoribeiro@gmail.com" ? "admin" : "client" // Define role baseado no email
+            };
+            await setDoc(userDoc, userData);
           } else {
-            // Atualizar último login
+            // Atualizar último login e manter os dados existentes
+            userData = userSnapshot.data();
             await setDoc(userDoc, { lastLogin: new Date() }, { merge: true });
           }
 
           // Combinar dados do Auth com dados do Firestore
-          const userData = userSnapshot.exists() 
-            ? { ...firebaseUser, ...userSnapshot.data() }
-            : firebaseUser;
-
-          setUser(userData);
+          setUser({ ...firebaseUser, ...userData });
+          console.log("User data processed:", userData); // Debug
         } catch (error) {
           console.error('Erro ao processar usuário:', error);
+          console.error("Detailed auth error:", error); // Debug detalhado
+          setUser(null);
         }
       } else {
         setUser(null);
