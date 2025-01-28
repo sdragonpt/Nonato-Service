@@ -49,6 +49,7 @@ const LoginPage = () => {
       setError("");
       await signInWithEmailAndPassword(auth, formData.email, formData.password);
       navigate("/app");
+      window.location.reload(); // Força o reload após navegar
     } catch (err) {
       console.error("Erro de login:", err);
       switch (err.code) {
@@ -82,6 +83,7 @@ const LoginPage = () => {
       setError("");
       await signInWithPopup(auth, provider);
       navigate("/app");
+      window.location.reload(); // Força o reload após navegar
     } catch (err) {
       console.error("Erro no login Google:", err);
       switch (err.code) {

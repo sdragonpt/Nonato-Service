@@ -212,7 +212,7 @@ const RoleRoute = ({ children, allowedRoles }) => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-zinc-900">
+      <div className="flex justify-center items-center min-h-screen text-white bg-zinc-900">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
@@ -278,7 +278,7 @@ const UserNav = () => {
 const DashboardShell = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Começa fechado no mobile
   const [activeSection, setActiveSection] = useState("");
-  const { user } = useAuth(); // Obter o usuário autenticado
+  const { user, isLoading } = useAuth();
   const location = useLocation();
 
   // Fecha o sidebar quando a rota muda no mobile
@@ -288,9 +288,18 @@ const DashboardShell = ({ children }) => {
     }
   }, [location]);
 
+  // Verifica se o user está carregando
+  if (isLoading) {
+    return <div>Loading...</div>; // Exibe um estado de carregamento
+  }
+
   const isActiveLink = (path) => {
     return location.pathname === path;
   };
+
+  if (!NAVIGATION_ITEMS || NAVIGATION_ITEMS.length === 0) {
+    return <div>Carregando...</div>; // Placeholder
+  }
 
   // Filtra os itens de navegação com base no papel do usuário
   const filteredNavigation = NAVIGATION_ITEMS.map((section) => ({

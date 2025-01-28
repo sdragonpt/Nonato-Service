@@ -278,21 +278,6 @@ const UserProfile = () => {
                 />
               </div>
             </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Cargo</label>
-              <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <Input
-                  type="text"
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  placeholder="Seu cargo"
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
-                />
-              </div>
-            </div>
           </CardContent>
         </Card>
 
