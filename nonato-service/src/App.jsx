@@ -100,7 +100,7 @@ const NAVIGATION_ITEMS = [
         path: "/app/manage-services",
         icon: Wrench,
         label: "Serviços",
-        roles: ["admin"], // apenas admin
+        roles: ["admin", "client"],
       },
       {
         path: "/app/manage-budgets",
@@ -109,10 +109,16 @@ const NAVIGATION_ITEMS = [
         roles: ["admin", "client"],
       },
       {
+        path: "/app/manage-equipment",
+        icon: Package,
+        label: "Peças",
+        roles: ["admin", "client"],
+      },
+      {
         path: "/app/parts-library",
         icon: Book,
         label: "Biblioteca de Peças",
-        roles: ["admin"],
+        roles: ["admin", "client"],
       },
     ],
   },
@@ -129,25 +135,25 @@ const NAVIGATION_ITEMS = [
         path: "/app/manage-agenda",
         icon: Calendar,
         label: "Agenda",
-        roles: ["admin"],
+        roles: ["admin", "client"],
       },
       {
         path: "/app/manage-report",
         icon: BarChart,
         label: "Relatório",
-        roles: ["admin"],
+        roles: ["admin", "client"],
       },
       {
         path: "/app/manage-checklist",
         icon: CheckSquare,
         label: "Check List",
-        roles: ["admin"],
+        roles: ["admin", "client"],
       },
       {
         path: "/app/manage-inspection",
         icon: ClipboardCheck,
         label: "Inspeções",
-        roles: ["admin"],
+        roles: ["admin", "client"],
       },
     ],
   },
@@ -158,12 +164,6 @@ const NAVIGATION_ITEMS = [
         path: "/app/manage-users",
         icon: UserCog,
         label: "Gerenciar Usuários",
-        roles: ["admin"],
-      },
-      {
-        path: "/app/settings",
-        icon: Settings,
-        label: "Configurações",
         roles: ["admin"],
       },
     ],
@@ -212,7 +212,7 @@ const RoleRoute = ({ children, allowedRoles }) => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-screen bg-zinc-900">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
@@ -278,6 +278,7 @@ const UserNav = () => {
 const DashboardShell = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Começa fechado no mobile
   const [activeSection, setActiveSection] = useState("");
+  const { user } = useAuth(); // Obter o usuário autenticado
   const location = useLocation();
 
   // Fecha o sidebar quando a rota muda no mobile
@@ -290,6 +291,14 @@ const DashboardShell = ({ children }) => {
   const isActiveLink = (path) => {
     return location.pathname === path;
   };
+
+  // Filtra os itens de navegação com base no papel do usuário
+  const filteredNavigation = NAVIGATION_ITEMS.map((section) => ({
+    ...section,
+    items: section.items.filter((item) =>
+      item.roles.includes(user?.role || "client")
+    ),
+  })).filter((section) => section.items.length > 0); // Remove seções sem itens
 
   // Adiciona overlay para mobile
   const toggleSidebar = () => {
@@ -308,12 +317,9 @@ const DashboardShell = ({ children }) => {
 
       {/* Sidebar */}
       <aside
-        className={`
-          fixed top-0 left-0 z-40 h-screen transition-transform duration-300
-          w-[280px] bg-zinc-900 border-r border-zinc-800
-          ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          md:translate-x-0
-        `}
+        className={`fixed top-0 left-0 z-40 h-screen transition-transform duration-300 w-[280px] bg-zinc-900 border-r border-zinc-800 ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0`}
       >
         <div className="h-full px-4 py-4 flex flex-col">
           {/* Logo/Brand */}
@@ -331,7 +337,7 @@ const DashboardShell = ({ children }) => {
 
           {/* Navigation Sections */}
           <div className="flex-1 space-y-4 overflow-y-auto">
-            {NAVIGATION_ITEMS.map((section, idx) => (
+            {filteredNavigation.map((section, idx) => (
               <div key={idx} className="space-y-1">
                 <button
                   onClick={() =>
@@ -358,15 +364,11 @@ const DashboardShell = ({ children }) => {
                     <Link
                       key={itemIdx}
                       to={item.path}
-                      className={`
-                        flex items-center gap-x-3 px-2 py-2 text-sm rounded-lg
-                        ${
-                          isActiveLink(item.path)
-                            ? "bg-zinc-800 text-white"
-                            : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
-                        }
-                        transition-colors
-                      `}
+                      className={`flex items-center gap-x-3 px-2 py-2 text-sm rounded-lg ${
+                        isActiveLink(item.path)
+                          ? "bg-zinc-800 text-white"
+                          : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                      } transition-colors`}
                     >
                       <item.icon className="w-4 h-4" />
                       {item.label}
@@ -494,12 +496,11 @@ const App = () => {
                   <Route path="profile" element={<UserProfile />} />
                   <Route path="settings" element={<UserSettings />} />
                   {/* Rotas protegidas por role */}
-                  <Route path="manage-users" element={<ManageUsers />} />
                   <Route
-                    path="settings"
+                    path="manage-users"
                     element={
                       <RoleRoute allowedRoles={["admin"]}>
-                        <UserSettings />
+                        <ManageUsers />
                       </RoleRoute>
                     }
                   />
