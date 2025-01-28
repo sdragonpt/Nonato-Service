@@ -50,6 +50,7 @@ const LoginPage = () => {
       setError("");
       await signInWithEmailAndPassword(auth, formData.email, formData.password);
       navigate("/app");
+      window.location.reload();
     } catch (err) {
       console.error("Erro de login:", err);
       // ... resto do código de erro ...
@@ -74,6 +75,7 @@ const LoginPage = () => {
       try {
         await signInWithPopup(auth, provider);
         navigate("/app");
+        window.location.reload();
       } catch (popupError) {
         console.log("Popup bloqueado, tentando redirect...");
 

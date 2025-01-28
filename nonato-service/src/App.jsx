@@ -94,31 +94,26 @@ const NAVIGATION_ITEMS = [
         path: "/app/manage-clients",
         icon: Users,
         label: "Clientes",
-        roles: ["admin", "client"], // todos podem ver
       },
       {
         path: "/app/manage-services",
         icon: Wrench,
         label: "Serviços",
-        roles: ["admin", "client"],
       },
       {
         path: "/app/manage-budgets",
         icon: FileText,
         label: "Orçamentos",
-        roles: ["admin", "client"],
       },
       {
         path: "/app/manage-equipment",
         icon: Package,
         label: "Peças",
-        roles: ["admin", "client"],
       },
       {
         path: "/app/parts-library",
         icon: Book,
         label: "Biblioteca de Peças",
-        roles: ["admin", "client"],
       },
     ],
   },
@@ -129,31 +124,26 @@ const NAVIGATION_ITEMS = [
         path: "/app/manage-orders",
         icon: ClipboardList,
         label: "Ordem de Serviço",
-        roles: ["admin", "client"],
       },
       {
         path: "/app/manage-agenda",
         icon: Calendar,
         label: "Agenda",
-        roles: ["admin", "client"],
       },
       {
         path: "/app/manage-report",
         icon: BarChart,
         label: "Relatório",
-        roles: ["admin", "client"],
       },
       {
         path: "/app/manage-checklist",
         icon: CheckSquare,
         label: "Check List",
-        roles: ["admin", "client"],
       },
       {
         path: "/app/manage-inspection",
         icon: ClipboardCheck,
         label: "Inspeções",
-        roles: ["admin", "client"],
       },
     ],
   },
@@ -164,7 +154,6 @@ const NAVIGATION_ITEMS = [
         path: "/app/manage-users",
         icon: UserCog,
         label: "Gerenciar Usuários",
-        roles: ["admin"],
       },
     ],
   },
@@ -299,7 +288,6 @@ const DashboardShell = ({ children }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  // Movemos a definição da função toggleSidebar para dentro do componente
   const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
 
   useEffect(() => {
@@ -308,7 +296,7 @@ const DashboardShell = ({ children }) => {
     }
   }, [location]);
 
-  if (loading || !user?.role) {
+  if (loading || !user) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-zinc-900">
         <Loader2 className="h-12 w-12 animate-spin text-white" />
@@ -328,26 +316,6 @@ const DashboardShell = ({ children }) => {
       </div>
     );
   }
-
-  const filteredNavigation = NAVIGATION_ITEMS.map((section) => {
-    console.log("Filtrando seção:", {
-      title: section.title,
-      userRole: user.role,
-      items: section.items,
-    });
-    return {
-      ...section,
-      items: section.items.filter((item) => {
-        const hasAccess = item.roles.includes(user.role);
-        console.log(`Item ${item.label}:`, {
-          roles: item.roles,
-          userRole: user.role,
-          hasAccess,
-        });
-        return hasAccess;
-      }),
-    };
-  }).filter((section) => section.items.length > 0);
 
   return (
     <div className="min-h-screen bg-zinc-900">
@@ -377,7 +345,7 @@ const DashboardShell = ({ children }) => {
           </div>
 
           <div className="flex-1 space-y-4 overflow-y-auto">
-            {filteredNavigation.map((section, idx) => (
+            {NAVIGATION_ITEMS.map((section, idx) => (
               <div key={idx} className="space-y-1">
                 <button
                   onClick={() =>
