@@ -4,16 +4,30 @@ import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase.jsx";
 import {
   ArrowLeft,
+  Camera,
   Loader2,
   Save,
-  AlertCircle,
+  X,
   User,
   MapPin,
-  Mail,
   Phone,
   FileText,
-  Building,
+  AlertTriangle,
+  Building2,
 } from "lucide-react";
+
+// UI Components
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const EditClient = () => {
   const { clientId } = useParams();
@@ -23,10 +37,13 @@ const EditClient = () => {
     name: "",
     address: "",
     phone: "",
-    nif: "",
     postalCode: "",
+    nif: "",
+    type: "individual",
+    company: "",
   });
 
+  const [profilePicPreview, setProfilePicPreview] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -52,7 +69,10 @@ const EditClient = () => {
           phone: data.phone || "",
           nif: data.nif || "",
           postalCode: data.postalCode || "",
+          type: data.type || "individual",
+          company: data.company || "",
         });
+        setProfilePicPreview(data.profilePic || "");
         setOriginalData(data);
         setError(null);
       } catch (err) {
@@ -74,6 +94,10 @@ const EditClient = () => {
     }));
   };
 
+  const handleTypeChange = (value) => {
+    setFormData((prev) => ({ ...prev, type: value }));
+  };
+
   const handleBlur = (field) => {
     setTouched((prev) => ({
       ...prev,
@@ -81,41 +105,33 @@ const EditClient = () => {
     }));
   };
 
-  const validateForm = () => {
-    const errors = {};
-    if (!formData.name.trim()) errors.name = "Nome é obrigatório";
-    return errors;
+  const handleProfilePicChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setError("A imagem deve ter menos de 2MB");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePicPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+      setError(null);
+    }
   };
 
-  const formatPostalCode = (value) => {
-    const digits = value.replace(/\D/g, "");
-    if (digits.length <= 4) return digits;
-    return `${digits.slice(0, 4)}-${digits.slice(4, 7)}`;
-  };
-
-  const handlePostalCodeChange = (e) => {
-    const formatted = formatPostalCode(e.target.value);
-    setFormData((prev) => ({
-      ...prev,
-      postalCode: formatted,
-    }));
+  const removeImage = () => {
+    setProfilePicPreview("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setTouched((prev) => ({ ...prev, name: true }));
 
-    const allTouched = Object.keys(formData).reduce(
-      (acc, key) => ({
-        ...acc,
-        [key]: true,
-      }),
-      {}
-    );
-    setTouched(allTouched);
-
-    const formErrors = validateForm();
-    if (Object.keys(formErrors).length > 0) {
-      setError("Por favor, corrija os erros no formulário");
+    if (!formData.name.trim()) {
+      setError("O campo Nome é obrigatório");
       return;
     }
 
@@ -124,7 +140,11 @@ const EditClient = () => {
       setError(null);
 
       const clientRef = doc(db, "clientes", clientId);
-      await updateDoc(clientRef, formData);
+      await updateDoc(clientRef, {
+        ...formData,
+        lastUpdate: new Date(),
+        profilePic: profilePicPreview,
+      });
 
       navigate(-1);
     } catch (err) {
@@ -137,7 +157,7 @@ const EditClient = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
@@ -148,149 +168,244 @@ const EditClient = () => {
     Object.keys(formData).some((key) => formData[key] !== originalData[key]);
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-4">
-      <button
-        onClick={() => navigate(-1)}
-        className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all hover:scale-105 flex items-center justify-center"
-      >
-        <ArrowLeft className="w-5 h-5" />
-      </button>
-
-      <h2 className="text-2xl text-center text-white font-semibold mb-6">
-        Editar Cliente
-      </h2>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Editar Cliente</h1>
+          <p className="text-sm text-zinc-400">
+            Atualize as informações do cliente
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => navigate(-1)}
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+        >
+          <ArrowLeft className="h-4 w-4 text-white" />
+        </Button>
+      </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded-lg flex items-center">
-          <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
-          <p className="text-red-500">{error}</p>
-        </div>
+        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-red-400">{error}</AlertDescription>
+        </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Informações Básicas */}
-        <div className="bg-gray-800 p-6 rounded-lg space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Nome
-            </label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                onBlur={() => handleBlur("name")}
-                className={`w-full p-3 pl-10 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-                  touched.name && !formData.name ? "border border-red-500" : ""
-                }`}
-              />
-            </div>
-            {touched.name && !formData.name && (
-              <p className="mt-1 text-sm text-red-500">Nome é obrigatório</p>
+        {/* Profile Picture Card */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white">Foto de Perfil</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {profilePicPreview ? (
+              <div className="relative w-24 h-24">
+                <img
+                  src={profilePicPreview}
+                  alt="Preview"
+                  className="w-full h-full rounded-full object-cover"
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="destructive"
+                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                  onClick={removeImage}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center p-6 bg-zinc-900 border-2 border-dashed border-zinc-700 rounded-lg cursor-pointer hover:bg-zinc-700/50 transition-colors">
+                <Camera className="h-8 w-8 text-zinc-400 mb-2" />
+                <span className="text-sm text-zinc-400">
+                  Clique para adicionar foto
+                </span>
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={handleProfilePicChange}
+                  accept="image/*"
+                />
+              </label>
             )}
-          </div>
+          </CardContent>
+        </Card>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Telefone
-            </label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                onBlur={() => handleBlur("phone")}
-                placeholder="912345678"
-                className="w-full p-3 pl-10 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-              />
+        {/* Client Information Card */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white">
+              Informações do Cliente
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Client Type Selection */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
+                Tipo de Cliente
+              </label>
+              <Select value={formData.type} onValueChange={handleTypeChange}>
+                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-800 border-zinc-700">
+                  <SelectItem
+                    value="individual"
+                    className="text-white hover:bg-zinc-700"
+                  >
+                    Pessoa
+                  </SelectItem>
+                  <SelectItem
+                    value="company"
+                    className="text-white hover:bg-zinc-700"
+                  >
+                    Empresa
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </div>
-        </div>
 
-        {/* Endereço e Detalhes */}
-        <div className="bg-gray-800 p-6 rounded-lg space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Endereço
-            </label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                onBlur={() => handleBlur("address")}
-                placeholder="Vila Real, Rua das Flores 123"
-                className="w-full p-3 pl-10 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-              />
+            {/* Name Field */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
+                {formData.type === "company"
+                  ? "Nome da Empresa"
+                  : "Nome Completo"}
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  onBlur={() => handleBlur("name")}
+                  placeholder={
+                    formData.type === "company"
+                      ? "Ex: Empresa LTDA"
+                      : "Ex: João Silva"
+                  }
+                  className={`pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 ${
+                    touched.name && !formData.name ? "border-red-500" : ""
+                  }`}
+                />
+              </div>
+              {touched.name && !formData.name && (
+                <p className="text-sm text-red-500">Nome é obrigatório</p>
+              )}
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Código Postal
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                name="postalCode"
-                value={formData.postalCode}
-                onChange={handlePostalCodeChange}
-                onBlur={() => handleBlur("postalCode")}
-                placeholder="1234-567"
-                maxLength={8}
-                className="w-full p-3 pl-10 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-              />
+            {/* Individual-specific fields */}
+            {formData.type === "individual" && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  Empresa (Opcional)
+                </label>
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <Input
+                    type="text"
+                    name="company"
+                    value={formData.company}
+                    onChange={handleChange}
+                    placeholder="Ex: Nome da Empresa"
+                    className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Contact Information */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
+                Telefone
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="Ex: (11) 98765-4321"
+                  className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                />
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Informações Fiscais */}
-        <div className="bg-gray-800 p-6 rounded-lg space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              NIF
-            </label>
-            <div className="relative">
-              <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                name="nif"
-                value={formData.nif}
-                onChange={handleChange}
-                onBlur={() => handleBlur("nif")}
-                maxLength={9}
-                placeholder="123456789"
-                className="w-full p-3 pl-10 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-              />
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
+                Endereço
+              </label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Input
+                  type="text"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  placeholder="Ex: Rua Exemplo, 123"
+                  className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                />
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Botão Submit */}
-        <button
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
+                Código Postal
+              </label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Input
+                  type="text"
+                  name="postalCode"
+                  value={formData.postalCode}
+                  onChange={handleChange}
+                  placeholder="Ex: 1234-567"
+                  className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">NIF</label>
+              <div className="relative">
+                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Input
+                  type="text"
+                  name="nif"
+                  value={formData.nif}
+                  onChange={handleChange}
+                  placeholder="Ex: 123456789"
+                  className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Submit Button */}
+        <Button
           type="submit"
           disabled={isSubmitting || !hasChanges}
-          className="w-full p-4 flex items-center justify-center text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:hover:bg-blue-600"
+          className="w-full bg-green-600 hover:bg-green-700"
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Salvando...
             </>
           ) : (
             <>
-              <Save className="w-5 h-5 mr-2" />
+              <Save className="w-4 h-4 mr-2" />
               Salvar Alterações
             </>
           )}
-        </button>
+        </Button>
       </form>
     </div>
   );

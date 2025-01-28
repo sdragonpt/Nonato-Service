@@ -7,17 +7,28 @@ import {
   Camera,
   Loader2,
   Trash2,
-  Edit,
-  Plus,
+  Edit2,
   Package,
   Barcode,
   Tag,
   Shapes,
   AlertTriangle,
+  User,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+
+// UI Components
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const EquipmentDetail = () => {
   const { equipmentId } = useParams();
@@ -29,8 +40,8 @@ const EquipmentDetail = () => {
   const [photoChanged, setPhotoChanged] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [photoLoading, setPhotoLoading] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchEquipment = async () => {
@@ -48,15 +59,14 @@ const EquipmentDetail = () => {
 
         const equipmentInfo = { id: equipmentData.id, ...equipmentData.data() };
         setEquipment(equipmentInfo);
-        setNewPhotoURL(equipmentInfo.equipmentPic || "/nonato.png");
+        setNewPhotoURL(equipmentInfo.equipmentPic || "");
 
+        // Fetch client name
         const clientDoc = doc(db, "clientes", equipmentInfo.clientId);
         const clientData = await getDoc(clientDoc);
 
         if (clientData.exists()) {
           setClientName(clientData.data().name);
-        } else {
-          setError("Cliente associado não encontrado");
         }
       } catch (err) {
         console.error("Erro ao buscar equipamento:", err);
@@ -88,13 +98,8 @@ const EquipmentDetail = () => {
   };
 
   const handleSavePhoto = async () => {
-    if (!imageFile) {
-      setError("Por favor, selecione uma imagem para salvar.");
-      return;
-    }
-
     try {
-      setPhotoLoading(true);
+      setIsSubmitting(true);
       const equipmentDocRef = doc(db, "equipamentos", equipmentId);
       await updateDoc(equipmentDocRef, {
         equipmentPic: newPhotoURL,
@@ -109,76 +114,28 @@ const EquipmentDetail = () => {
       console.error("Erro ao salvar foto:", err);
       setError("Erro ao salvar foto. Por favor, tente novamente.");
     } finally {
-      setPhotoLoading(false);
-    }
-  };
-
-  const handleRemovePhoto = async () => {
-    if (!window.confirm("Tem certeza que deseja remover a foto?")) return;
-
-    try {
-      setPhotoLoading(true);
-      const equipmentDocRef = doc(db, "equipamentos", equipmentId);
-      await updateDoc(equipmentDocRef, {
-        equipmentPic: "",
-      });
-
-      setNewPhotoURL("/nonato.png");
-      setImageFile(null);
-      setPhotoChanged(false);
-    } catch (err) {
-      console.error("Erro ao remover foto:", err);
-      setError("Erro ao remover foto. Por favor, tente novamente.");
-    } finally {
-      setPhotoLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   const handleDeleteEquipment = async () => {
-    if (
-      !window.confirm(
-        "Tem certeza que deseja apagar este equipamento? Esta ação não pode ser desfeita."
-      )
-    )
-      return;
-
     try {
-      setDeleteLoading(true);
+      setIsSubmitting(true);
       await deleteDoc(doc(db, "equipamentos", equipmentId));
       navigate(`/app/client/${equipment.clientId}`);
     } catch (err) {
       console.error("Erro ao apagar equipamento:", err);
       setError("Erro ao apagar equipamento. Por favor, tente novamente.");
     } finally {
-      setDeleteLoading(false);
+      setIsSubmitting(false);
+      setDeleteDialogOpen(false);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <Alert
-          variant="destructive"
-          className="mb-6 border-red-500 bg-red-500/10"
-        >
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
-        </Alert>
-        <Button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Voltar
-        </Button>
       </div>
     );
   }
@@ -186,98 +143,158 @@ const EquipmentDetail = () => {
   if (!equipment) return null;
 
   return (
-    <div className="container max-w-4xl mx-auto px-4 py-4 md:py-8">
-      <nav className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div className="hidden md:block">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center text-gray-400 hover:text-blue-500 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Voltar
-          </button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">
+            Detalhes do Equipamento
+          </h1>
+          <p className="text-sm text-zinc-400">
+            Visualize e gerencie as informações do equipamento
+          </p>
         </div>
-        <div className="md:hidden fixed top-4 right-4 z-50">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center justify-center bg-gray-700 text-white p-3 rounded-full hover:bg-gray-600 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="flex w-full md:w-auto gap-2">
-          <button
-            onClick={() => navigate(`/app/edit-equipment/${equipmentId}`)}
-            className="flex-1 md:flex-none bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center justify-center hover:bg-blue-600"
-          >
-            <Edit className="w-4 h-4 mr-2" />
-            Editar
-          </button>
-        </div>
-      </nav>
-
-      <div className="bg-zinc-800 rounded-lg p-6 mb-6">
-        <div className="flex flex-col md:flex-row items-center text-center md:text-left gap-4">
-          <div className="relative group">
-            <img
-              src={newPhotoURL}
-              alt={equipment.type}
-              className="w-24 h-24 md:w-20 md:h-20 rounded-full object-cover border-2 border-gray-700"
-            />
-            <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-              <Camera className="w-6 h-6 text-white" />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoChange}
-                className="hidden"
-              />
-            </label>
-          </div>
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold text-white">{equipment.type}</h2>
-            <p className="text-gray-400">
-              {equipment.brand} {equipment.model}
-            </p>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-          <div className="flex items-center text-gray-300">
-            <Package className="w-5 h-5 mr-3 shrink-0 text-gray-400" />
-            <span>{equipment.brand || "Marca não definida"}</span>
-          </div>
-          <div className="flex items-center text-gray-300">
-            <Shapes className="w-5 h-5 mr-3 shrink-0 text-gray-400" />
-            <span>{equipment.type || "Tipo não definido"}</span>
-          </div>
-          <div className="flex items-center text-gray-300">
-            <Tag className="w-5 h-5 mr-3 shrink-0 text-gray-400" />
-            <span>{equipment.model || "Modelo não definido"}</span>
-          </div>
-          <div className="flex items-center text-gray-300">
-            <Barcode className="w-5 h-5 mr-3 shrink-0 text-gray-400" />
-            <span>{equipment.serialNumber || "Nº Série não definido"}</span>
-          </div>
-        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => navigate(-1)}
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+        >
+          <ArrowLeft className="h-4 w-4 text-white" />
+        </Button>
       </div>
 
-      <div className="fixed bottom-6 right-6 flex flex-col items-end gap-4 z-50">
-        <div className="flex gap-2">
-          <button
-            onClick={handleDeleteEquipment}
-            disabled={deleteLoading}
-            className="bg-red-500 p-3 md:p-3 rounded-full shadow-lg hover:bg-red-600 hover:scale-105 transition-all text-white"
-            title="Apagar Equipamento"
-          >
-            {deleteLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Trash2 className="w-5 h-5" />
+      {error && (
+        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-red-400">{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Equipment Info Card */}
+      <Card className="bg-zinc-800 border-zinc-700">
+        <CardHeader>
+          <div className="flex items-center gap-4">
+            <div className="relative group">
+              <Avatar className="h-20 w-20">
+                <AvatarImage
+                  src={equipment.equipmentPic}
+                  alt={equipment.type}
+                />
+                <AvatarFallback className="bg-zinc-700 text-white">
+                  {equipment.type?.[0]?.toUpperCase() || "?"}
+                </AvatarFallback>
+              </Avatar>
+              <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                <Camera className="w-6 h-6 text-white" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  className="hidden"
+                />
+              </label>
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-xl font-semibold text-white">
+                  {equipment.type}
+                </h3>
+              </div>
+              <div className="flex items-center gap-2 text-zinc-400">
+                <User className="h-4 w-4" />
+                <span>{clientName}</span>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Equipment Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {equipment.brand && (
+              <div className="flex items-center gap-2 text-zinc-400">
+                <Package className="h-4 w-4 shrink-0" />
+                <span>{equipment.brand}</span>
+              </div>
             )}
-            <span className="sr-only">Apagar Equipamento</span>
-          </button>
-        </div>
-      </div>
+            {equipment.model && (
+              <div className="flex items-center gap-2 text-zinc-400">
+                <Tag className="h-4 w-4 shrink-0" />
+                <span>{equipment.model}</span>
+              </div>
+            )}
+            {equipment.serialNumber && (
+              <div className="flex items-center gap-2 text-zinc-400">
+                <Barcode className="h-4 w-4 shrink-0" />
+                <span>{equipment.serialNumber}</span>
+              </div>
+            )}
+            {equipment.type && (
+              <div className="flex items-center gap-2 text-zinc-400">
+                <Shapes className="h-4 w-4 shrink-0" />
+                <span>{equipment.type}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-2 mt-6">
+            <Button
+              onClick={() => navigate(`/app/edit-equipment/${equipmentId}`)}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Edit2 className="w-4 h-4 mr-2" />
+              Editar Equipamento
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => setDeleteDialogOpen(true)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Excluir Equipamento
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="bg-zinc-800 border-zinc-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Tem certeza que deseja excluir o equipamento{" "}
+              <span className="font-semibold text-white">
+                {equipment.type} - {equipment.model}
+              </span>
+              ? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              className="border-zinc-700 text-white hover:bg-zinc-700"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteEquipment}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

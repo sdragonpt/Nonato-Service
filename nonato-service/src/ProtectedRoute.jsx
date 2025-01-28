@@ -1,37 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import React, { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "./hooks/useAuth";
 
 const ProtectedRoute = ({ children }) => {
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const { user, loading } = useAuth();
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-  const auth = getAuth();
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (user) => {
-        if (user) {
-          setUser(user);
-        } else {
-          setTimeout(() => {
-            navigate("/login", { replace: true });
-          }, 0);
-        }
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Auth error:", error);
-        setError(error);
-        setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [auth, navigate]);
 
   if (loading) {
     return (
@@ -51,7 +26,15 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  return user ? children : <Navigate to="/login" replace />;
+  // Se não houver usuário, redireciona para o login com um pequeno delay
+  if (!user) {
+    setTimeout(() => {
+      navigate("/login", { replace: true });
+    }, 0);
+    return null;
+  }
+
+  return children;
 };
 
 export default ProtectedRoute;

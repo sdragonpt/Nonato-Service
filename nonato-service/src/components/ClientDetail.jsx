@@ -16,7 +16,7 @@ import {
   ArrowLeft,
   Camera,
   Trash2,
-  Edit,
+  Edit2,
   Plus,
   Wrench,
   Map,
@@ -24,9 +24,24 @@ import {
   Phone,
   FileText,
   AlertTriangle,
+  Building2,
+  User,
 } from "lucide-react";
+
+// UI Components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const ClientDetail = () => {
   const { clientId } = useParams();
@@ -39,7 +54,8 @@ const ClientDetail = () => {
   const [photoChanged, setPhotoChanged] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [photoLoading, setPhotoLoading] = useState(false);
 
   useEffect(() => {
@@ -96,8 +112,7 @@ const ClientDetail = () => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        // 2MB limit
-        alert("A imagem deve ter menos de 2MB");
+        setError("A imagem deve ter menos de 2MB");
         return;
       }
 
@@ -113,7 +128,7 @@ const ClientDetail = () => {
 
   const handleSavePhoto = async () => {
     if (!imageFile) {
-      alert("Por favor, selecione uma imagem para salvar.");
+      setError("Por favor, selecione uma imagem para salvar.");
       return;
     }
 
@@ -129,50 +144,17 @@ const ClientDetail = () => {
         profilePic: newPhotoURL,
       }));
       setPhotoChanged(false);
-      alert("Foto de perfil atualizada com sucesso!");
     } catch (err) {
       console.error("Erro ao salvar foto:", err);
-      alert("Erro ao salvar foto. Por favor, tente novamente.");
-    } finally {
-      setPhotoLoading(false);
-    }
-  };
-
-  const handleRemovePhoto = async () => {
-    if (!window.confirm("Tem certeza que deseja remover a foto?")) {
-      return;
-    }
-
-    try {
-      setPhotoLoading(true);
-      const clientDocRef = doc(db, "clientes", clientId);
-      await updateDoc(clientDocRef, {
-        profilePic: "",
-      });
-
-      setNewPhotoURL("/nonato.png");
-      setImageFile(null);
-      setPhotoChanged(false);
-      alert("Foto de perfil removida com sucesso!");
-    } catch (err) {
-      console.error("Erro ao remover foto:", err);
-      alert("Erro ao remover foto. Por favor, tente novamente.");
+      setError("Erro ao salvar foto. Por favor, tente novamente.");
     } finally {
       setPhotoLoading(false);
     }
   };
 
   const handleDeleteClient = async () => {
-    if (
-      !window.confirm(
-        "Tem certeza que deseja apagar este cliente e todos os equipamentos associados? Esta ação não pode ser desfeita."
-      )
-    ) {
-      return;
-    }
-
     try {
-      setDeleteLoading(true);
+      setIsSubmitting(true);
 
       // Delete orders first
       const servicesDeletePromises = services.map((service) =>
@@ -192,37 +174,28 @@ const ClientDetail = () => {
       navigate("/app/manage-clients");
     } catch (err) {
       console.error("Erro ao apagar cliente:", err);
-      alert("Ocorreu um erro ao tentar apagar o cliente. Tente novamente.");
+      setError("Erro ao apagar cliente. Por favor, tente novamente.");
     } finally {
-      setDeleteLoading(false);
+      setIsSubmitting(false);
+      setDeleteDialogOpen(false);
     }
+  };
+
+  const getInitials = (name) => {
+    return (
+      name
+        ?.split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2) || "??"
+    );
   };
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          <div className="flex items-center">
-            <AlertTriangle className="h-4 w-4 mr-2" />
-            <p className="font-bold">Erro</p>
-          </div>
-          <p>{error}</p>
-        </div>
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Voltar
-        </button>
       </div>
     );
   }
@@ -230,113 +203,163 @@ const ClientDetail = () => {
   if (!client) return null;
 
   return (
-    <div className="container max-w-4xl mx-auto px-4 py-4 md:py-8">
-      <nav className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div className="hidden md:block">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center text-gray-400 hover:text-blue-500 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Voltar
-          </button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Detalhes do Cliente</h1>
+          <p className="text-sm text-zinc-400">
+            Visualize e gerencie as informações do cliente
+          </p>
         </div>
-        <div className="md:hidden fixed top-4 right-4 z-50">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center justify-center bg-gray-700 text-white p-3 rounded-full hover:bg-gray-600 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="flex w-full md:w-auto gap-2">
-          <Link
-            to={`/app/add-order?clientId=${client.id}`}
-            className="flex-1 md:flex-none bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center justify-center hover:bg-gray-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Nova Ordem
-          </Link>
-          <button
-            onClick={() => navigate(`/app/edit-client/${clientId}`)}
-            className="flex-1 md:flex-none bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center justify-center hover:bg-blue-600"
-          >
-            <Edit className="w-4 h-4 mr-2" />
-            Editar
-          </button>
-        </div>
-      </nav>
-
-      <div className="bg-zinc-800 rounded-lg p-6 mb-6">
-        <div className="flex flex-col md:flex-row items-center text-center md:text-left gap-4">
-          <div className="relative group">
-            <img
-              src={newPhotoURL || "/nonato.png"}
-              alt={client.name}
-              className="w-24 h-24 md:w-20 md:h-20 rounded-full object-cover border-2 border-gray-700"
-            />
-            <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-              <Camera className="w-6 h-6 text-white" />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoChange}
-                className="hidden"
-              />
-            </label>
-          </div>
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold text-white">{client.name}</h2>
-            <p className="text-gray-400">{client.nif || "NIF não definido"}</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-          <div className="flex items-center text-gray-300">
-            <Map className="w-5 h-5 mr-3 shrink-0 text-gray-400" />
-            <span>{client.address || "Endereço não definido"}</span>
-          </div>
-          <div className="flex items-center text-gray-300">
-            <Mail className="w-5 h-5 mr-3 shrink-0 text-gray-400" />
-            <span>{client.postalCode || "Código postal não definido"}</span>
-          </div>
-          <div className="flex items-center text-gray-300">
-            <Phone className="w-5 h-5 mr-3 shrink-0 text-gray-400" />
-            <span>{client.phone || "Telefone não definido"}</span>
-          </div>
-          <div className="flex items-center text-gray-300">
-            <FileText className="w-5 h-5 mr-3 shrink-0 text-gray-400" />
-            <span>{client.nif || "NIF não definido"}</span>
-          </div>
-        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => navigate(-1)}
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+        >
+          <ArrowLeft className="h-4 w-4 text-white" />
+        </Button>
       </div>
 
-      <div className="bg-zinc-800 rounded-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-white">Equipamentos</h3>
-          <span className="text-sm text-gray-400">
-            {equipments.length} equipamento(s)
-          </span>
-        </div>
-        <div className="space-y-4">
+      {error && (
+        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-red-400">{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Client Info Card */}
+      <Card className="bg-zinc-800 border-zinc-700">
+        <CardHeader>
+          <div className="flex items-center gap-4">
+            <div className="relative group">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={client.profilePic} alt={client.name} />
+                <AvatarFallback className="bg-zinc-700 text-white">
+                  {getInitials(client.name)}
+                </AvatarFallback>
+              </Avatar>
+              <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                <Camera className="w-6 h-6 text-white" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  className="hidden"
+                />
+              </label>
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-xl font-semibold text-white">
+                  {client.name}
+                </h3>
+                <Badge
+                  className={
+                    client.type === "company"
+                      ? "bg-purple-500/10 text-purple-500"
+                      : "bg-blue-500/10 text-blue-500"
+                  }
+                >
+                  {client.type === "company" ? "Empresa" : "Pessoa"}
+                </Badge>
+              </div>
+              {client.company && (
+                <p className="text-zinc-400 text-sm">{client.company}</p>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Contact Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {client.phone && (
+              <div className="flex items-center gap-2 text-zinc-400">
+                <Phone className="h-4 w-4 shrink-0" />
+                <span>{client.phone}</span>
+              </div>
+            )}
+            {client.address && (
+              <div className="flex items-center gap-2 text-zinc-400">
+                <Map className="h-4 w-4 shrink-0" />
+                <span>{client.address}</span>
+              </div>
+            )}
+            {client.postalCode && (
+              <div className="flex items-center gap-2 text-zinc-400">
+                <Mail className="h-4 w-4 shrink-0" />
+                <span>{client.postalCode}</span>
+              </div>
+            )}
+            {client.nif && (
+              <div className="flex items-center gap-2 text-zinc-400">
+                <FileText className="h-4 w-4 shrink-0" />
+                <span>{client.nif}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-2 mt-6">
+            <Button
+              onClick={() => navigate(`/app/edit-client/${clientId}`)}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Edit2 className="w-4 h-4 mr-2" />
+              Editar Cliente
+            </Button>
+            <Button
+              onClick={() => navigate(`/app/add-order?clientId=${clientId}`)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Nova Ordem
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => setDeleteDialogOpen(true)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Excluir Cliente
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Equipment Card */}
+      <Card className="bg-zinc-800 border-zinc-700">
+        <CardHeader className="flex-row justify-between items-center">
+          <CardTitle className="text-lg text-white">Equipamentos</CardTitle>
+          <Button
+            onClick={() => navigate(`/app/client/${clientId}/add-equipment`)}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Equipamento
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
           {equipments.length > 0 ? (
             equipments.map((equipment) => (
               <div
                 key={equipment.id}
                 onClick={() => navigate(`/app/equipment/${equipment.id}`)}
-                className="flex items-center p-4 bg-zinc-700 hover:bg-zinc-700/50 rounded-lg cursor-pointer transition-colors"
+                className="flex items-center p-4 bg-zinc-700/50 hover:bg-zinc-700 rounded-lg cursor-pointer transition-colors"
               >
-                <img
-                  src={equipment.equipmentPic || "/nonato.png"}
-                  alt={equipment.model}
-                  className="w-12 h-12 rounded-full mr-4 object-cover"
-                  onError={(e) => {
-                    e.target.src = "/nonato.png";
-                    e.target.onerror = null;
-                  }}
-                />
+                <Avatar className="h-12 w-12 mr-4">
+                  <AvatarImage
+                    src={equipment.equipmentPic}
+                    alt={equipment.model}
+                  />
+                  <AvatarFallback className="bg-zinc-600">
+                    {equipment.type?.[0]?.toUpperCase() || "?"}
+                  </AvatarFallback>
+                </Avatar>
                 <div>
                   <h4 className="font-medium text-white">{equipment.type}</h4>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-zinc-400">
                     {[equipment.brand, equipment.model, equipment.serialNumber]
                       .filter(Boolean)
                       .join(" - ")}
@@ -345,46 +368,49 @@ const ClientDetail = () => {
               </div>
             ))
           ) : (
-            <div className="text-center py-8 text-gray-400">
+            <div className="text-center py-8 text-zinc-400">
               Nenhum equipamento cadastrado
             </div>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="fixed bottom-6 right-6 flex flex-col items-end gap-4 z-50">
-        <div className="flex gap-2">
-          <button
-            onClick={handleDeleteClient}
-            disabled={deleteLoading}
-            className="bg-red-500 p-3 md:p-3 rounded-full shadow-lg hover:bg-red-600 hover:scale-105 transition-all text-white"
-            title="Apagar Cliente"
-          >
-            {deleteLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Trash2 className="w-5 h-5" />
-            )}
-            <span className="sr-only">Apagar Cliente</span>
-          </button>
-          <button
-            onClick={() => navigate(`/app/manage-services/${clientId}`)}
-            className="bg-gray-600 p-3 md:p-3 rounded-full shadow-lg hover:bg-gray-700 hover:scale-105 transition-all text-white"
-            title="Serviços"
-          >
-            <Wrench className="w-5 h-5" />
-            <span className="sr-only">Serviços</span>
-          </button>
-        </div>
-        <button
-          onClick={() => navigate(`/app/client/${clientId}/add-equipment`)}
-          className="bg-green-500 p-4 md:p-4 rounded-full shadow-lg hover:bg-green-600 hover:scale-105 transition-all text-white"
-          title="Adicionar Equipamento"
-        >
-          <Plus className="w-6 h-6" />
-          <span className="sr-only">Adicionar Equipamento</span>
-        </button>
-      </div>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="bg-zinc-800 border-zinc-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Tem certeza que deseja excluir o cliente{" "}
+              <span className="font-semibold text-white">{client?.name}</span>?
+              Esta ação também irá excluir todos os equipamentos associados e
+              não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteClient}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

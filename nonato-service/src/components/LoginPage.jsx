@@ -11,12 +11,18 @@ import {
   Mail,
   Lock,
   Loader2,
-  AlertCircle,
+  AlertTriangle,
   LogIn,
   Eye,
   EyeOff,
 } from "lucide-react";
 import { motion } from "framer-motion";
+
+// UI Components
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const auth = getAuth(firebaseApp);
 
@@ -42,14 +48,28 @@ const LoginPage = () => {
       setIsLoading(true);
       setError("");
       await signInWithEmailAndPassword(auth, formData.email, formData.password);
-
-      // Navega para o app
       navigate("/app");
-
-      // Força um refresh após a navegação
-      window.location.reload();
     } catch (err) {
-      setError("Falha no login. Verifique suas credenciais.");
+      console.error("Erro de login:", err);
+      switch (err.code) {
+        case "auth/user-not-found":
+          setError("Usuário não encontrado. Verifique o email digitado.");
+          break;
+        case "auth/wrong-password":
+          setError("Senha incorreta. Tente novamente.");
+          break;
+        case "auth/invalid-email":
+          setError("Email inválido. Verifique o formato do email.");
+          break;
+        case "auth/too-many-requests":
+          setError("Muitas tentativas de login. Tente novamente mais tarde.");
+          break;
+        case "auth/user-disabled":
+          setError("Usuário desativado. Entre em contato com o suporte.");
+          break;
+        default:
+          setError("Falha no login. Verifique suas credenciais.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -57,22 +77,31 @@ const LoginPage = () => {
 
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
-
     try {
       setIsGoogleLoading(true);
       setError("");
-      const result = await signInWithPopup(auth, provider);
+      await signInWithPopup(auth, provider);
       navigate("/app");
     } catch (err) {
-      setError("Falha no login com Google.");
       console.error("Erro no login Google:", err);
+      switch (err.code) {
+        case "auth/popup-closed-by-user":
+          setError("Login cancelado. A janela de login foi fechada.");
+          break;
+        case "auth/cancelled-popup-request":
+          setError("O login foi cancelado. Tente novamente.");
+          break;
+        case "auth/account-exists-with-different-credential":
+          setError(
+            "Já existe uma conta com este email, mas foi usada uma credencial diferente. Tente outro método de login."
+          );
+          break;
+        default:
+          setError("Falha no login com Google. Tente novamente.");
+      }
     } finally {
       setIsGoogleLoading(false);
     }
-  };
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
   };
 
   return (
@@ -86,116 +115,127 @@ const LoginPage = () => {
         {/* Logo/Nome */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white">Nonato Service</h1>
-          <p className="text-gray-400 mt-2">Sistema de Gestão</p>
+          <p className="text-zinc-400 mt-2">Sistema de Gestão</p>
         </div>
 
         {/* Card do Login */}
-        <div className="bg-zinc-800 rounded-xl shadow-xl p-8">
-          <h2 className="text-2xl font-bold text-white text-center mb-6">
-            Login
-          </h2>
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-2xl text-center text-white">
+              Login
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {error && (
+              <Alert
+                variant="destructive"
+                className="mb-6 border-red-500 bg-red-500/10"
+              >
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-red-400">
+                  {error}
+                </AlertDescription>
+              </Alert>
+            )}
 
-          {error && (
-            <div className="mb-6 p-3 bg-red-500/10 border border-red-500 rounded-lg flex items-center text-sm">
-              <AlertCircle className="w-4 h-4 text-red-500 mr-2" />
-              <p className="text-red-500">{error}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Email
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 bg-zinc-700 border border-zinc-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
-                  placeholder="Seu email"
-                  required
-                />
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <Input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                    placeholder="Seu email"
+                    required
+                  />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Senha
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-10 py-3 bg-zinc-700 border border-zinc-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
-                  placeholder="Sua senha"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={togglePasswordVisibility}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 focus:outline-none"
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  Senha
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="pl-10 pr-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                    placeholder="Sua senha"
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 text-zinc-400 hover:text-white"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-blue-600 hover:bg-blue-700"
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Entrando...
+                    </>
                   ) : (
-                    <Eye className="w-5 h-5" />
+                    <>
+                      <LogIn className="w-4 h-4 mr-2" />
+                      Entrar
+                    </>
                   )}
-                </button>
+                </Button>
+
+                <Button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={isGoogleLoading}
+                  variant="destructive"
+                  className="w-full"
+                >
+                  {isGoogleLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Conectando...
+                    </>
+                  ) : (
+                    <>
+                      <img
+                        src="/google.svg"
+                        alt="Google"
+                        className="w-4 h-4 mr-2"
+                      />
+                      Entrar com Google
+                    </>
+                  )}
+                </Button>
               </div>
-            </div>
+            </form>
+          </CardContent>
+        </Card>
 
-            <div className="space-y-4">
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center disabled:opacity-50"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Entrando...
-                  </>
-                ) : (
-                  <>
-                    <LogIn className="w-5 h-5 mr-2" />
-                    Entrar
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleGoogleLogin}
-                disabled={isGoogleLoading}
-                className="w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center disabled:opacity-50"
-              >
-                {isGoogleLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Conectando...
-                  </>
-                ) : (
-                  <>
-                    <img
-                      src="/google.svg"
-                      alt="Google"
-                      className="w-5 h-5 mr-2"
-                    />
-                    Entrar com Google
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <p className="text-center text-gray-500 text-sm mt-8">
+        <p className="text-center text-zinc-500 text-sm mt-8">
           © {new Date().getFullYear()} Nonato Service. Todos os direitos
           reservados.
         </p>
