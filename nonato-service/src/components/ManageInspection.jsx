@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   collection,
   getDocs,
@@ -13,6 +13,8 @@ import { useNavigate } from "react-router-dom";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { FileOpener } from "@capacitor-community/file-opener";
 import generateInspectionPDF from "./generateInspectionPDF";
+
+// Lucide Icons
 import {
   Search,
   Plus,
@@ -25,17 +27,40 @@ import {
   Package,
   CheckSquare,
   FileText,
+  RefreshCw,
+  ChartBarIcon,
+  ListTodo,
+  Eye,
+  Download,
+  GraduationCap,
 } from "lucide-react";
+
+// UI Components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const InspectionCard = ({
   inspection,
@@ -43,26 +68,39 @@ const InspectionCard = ({
   onEdit,
   onGeneratePDF,
   isGeneratingPDF,
-}) => (
-  <Card
-    onClick={() => navigate(`/app/inspection-detail/${inspection.id}`)}
-    className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
-  >
-    <CardContent className="p-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-full bg-green-600 flex items-center justify-center">
-            <ClipboardCheck className="w-6 h-6 text-white" />
+}) => {
+  const navigate = useNavigate();
+
+  return (
+    <Card className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors">
+      <CardContent
+        className="p-4 cursor-pointer"
+        onClick={(e) => {
+          if (!e.defaultPrevented) {
+            navigate(`/app/inspection-detail/${inspection.id}`);
+          }
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="h-10 w-10 rounded-full bg-green-600 dark:bg-green-700 flex items-center justify-center transform transition-all duration-200 hover:scale-105 cursor-help"
+            title={
+              inspection.type === "training"
+                ? "Training Inspection"
+                : "Standard Inspection"
+            }
+          >
+            {inspection.type === "training" ? (
+              <GraduationCap className="w-5 h-5 text-white" />
+            ) : (
+              <ClipboardCheck className="w-5 h-5 text-white" />
+            )}
           </div>
-          <div className="min-w-0">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-lg text-white truncate">
-                {inspection.clientName}
-              </h3>
-              <span className="text-xs text-zinc-400 ml-2">
-                {inspection.createdAt?.toDate().toLocaleDateString()}
-              </span>
-            </div>
+
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-lg text-white truncate">
+              {inspection.clientName}
+            </h3>
             <div className="flex flex-col text-sm text-zinc-400">
               <div className="flex items-center">
                 <Package className="w-4 h-4 mr-1" />
@@ -73,130 +111,137 @@ const InspectionCard = ({
                 <span className="truncate">{inspection.checklistType}</span>
               </div>
             </div>
+            <p className="text-zinc-400 text-sm mt-1">
+              {inspection.createdAt?.toDate().toLocaleDateString()}
+            </p>
           </div>
-        </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full hover:bg-zinc-800 text-white hover:text-white/50"
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full hover:bg-zinc-700 text-white"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="bg-zinc-800 border-zinc-700"
             >
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="bg-zinc-800 border-zinc-700"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <DropdownMenuItem
-              onClick={onGeneratePDF}
-              disabled={isGeneratingPDF}
-              className="text-white hover:bg-zinc-700"
-            >
-              {isGeneratingPDF ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Gerando...
-                </>
-              ) : (
-                <>
-                  <FileText className="w-4 h-4 mr-2" />
-                  Gerar PDF
-                </>
-              )}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={onEdit}
-              className="text-white hover:bg-zinc-700"
-            >
-              <Edit2 className="w-4 h-4 mr-2" />
-              Editar
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={onDelete}
-              className="text-red-400 hover:bg-zinc-700 focus:text-red-400"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Excluir
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </CardContent>
-  </Card>
-);
+              <DropdownMenuItem
+                onClick={() => onGeneratePDF(inspection)}
+                disabled={isGeneratingPDF}
+                className="text-white hover:bg-zinc-700 cursor-pointer"
+              >
+                {isGeneratingPDF ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Gerando...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Gerar PDF
+                  </>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onEdit(inspection.id)}
+                className="text-white hover:bg-zinc-700 cursor-pointer"
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onDelete(inspection)}
+                className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const ManageInspection = () => {
+  const navigate = useNavigate();
   const [inspections, setInspections] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  const navigate = useNavigate();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [inspectionToDelete, setInspectionToDelete] = useState(null);
 
-  useEffect(() => {
-    const fetchInspections = async () => {
-      try {
-        setIsLoading(true);
-        const q = query(
-          collection(db, "inspections"),
-          orderBy("createdAt", "desc")
-        );
-        const snapshot = await getDocs(q);
+  const fetchInspections = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const q = query(
+        collection(db, "inspections"),
+        orderBy("createdAt", "desc")
+      );
+      const snapshot = await getDocs(q);
 
-        const inspectionPromises = snapshot.docs.map(async (docSnapshot) => {
-          const data = { id: docSnapshot.id, ...docSnapshot.data() };
-          const [clientDoc, equipmentDoc, checklistDoc] = await Promise.all([
-            getDoc(doc(db, "clientes", data.clientId)),
-            getDoc(doc(db, "equipamentos", data.equipmentId)),
-            getDoc(doc(db, "checklist_machines", data.checklistTypeId)),
-          ]);
+      const inspectionPromises = snapshot.docs.map(async (docSnapshot) => {
+        const data = { id: docSnapshot.id, ...docSnapshot.data() };
+        const [clientDoc, equipmentDoc, checklistDoc] = await Promise.all([
+          getDoc(doc(db, "clientes", data.clientId)),
+          getDoc(doc(db, "equipamentos", data.equipmentId)),
+          getDoc(doc(db, "checklist_machines", data.checklistTypeId)),
+        ]);
 
-          return {
-            ...data,
-            clientName: clientDoc.exists()
-              ? clientDoc.data().name
-              : "Cliente não encontrado",
-            equipmentType: equipmentDoc.exists()
-              ? equipmentDoc.data().type
-              : "Equipamento não encontrado",
-            checklistType: checklistDoc.exists()
-              ? checklistDoc.data().type
-              : "Tipo não encontrado",
-          };
-        });
+        return {
+          ...data,
+          clientName: clientDoc.exists()
+            ? clientDoc.data().name
+            : "Cliente não encontrado",
+          equipmentType: equipmentDoc.exists()
+            ? equipmentDoc.data().type
+            : "Equipamento não encontrado",
+          checklistType: checklistDoc.exists()
+            ? checklistDoc.data().type
+            : "Tipo não encontrado",
+        };
+      });
 
-        const inspectionsData = await Promise.all(inspectionPromises);
-        setInspections(inspectionsData);
-        setError(null);
-      } catch (err) {
-        console.error("Erro ao carregar inspeções:", err);
-        setError("Erro ao carregar inspeções. Por favor, tente novamente.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchInspections();
+      const inspectionsData = await Promise.all(inspectionPromises);
+      setInspections(inspectionsData);
+      setError(null);
+    } catch (err) {
+      console.error("Erro ao carregar inspeções:", err);
+      setError("Erro ao carregar inspeções. Por favor, tente novamente.");
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const handleDelete = async (inspectionId, e) => {
-    e.stopPropagation();
-    if (!window.confirm("Tem certeza que deseja deletar esta inspeção?"))
-      return;
+  useEffect(() => {
+    fetchInspections();
+  }, [fetchInspections]);
 
+  const handleDelete = async (inspectionId) => {
     try {
       await deleteDoc(doc(db, "inspections", inspectionId));
       setInspections((prev) =>
         prev.filter((inspection) => inspection.id !== inspectionId)
       );
+      setDeleteDialogOpen(false);
+      setInspectionToDelete(null);
     } catch (error) {
       console.error("Erro ao deletar inspeção:", error);
       setError("Erro ao deletar inspeção. Por favor, tente novamente.");
     }
+  };
+
+  const confirmDelete = (inspection) => {
+    setInspectionToDelete(inspection);
+    setDeleteDialogOpen(true);
   };
 
   const handleGeneratePDF = async (inspection) => {
@@ -277,30 +322,104 @@ const ManageInspection = () => {
       inspection.checklistType.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const stats = {
+    total: inspections.length,
+    thisMonth: inspections.filter((inspection) => {
+      const now = new Date();
+      const inspectionDate = inspection.createdAt.toDate();
+      return (
+        inspectionDate.getMonth() === now.getMonth() &&
+        inspectionDate.getFullYear() === now.getFullYear()
+      );
+    }).length,
+    thisWeek: inspections.filter((inspection) => {
+      const now = new Date();
+      const inspectionDate = inspection.createdAt.toDate();
+      const diffTime = Math.abs(now - inspectionDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays <= 7;
+    }).length,
+  };
+
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
   }
 
   return (
-    <div className="container max-w-4xl mx-auto p-4">
-      <Card className="mb-8 bg-zinc-800 border-zinc-700">
-        <CardHeader>
-          <CardTitle className="text-2xl text-center text-white">
-            Inspeções
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="relative">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-white">
+            Gerenciar Inspeções
+          </h1>
+          <p className="text-sm sm:text-base text-zinc-400">
+            Gerencie todas as suas inspeções em um só lugar
+          </p>
+        </div>
+        <Button
+          onClick={() => navigate("/app/add-inspection")}
+          className="hidden sm:flex bg-green-600 hover:bg-green-700"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Nova Inspeção
+        </Button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardContent className="flex items-center justify-between p-4 sm:p-6">
+            <div>
+              <p className="text-sm font-medium text-zinc-400">Total</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+                {stats.total}
+              </h3>
+            </div>
+            <ChartBarIcon className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardContent className="flex items-center justify-between p-4 sm:p-6">
+            <div>
+              <p className="text-sm font-medium text-zinc-400">Este Mês</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+                {stats.thisMonth}
+              </h3>
+            </div>
+            <ListTodo className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardContent className="flex items-center justify-between p-4 sm:p-6">
+            <div>
+              <p className="text-sm font-medium text-zinc-400">Esta Semana</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+                {stats.thisWeek}
+              </h3>
+            </div>
+            <Eye className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters Card */}
+      <Card className="bg-zinc-800 border-zinc-700">
+        <CardContent className="space-y-4 p-4 sm:p-6">
+          {/* Search */}
+          <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
             <Input
               placeholder="Buscar por cliente, equipamento ou tipo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+              className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
             />
           </div>
 
@@ -316,40 +435,47 @@ const ManageInspection = () => {
             </Alert>
           )}
 
-          <div className="flex justify-between items-center">
-            <span className="text-zinc-400 text-sm">
-              {filteredInspections.length} inspeção(ões)
+          <div className="flex justify-end">
+            <span className="text-sm text-zinc-400">
+              {filteredInspections.length} inspeção(ões) encontrada(s)
             </span>
           </div>
         </CardContent>
       </Card>
 
-      <div className="space-y-4 mb-24">
+      {/* Quick Actions - Desktop Only */}
+      <div className="hidden sm:flex gap-2">
+        <Button
+          variant="outline"
+          onClick={fetchInspections}
+          className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
+        >
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Atualizar Lista
+        </Button>
+      </div>
+
+      {/* Inspections Grid */}
+      <div className="grid grid-cols-1 gap-4">
         {filteredInspections.length > 0 ? (
           filteredInspections.map((inspection) => (
             <InspectionCard
               key={inspection.id}
               inspection={inspection}
               isGeneratingPDF={isGeneratingPDF}
-              onDelete={(e) => handleDelete(inspection.id, e)}
-              onEdit={(e) => {
-                e.stopPropagation();
-                navigate(`/app/edit-inspection/${inspection.id}`);
-              }}
-              onGeneratePDF={(e) => {
-                e.stopPropagation();
-                handleGeneratePDF(inspection);
-              }}
+              onDelete={() => confirmDelete(inspection)}
+              onEdit={(id) => navigate(`/app/edit-inspection/${id}`)}
+              onGeneratePDF={handleGeneratePDF}
             />
           ))
         ) : (
-          <Card className="py-12 bg-zinc-800 border-zinc-700">
-            <CardContent className="text-center">
-              <Search className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
+          <Card className="bg-zinc-800 border-zinc-700">
+            <CardContent className="p-8 sm:p-12 text-center">
+              <Search className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
               <p className="text-lg font-medium mb-2 text-white">
                 Nenhuma inspeção encontrada
               </p>
-              <p className="text-zinc-400">
+              <p className="text-sm sm:text-base text-zinc-400">
                 Tente ajustar sua busca ou adicione uma nova inspeção
               </p>
             </CardContent>
@@ -357,14 +483,53 @@ const ManageInspection = () => {
         )}
       </div>
 
-      <div className="fixed bottom-6 right-6">
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="bg-zinc-800 border-zinc-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Tem certeza que deseja excluir esta inspeção de{" "}
+              <span className="font-semibold text-white">
+                {inspectionToDelete?.clientName}
+              </span>
+              ? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => handleDelete(inspectionToDelete?.id)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* FAB Menu for Mobile */}
+      <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden">
         <Button
-          size="lg"
+          onClick={fetchInspections}
+          size="icon"
+          className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
+        >
+          <RefreshCw className="h-5 w-5" />
+        </Button>
+        <Button
           onClick={() => navigate("/app/add-inspection")}
+          size="icon"
           className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
         >
-          <Plus className="w-5 h-5 md:mr-2" />
-          <span className="hidden md:inline">Nova Inspeção</span>
+          <Plus className="h-5 w-5" />
         </Button>
       </div>
     </div>

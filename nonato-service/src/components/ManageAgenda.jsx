@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   collection,
   getDocs,
@@ -8,10 +9,9 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
-import { useNavigate } from "react-router-dom";
 import {
-  Calendar,
-  PlusCircle,
+  Search,
+  Plus,
   Loader2,
   AlertTriangle,
   ChevronLeft,
@@ -25,35 +25,166 @@ import {
   CalendarIcon,
   Filter,
   MoreVertical,
+  Calendar,
+  RefreshCw,
+  ArrowUpDown,
+  Download,
+  ClipboardList,
+  AlertCircle,
 } from "lucide-react";
 
+// UI Components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const AppointmentCard = ({
+  appointment,
+  onDelete,
+  onEdit,
+  onToggleComplete,
+}) => {
+  const statusColors = {
+    agendado: "text-blue-400 bg-blue-500/10",
+    confirmado: "text-yellow-400 bg-yellow-500/10",
+    cancelado: "text-red-400 bg-red-500/10",
+    terminado: "text-green-400 bg-green-500/10",
+  };
+
+  const isToday = appointment.data === new Date().toISOString().split("T")[0];
+  const isUrgent = appointment.prioridade === "alta";
+
+  return (
+    <Card className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className={`h-10 w-10 rounded-full ${
+                isUrgent ? "bg-red-600" : "bg-green-600"
+              } flex items-center justify-center`}
+            >
+              <Clock className="w-5 h-5 text-white" />
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-lg text-white truncate">
+                {appointment.cliente?.name || "Cliente não encontrado"}
+              </h3>
+              <p className="text-zinc-400 text-sm">{appointment.hora}</p>
+              <div className="flex gap-2 mt-1">
+                <Badge className={statusColors[appointment.status]}>
+                  {appointment.status}
+                </Badge>
+                {isToday && (
+                  <Badge
+                    variant="outline"
+                    className="bg-green-500/10 text-green-400 border-green-500/30"
+                  >
+                    Hoje
+                  </Badge>
+                )}
+                {isUrgent && (
+                  <Badge
+                    variant="outline"
+                    className="bg-red-500/10 text-red-400 border-red-500/30"
+                  >
+                    Urgente
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full hover:bg-zinc-700 text-white"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="bg-zinc-800 border-zinc-700"
+            >
+              <DropdownMenuItem
+                onClick={() => onEdit(appointment.id)}
+                className="text-white hover:bg-zinc-700 cursor-pointer"
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  onToggleComplete(appointment.id, appointment.concluido)
+                }
+                className="text-white hover:bg-zinc-700 cursor-pointer"
+              >
+                {appointment.concluido ? (
+                  <>
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Reabrir
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Concluir
+                  </>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
+                onClick={() => onDelete(appointment)}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const ManageAgenda = () => {
   const navigate = useNavigate();
+  const [appointments, setAppointments] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [agendamentos, setAgendamentos] = useState([]);
-  const [viewMode, setViewMode] = useState("calendar");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [stats, setStats] = useState({
-    total: 0,
-    hoje: 0,
-    urgentes: 0,
-    concluidos: 0,
-  });
+  const [viewMode, setViewMode] = useState("calendar");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [appointmentToDelete, setAppointmentToDelete] = useState(null);
 
   const months = [
     "Janeiro",
@@ -70,165 +201,84 @@ const ManageAgenda = () => {
     "Dezembro",
   ];
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const agendamentosRef = collection(db, "agendamentos");
-        const querySnapshot = await getDocs(agendamentosRef);
-        const agendamentosData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        const agendamentosWithDetails = await Promise.all(
-          agendamentosData.map(async (agendamento) => {
-            if (agendamento.clientId) {
-              const clientDoc = await getDoc(
-                doc(db, "clientes", agendamento.clientId)
-              );
-              const equipmentDoc = agendamento.equipmentId
-                ? await getDoc(doc(db, "equipamentos", agendamento.equipmentId))
-                : null;
-
-              return {
-                ...agendamento,
-                cliente: clientDoc.exists() ? clientDoc.data() : null,
-                equipment: equipmentDoc?.exists() ? equipmentDoc.data() : null,
-              };
-            }
-            return agendamento;
-          })
-        );
-
-        const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
-        const lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
-        const firstDayStr = firstDayOfMonth.toISOString().split("T")[0];
-        const lastDayStr = lastDayOfMonth.toISOString().split("T")[0];
-
-        let filteredAgendamentos = agendamentosWithDetails.filter(
-          (ag) => ag.data >= firstDayStr && ag.data <= lastDayStr
-        );
-
-        if (filterStatus !== "all") {
-          filteredAgendamentos = filteredAgendamentos.filter(
-            (ag) => ag.status === filterStatus
-          );
-        }
-
-        if (searchTerm) {
-          filteredAgendamentos = filteredAgendamentos.filter(
-            (ag) =>
-              ag.cliente?.name
-                ?.toLowerCase()
-                .includes(searchTerm.toLowerCase()) ||
-              ag.hora?.toLowerCase().includes(searchTerm.toLowerCase())
-          );
-        }
-
-        setStats({
-          total: filteredAgendamentos.length,
-          hoje: filteredAgendamentos.filter(
-            (ag) => ag.data === new Date().toISOString().split("T")[0]
-          ).length,
-          urgentes: filteredAgendamentos.filter(
-            (ag) => ag.prioridade === "alta"
-          ).length,
-          concluidos: filteredAgendamentos.filter((ag) => ag.concluido).length,
-        });
-
-        setAgendamentos(filteredAgendamentos);
-      } catch (err) {
-        console.error("Erro ao carregar dados:", err);
-        setError("Erro ao carregar dados. Por favor, tente novamente.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [selectedMonth, selectedYear, filterStatus, searchTerm]);
-
-  const handleDelete = async (agendamentoId, e) => {
-    if (e) e.stopPropagation();
-    if (!window.confirm("Tem certeza que deseja excluir este agendamento?")) {
-      return;
-    }
-
+  const fetchAppointments = useCallback(async () => {
     try {
-      await deleteDoc(doc(db, "agendamentos", agendamentoId));
-      setAgendamentos((prev) => prev.filter((a) => a.id !== agendamentoId));
+      setIsLoading(true);
+      setError(null);
+
+      const appointmentsRef = collection(db, "agendamentos");
+      const querySnapshot = await getDocs(appointmentsRef);
+      const appointmentsData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      const appointmentsWithDetails = await Promise.all(
+        appointmentsData.map(async (appointment) => {
+          if (appointment.clientId) {
+            const clientDoc = await getDoc(
+              doc(db, "clientes", appointment.clientId)
+            );
+            return {
+              ...appointment,
+              cliente: clientDoc.exists() ? clientDoc.data() : null,
+            };
+          }
+          return appointment;
+        })
+      );
+
+      setAppointments(appointmentsWithDetails);
     } catch (err) {
-      console.error("Erro ao deletar:", err);
+      console.error("Error fetching appointments:", err);
+      setError("Erro ao carregar agendamentos");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAppointments();
+  }, [fetchAppointments]);
+
+  const handleDelete = async (appointmentId) => {
+    try {
+      await deleteDoc(doc(db, "agendamentos", appointmentId));
+      setAppointments((prev) => prev.filter((a) => a.id !== appointmentId));
+      setDeleteDialogOpen(false);
+      setAppointmentToDelete(null);
+    } catch (error) {
+      console.error("Error deleting appointment:", error);
       setError("Erro ao deletar agendamento");
     }
   };
 
-  const handleToggleComplete = async (agendamentoId, isConcluido, e) => {
-    if (e) e.stopPropagation();
+  const handleToggleComplete = async (appointmentId, isConcluido) => {
     try {
-      const agendamentoRef = doc(db, "agendamentos", agendamentoId);
-      await updateDoc(agendamentoRef, {
+      const appointmentRef = doc(db, "agendamentos", appointmentId);
+      await updateDoc(appointmentRef, {
         concluido: !isConcluido,
         status: !isConcluido ? "terminado" : "agendado",
-        updatedAt: new Date(),
       });
 
-      setAgendamentos((prev) =>
-        prev.map((ag) =>
-          ag.id === agendamentoId
+      setAppointments((prev) =>
+        prev.map((app) =>
+          app.id === appointmentId
             ? {
-                ...ag,
+                ...app,
                 concluido: !isConcluido,
                 status: !isConcluido ? "terminado" : "agendado",
               }
-            : ag
+            : app
         )
       );
-    } catch (err) {
-      console.error("Erro ao atualizar agendamento:", err);
+    } catch (error) {
+      console.error("Error updating appointment:", error);
       setError("Erro ao atualizar agendamento");
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "agendado":
-        return "text-blue-400 bg-blue-400/20";
-      case "confirmado":
-        return "text-yellow-400 bg-yellow-400/20";
-      case "cancelado":
-        return "text-red-400 bg-red-400/20";
-      case "terminado":
-        return "text-green-400 bg-green-400/20";
-      default:
-        return "text-gray-400 bg-gray-400/20";
-    }
-  };
-
-  const StatsCard = ({ icon: Icon, value, label, variant }) => {
-    const variants = {
-      blue: "bg-blue-500/10 border-blue-500/30 text-blue-400",
-      purple: "bg-purple-500/10 border-purple-500/30 text-purple-400",
-      red: "bg-red-500/10 border-red-500/30 text-red-400",
-      green: "bg-green-500/10 border-green-500/30 text-green-400",
-    };
-
-    return (
-      <Card className={`${variants[variant]} border`}>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <Icon className="w-6 h-6" />
-            <span className="text-2xl font-bold">{value}</span>
-          </div>
-          <p className="text-sm font-medium">{label}</p>
-        </CardContent>
-      </Card>
-    );
-  };
-
+  // Function to generate a consistent color for each client
   const getClientColor = (clientId) => {
     const colors = [
       {
@@ -275,6 +325,7 @@ const ManageAgenda = () => {
 
     if (!clientId) return colors[0];
 
+    // Generate a consistent index based on clientId
     let hash = 0;
     for (let i = 0; i < clientId.length; i++) {
       hash = clientId.charCodeAt(i) + ((hash << 5) - hash);
@@ -282,216 +333,130 @@ const ManageAgenda = () => {
     return colors[Math.abs(hash) % colors.length];
   };
 
-  const AgendamentoCard = ({ agendamento }) => {
-    const isToday = agendamento.data === new Date().toISOString().split("T")[0];
-    const isUrgent = agendamento.prioridade === "alta";
-    const clientColor = isUrgent
-      ? {
-          bg: "bg-red-500/10",
-          border: "border-red-500/30",
-          text: "text-red-400",
-        }
-      : getClientColor(agendamento.clientId);
+  const filteredAppointments = appointments.filter((appointment) => {
+    const matchesSearch =
+      appointment.cliente?.name
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      appointment.hora?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter =
+      filterStatus === "all" || appointment.status === filterStatus;
 
-    const date = new Date(agendamento.data);
-    const formattedDate = new Intl.DateTimeFormat("pt-BR", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-    }).format(date);
+    const appointmentDate = new Date(appointment.data);
+    const matchesMonth =
+      appointmentDate.getMonth() === selectedMonth &&
+      appointmentDate.getFullYear() === selectedYear;
 
-    return (
-      <Card
-        className={`${clientColor.bg} ${
-          clientColor.border
-        } hover:bg-opacity-20 transition-colors ${
-          isToday ? "ring-2 ring-green-400" : ""
-        }`}
-      >
-        <CardContent className="p-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <Clock className={`w-4 h-4 ${clientColor.text}`} />
-              <span
-                className={`font-medium ${
-                  isToday ? "text-green-400 font-bold" : "text-white"
-                }`}
-              >
-                {agendamento.hora}
-              </span>
-              {isUrgent && <AlertTriangle className="w-4 h-4 text-red-400" />}
-            </div>
+    return matchesSearch && matchesFilter && matchesMonth;
+  });
 
-            <div className="flex items-center gap-2">
-              <User className={`w-4 h-4 ${clientColor.text}`} />
-              <span
-                className={`font-medium ${
-                  isToday ? "font-bold" : ""
-                } text-white`}
-              >
-                {agendamento.cliente?.name || "Cliente não encontrado"}
-              </span>
-            </div>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full hover:bg-zinc-800 text-white hover:text-white/50"
-                >
-                  <span className="sr-only">Abrir menu</span>
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="bg-zinc-800 border-zinc-700"
-              >
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/app/edit-agendamento/${agendamento.id}`);
-                  }}
-                  className="text-white hover:bg-zinc-700"
-                >
-                  <Edit2 className="w-4 h-4 mr-2" />
-                  Editar
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) =>
-                    handleToggleComplete(
-                      agendamento.id,
-                      agendamento.concluido,
-                      e
-                    )
-                  }
-                  className="text-white hover:bg-zinc-700"
-                >
-                  {agendamento.concluido ? (
-                    <>
-                      <RotateCcw className="w-4 h-4 mr-2" />
-                      Reabrir
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 mr-2" />
-                      Concluir
-                    </>
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-red-400 hover:bg-zinc-700 focus:text-red-400"
-                  onClick={(e) => handleDelete(agendamento.id, e)}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Excluir
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          <div className="mt-2 flex items-center gap-2">
-            <span
-              className={`text-xs px-2 py-1 rounded ${getStatusColor(
-                agendamento.status
-              )}`}
-            >
-              {agendamento.status}
-            </span>
-            {isToday && (
-              <span className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-400">
-                Hoje
-              </span>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    );
+  const stats = {
+    total: filteredAppointments.length,
+    today: filteredAppointments.filter(
+      (app) => app.data === new Date().toISOString().split("T")[0]
+    ).length,
+    urgent: filteredAppointments.filter((app) => app.prioridade === "alta")
+      .length,
+    completed: filteredAppointments.filter((app) => app.status === "terminado")
+      .length,
   };
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
   }
 
   return (
-    <div className="container max-w-4xl mx-auto p-4">
-      <Card className="mb-8 bg-zinc-800 border-zinc-700">
-        <CardHeader>
-          <CardTitle className="text-2xl text-center text-white">
-            Agenda
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatsCard
-              icon={Calendar}
-              value={stats.total}
-              label="Total Mensal"
-              variant="blue"
-            />
-            <StatsCard
-              icon={Clock}
-              value={stats.hoje}
-              label="Hoje"
-              variant="purple"
-            />
-            <StatsCard
-              icon={AlertTriangle}
-              value={stats.urgentes}
-              label="Urgentes"
-              variant="red"
-            />
-            <StatsCard
-              icon={CheckCircle2}
-              value={stats.concluidos}
-              label="Concluídos"
-              variant="green"
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-white">
+            Gerenciar Agenda
+          </h1>
+          <p className="text-sm sm:text-base text-zinc-400">
+            Gerencie todos os seus agendamentos em um só lugar
+          </p>
+        </div>
+        <Button
+          onClick={() => navigate("/app/add-agendamento")}
+          className="hidden sm:flex bg-green-600 hover:bg-green-700"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Novo Agendamento
+        </Button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardContent className="flex items-center justify-between p-4 sm:p-6">
+            <div>
+              <p className="text-sm font-medium text-zinc-400">Total do Mês</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+                {stats.total}
+              </h3>
+            </div>
+            <ClipboardList className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardContent className="flex items-center justify-between p-4 sm:p-6">
+            <div>
+              <p className="text-sm font-medium text-zinc-400">Hoje</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+                {stats.today}
+              </h3>
+            </div>
+            <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardContent className="flex items-center justify-between p-4 sm:p-6">
+            <div>
+              <p className="text-sm font-medium text-zinc-400">Urgentes</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+                {stats.urgent}
+              </h3>
+            </div>
+            <AlertCircle className="h-6 w-6 sm:h-8 sm:w-8 text-red-500" />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardContent className="flex items-center justify-between p-4 sm:p-6">
+            <div>
+              <p className="text-sm font-medium text-zinc-400">Concluídos</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+                {stats.completed}
+              </h3>
+            </div>
+            <CheckCircle2 className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters Card */}
+      <Card className="bg-zinc-800 border-zinc-700">
+        <CardContent className="space-y-4 p-4 sm:p-6">
+          {/* Search */}
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <Input
+              placeholder="Buscar por cliente ou horário..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
             />
           </div>
 
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Buscar por cliente ou horário..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="bg-zinc-900 text-white rounded-md px-3 py-2 border border-zinc-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-              >
-                <option value="all">Todos os status</option>
-                <option value="agendado">Agendado</option>
-                <option value="confirmado">Confirmado</option>
-                <option value="terminado">Terminado</option>
-                <option value="cancelado">Cancelado</option>
-              </select>
-            </div>
-          </div>
-
-          {error && (
-            <Alert
-              variant="destructive"
-              className="border-red-500 bg-red-500/10"
-            >
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-red-400">
-                {error}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <div className="flex items-center justify-between">
+          {/* Month Selector and Filters */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex items-center bg-zinc-900 rounded-lg">
               <Button
                 variant="ghost"
@@ -533,127 +498,294 @@ const ManageAgenda = () => {
               </Button>
             </div>
 
-            <div className="hidden md:flex items-center bg-zinc-900 rounded-lg p-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setViewMode("calendar")}
-                className={`flex items-center gap-2 ${
-                  viewMode === "calendar"
-                    ? "bg-green-600 text-white hover:bg-green-700"
-                    : "text-zinc-400 hover:bg-zinc-700 hover:text-white"
-                }`}
-              >
-                <Calendar className="w-4 h-4" />
-                <span className="text-sm">Calendário</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setViewMode("list")}
-                className={`flex items-center gap-2 ${
-                  viewMode === "list"
-                    ? "bg-green-600 text-white hover:bg-green-700"
-                    : "text-zinc-400 hover:bg-zinc-700 hover:text-white"
-                }`}
-              >
-                <Filter className="w-4 h-4" />
-                <span className="text-sm">Lista</span>
-              </Button>
-            </div>
-            <div className="md:hidden">
-              <select
-                value={viewMode}
-                onChange={(e) => setViewMode(e.target.value)}
-                className="bg-zinc-900 text-white rounded-lg px-3 py-2 border border-zinc-700 focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none"
-              >
-                <option value="calendar">Calendário</option>
-                <option value="list">Lista</option>
-              </select>
-            </div>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                <SelectValue placeholder="Filtrar por status" />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectItem
+                  value="all"
+                  className="text-white hover:bg-zinc-700"
+                >
+                  Todos os status
+                </SelectItem>
+                <SelectItem
+                  value="agendado"
+                  className="text-white hover:bg-zinc-700"
+                >
+                  Agendado
+                </SelectItem>
+                <SelectItem
+                  value="confirmado"
+                  className="text-white hover:bg-zinc-700"
+                >
+                  Confirmado
+                </SelectItem>
+                <SelectItem
+                  value="terminado"
+                  className="text-white hover:bg-zinc-700"
+                >
+                  Terminado
+                </SelectItem>
+                <SelectItem
+                  value="cancelado"
+                  className="text-white hover:bg-zinc-700"
+                >
+                  Cancelado
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+            <Button
+              variant="outline"
+              onClick={() =>
+                setViewMode(viewMode === "calendar" ? "list" : "calendar")
+              }
+              className="w-full sm:w-auto gap-2 text-white border-zinc-700 hover:bg-zinc-700 bg-green-600"
+            >
+              {viewMode === "calendar" ? (
+                <>
+                  <Filter className="w-4 h-4" />
+                  <span>Visualizar Lista</span>
+                </>
+              ) : (
+                <>
+                  <Calendar className="w-4 h-4" />
+                  <span>Visualizar Calendário</span>
+                </>
+              )}
+            </Button>
+            <span className="text-center sm:text-right text-sm text-zinc-400">
+              {filteredAppointments.length} agendamento(s) encontrado(s)
+            </span>
+          </div>
+
+          {error && (
+            <Alert
+              variant="destructive"
+              className="border-red-500 bg-red-500/10"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-red-400">
+                {error}
+              </AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
 
-      <div className="space-y-4 mb-24">
-        {viewMode === "calendar"
-          ? agendamentos
-              .reduce((acc, agendamento) => {
-                const date = new Date(agendamento.data);
-                const dateStr = new Intl.DateTimeFormat("pt-BR", {
-                  weekday: "long",
-                  day: "numeric",
-                }).format(date);
+      {/* Quick Actions - Desktop Only */}
+      <div className="hidden sm:flex gap-2">
+        <Button
+          variant="outline"
+          onClick={fetchAppointments}
+          className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
+        >
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Atualizar Lista
+        </Button>
+      </div>
 
-                const existingGroup = acc.find(
-                  (group) => group.date === dateStr
-                );
-                if (existingGroup) {
-                  existingGroup.agendamentos.push(agendamento);
-                } else {
-                  acc.push({
-                    date: dateStr,
-                    agendamentos: [agendamento],
-                  });
+      {/* Appointments Grid */}
+      <div className="space-y-6">
+        {viewMode === "calendar" ? (
+          <>
+            {/* Calendar Grid */}
+            <div className="grid grid-cols-7 gap-4 mb-4">
+              {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((day) => (
+                <div
+                  key={day}
+                  className="text-center font-medium text-zinc-400"
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-4">
+              {(() => {
+                const firstDay = new Date(selectedYear, selectedMonth, 1);
+                const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
+                const days = [];
+
+                // Add empty cells for days before the first day of the month
+                for (let i = 0; i < firstDay.getDay(); i++) {
+                  days.push(
+                    <div
+                      key={`empty-start-${i}`}
+                      className="h-32 rounded-lg bg-zinc-800/50 border border-zinc-700/50"
+                    />
+                  );
                 }
-                return acc;
-              }, [])
-              .map((group, index) => (
-                <Card key={index} className="bg-zinc-800 border-zinc-700">
-                  <CardHeader>
-                    <CardTitle className="text-lg text-white capitalize">
-                      {group.date}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {group.agendamentos
-                      .sort((a, b) => a.hora.localeCompare(b.hora))
-                      .map((agendamento) => (
-                        <AgendamentoCard
-                          key={agendamento.id}
-                          agendamento={agendamento}
-                        />
-                      ))}
-                  </CardContent>
-                </Card>
-              ))
-          : agendamentos
+
+                // Add cells for each day of the month
+                for (let date = 1; date <= lastDay.getDate(); date++) {
+                  const currentDate = new Date(
+                    selectedYear,
+                    selectedMonth,
+                    date
+                  );
+                  const dateStr = currentDate.toISOString().split("T")[0];
+                  const dayAppointments = filteredAppointments.filter(
+                    (app) => app.data === dateStr
+                  );
+                  const isToday =
+                    dateStr === new Date().toISOString().split("T")[0];
+
+                  days.push(
+                    <div
+                      key={date}
+                      className={`h-32 p-2 rounded-lg ${
+                        isToday
+                          ? "bg-green-900/20 border-2 border-green-500"
+                          : "bg-zinc-800 border border-zinc-700"
+                      } overflow-y-auto`}
+                    >
+                      <div className="text-right mb-2">
+                        <span
+                          className={`text-sm ${
+                            isToday
+                              ? "text-green-400 font-bold"
+                              : "text-zinc-400"
+                          }`}
+                        >
+                          {date}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        {dayAppointments
+                          .sort((a, b) => a.hora.localeCompare(b.hora))
+                          .map((appointment) => {
+                            const clientColor = getClientColor(
+                              appointment.clientId
+                            );
+                            return (
+                              <div
+                                key={appointment.id}
+                                className={`${clientColor.bg} ${clientColor.border} border rounded-md p-1 cursor-pointer text-xs`}
+                                onClick={() =>
+                                  navigate(
+                                    `/app/edit-agendamento/${appointment.id}`
+                                  )
+                                }
+                              >
+                                <div
+                                  className={`${clientColor.text} font-medium truncate`}
+                                >
+                                  {appointment.hora}
+                                </div>
+                                <div className="truncate text-white">
+                                  {appointment.cliente?.name ||
+                                    "Cliente não encontrado"}
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Add empty cells for days after the last day of the month
+                const remainingCells = 42 - days.length; // 6 weeks × 7 days = 42
+                for (let i = 0; i < remainingCells; i++) {
+                  days.push(
+                    <div
+                      key={`empty-end-${i}`}
+                      className="h-32 rounded-lg bg-zinc-800/50 border border-zinc-700/50"
+                    />
+                  );
+                }
+
+                return days;
+              })()}
+            </div>
+          </>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredAppointments
               .sort((a, b) => {
                 const dateCompare = a.data.localeCompare(b.data);
                 return dateCompare === 0
                   ? a.hora.localeCompare(b.hora)
                   : dateCompare;
               })
-              .map((agendamento) => (
-                <AgendamentoCard
-                  key={agendamento.id}
-                  agendamento={agendamento}
+              .map((appointment) => (
+                <AppointmentCard
+                  key={appointment.id}
+                  appointment={appointment}
+                  onDelete={() => {
+                    setAppointmentToDelete(appointment);
+                    setDeleteDialogOpen(true);
+                  }}
+                  onEdit={(id) => navigate(`/app/edit-agendamento/${id}`)}
+                  onToggleComplete={handleToggleComplete}
                 />
               ))}
+          </div>
+        )}
 
-        {agendamentos.length === 0 && (
-          <Card className="py-12 bg-zinc-800 border-zinc-700">
-            <CardContent className="text-center">
-              <Calendar className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
+        {filteredAppointments.length === 0 && (
+          <Card className="bg-zinc-800 border-zinc-700">
+            <CardContent className="p-8 sm:p-12 text-center">
+              <Calendar className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
               <p className="text-lg font-medium mb-2 text-white">
                 Nenhum agendamento encontrado
               </p>
-              <p className="text-zinc-400">
-                Tente ajustar os filtros ou adicione um novo agendamento
+              <p className="text-sm sm:text-base text-zinc-400">
+                Tente ajustar seus filtros ou adicione um novo agendamento
               </p>
             </CardContent>
           </Card>
         )}
       </div>
 
-      <div className="fixed bottom-6 right-6">
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="bg-zinc-800 border-zinc-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Tem certeza que deseja excluir este agendamento? Esta ação não
+              pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => handleDelete(appointmentToDelete?.id)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* FAB Menu for Mobile */}
+      <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden">
         <Button
-          size="lg"
+          onClick={fetchAppointments}
+          size="icon"
+          className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
+        >
+          <RefreshCw className="h-5 w-5" />
+        </Button>
+        <Button
           onClick={() => navigate("/app/add-agendamento")}
+          size="icon"
           className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
         >
-          <PlusCircle className="w-5 h-5 md:mr-2" />
-          <span className="hidden md:inline">Novo Agendamento</span>
+          <Plus className="h-5 w-5" />
         </Button>
       </div>
     </div>

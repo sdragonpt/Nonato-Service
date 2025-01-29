@@ -41,6 +41,8 @@ const InspectionDetail = () => {
   const [assetStatus, setAssetStatus] = useState("");
   const [maintenancePriority, setMaintenancePriority] = useState("");
   const [additionalNotes, setAdditionalNotes] = useState("");
+  const [trainingParticipants, setTrainingParticipants] = useState([]);
+  const [newParticipantName, setNewParticipantName] = useState("");
 
   useEffect(() => {
     const fetchInspectionDetails = async () => {
@@ -109,6 +111,18 @@ const InspectionDetail = () => {
     fetchInspectionDetails();
   }, [id]);
 
+  useEffect(() => {
+    if (
+      inspection?.type === "training" &&
+      inspection.trainingParticipants !== trainingParticipants
+    ) {
+      setInspection((prev) => ({
+        ...prev,
+        trainingParticipants,
+      }));
+    }
+  }, [trainingParticipants]);
+
   const handleSave = async () => {
     try {
       setIsSaving(true);
@@ -137,6 +151,7 @@ const InspectionDetail = () => {
         assetStatus,
         maintenancePriority,
         additionalNotes,
+        trainingParticipants: trainingParticipants,
       });
 
       navigate("/app/manage-inspection");
@@ -308,6 +323,24 @@ const InspectionDetail = () => {
     }));
   };
 
+  // Adicionar novo participante
+  const addTrainingParticipant = () => {
+    if (newParticipantName.trim() !== "") {
+      setTrainingParticipants([
+        ...trainingParticipants,
+        newParticipantName.trim(),
+      ]);
+      setNewParticipantName("");
+    }
+  };
+
+  // Remover participante
+  const removeTrainingParticipant = (index) => {
+    const updatedParticipants = [...trainingParticipants];
+    updatedParticipants.splice(index, 1);
+    setTrainingParticipants(updatedParticipants);
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -429,103 +462,148 @@ const InspectionDetail = () => {
           </div>
         </div>
 
-        <div className="p-4 bg-gray-800 rounded-lg space-y-4">
-          <h3 className="text-lg text-white font-medium mb-4">
-            Avaliação Geral
-          </h3>
+        {inspection && inspection.type === "training" && (
+          <div className="p-4 bg-gray-800 rounded-lg space-y-4">
+            <h3 className="text-lg text-white font-medium mb-4">
+              Participantes do Treinamento
+            </h3>
 
-          <div className="space-y-4">
-            <div>
-              <label className="text-white mb-2 block">Condição Geral</label>
-              <select
-                value={overallCondition}
-                onChange={(e) => setOverallCondition(e.target.value)}
-                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Selecionar...</option>
-                <option value="Excelente condição">Excelente condição</option>
-                <option value="Boa condição">Boa condição</option>
-                <option value="Condição regular">Condição regular</option>
-                <option value="Condição ruim">Condição ruim</option>
-              </select>
-            </div>
+            <div className="space-y-3">
+              {trainingParticipants.map((participant, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between bg-gray-700 p-3 rounded"
+                >
+                  <span className="text-white">{participant}</span>
+                  <button
+                    onClick={() => removeTrainingParticipant(index)}
+                    className="text-red-500 hover:text-red-600"
+                  >
+                    Remover
+                  </button>
+                </div>
+              ))}
 
-            <div>
-              <label className="text-white mb-2 block">
-                Ativo seguro para usar
-              </label>
-              <select
-                value={safeToUse}
-                onChange={(e) => setSafeToUse(e.target.value)}
-                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Selecionar...</option>
-                <option value="Sim">Sim</option>
-                <option value="Não">Não</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-white mb-2 block">
-                Manutenção requerida
-              </label>
-              <select
-                value={maintenanceRequired}
-                onChange={(e) => setMaintenanceRequired(e.target.value)}
-                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Selecionar...</option>
-                <option value="Sim">Sim</option>
-                <option value="Não">Não</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-white mb-2 block">Status do ativo</label>
-              <select
-                value={assetStatus}
-                onChange={(e) => setAssetStatus(e.target.value)}
-                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Selecionar...</option>
-                <option value="Operacional">Operacional</option>
-                <option value="Manutenção requerida">
-                  Manutenção requerida
-                </option>
-                <option value="Em manutenção">Em manutenção</option>
-                <option value="Inoperante">Inoperante</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-white mb-2 block">
-                Prioridade de manutenção
-              </label>
-              <select
-                value={maintenancePriority}
-                onChange={(e) => setMaintenancePriority(e.target.value)}
-                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Selecionar...</option>
-                <option value="Baixo">Baixo</option>
-                <option value="Médio">Médio</option>
-                <option value="Alto">Alto</option>
-                <option value="Crítico">Crítico</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-white mb-2 block">Notas Adicionais</label>
-              <textarea
-                value={additionalNotes}
-                onChange={(e) => setAdditionalNotes(e.target.value)}
-                placeholder="Digite notas adicionais aqui..."
-                className="w-full p-3 bg-gray-700 text-white rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows="4"
-              />
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={newParticipantName}
+                  onChange={(e) => setNewParticipantName(e.target.value)}
+                  placeholder="Nome do participante"
+                  className="flex-1 p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={addTrainingParticipant}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg"
+                >
+                  Adicionar
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {inspection && inspection.type !== "training" && (
+          <div className="p-4 bg-gray-800 rounded-lg space-y-4">
+            <h3 className="text-lg text-white font-medium mb-4">
+              Avaliação Geral
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-white mb-2 block">Condição Geral</label>
+                <select
+                  value={overallCondition}
+                  onChange={(e) => setOverallCondition(e.target.value)}
+                  className="w-full p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Selecionar...</option>
+                  <option value="Excelente condição">Excelente condição</option>
+                  <option value="Boa condição">Boa condição</option>
+                  <option value="Condição regular">Condição regular</option>
+                  <option value="Condição ruim">Condição ruim</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-white mb-2 block">
+                  Ativo seguro para usar
+                </label>
+                <select
+                  value={safeToUse}
+                  onChange={(e) => setSafeToUse(e.target.value)}
+                  className="w-full p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Selecionar...</option>
+                  <option value="Sim">Sim</option>
+                  <option value="Não">Não</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-white mb-2 block">
+                  Manutenção requerida
+                </label>
+                <select
+                  value={maintenanceRequired}
+                  onChange={(e) => setMaintenanceRequired(e.target.value)}
+                  className="w-full p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Selecionar...</option>
+                  <option value="Sim">Sim</option>
+                  <option value="Não">Não</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-white mb-2 block">Status do ativo</label>
+                <select
+                  value={assetStatus}
+                  onChange={(e) => setAssetStatus(e.target.value)}
+                  className="w-full p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Selecionar...</option>
+                  <option value="Operacional">Operacional</option>
+                  <option value="Manutenção requerida">
+                    Manutenção requerida
+                  </option>
+                  <option value="Em manutenção">Em manutenção</option>
+                  <option value="Inoperante">Inoperante</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-white mb-2 block">
+                  Prioridade de manutenção
+                </label>
+                <select
+                  value={maintenancePriority}
+                  onChange={(e) => setMaintenancePriority(e.target.value)}
+                  className="w-full p-3 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Selecionar...</option>
+                  <option value="Baixo">Baixo</option>
+                  <option value="Médio">Médio</option>
+                  <option value="Alto">Alto</option>
+                  <option value="Crítico">Crítico</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-white mb-2 block">
+                  Notas Adicionais
+                </label>
+                <textarea
+                  value={additionalNotes}
+                  onChange={(e) => setAdditionalNotes(e.target.value)}
+                  placeholder="Digite notas adicionais aqui..."
+                  className="w-full p-3 bg-gray-700 text-white rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows="4"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {groups.length > 0 ? (
           <div className="space-y-4">

@@ -134,11 +134,16 @@ const generateInspectionPDF = async (
   y -= 30;
   drawRect(initialX, y - 130, pageWidth, 130, rgb(0.95, 0.95, 0.95));
 
-  writeText("Detalhes da inspeção", {
-    x: 60,
-    y: y - 20,
-    useFont: boldFont,
-  });
+  writeText(
+    inspection.type === "training"
+      ? "Detalhes do Treinamento"
+      : "Detalhes da Inspeção",
+    {
+      x: 60,
+      y: y - 20,
+      useFont: boldFont,
+    }
+  );
   y -= 40;
 
   writeText(`Localização: ${client.address || "N/A"}`, { y, x: 60 });
@@ -197,35 +202,38 @@ const generateInspectionPDF = async (
         // Característica e estado
         writeText(char, { y: y - 5, x: 55 });
 
-        // Texto "Estado:" em preto
-        writeText("Estado: ", {
-          y: y - 5,
-          x: initialX + 400,
-          color: rgb(0, 0, 0),
-        });
+        if (inspection.type !== "training") {
+          // Texto "Estado:" em preto
+          writeText("Estado: ", {
+            y: y - 5,
+            x: initialX + 400,
+            color: rgb(0, 0, 0),
+          });
 
-        // Calcula posição após "Estado: "
-        const labelWidth = font.widthOfTextAtSize("Estado: ", fontSize);
-        const stateWidth = font.widthOfTextAtSize(state, fontSize);
-        const boxPadding = 4;
+          // Calcula posição após "Estado: "
+          const labelWidth = font.widthOfTextAtSize("Estado: ", fontSize);
+          const stateWidth = font.widthOfTextAtSize(state, fontSize);
+          const boxPadding = 4;
 
-        // Desenha retângulo colorido apenas para o valor do estado
-        drawRect(
-          initialX + 400 + labelWidth - 2,
-          y - fontSize - boxPadding + 3,
-          stateWidth + 8,
-          fontSize + boxPadding * 2,
-          stateColor.color
-        );
+          // Desenha retângulo colorido apenas para o valor do estado
+          drawRect(
+            initialX + 400 + labelWidth - 2,
+            y - fontSize - boxPadding + 3,
+            stateWidth + 8,
+            fontSize + boxPadding * 2,
+            stateColor.color
+          );
 
-        // Texto do valor do estado em branco
-        writeText(state, {
-          y: y - 5,
-          x: initialX + 400 + labelWidth + 2,
-          color: rgb(1, 1, 1),
-        });
+          // Texto do valor do estado em branco
+          writeText(state, {
+            y: y - 5,
+            x: initialX + 400 + labelWidth + 2,
+            color: rgb(1, 1, 1),
+          });
+          y -= 25;
+        }
+
         y -= 25;
-
         // Descrição
         if (description) {
           writeText("Observação:", { y, useFont: boldFont, x: 55 });
