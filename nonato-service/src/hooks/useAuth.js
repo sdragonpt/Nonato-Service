@@ -10,7 +10,6 @@ export function useAuth() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        console.log("Auth state changed:", firebaseUser); // Debug
       if (firebaseUser) {
         try {
           const authorizedEmails = ["sergionunoribeiro@gmail.com", "service.nonato@gmail.com"];
@@ -48,7 +47,6 @@ export function useAuth() {
 
           // Combinar dados do Auth com dados do Firestore
           setUser({ ...firebaseUser, ...userData });
-          console.log("User data processed:", userData); // Debug
         } catch (error) {
           console.error('Erro ao processar usuário:', error);
           console.error("Detailed auth error:", error); // Debug detalhado

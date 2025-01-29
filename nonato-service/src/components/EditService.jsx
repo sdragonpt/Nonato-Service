@@ -6,21 +6,37 @@ import {
   ArrowLeft,
   Loader2,
   Save,
-  AlertCircle,
+  AlertTriangle,
   Tag,
   Wrench,
 } from "lucide-react";
+
+// UI Components
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const EditService = () => {
   const navigate = useNavigate();
   const { serviceId } = useParams();
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
     type: "base",
+    description: "",
   });
+  const [touched, setTouched] = useState({});
+  const [originalData, setOriginalData] = useState(null);
 
   useEffect(() => {
     const fetchService = async () => {
@@ -31,10 +47,13 @@ const EditService = () => {
 
         if (serviceDoc.exists()) {
           const serviceData = serviceDoc.data();
-          setFormData({
+          const formattedData = {
             name: serviceData.name || "",
             type: serviceData.type || "base",
-          });
+            description: serviceData.description || "",
+          };
+          setFormData(formattedData);
+          setOriginalData(formattedData);
         } else {
           setError("Serviço não encontrado");
         }
@@ -57,16 +76,30 @@ const EditService = () => {
     }));
   };
 
+  const handleTypeChange = (value) => {
+    setFormData((prev) => ({ ...prev, type: value }));
+  };
+
+  const handleBlur = (field) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const allTouched = Object.keys(formData).reduce(
+      (acc, key) => ({ ...acc, [key]: true }),
+      {}
+    );
+    setTouched(allTouched);
+
     if (!formData.name.trim()) {
-      setError("Nome é obrigatório");
+      setError("O campo Nome é obrigatório");
       return;
     }
 
     try {
-      setIsSaving(true);
+      setIsSubmitting(true);
       setError(null);
 
       await updateDoc(doc(db, "servicos", serviceId), {
@@ -79,97 +112,158 @@ const EditService = () => {
       console.error("Erro ao atualizar serviço:", err);
       setError("Erro ao atualizar serviço. Por favor, tente novamente.");
     } finally {
-      setIsSaving(false);
+      setIsSubmitting(false);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
   }
 
-  return (
-    <div className="w-full max-w-2xl mx-auto p-4">
-      <button
-        onClick={() => navigate(-1)}
-        className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all hover:scale-105 flex items-center justify-center"
-      >
-        <ArrowLeft className="w-5 h-5" />
-      </button>
+  const hasChanges =
+    originalData &&
+    Object.keys(formData).some((key) => formData[key] !== originalData[key]);
 
-      <h2 className="text-2xl font-semibold text-center text-white mb-6">
-        Editar Serviço
-      </h2>
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Editar Serviço</h1>
+          <p className="text-sm text-zinc-400">
+            Atualize as informações do serviço
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => navigate(-1)}
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+      </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded-lg flex items-center">
-          <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
-          <p className="text-red-500">{error}</p>
-        </div>
+        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-red-400">{error}</AlertDescription>
+        </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-gray-800 p-6 rounded-lg space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Nome do Serviço
-            </label>
-            <div className="relative">
-              <Wrench className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
+        {/* Service Information Card */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white">
+              Informações do Serviço
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
+                Nome do Serviço
+              </label>
+              <div className="relative">
+                <Wrench className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  onBlur={() => handleBlur("name")}
+                  placeholder="Ex: Manutenção Básica"
+                  className={`pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 ${
+                    touched.name && !formData.name ? "border-red-500" : ""
+                  }`}
+                />
+              </div>
+              {touched.name && !formData.name && (
+                <p className="text-sm text-red-500">Nome é obrigatório</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
+                Tipo de Serviço
+              </label>
+              <Select value={formData.type} onValueChange={handleTypeChange}>
+                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white pl-10 relative">
+                  <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-800 border-zinc-700">
+                  <SelectItem
+                    value="base"
+                    className="text-white hover:bg-zinc-700"
+                  >
+                    Valor Base
+                  </SelectItem>
+                  <SelectItem
+                    value="un"
+                    className="text-white hover:bg-zinc-700"
+                  >
+                    Despesa
+                  </SelectItem>
+                  <SelectItem
+                    value="hour"
+                    className="text-white hover:bg-zinc-700"
+                  >
+                    Por Hora
+                  </SelectItem>
+                  <SelectItem
+                    value="day"
+                    className="text-white hover:bg-zinc-700"
+                  >
+                    Por Dia
+                  </SelectItem>
+                  <SelectItem
+                    value="km"
+                    className="text-white hover:bg-zinc-700"
+                  >
+                    Por Km
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
+                Descrição (Opcional)
+              </label>
+              <textarea
+                name="description"
+                value={formData.description}
                 onChange={handleChange}
-                placeholder="Ex: Manutenção Básica"
-                className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
+                placeholder="Descreva o serviço..."
+                className="w-full p-3 bg-zinc-900 border-zinc-700 text-white rounded-md resize-none h-32 focus:outline-none focus:ring-2 focus:ring-green-500 [&::placeholder]:text-zinc-500"
               />
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Tipo de Valor
-            </label>
-            <div className="relative">
-              <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <select
-                name="type"
-                value={formData.type}
-                onChange={handleChange}
-                className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              >
-                <option value="base">Valor Base</option>
-                <option value="un">Despesa</option>
-                <option value="hour">Por Hora</option>
-                <option value="day">Por Dia</option>
-                <option value="km">Por Km</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <button
+        {/* Submit Button */}
+        <Button
           type="submit"
-          disabled={isSaving}
-          className="w-full p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+          disabled={isSubmitting || !hasChanges}
+          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-zinc-700"
         >
-          {isSaving ? (
+          {isSubmitting ? (
             <>
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Salvando...
             </>
           ) : (
             <>
-              <Save className="w-5 h-5 mr-2" />
+              <Save className="w-4 h-4 mr-2" />
               Salvar Alterações
             </>
           )}
-        </button>
+        </Button>
       </form>
     </div>
   );

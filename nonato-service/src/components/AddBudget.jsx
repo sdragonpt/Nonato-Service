@@ -15,14 +15,28 @@ import {
   User,
   ClipboardList,
   Loader2,
-  AlertCircle,
+  AlertTriangle,
   Plus,
   Trash2,
-  Check,
-  Euro,
+  ArrowLeft,
+  Clock,
+  Receipt,
 } from "lucide-react";
 import generateBudgetPDF from "./generateBudgetPDF.jsx";
-import ServiceInput from "./ServiceInput"; // Novo import
+import ServiceInput from "./ServiceInput";
+
+// UI Components
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const AddBudget = () => {
   const navigate = useNavigate();
@@ -30,19 +44,17 @@ const AddBudget = () => {
   const [selectedClient, setSelectedClient] = useState(null);
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [order, setOrder] = useState(null); // Adicionado estado order
+  const [order, setOrder] = useState(null);
   const [services, setServices] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [orderTotals, setOrderTotals] = useState(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState("");
-  const [serviceValue, setServiceValue] = useState("");
-  const [serviceQuantity, setServiceQuantity] = useState("");
   const [selectedServices, setSelectedServices] = useState([]);
   const [totalAmount, setTotalAmount] = useState(0);
 
-  // Buscar clientes
+  // Fetch clients
   useEffect(() => {
     const fetchClients = async () => {
       try {
@@ -64,7 +76,7 @@ const AddBudget = () => {
     fetchClients();
   }, []);
 
-  // Buscar ordens quando um cliente é selecionado
+  // Fetch orders when client is selected
   useEffect(() => {
     const fetchOrders = async () => {
       if (!selectedClient) return;
@@ -89,7 +101,7 @@ const AddBudget = () => {
     fetchOrders();
   }, [selectedClient]);
 
-  // Buscar serviços disponíveis
+  // Fetch services
   useEffect(() => {
     const fetchServices = async () => {
       try {
@@ -108,7 +120,7 @@ const AddBudget = () => {
     fetchServices();
   }, []);
 
-  // Função auxiliar para calcular horas
+  // Helper function to calculate hours
   const calculateHours = (start, end) => {
     if (!start || !end) return "0:00";
     const startTime = new Date(`1970-01-01T${start}:00`);
@@ -120,7 +132,7 @@ const AddBudget = () => {
     return `${hours}:${minutes.toString().padStart(2, "0")}`;
   };
 
-  // Função auxiliar para calcular horas com pausa
+  // Helper function to calculate hours with pause
   const calculateHoursWithPause = (start, end, pauseHours) => {
     if (!start || !end) return "0:00";
     const [hours, minutes] = pauseHours.split(":").map(Number);
@@ -134,7 +146,7 @@ const AddBudget = () => {
       .padStart(2, "0")}`;
   };
 
-  // Buscar totais da ordem quando uma ordem é selecionada
+  // Calculate order totals when order is selected
   useEffect(() => {
     const fetchOrderTotals = async () => {
       if (!selectedOrder) return;
@@ -154,7 +166,7 @@ const AddBudget = () => {
         let totalKm = 0;
 
         workdays.forEach((day) => {
-          // Calcula horas trabalhadas
+          // Calculate work hours
           if (day.startHour && day.endHour) {
             const [hours, minutes] = calculateHoursWithPause(
               day.startHour,
@@ -166,7 +178,7 @@ const AddBudget = () => {
             totalWorkMinutes += hours * 60 + minutes;
           }
 
-          // Calcula horas de viagem
+          // Calculate travel hours
           const [idaHours, idaMinutes] = calculateHours(
             day.departureTime,
             day.arrivalTime
@@ -182,7 +194,7 @@ const AddBudget = () => {
           totalTravelMinutes +=
             idaHours * 60 + idaMinutes + (retHours * 60 + retMinutes);
 
-          // Calcula KMs
+          // Calculate KMs
           totalKm +=
             (parseFloat(day.kmDeparture) || 0) +
             (parseFloat(day.kmReturn) || 0);
@@ -205,24 +217,8 @@ const AddBudget = () => {
 
   const handleAddService = (serviceData) => {
     if (!serviceData) return;
-
-    // Adiciona o serviço com os dados recebidos do ServiceInput
     setSelectedServices((prev) => [...prev, serviceData]);
-
-    // Reset do serviço selecionado
     setSelectedServiceId("");
-  };
-
-  // Função auxiliar para obter o rótulo da unidade
-  const getUnitLabel = (type) => {
-    const types = {
-      base: "un",
-      un: "un",
-      hour: "hora(s)",
-      day: "dia(s)",
-      km: "km",
-    };
-    return types[type] || type;
   };
 
   const handleRemoveService = (serviceId) => {
@@ -238,11 +234,41 @@ const AddBudget = () => {
       const year = String(now.getFullYear()).slice(-2);
       const orderNumber = `${month}${year}-${order.id}`;
 
-      // Passar os serviços com detalhes dos valores múltiplos
+      // Formatar os serviços para o formato esperado pelo PDF
+      const formattedServices = selectedServices.map((service) => {
+        if (service.multipleEntries) {
+          // Se for múltiplos valores, cria um serviço com a soma total
+          return {
+            id: service.id,
+            name: service.name,
+            type: service.type,
+            value: service.total,
+            quantity: 1,
+            total: service.total,
+            observations: service.multipleEntries
+              .map(
+                (entry, idx) =>
+                  `Valor ${idx + 1}: ${entry.value}€ x ${entry.quantity}`
+              )
+              .join(", "),
+          };
+        } else {
+          // Se for valor único, mantém o formato original
+          return {
+            id: service.id,
+            name: service.name,
+            type: service.type,
+            value: service.value,
+            quantity: service.quantity,
+            total: service.total,
+          };
+        }
+      });
+
       await generateBudgetPDF(
         selectedOrder,
         selectedClient,
-        selectedServices,
+        formattedServices,
         orderNumber
       );
 
@@ -251,7 +277,7 @@ const AddBudget = () => {
         orderNumber,
         clientId: selectedClient.id,
         orderId: selectedOrder.id,
-        services: selectedServices, // Agora inclui informação sobre valores múltiplos
+        services: formattedServices,
         total: selectedServices.reduce((acc, curr) => acc + curr.total, 0),
         createdAt: new Date(),
       });
@@ -265,7 +291,7 @@ const AddBudget = () => {
     }
   };
 
-  // Adicionar este useEffect após os outros useEffects:
+  // Calculate total amount
   useEffect(() => {
     const newTotal = selectedServices.reduce(
       (acc, curr) => acc + curr.total,
@@ -276,104 +302,132 @@ const AddBudget = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-4">
-      <h2 className="text-2xl font-semibold text-center text-white mb-6">
-        Gerador de Orçamentos
-      </h2>
+    <div className="space-y-6 pb-24">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Novo Fechamento</h1>
+          <p className="text-sm text-zinc-400">
+            Gere um fechamento para uma ordem de serviço
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => navigate(-1)}
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+        >
+          <ArrowLeft className="h-4 w-4 text-white" />
+        </Button>
+      </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-500/10 border border-red-500 rounded-lg">
-          <p className="text-red-500">{error}</p>
-        </div>
+        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-red-400">{error}</AlertDescription>
+        </Alert>
       )}
 
-      <div className="grid gap-6 mb-6">
-        {/* Seleção de Cliente */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg">
-          <div className="p-6 border-b border-gray-700">
-            <h3 className="text-lg font-semibold text-white flex items-center">
-              <User className="w-5 h-5 mr-2" />
+      <div className="grid gap-6">
+        {/* Client Selection */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white flex items-center gap-2">
+              <User className="w-5 h-5" />
               Selecionar Cliente
-            </h3>
-          </div>
-          <div className="p-6">
-            <select
-              className="w-full p-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              onChange={(e) => {
-                const client = clients.find((c) => c.id === e.target.value);
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select
+              value={selectedClient?.id || ""}
+              onValueChange={(value) => {
+                const client = clients.find((c) => c.id === value);
                 setSelectedClient(client);
                 setSelectedOrder(null);
               }}
-              value={selectedClient?.id || ""}
             >
-              <option value="">Selecione um cliente...</option>
-              {clients.map((client) => (
-                <option key={client.id} value={client.id}>
-                  {client.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+              <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                <SelectValue placeholder="Selecione um cliente..." />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-800 border-zinc-700">
+                {clients.map((client) => (
+                  <SelectItem
+                    key={client.id}
+                    value={client.id}
+                    className="text-white hover:bg-zinc-700"
+                  >
+                    {client.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
 
-        {/* Seleção de Ordem de Serviço */}
+        {/* Service Order Selection */}
         {selectedClient && (
-          <div className="bg-gray-800 border border-gray-700 rounded-lg">
-            <div className="p-6 border-b border-gray-700">
-              <h3 className="text-lg font-semibold text-white flex items-center">
-                <ClipboardList className="w-5 h-5 mr-2" />
+          <Card className="bg-zinc-800 border-zinc-700">
+            <CardHeader>
+              <CardTitle className="text-lg text-white flex items-center gap-2">
+                <ClipboardList className="w-5 h-5" />
                 Selecionar Ordem de Serviço
-              </h3>
-            </div>
-            <div className="p-6">
-              <select
-                className="w-full p-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                onChange={(e) => {
-                  const selectedOrder = orders.find(
-                    (o) => o.id === e.target.value
-                  );
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Select
+                value={selectedOrder?.id || ""}
+                onValueChange={(value) => {
+                  const selectedOrder = orders.find((o) => o.id === value);
                   setSelectedOrder(selectedOrder);
                   setOrder(selectedOrder);
                 }}
-                value={selectedOrder?.id || ""}
               >
-                <option value="">Selecione uma ordem...</option>
-                {orders.map((order) => (
-                  <option key={order.id} value={order.id}>
-                    Ordem #{order.id} -{" "}
-                    {new Date(order.date).toLocaleDateString()}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                  <SelectValue placeholder="Selecione uma ordem..." />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-800 border-zinc-700">
+                  {orders.map((order) => (
+                    <SelectItem
+                      key={order.id}
+                      value={order.id}
+                      className="text-white hover:bg-zinc-700"
+                    >
+                      Ordem #{order.id} -{" "}
+                      {new Date(order.date).toLocaleDateString()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Totais da Ordem */}
+        {/* Order Totals */}
         {selectedOrder && orderTotals && (
-          <div className="bg-gray-800 border border-gray-700 rounded-lg">
-            <div className="p-6 border-b border-gray-700">
-              <h3 className="text-lg font-semibold text-white flex items-center">
-                <FileText className="w-5 h-5 mr-2" />
+          <Card className="bg-zinc-800 border-zinc-700">
+            <CardHeader>
+              <CardTitle className="text-lg text-white flex items-center gap-2">
+                <Clock className="w-5 h-5" />
                 Totais da Ordem
-              </h3>
-            </div>
-            <div className="p-6">
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <h4 className="text-gray-400 text-sm mb-1">
+                {/* Work Hours */}
+                <div className="bg-zinc-900 p-4 rounded-lg">
+                  <p className="text-sm text-zinc-400 mb-1">
                     Horas Trabalhadas:
-                  </h4>
-                  <p className="text-white text-lg font-medium">
+                  </p>
+                  <p className="text-lg font-medium text-white">
                     {orderTotals.totalWorkHours.toFixed(2)}h
-                    <span className="text-gray-400 text-sm ml-2">
+                    <span className="text-sm text-zinc-400 ml-2">
                       ({Math.floor(orderTotals.totalWorkHours)}h
                       {Math.round((orderTotals.totalWorkHours % 1) * 60)
                         .toString()
@@ -382,13 +436,13 @@ const AddBudget = () => {
                     </span>
                   </p>
                 </div>
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <h4 className="text-gray-400 text-sm mb-1">
-                    Horas de Viagem:
-                  </h4>
-                  <p className="text-white text-lg font-medium">
+
+                {/* Travel Hours */}
+                <div className="bg-zinc-900 p-4 rounded-lg">
+                  <p className="text-sm text-zinc-400 mb-1">Horas de Viagem:</p>
+                  <p className="text-lg font-medium text-white">
                     {orderTotals.totalTravelHours.toFixed(2)}h
-                    <span className="text-gray-400 text-sm ml-2">
+                    <span className="text-sm text-zinc-400 ml-2">
                       ({Math.floor(orderTotals.totalTravelHours)}h
                       {Math.round((orderTotals.totalTravelHours % 1) * 60)
                         .toString()
@@ -397,66 +451,65 @@ const AddBudget = () => {
                     </span>
                   </p>
                 </div>
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <h4 className="text-gray-400 text-sm mb-1">KMs Rodados:</h4>
-                  <p className="text-white text-lg font-medium">
+
+                {/* Total KMs */}
+                <div className="bg-zinc-900 p-4 rounded-lg">
+                  <p className="text-sm text-zinc-400 mb-1">KMs Rodados:</p>
+                  <p className="text-lg font-medium text-white">
                     {orderTotals.totalKm} km
                   </p>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Serviços Disponíveis */}
+        {/* Services Section */}
         {selectedOrder && (
-          <div className="bg-gray-800 border border-gray-700 rounded-lg">
-            <div className="p-6 border-b border-gray-700">
-              <h3 className="text-lg font-semibold text-white flex items-center">
-                <FileText className="w-5 h-5 mr-2" />
-                Serviços
-              </h3>
-            </div>
-            <div className="p-6">
+          <Card className="bg-zinc-800 border-zinc-700">
+            <CardHeader>
+              <CardTitle className="text-lg text-white flex items-center gap-2">
+                <Receipt className="w-5 h-5" />
+                Adicionar Serviços
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <ServiceInput
                 services={services}
                 selectedServiceId={selectedServiceId}
                 setSelectedServiceId={setSelectedServiceId}
                 onAddService={handleAddService}
               />
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Serviços Selecionados */}
+        {/* Selected Services */}
         {selectedServices.length > 0 && (
-          <div className="bg-gray-800 border border-gray-700 rounded-lg">
-            <div className="p-6 border-b border-gray-700">
-              <h3 className="text-lg font-semibold text-white">
+          <Card className="bg-zinc-800 border-zinc-700">
+            <CardHeader>
+              <CardTitle className="text-lg text-white">
                 Serviços Selecionados
-              </h3>
-            </div>
-            <div className="p-6">
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="space-y-4">
                 {selectedServices.map((service) => (
                   <div
                     key={service.id}
-                    className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
+                    className="flex items-center justify-between p-4 bg-zinc-900 rounded-lg"
                   >
                     <div>
                       <p className="text-white font-medium">{service.name}</p>
-                      <p className="text-gray-400 text-sm">
+                      <p className="text-zinc-400 text-sm">
                         {service.multipleEntries
-                          ? // Se for múltiplos valores, mostra o total direto
-                            `Total: ${service.total.toFixed(2)}€`
-                          : // Se for valor único, mostra o cálculo
-                            `${service.value.toFixed(2)}€ x ${
+                          ? `Total: ${service.total.toFixed(2)}€`
+                          : `${service.value.toFixed(2)}€ x ${
                               service.quantity
                             } = ${service.total.toFixed(2)}€`}
                       </p>
-                      {/* Se tiver valores múltiplos, mostra o detalhe */}
                       {service.multipleEntries && (
-                        <div className="mt-1 text-xs text-gray-400">
+                        <div className="mt-1 text-xs text-zinc-400">
                           {service.multipleEntries.map((entry, idx) => (
                             <div key={idx}>
                               Valor {idx + 1}: {entry.value}€ x {entry.quantity}
@@ -465,27 +518,30 @@ const AddBudget = () => {
                         </div>
                       )}
                     </div>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleRemoveService(service.id)}
-                      className="p-2 text-red-400 hover:text-red-300"
+                      className="text-red-400 hover:text-red-300 hover:bg-zinc-800"
                     >
                       <Trash2 className="w-5 h-5" />
-                    </button>
+                    </Button>
                   </div>
                 ))}
-                <div className="pt-4 border-t border-gray-700">
-                  <p className="text-white text-right font-medium">
+                <div className="pt-4 border-t border-zinc-700">
+                  <p className="text-right font-medium text-white">
                     Total: {totalAmount.toFixed(2)}€
                   </p>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
       </div>
 
-      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center md:left-64">
-        <button
+      {/* Generate Button */}
+      <div className="fixed bottom-6 right-6 left-6 md:left-64 flex justify-center">
+        <Button
           onClick={generatePDF}
           disabled={
             isGeneratingPDF ||
@@ -493,15 +549,20 @@ const AddBudget = () => {
             !selectedClient ||
             !selectedOrder
           }
-          className="h-16 px-6 bg-[#117d49] text-white font-medium flex items-center justify-center rounded-full shadow-lg hover:bg-[#0d6238] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="h-12 px-6 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isGeneratingPDF ? (
-            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Gerando PDF...
+            </>
           ) : (
-            <FileText className="w-5 h-5 mr-2" />
+            <>
+              <Plus className="w-4 h-4 mr-2" />
+              Gerar Fechamento
+            </>
           )}
-          {isGeneratingPDF ? "Gerando PDF..." : "Gerar Orçamento"}
-        </button>
+        </Button>
       </div>
     </div>
   );

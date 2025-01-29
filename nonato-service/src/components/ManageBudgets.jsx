@@ -28,12 +28,24 @@ import {
   Calendar,
   Receipt,
   FileCheck,
+  RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 
-const BudgetCard = ({ budget, onDelete, onViewPDF, clientName }) => {
-  const [activeMenu, setActiveMenu] = useState(false);
-  const menuRef = useRef(null);
+// UI Components
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 
+const BudgetCard = ({ budget, onDelete, onViewPDF, clientName }) => {
   // Determina qual ícone usar baseado no tipo do documento
   const Icon =
     budget.type === "simple"
@@ -42,120 +54,64 @@ const BudgetCard = ({ budget, onDelete, onViewPDF, clientName }) => {
         : FileCheck // Para documentos sem cadastro
       : FileText; // Para documentos com cadastro
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setActiveMenu(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   return (
-    <div className="group flex items-center p-4 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors relative">
-      <div className="flex items-center flex-grow min-w-0">
-        <div className="h-12 w-12 rounded-full bg-[#117d49] flex items-center justify-center mr-4">
-          <Icon className="w-6 h-6 text-white" />
-        </div>
-        <div className="min-w-0 flex-grow">
-          <h3 className="font-semibold text-white truncate">{clientName}</h3>
-          <div className="flex items-center text-gray-400">
-            <span className="truncate">
-              #{budget.budgetNumber || budget.orderNumber} -{" "}
-              {budget.createdAt?.toDate().toLocaleDateString()}
-            </span>
+    <Card className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-green-600 flex items-center justify-center">
+            <Icon className="w-5 h-5 text-white" />
           </div>
-          <p className="text-gray-400 text-sm mt-1">
-            Total: {budget.total.toFixed(2)}€
-          </p>
-        </div>
-      </div>
 
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setActiveMenu(!activeMenu);
-        }}
-        className="p-2 ml-2 text-gray-400 hover:text-white rounded-full focus:outline-none"
-      >
-        <MoreVertical className="w-5 h-5" />
-      </button>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-lg text-white truncate">
+              {clientName}
+            </h3>
+            <p className="text-zinc-400 text-sm">
+              #{budget.budgetNumber || budget.orderNumber}
+            </p>
+            <p className="text-zinc-400 text-sm">
+              {budget.createdAt?.toDate().toLocaleDateString()}
+            </p>
+            <p className="text-zinc-400 text-sm mt-1">
+              Total: {budget.total.toFixed(2)}€
+            </p>
+          </div>
 
-      {activeMenu && (
-        <div
-          ref={menuRef}
-          className="absolute right-0 top-full mt-2 w-48 bg-gray-800 rounded-lg shadow-lg z-50 py-1 border border-gray-700"
-        >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(budget.id);
-              setActiveMenu(false);
-            }}
-            className="w-full px-4 py-2 text-left text-red-400 hover:bg-gray-700 flex items-center"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Excluir
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onViewPDF(budget);
-              setActiveMenu(false);
-            }}
-            className="w-full px-4 py-2 text-left text-white hover:bg-gray-700 flex items-center"
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            Ver PDF
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full hover:bg-zinc-700 text-white"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="bg-zinc-800 border-zinc-700"
+            >
+              <DropdownMenuItem
+                onClick={() => onViewPDF(budget)}
+                className="text-white hover:bg-zinc-700 cursor-pointer"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Ver PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
+                onClick={() => onDelete(budget.id)}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
 };
-
-const DateFilter = ({
-  startDate,
-  endDate,
-  onStartChange,
-  onEndChange,
-  onClear,
-}) => (
-  <div className="bg-gray-800 p-4 rounded-lg mb-4">
-    <div className="flex flex-col sm:flex-row gap-4">
-      <div className="flex-1">
-        <label className="block text-sm text-gray-400 mb-2">Data Início</label>
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => onStartChange(e.target.value)}
-          className="w-full p-2 bg-gray-700 text-white rounded-lg border border-gray-600"
-        />
-      </div>
-      <div className="flex-1">
-        <label className="block text-sm text-gray-400 mb-2">Data Fim</label>
-        <input
-          type="date"
-          value={endDate}
-          onChange={(e) => onEndChange(e.target.value)}
-          className="w-full p-2 bg-gray-700 text-white rounded-lg border border-gray-600"
-        />
-      </div>
-      {(startDate || endDate) && (
-        <div className="flex items-end">
-          <button
-            onClick={onClear}
-            className="p-2 text-gray-400 hover:text-white rounded-lg border border-gray-600"
-          >
-            Limpar Filtros
-          </button>
-        </div>
-      )}
-    </div>
-  </div>
-);
 
 const ManageBudgets = () => {
   const navigate = useNavigate();
@@ -230,14 +186,12 @@ const ManageBudgets = () => {
 
   const handleFilterChange = async (newFilter) => {
     try {
-      setIsFilterLoading(true); // Adiciona loading state quando muda o filtro
+      setIsFilterLoading(true);
       setDocumentTypeFilter(newFilter);
-
-      // Simula uma pequena espera para garantir que o estado foi atualizado
       await new Promise((resolve) => setTimeout(resolve, 100));
     } catch (error) {
       console.error("Error changing filter:", error);
-      setDocumentTypeFilter("all"); // Fallback para "all" em caso de erro
+      setDocumentTypeFilter("all");
     } finally {
       setIsFilterLoading(false);
     }
@@ -423,194 +377,317 @@ const ManageBudgets = () => {
         .includes(searchTerm.toLowerCase())
   );
 
-  // Adiciona verificação de loading para o filtro
   if (isLoading || isFilterLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-4">
-      <h2 className="text-2xl font-semibold text-center text-white mb-6">
-        Gerenciar Orçamentos
-      </h2>
-
-      {error && (
-        <div className="mb-4 p-4 bg-red-500/10 border border-red-500 rounded-lg">
-          <p className="text-red-500">{error}</p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-white">
+            Gerenciar Orçamentos
+          </h1>
+          <p className="text-sm sm:text-base text-zinc-400">
+            Gerencie todos os seus orçamentos e despesas em um só lugar
+          </p>
         </div>
-      )}
-
-      <div className="mb-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-grow">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar orçamentos..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full p-3 pl-10 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-          </div>
-          <button
-            onClick={() => {
-              const reversed = [...simpleBudgets].reverse();
-              setSimpleBudgets(reversed);
-              const reversedRegular = [...regularBudgets].reverse();
-              setRegularBudgets(reversedRegular);
-            }}
-            className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center sm:w-auto"
+        <div className="hidden sm:flex gap-2">
+          <Button
+            onClick={() => navigate("/app/add-simple-budget")}
+            className="bg-green-600 hover:bg-green-700"
           >
-            <Calendar className="w-5 h-5 mr-2" />
-            Inverter Ordem
-          </button>
+            <Plus className="w-4 h-4 mr-2" />
+            Sem Cadastro
+          </Button>
+          <Button
+            onClick={() => navigate("/app/add-budget")}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Com Cadastro
+          </Button>
         </div>
       </div>
 
-      {/* Tabs para mobile e tablet */}
-      <div className="lg:hidden flex rounded-lg bg-gray-800 p-1 mb-4">
-        <button
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardContent className="flex items-center justify-between p-4 sm:p-6">
+            <div>
+              <p className="text-sm font-medium text-zinc-400">
+                Total de Documentos
+              </p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+                {simpleBudgets.length + regularBudgets.length}
+              </h3>
+            </div>
+            <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardContent className="flex items-center justify-between p-4 sm:p-6">
+            <div>
+              <p className="text-sm font-medium text-zinc-400">Sem Cadastro</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+                {simpleBudgets.length}
+              </h3>
+            </div>
+            <UserSquare className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardContent className="flex items-center justify-between p-4 sm:p-6">
+            <div>
+              <p className="text-sm font-medium text-zinc-400">Com Cadastro</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+                {regularBudgets.length}
+              </h3>
+            </div>
+            <UserPlus className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters Card */}
+      <Card className="bg-zinc-800 border-zinc-700">
+        <CardContent className="space-y-4 p-3 sm:p-6">
+          {/* Search */}
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <Input
+              placeholder="Buscar documentos..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+            />
+          </div>
+
+          {/* Filter Buttons */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                onClick={() => handleFilterChange("all")}
+                className={`gap-2 border-zinc-700 ${
+                  documentTypeFilter === "all"
+                    ? "bg-green-600 text-white hover:bg-green-700"
+                    : "text-white hover:bg-zinc-700 bg-zinc-600"
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                Todos
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleFilterChange("budget")}
+                className={`gap-2 border-zinc-700 ${
+                  documentTypeFilter === "budget"
+                    ? "bg-green-600 text-white hover:bg-green-700"
+                    : "text-white hover:bg-zinc-700 bg-zinc-600"
+                }`}
+              >
+                <FileCheck className="w-4 h-4" />
+                Orçamentos
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleFilterChange("expense")}
+                className={`gap-2 border-zinc-700 ${
+                  documentTypeFilter === "expense"
+                    ? "bg-green-600 text-white hover:bg-green-700"
+                    : "text-white hover:bg-zinc-700 bg-zinc-600"
+                }`}
+              >
+                <Receipt className="w-4 h-4" />
+                Despesas
+              </Button>
+            </div>
+          </div>
+
+          {error && (
+            <Alert
+              variant="destructive"
+              className="border-red-500 bg-red-500/10"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-red-400">
+                {error}
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Quick Actions - Desktop Only */}
+      <div className="hidden sm:flex gap-2">
+        <Button
+          variant="outline"
+          onClick={() => {
+            const reversed = [...simpleBudgets].reverse();
+            setSimpleBudgets(reversed);
+            const reversedRegular = [...regularBudgets].reverse();
+            setRegularBudgets(reversedRegular);
+          }}
+          className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
+        >
+          <Calendar className="w-4 h-4 mr-2" />
+          Inverter Ordem
+        </Button>
+      </div>
+
+      {/* Tabs */}
+      <div className="lg:hidden flex flex-col sm:flex-row gap-2 rounded-lg bg-zinc-800 p-2 mb-4">
+        <Button
           onClick={() => setActiveTab("simple")}
-          className={`flex-1 flex items-center justify-center py-2 px-4 rounded-md ${
+          variant="ghost"
+          className={`flex items-center justify-center h-12 sm:h-10 ${
             activeTab === "simple"
-              ? "bg-[#117d49] text-white"
-              : "text-gray-400 hover:text-white"
+              ? "bg-green-600 text-white"
+              : "text-zinc-400 hover:text-white"
           }`}
         >
           <UserSquare className="w-4 h-4 mr-2" />
-          {documentTypeFilter === "all" && "Orçamentos e Despesas"}
-          {documentTypeFilter === "budget" && "Orçamentos e Despesas"}
-          {documentTypeFilter === "expense" && "Orçamentos e Despesas"}
-          {` (${filteredSimpleBudgets.length})`}
-        </button>
-        <button
+          <span className="text-sm truncate">
+            {documentTypeFilter === "all" && "Orçamentos e Despesas"}
+            {documentTypeFilter === "budget" && "Orçamentos"}
+            {documentTypeFilter === "expense" && "Despesas"}
+            {` (${filteredSimpleBudgets.length})`}
+          </span>
+        </Button>
+        <Button
           onClick={() => setActiveTab("regular")}
-          className={`flex-1 flex items-center justify-center py-2 px-4 rounded-md ${
+          variant="ghost"
+          className={`flex items-center justify-center h-12 sm:h-10 ${
             activeTab === "regular"
-              ? "bg-[#117d49] text-white"
-              : "text-gray-400 hover:text-white"
+              ? "bg-green-600 text-white"
+              : "text-zinc-400 hover:text-white"
           }`}
         >
           <UserPlus className="w-4 h-4 mr-2" />
-          Fechamentos ({regularBudgets.length})
-        </button>
+          <span className="text-sm truncate">
+            Fechamentos ({regularBudgets.length})
+          </span>
+        </Button>
       </div>
 
-      {/* Grid para desktop, lista única para mobile/tablet */}
+      {/* Documents Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Orçamentos Simples */}
+        {/* Simple Budgets */}
         <div
           className={`space-y-4 ${
             activeTab !== "simple" ? "hidden lg:block" : ""
           }`}
         >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-semibold text-white">
-              {documentTypeFilter === "all" && "Orçamentos e Despesas"}
-              {documentTypeFilter === "budget" && "Orçamentos"}
-              {documentTypeFilter === "expense" && "Despesas"}
-              {` (${filteredSimpleBudgets.length})`}
-            </h3>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleFilterChange("all")}
-                disabled={isFilterLoading}
-                className={`p-2 rounded-lg flex items-center ${
-                  documentTypeFilter === "all"
-                    ? "bg-[#117d49] text-white"
-                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                }`}
-              >
-                <FileText className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => handleFilterChange("budget")}
-                disabled={isFilterLoading}
-                className={`p-2 rounded-lg flex items-center ${
-                  documentTypeFilter === "budget"
-                    ? "bg-[#117d49] text-white"
-                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                }`}
-              >
-                <FileCheck className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => handleFilterChange("expense")}
-                disabled={isFilterLoading}
-                className={`p-2 rounded-lg flex items-center ${
-                  documentTypeFilter === "expense"
-                    ? "bg-[#117d49] text-white"
-                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                }`}
-              >
-                <Receipt className="w-4 h-4" />
-              </button>
-            </div>
+          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            {documentTypeFilter === "all" && "Orçamentos e Despesas"}
+            {documentTypeFilter === "budget" && "Orçamentos"}
+            {documentTypeFilter === "expense" && "Despesas"}
+            {` (${filteredSimpleBudgets.length})`}
+          </h3>
+
+          <div className="grid grid-cols-1 gap-4">
+            {filteredSimpleBudgets.length > 0 ? (
+              filteredSimpleBudgets.map((budget) => (
+                <BudgetCard
+                  key={budget.id}
+                  budget={budget}
+                  clientName={budget.clientData.name}
+                  onDelete={handleDelete}
+                  onViewPDF={handleViewPDF}
+                />
+              ))
+            ) : (
+              <Card className="bg-zinc-800 border-zinc-700">
+                <CardContent className="p-8 sm:p-12 text-center">
+                  <Search className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
+                  <p className="text-lg font-medium mb-2 text-white">
+                    Nenhum documento encontrado
+                  </p>
+                  <p className="text-sm sm:text-base text-zinc-400">
+                    Tente ajustar seus filtros ou adicione um novo documento
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
-          {filteredSimpleBudgets.length > 0 ? (
-            filteredSimpleBudgets.map((budget) => (
-              <BudgetCard
-                key={budget.id}
-                budget={budget}
-                clientName={budget.clientData.name}
-                onDelete={handleDelete}
-                onViewPDF={handleViewPDF}
-              />
-            ))
-          ) : (
-            <div className="text-white text-center py-8 bg-gray-800 rounded-lg">
-              <p className="mb-2">Nenhum documento encontrado.</p>
-            </div>
-          )}
         </div>
 
-        {/* Orçamentos Regulares */}
+        {/* Regular Budgets */}
         <div
           className={`space-y-4 ${
             activeTab !== "regular" ? "hidden lg:block" : ""
           }`}
         >
-          <h3 className="text-xl font-semibold text-white mb-4 hidden lg:block">
+          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
             Fechamentos de Ordens de Serviço ({filteredRegularBudgets.length})
           </h3>
-          {filteredRegularBudgets.length > 0 ? (
-            filteredRegularBudgets.map((budget) => (
-              <BudgetCard
-                key={budget.id}
-                budget={budget}
-                clientName={clientNames[budget.clientId]}
-                onDelete={handleDelete}
-                onViewPDF={handleViewPDF}
-              />
-            ))
-          ) : (
-            <div className="text-white text-center py-8 bg-gray-800 rounded-lg">
-              <p className="mb-2">Nenhum orçamento encontrado.</p>
-            </div>
-          )}
+
+          <div className="grid grid-cols-1 gap-4">
+            {filteredRegularBudgets.length > 0 ? (
+              filteredRegularBudgets.map((budget) => (
+                <BudgetCard
+                  key={budget.id}
+                  budget={budget}
+                  clientName={clientNames[budget.clientId]}
+                  onDelete={handleDelete}
+                  onViewPDF={handleViewPDF}
+                />
+              ))
+            ) : (
+              <Card className="bg-zinc-800 border-zinc-700">
+                <CardContent className="p-8 sm:p-12 text-center">
+                  <Search className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
+                  <p className="text-lg font-medium mb-2 text-white">
+                    Nenhum documento encontrado
+                  </p>
+                  <p className="text-sm sm:text-base text-zinc-400">
+                    Tente ajustar seus filtros ou adicione um novo documento
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Botões fixos */}
-      <div className="fixed bottom-4 inset-x-0 flex justify-center items-center gap-4 px-4 md:px-0 md:left-64">
-        <button
+      {/* Mobile FAB Menu */}
+      <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden z-50">
+        <Button
+          onClick={() => {
+            const reversed = [...simpleBudgets].reverse();
+            setSimpleBudgets(reversed);
+            const reversedRegular = [...regularBudgets].reverse();
+            setRegularBudgets(reversedRegular);
+          }}
+          size="icon"
+          className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
+        >
+          <Calendar className="h-5 w-5" />
+        </Button>
+
+        <Button
           onClick={() => navigate("/app/add-simple-budget")}
-          className="flex-1 md:flex-none h-14 md:h-16 px-4 md:px-6 bg-[#117d49] text-white font-medium flex items-center justify-center rounded-full shadow-lg hover:bg-[#0d6238] transition-colors text-sm md:text-base"
+          size="icon"
+          className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
         >
-          <Plus className="w-5 h-5 mr-2" />
-          <span className="whitespace-nowrap">Sem Cadastro</span>
-        </button>
-        <button
+          <UserSquare className="h-5 w-5" />
+        </Button>
+
+        <Button
           onClick={() => navigate("/app/add-budget")}
-          className="flex-1 md:flex-none h-14 md:h-16 px-4 md:px-6 bg-[#117d49] text-white font-medium flex items-center justify-center rounded-full shadow-lg hover:bg-[#0d6238] transition-colors text-sm md:text-base"
+          size="icon"
+          className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
         >
-          <Plus className="w-5 h-5 mr-2" />
-          <span className="whitespace-nowrap">Com Cadastro</span>
-        </button>
+          <UserPlus className="h-5 w-5" />
+        </Button>
       </div>
     </div>
   );

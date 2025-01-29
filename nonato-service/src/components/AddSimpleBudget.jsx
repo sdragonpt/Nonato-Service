@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, User, Loader2, Plus, Trash2 } from "lucide-react";
+import {
+  FileText,
+  User,
+  Loader2,
+  AlertTriangle,
+  Plus,
+  Trash2,
+  ArrowLeft,
+  Receipt,
+  UserSquare,
+  Phone,
+  MapPin,
+} from "lucide-react";
 import {
   collection,
   getDocs,
@@ -11,7 +23,21 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 import generateSimpleBudgetPDF from "./generateSimpleBudgetPDF.jsx";
-import ServiceInput from "./ServiceInput"; // Novo import
+import ServiceInput from "./ServiceInput";
+
+// UI Components
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const AddSimpleBudget = () => {
   const navigate = useNavigate();
@@ -61,11 +87,7 @@ const AddSimpleBudget = () => {
 
   const handleAddService = (serviceData) => {
     if (!serviceData) return;
-
-    // Adiciona o serviço com os dados recebidos do ServiceInput
     setSelectedServices((prev) => [...prev, serviceData]);
-
-    // Reset do serviço selecionado
     setSelectedServiceId("");
   };
 
@@ -105,12 +127,28 @@ const AddSimpleBudget = () => {
         "0"
       )}`;
 
+      // Formatar os serviços para o formato esperado pelo PDF
+      const formattedServices = selectedServices.map((service) => {
+        if (service.multipleEntries) {
+          // Para múltiplos valores, mostrar o total como valor unitário
+          return {
+            id: service.id,
+            name: service.name,
+            type: "total", // Mudando o tipo para 'total'
+            value: service.total,
+            quantity: 1,
+            total: service.total,
+          };
+        }
+        return service;
+      });
+
       const budgetData = {
         type: "simple",
         budgetNumber,
         sequentialNumber: nextNumber,
         clientData,
-        services: selectedServices,
+        services: formattedServices,
         total: selectedServices.reduce((acc, curr) => acc + curr.total, 0),
         createdAt: new Date(),
         isExpense,
@@ -138,7 +176,6 @@ const AddSimpleBudget = () => {
     }
   };
 
-  // Adicionar este useEffect após os outros useEffects:
   useEffect(() => {
     const newTotal = selectedServices.reduce(
       (acc, curr) => acc + curr.total,
@@ -149,152 +186,180 @@ const AddSimpleBudget = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-4">
-      <h2 className="text-2xl font-semibold text-center text-white mb-6">
-        Gerador de Orçamentos
-      </h2>
-
-      {error && (
-        <div className="mb-4 p-4 bg-red-500/10 border border-red-500 rounded-lg">
-          <p className="text-red-500">{error}</p>
+    <div className="space-y-6 pb-24">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">
+            {isExpense ? "Nova Despesa" : "Novo Orçamento"}
+          </h1>
+          <p className="text-sm text-zinc-400">
+            {isExpense
+              ? "Crie uma nova despesa sem cadastro de cliente"
+              : "Crie um novo orçamento sem cadastro de cliente"}
+          </p>
         </div>
-      )}
-
-      {/* Toggle buttons */}
-      <div className="flex justify-center mb-6">
-        <div className="bg-gray-700 p-1 rounded-xl inline-flex relative shadow-lg">
-          <div
-            className={`absolute top-1 bottom-1 w-[120px] rounded-lg bg-[#117d49] transition-all duration-300 ease-in-out ${
-              isExpense ? "translate-x-[120px]" : "translate-x-0"
-            }`}
-          />
-          <button
-            onClick={() => setIsExpense(false)}
-            className={`relative w-[120px] py-2 rounded-lg font-medium transition-colors duration-300 ${
-              !isExpense ? "text-white" : "text-gray-400 hover:text-gray-200"
-            }`}
-          >
-            Orçamento
-          </button>
-          <button
-            onClick={() => setIsExpense(true)}
-            className={`relative w-[120px] py-2 rounded-lg font-medium transition-colors duration-300 ${
-              isExpense ? "text-white" : "text-gray-400 hover:text-gray-200"
-            }`}
-          >
-            Despesa
-          </button>
-        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => navigate(-1)}
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+        >
+          <ArrowLeft className="h-4 w-4 text-white" />
+        </Button>
       </div>
 
-      <div className="grid gap-6 mb-6">
-        {/* Client Data Form */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg">
-          <div className="p-6 border-b border-gray-700">
-            <h3 className="text-lg font-semibold text-white flex items-center">
-              <User className="w-5 h-5 mr-2" />
-              Dados do Cliente
-            </h3>
+      {error && (
+        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-red-400">{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Document Type Toggle */}
+      <Card className="bg-zinc-800 border-zinc-700">
+        <CardContent className="p-6">
+          <div className="flex justify-center">
+            <div className="bg-zinc-900 p-1 rounded-xl inline-flex relative">
+              <div
+                className={`absolute top-1 bottom-1 w-[120px] rounded-lg bg-green-600 transition-all duration-300 ${
+                  isExpense ? "translate-x-[120px]" : "translate-x-0"
+                }`}
+              />
+              <button
+                onClick={() => setIsExpense(false)}
+                className={`relative w-[120px] py-2 rounded-lg font-medium transition-colors ${
+                  !isExpense ? "text-white" : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <FileText className="w-4 h-4 mx-auto mb-1" />
+                Orçamento
+              </button>
+              <button
+                onClick={() => setIsExpense(true)}
+                className={`relative w-[120px] py-2 rounded-lg font-medium transition-colors ${
+                  isExpense ? "text-white" : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <Receipt className="w-4 h-4 mx-auto mb-1" />
+                Despesa
+              </button>
+            </div>
           </div>
-          <div className="p-6">
-            <div className="grid gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Nome
-                </label>
-                <input
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6">
+        {/* Client Data */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Dados do Cliente
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">Nome</label>
+              <div className="relative">
+                <UserSquare className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Input
                   type="text"
                   name="name"
                   value={clientData.name}
                   onChange={handleClientDataChange}
-                  className="w-full p-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
                   placeholder="Nome do cliente"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Telemóvel
-                </label>
-                <input
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
+                Telefone
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Input
                   type="tel"
                   name="phone"
                   value={clientData.phone}
                   onChange={handleClientDataChange}
-                  className="w-full p-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  placeholder="Número de telemóvel"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Endereço
-                </label>
-                <textarea
-                  name="address"
-                  value={clientData.address}
-                  onChange={handleClientDataChange}
-                  className="w-full p-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  placeholder="Endereço completo"
-                  rows="3"
+                  className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                  placeholder="Número de telefone"
                 />
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Add Service Form */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg">
-          <div className="p-6 border-b border-gray-700">
-            <h3 className="text-lg font-semibold text-white flex items-center">
-              <FileText className="w-5 h-5 mr-2" />
-              Adicionar Serviço
-            </h3>
-          </div>
-          <div className="p-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
+                Endereço
+              </label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-3 text-zinc-400" />
+                <Textarea
+                  name="address"
+                  value={clientData.address}
+                  onChange={handleClientDataChange}
+                  className="min-h-[100px] pl-10 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                  placeholder="Endereço completo"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Services Section */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white flex items-center gap-2">
+              <Receipt className="w-5 h-5" />
+              Adicionar Serviços
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <ServiceInput
               services={services}
               selectedServiceId={selectedServiceId}
               setSelectedServiceId={setSelectedServiceId}
               onAddService={handleAddService}
             />
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Selected Services */}
         {selectedServices.length > 0 && (
-          <div className="bg-gray-800 border border-gray-700 rounded-lg">
-            <div className="p-6 border-b border-gray-700">
-              <h3 className="text-lg font-semibold text-white">
+          <Card className="bg-zinc-800 border-zinc-700">
+            <CardHeader>
+              <CardTitle className="text-lg text-white">
                 Serviços Selecionados
-              </h3>
-            </div>
-            <div className="p-6">
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="space-y-4">
                 {selectedServices.map((service) => (
                   <div
                     key={service.id}
-                    className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
+                    className="flex items-center justify-between p-4 bg-zinc-900 rounded-lg"
                   >
                     <div>
                       <p className="text-white font-medium">{service.name}</p>
-                      <p className="text-gray-400 text-sm">
+                      <p className="text-zinc-400 text-sm">
                         {service.multipleEntries
-                          ? // Se for múltiplos valores, mostra o total direto
-                            `Total: ${service.total.toFixed(2)}€`
-                          : // Se for valor único, mostra o cálculo
-                            `${service.value.toFixed(2)}€ x ${
+                          ? `Total: ${service.total.toFixed(2)}€`
+                          : `${service.value.toFixed(2)}€ x ${
                               service.quantity
                             } = ${service.total.toFixed(2)}€`}
                       </p>
-                      {/* Se tiver valores múltiplos, mostra o detalhe */}
                       {service.multipleEntries && (
-                        <div className="mt-1 text-xs text-gray-400">
+                        <div className="mt-1 text-xs text-zinc-400">
                           {service.multipleEntries.map((entry, idx) => (
                             <div key={idx}>
                               Valor {idx + 1}: {entry.value}€ x {entry.quantity}
@@ -303,28 +368,30 @@ const AddSimpleBudget = () => {
                         </div>
                       )}
                     </div>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleRemoveService(service.id)}
-                      className="p-2 text-red-400 hover:text-red-300"
+                      className="text-red-400 hover:text-red-300 hover:bg-zinc-800"
                     >
                       <Trash2 className="w-5 h-5" />
-                    </button>
+                    </Button>
                   </div>
                 ))}
-                <div className="pt-4 border-t border-gray-700">
-                  <p className="text-white text-right font-medium">
+                <div className="pt-4 border-t border-zinc-700">
+                  <p className="text-right font-medium text-white">
                     Total: {totalAmount.toFixed(2)}€
                   </p>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
       </div>
 
       {/* Generate Button */}
-      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center md:left-64">
-        <button
+      <div className="fixed bottom-6 right-6 left-6 md:left-64 flex justify-center">
+        <Button
           onClick={generateBudget}
           disabled={
             isGeneratingPDF ||
@@ -333,15 +400,20 @@ const AddSimpleBudget = () => {
             !clientData.address ||
             selectedServices.length === 0
           }
-          className="h-16 px-6 bg-[#117d49] text-white font-medium flex items-center justify-center rounded-full shadow-lg hover:bg-[#0d6238] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="h-12 px-6 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isGeneratingPDF ? (
-            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Gerando...
+            </>
           ) : (
-            <FileText className="w-5 h-5 mr-2" />
+            <>
+              <Plus className="w-4 h-4 mr-2" />
+              Gerar {isExpense ? "Despesa" : "Orçamento"}
+            </>
           )}
-          {isGeneratingPDF ? "Gerando..." : "Gerar Orçamento"}
-        </button>
+        </Button>
       </div>
     </div>
   );

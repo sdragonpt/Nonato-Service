@@ -32,6 +32,7 @@ const generateSimpleBudgetPDF = async (budget) => {
       hour: "hora(s)",
       day: "dia(s)",
       km: "km",
+      total: "Total", // Novo tipo para valores múltiplos
     };
     return types[type] || type;
   };

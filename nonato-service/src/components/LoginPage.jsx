@@ -17,7 +17,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import ConnectionDiagnostic from "./ConnectionDiagnostic";
+// import ConnectionDiagnostic from "./ConnectionDiagnostic";
 
 // UI Components
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -135,7 +135,7 @@ const LoginPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ConnectionDiagnostic />
+            {/* <ConnectionDiagnostic /> */}
             {error && (
               <Alert
                 variant="destructive"

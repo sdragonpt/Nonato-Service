@@ -14,7 +14,9 @@ import {
   Barcode,
   AlertTriangle,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+
+// UI Components
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -123,73 +125,87 @@ const AddEquipment = () => {
   };
 
   return (
-    <div className="container max-w-2xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-2xl font-bold text-white">Novo Equipamento</h2>
-        <button
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Novo Equipamento</h1>
+          <p className="text-sm text-zinc-400">
+            Adicione um novo equipamento ao sistema
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
           onClick={() => navigate(-1)}
-          className="flex items-center justify-center bg-zinc-800 text-white p-3 rounded-full hover:bg-zinc-700 transition-colors"
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
         >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
       </div>
 
       {error && (
-        <Alert
-          variant="destructive"
-          className="mb-6 border-red-500 bg-red-500/10"
-        >
+        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription className="text-red-400">{error}</AlertDescription>
         </Alert>
       )}
 
-      <Card className="bg-zinc-800 border-zinc-700 mb-6">
-        <CardContent className="p-6">
-          <label className="block text-sm font-medium text-gray-300 mb-3">
-            Foto do Equipamento
-          </label>
-          {equipmentPicPreview ? (
-            <div className="relative w-24 h-24 mx-auto">
-              <img
-                src={equipmentPicPreview}
-                alt="Preview"
-                className="w-full h-full rounded-full object-cover"
-              />
-              <button
-                type="button"
-                onClick={removeImage}
-                className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <label className="flex flex-col items-center p-6 bg-zinc-700/50 rounded-lg cursor-pointer hover:bg-zinc-700 transition-colors">
-              <Camera className="w-8 h-8 text-gray-400 mb-2" />
-              <span className="text-sm text-gray-400">
-                Clique para adicionar foto
-              </span>
-              <input
-                type="file"
-                className="hidden"
-                onChange={handleEquipmentPicChange}
-                accept="image/*"
-              />
-            </label>
-          )}
-        </CardContent>
-      </Card>
-
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Equipment Picture Card */}
         <Card className="bg-zinc-800 border-zinc-700">
-          <CardContent className="p-6 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Tipo
+          <CardHeader>
+            <CardTitle className="text-lg text-white">
+              Foto do Equipamento
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {equipmentPicPreview ? (
+              <div className="relative w-24 h-24">
+                <img
+                  src={equipmentPicPreview}
+                  alt="Preview"
+                  className="w-full h-full rounded-full object-cover"
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="destructive"
+                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                  onClick={removeImage}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center p-6 bg-zinc-900 border-2 border-dashed border-zinc-700 rounded-lg cursor-pointer hover:bg-zinc-700/50 transition-colors">
+                <Camera className="h-8 w-8 text-zinc-400 mb-2" />
+                <span className="text-sm text-zinc-400">
+                  Clique para adicionar foto
+                </span>
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={handleEquipmentPicChange}
+                  accept="image/*"
+                />
               </label>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Equipment Information Card */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white">
+              Informações do Equipamento
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">Tipo</label>
               <div className="relative">
-                <Printer className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Printer className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                 <Input
                   type="text"
                   name="type"
@@ -203,16 +219,14 @@ const AddEquipment = () => {
                 />
               </div>
               {touched.type && !formData.type && (
-                <p className="mt-1 text-sm text-red-500">Tipo é obrigatório</p>
+                <p className="text-sm text-red-500">Tipo é obrigatório</p>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Marca
-              </label>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">Marca</label>
               <div className="relative">
-                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                 <Input
                   type="text"
                   name="brand"
@@ -224,12 +238,12 @@ const AddEquipment = () => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
                 Modelo
               </label>
               <div className="relative">
-                <Package className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Package className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                 <Input
                   type="text"
                   name="model"
@@ -241,12 +255,12 @@ const AddEquipment = () => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
                 Número de Série
               </label>
               <div className="relative">
-                <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                 <Input
                   type="text"
                   name="serialNumber"
@@ -260,19 +274,20 @@ const AddEquipment = () => {
           </CardContent>
         </Card>
 
+        {/* Submit Button */}
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-green-600 hover:bg-green-700 text-lg py-6"
+          className="w-full bg-green-600 hover:bg-green-700"
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Adicionando...
             </>
           ) : (
             <>
-              <Plus className="w-5 h-5 mr-2" />
+              <Plus className="w-4 h-4 mr-2" />
               Adicionar Equipamento
             </>
           )}

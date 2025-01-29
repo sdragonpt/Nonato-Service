@@ -275,7 +275,7 @@ const EquipmentDetail = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-700 text-white hover:bg-zinc-700"
+              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
             >
               Cancelar
             </Button>
