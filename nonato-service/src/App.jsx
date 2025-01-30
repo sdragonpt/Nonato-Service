@@ -73,6 +73,9 @@ import UserSettings from "./components/UserSettings";
 import ManageUsers from "./ManageUsers";
 import { useAuth } from "./hooks/useAuth";
 
+import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
+import { Capacitor } from "@capacitor/core";
+
 // Components UI
 import {
   DropdownMenu,
@@ -480,6 +483,17 @@ const NotificationsDropdown = () => {
 // Main App Component
 const App = () => {
   const { user, loading } = useAuth(); // Substitui o useState e useEffect anterior
+
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      GoogleAuth.initialize({
+        clientId:
+          "896475175219-6cj6qd98usuduc3ps334orcc8o413dfl.apps.googleusercontent.com",
+        scopes: ["profile", "email"],
+        grantOfflineAccess: true,
+      });
+    }
+  }, []);
 
   if (loading) {
     return (

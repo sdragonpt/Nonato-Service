@@ -9,6 +9,7 @@ import {
   linkWithCredential,
   signInWithRedirect,
   getRedirectResult,
+  signInWithCredential,
 } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { firebaseApp } from "../firebase";
@@ -34,6 +35,9 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+
+import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
+import { Capacitor } from "@capacitor/core";
 
 const auth = getAuth(firebaseApp);
 
@@ -112,25 +116,31 @@ const LoginPage = () => {
       setIsGoogleLoading(true);
       setError("");
 
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
+      if (Capacitor.isNativePlatform()) {
+        const result = await GoogleAuth.signIn();
 
-      // Detectar se é um dispositivo mobile
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (!result) {
+          throw new Error("Login cancelado");
+        }
 
-      if (isMobile) {
-        // Usar redirect para dispositivos mobile
-        await signInWithRedirect(auth, provider);
-        // Note: O código após signInWithRedirect não será executado
-        // pois a página será redirecionada
+        // Use apenas o idToken
+        const credential = GoogleAuthProvider.credential(
+          result.authentication.idToken,
+          null // não use o accessToken por enquanto
+        );
+
+        await signInWithCredential(auth, credential);
+        navigate("/app");
       } else {
-        // Usar popup para desktop
+        // Web login
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: "select_account" });
         await signInWithPopup(auth, provider);
         navigate("/app");
       }
     } catch (err) {
-      console.error("Erro no login Google:", err);
-      setError("Erro ao fazer login com Google. Por favor, tente novamente.");
+      console.error("Erro:", err);
+      setError(err.message || "Erro ao fazer login com Google");
     } finally {
       setIsGoogleLoading(false);
     }
