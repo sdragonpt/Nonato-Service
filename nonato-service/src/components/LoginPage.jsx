@@ -1,9 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   getAuth,
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
+  fetchSignInMethodsForEmail,
+  EmailAuthProvider,
+  linkWithCredential,
+  signInWithRedirect,
+  getRedirectResult,
 } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { firebaseApp } from "../firebase";
@@ -15,15 +20,20 @@ import {
   LogIn,
   Eye,
   EyeOff,
+  Building2,
 } from "lucide-react";
 import { motion } from "framer-motion";
-// import ConnectionDiagnostic from "./ConnectionDiagnostic";
 
-// UI Components
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 
 const auth = getAuth(firebaseApp);
 
@@ -34,6 +44,25 @@ const LoginPage = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          // Login bem sucedido após redirecionamento
+          navigate("/app");
+        }
+      } catch (err) {
+        console.error("Erro após redirecionamento:", err);
+        setError("Erro ao fazer login com Google. Por favor, tente novamente.");
+      } finally {
+        setIsGoogleLoading(false);
+      }
+    };
+
+    handleRedirectResult();
+  }, [navigate]);
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -48,66 +77,60 @@ const LoginPage = () => {
     try {
       setIsLoading(true);
       setError("");
-      await signInWithEmailAndPassword(auth, formData.email, formData.password);
-      navigate("/app");
-      window.location.reload();
+
+      // Tentar login normal primeiro
+      try {
+        await signInWithEmailAndPassword(
+          auth,
+          formData.email,
+          formData.password
+        );
+        navigate("/app");
+        return;
+      } catch (emailError) {
+        // Se falhar, verificar se é uma conta Google
+        const methods = await fetchSignInMethodsForEmail(auth, formData.email);
+
+        if (methods.includes("google.com")) {
+          setError(
+            "Esta conta foi criada com Google. Por favor, use o botão 'Entrar com Google'."
+          );
+        } else {
+          setError("Email ou senha incorretos.");
+        }
+      }
     } catch (err) {
       console.error("Erro de login:", err);
-      // ... resto do código de erro ...
+      setError("Erro ao fazer login. Por favor, tente novamente.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    const provider = new GoogleAuthProvider();
-
-    // Configurações adicionais para o provider
-    provider.setCustomParameters({
-      prompt: "select_account", // Força sempre mostrar seleção de conta
-    });
-
     try {
       setIsGoogleLoading(true);
       setError("");
 
-      // Tenta primeiro com popup
-      try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+
+      // Detectar se é um dispositivo mobile
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      if (isMobile) {
+        // Usar redirect para dispositivos mobile
+        await signInWithRedirect(auth, provider);
+        // Note: O código após signInWithRedirect não será executado
+        // pois a página será redirecionada
+      } else {
+        // Usar popup para desktop
         await signInWithPopup(auth, provider);
         navigate("/app");
-        window.location.reload();
-      } catch (popupError) {
-        console.log("Popup bloqueado, tentando redirect...");
-
-        // Se falhar com popup, tenta com redirect
-        if (
-          popupError.code === "auth/popup-blocked" ||
-          popupError.code === "auth/popup-closed-by-user"
-        ) {
-          await signInWithRedirect(auth, provider);
-        } else {
-          throw popupError; // Re-throw outros erros
-        }
       }
     } catch (err) {
-      console.error("Erro detalhado no login Google:", err);
-
-      // Tratamento mais específico de erros
-      if (err.code === "auth/network-request-failed") {
-        setError(
-          "Erro de conexão. Verifique se há bloqueadores ativos no navegador."
-        );
-      } else if (err.code === "auth/cancelled-popup-request") {
-        setError(
-          "Login cancelado. Tente novamente ou use outro método de login."
-        );
-      } else if (err.code === "auth/popup-blocked") {
-        setError(
-          "Popup bloqueado. Desative bloqueadores de popup ou use outro método."
-        );
-      } else {
-        setError("Falha no login com Google. Por favor, tente novamente.");
-      }
+      console.error("Erro no login Google:", err);
+      setError("Erro ao fazer login com Google. Por favor, tente novamente.");
     } finally {
       setIsGoogleLoading(false);
     }
@@ -115,35 +138,67 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-900 p-4">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-zinc-900 bg-[radial-gradient(#262626_1px,transparent_1px)] [background-size:16px_16px] opacity-25" />
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
+        className="w-full max-w-md relative"
       >
-        {/* Logo/Nome */}
+        {/* Logo/Branding */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">Nonato Service</h1>
-          <p className="text-zinc-400 mt-2">Sistema de Gestão</p>
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="inline-block"
+          >
+            <Building2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
+          </motion.div>
+          <motion.h1
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-3xl font-bold text-white bg-clip-text text-transparent bg-gradient-to-r from-green-500 to-emerald-500"
+          >
+            Nonato Service
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="text-zinc-400 mt-2"
+          >
+            Sistema de Gestão Empresarial
+          </motion.p>
         </div>
 
-        {/* Card do Login */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        {/* Login Card */}
+        <Card className="bg-zinc-800/50 border-zinc-700 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-2xl text-center text-white">
               Login
             </CardTitle>
+            <CardDescription className="text-center text-zinc-400">
+              Entre com suas credenciais para acessar o sistema
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* <ConnectionDiagnostic /> */}
             {error && (
               <Alert
                 variant="destructive"
-                className="mb-6 border-red-500 bg-red-500/10"
+                className="mb-6 border-red-500/50 bg-red-500/10"
               >
                 <AlertTriangle className="h-4 w-4" />
-                <AlertDescription className="text-red-400">
+                <AlertDescription className="text-red-400 font-medium">
                   {error}
+                  {error.includes("não autorizado") && (
+                    <p className="text-sm font-normal mt-1 text-red-300">
+                      Apenas usuários autorizados podem acessar o sistema.
+                    </p>
+                  )}
                 </AlertDescription>
               </Alert>
             )}
@@ -160,7 +215,7 @@ const LoginPage = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                    className="pl-10 bg-zinc-900/50 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
                     placeholder="Seu email"
                     required
                   />
@@ -178,7 +233,7 @@ const LoginPage = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className="pl-10 pr-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                    className="pl-10 pr-10 bg-zinc-900/50 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
                     placeholder="Sua senha"
                     required
                   />
@@ -186,7 +241,7 @@ const LoginPage = () => {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-0 top-0 h-full px-3 text-zinc-400 hover:text-white"
+                    className="absolute right-0 top-0 h-full px-3 text-zinc-40"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
@@ -202,7 +257,7 @@ const LoginPage = () => {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
                 >
                   {isLoading ? (
                     <>
@@ -221,8 +276,8 @@ const LoginPage = () => {
                   type="button"
                   onClick={handleGoogleLogin}
                   disabled={isGoogleLoading}
-                  variant="destructive"
-                  className="w-full"
+                  variant="outline"
+                  className="w-full text-white border-red-600 hover:text-white hover:bg-red-700 bg-red-600"
                 >
                   {isGoogleLoading ? (
                     <>

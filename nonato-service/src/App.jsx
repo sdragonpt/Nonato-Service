@@ -147,16 +147,16 @@ const NAVIGATION_ITEMS = [
       },
     ],
   },
-  {
-    title: "Administração",
-    items: [
-      {
-        path: "/app/manage-users",
-        icon: UserCog,
-        label: "Gerenciar Usuários",
-      },
-    ],
-  },
+  // {
+  //   title: "Administração",
+  //   items: [
+  //     {
+  //       path: "/app/manage-users",
+  //       icon: UserCog,
+  //       label: "Gerenciar Usuários",
+  //     },
+  //   ],
+  // },
 ];
 
 // Componente para renderizar a navegação com base no role do usuário
@@ -165,13 +165,11 @@ const Navigation = () => {
 
   // Se não tiver usuário ou role, não mostra nada
   if (!user?.role) {
-    console.warn("Navigation: Missing user or role", { user });
     return null;
   }
 
   // Garante que NAVIGATION_ITEMS existe
   if (!Array.isArray(NAVIGATION_ITEMS)) {
-    console.error("Navigation: NAVIGATION_ITEMS is not an array");
     return null;
   }
 
@@ -184,7 +182,6 @@ const Navigation = () => {
 
   // Se não tiver items após filtro, mostra mensagem
   if (filteredNavigation.length === 0) {
-    console.warn("No navigation items available for role:", user.role);
     return null;
   }
 
@@ -287,6 +284,7 @@ const DashboardShell = ({ children }) => {
   const [activeSection, setActiveSection] = useState("");
   const { user, loading } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
 
@@ -309,7 +307,6 @@ const DashboardShell = ({ children }) => {
   };
 
   if (!NAVIGATION_ITEMS || NAVIGATION_ITEMS.length === 0) {
-    console.warn("Navigation items não disponíveis:", { NAVIGATION_ITEMS });
     return (
       <div className="flex justify-center items-center min-h-screen bg-zinc-900">
         <Loader2 className="h-12 w-12 animate-spin text-white" />
@@ -406,6 +403,16 @@ const DashboardShell = ({ children }) => {
             </Button>
 
             <div className="ml-auto flex items-center gap-4">
+              {user?.role === "admin" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-zinc-400 hover:text-white hover:bg-zinc-700/50"
+                  onClick={() => navigate("/app/manage-users")}
+                >
+                  <UserCog className="h-5 w-5" />
+                </Button>
+              )}
               <NotificationsDropdown />
             </div>
           </div>
@@ -426,8 +433,12 @@ const NotificationsDropdown = () => {
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5 text-zinc-400" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative text-zinc-400 hover:text-white hover:bg-zinc-700/50"
+        >
+          <Bell className="h-5 w-5 hover:text-white" />
           <Badge className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 p-0 flex items-center justify-center">
             <span className="text-[10px]">3</span>
           </Badge>

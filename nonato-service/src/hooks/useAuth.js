@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../firebase';
+
+export class AuthorizationError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'AuthorizationError';
+  }
+}
 
 export function useAuth() {
   const [user, setUser] = useState(null);
@@ -12,23 +19,31 @@ export function useAuth() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          const authorizedEmails = ["sergionunoribeiro@gmail.com", "service.nonato@gmail.com"];
-  
-          // Verificar se o email está autorizado
-          if (!authorizedEmails.includes(firebaseUser.email)) {
-            console.warn("Usuário não autorizado:", firebaseUser.email);
-            setUser(null);
-            setLoading(false);
-            return;
+          // Verificar configuração de emails autorizados
+          const configDoc = await getDoc(doc(db, 'config', 'authorizedEmails'));
+          
+          if (!configDoc.exists()) {
+            // Criar documento de configuração se não existir
+            await setDoc(doc(db, 'config', 'authorizedEmails'), {
+              emails: ["sergionunoribeiro@gmail.com", "service.nonato@gmail.com"]
+            });
           }
 
-          // Verificar/criar documento do usuário no Firestore
+          const authorizedEmails = configDoc.exists() ? configDoc.data()?.emails || [] : [];
+
+          // Verificar se o email está autorizado
+          if (!authorizedEmails.includes(firebaseUser.email)) {
+            await auth.signOut();
+            throw new AuthorizationError("Usuário não autorizado para acessar o sistema.");
+          }
+
+          // Verificar/criar documento do usuário
           const userDoc = doc(db, 'users', firebaseUser.uid);
           const userSnapshot = await getDoc(userDoc);
 
           let userData;
           if (!userSnapshot.exists()) {
-            // Se é a primeira vez do usuário, criar documento com role padrão
+            // Criar novo documento de usuário
             userData = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
@@ -36,20 +51,25 @@ export function useAuth() {
               photoURL: firebaseUser.photoURL || '',
               createdAt: new Date(),
               lastLogin: new Date(),
-              role: firebaseUser.email === "sergionunoribeiro@gmail.com" ? "admin" : "client" // Define role baseado no email
+              role: firebaseUser.email === "sergionunoribeiro@gmail.com" ? "admin" : "client",
+              // Adicionar campo para indicar método de login
+              authProvider: firebaseUser.providerData[0]?.providerId || 'password'
             };
             await setDoc(userDoc, userData);
           } else {
-            // Atualizar último login e manter os dados existentes
             userData = userSnapshot.data();
-            await setDoc(userDoc, { lastLogin: new Date() }, { merge: true });
+            // Atualizar último login
+            await setDoc(userDoc, { 
+              lastLogin: new Date(),
+              // Atualizar informações que podem ter mudado
+              displayName: firebaseUser.displayName || userData.displayName,
+              photoURL: firebaseUser.photoURL || userData.photoURL
+            }, { merge: true });
           }
 
-          // Combinar dados do Auth com dados do Firestore
           setUser({ ...firebaseUser, ...userData });
         } catch (error) {
           console.error('Erro ao processar usuário:', error);
-          console.error("Detailed auth error:", error); // Debug detalhado
           setUser(null);
         }
       } else {
@@ -61,5 +81,29 @@ export function useAuth() {
     return () => unsubscribe();
   }, [auth]);
 
+
   return { user, loading };
+}
+
+// Função para adicionar um email autorizado
+export async function addAuthorizedEmail(email) {
+  try {
+    const configRef = doc(db, 'config', 'authorizedEmails');
+    const configDoc = await getDoc(configRef);
+    
+    if (!configDoc.exists()) {
+      // Se o documento não existir, criar com o array inicial
+      await setDoc(configRef, {
+        emails: [email, "sergionunoribeiro@gmail.com", "service.nonato@gmail.com"]
+      });
+    } else {
+      // Se existir, adicionar o novo email
+      await setDoc(configRef, {
+        emails: arrayUnion(email)
+      }, { merge: true });
+    }
+  } catch (error) {
+    console.error('Erro ao adicionar email autorizado:', error);
+    throw error;
+  }
 }

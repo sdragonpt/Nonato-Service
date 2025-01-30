@@ -31,6 +31,7 @@ import {
   Download,
   ClipboardList,
   AlertCircle,
+  X,
 } from "lucide-react";
 
 // UI Components
@@ -201,6 +202,36 @@ const ManageAgenda = () => {
     "Dezembro",
   ];
 
+  const updatePastAppointments = async (appointments) => {
+    const today = new Date().toISOString().split("T")[0];
+    const updatesNeeded = appointments.filter(
+      (appointment) =>
+        appointment.data < today && appointment.status === "agendado"
+    );
+
+    if (updatesNeeded.length === 0) return appointments;
+
+    try {
+      await Promise.all(
+        updatesNeeded.map((appointment) =>
+          updateDoc(doc(db, "agendamentos", appointment.id), {
+            status: "terminado",
+            concluido: true,
+          })
+        )
+      );
+
+      return appointments.map((appointment) =>
+        appointment.data < today && appointment.status === "agendado"
+          ? { ...appointment, status: "terminado", concluido: true }
+          : appointment
+      );
+    } catch (error) {
+      console.error("Erro ao atualizar agendamentos passados:", error);
+      return appointments;
+    }
+  };
+
   const fetchAppointments = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -228,7 +259,11 @@ const ManageAgenda = () => {
         })
       );
 
-      setAppointments(appointmentsWithDetails);
+      // Atualiza agendamentos passados e define o estado
+      const updatedAppointments = await updatePastAppointments(
+        appointmentsWithDetails
+      );
+      setAppointments(updatedAppointments);
     } catch (err) {
       console.error("Error fetching appointments:", err);
       setError("Erro ao carregar agendamentos");
@@ -661,6 +696,27 @@ const ManageAgenda = () => {
                             const clientColor = getClientColor(
                               appointment.clientId
                             );
+                            const StatusIcon = () => {
+                              switch (appointment.status) {
+                                case "terminado":
+                                  return (
+                                    <CheckCircle2 className="h-3 w-3 text-green-400" />
+                                  );
+                                case "cancelado":
+                                  return <X className="h-3 w-3 text-red-400" />;
+                                case "agendado":
+                                  return (
+                                    <Clock className="h-3 w-3 text-blue-400" />
+                                  );
+                                case "confirmado":
+                                  return (
+                                    <AlertCircle className="h-3 w-3 text-yellow-400" />
+                                  );
+                                default:
+                                  return null;
+                              }
+                            };
+
                             return (
                               <div
                                 key={appointment.id}
@@ -672,9 +728,10 @@ const ManageAgenda = () => {
                                 }
                               >
                                 <div
-                                  className={`${clientColor.text} font-medium truncate`}
+                                  className={`${clientColor.text} font-medium truncate flex items-center justify-between`}
                                 >
-                                  {appointment.hora}
+                                  <span>{appointment.hora}</span>
+                                  <StatusIcon />
                                 </div>
                                 <div className="truncate text-white">
                                   {appointment.cliente?.name ||

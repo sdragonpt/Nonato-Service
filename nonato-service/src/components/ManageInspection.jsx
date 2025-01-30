@@ -73,14 +73,7 @@ const InspectionCard = ({
 
   return (
     <Card className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors">
-      <CardContent
-        className="p-4 cursor-pointer"
-        onClick={(e) => {
-          if (!e.defaultPrevented) {
-            navigate(`/app/inspection-detail/${inspection.id}`);
-          }
-        }}
-      >
+      <CardContent className="p-4 cursor-pointer">
         <div className="flex items-center gap-3">
           <div
             className="h-10 w-10 rounded-full bg-green-600 dark:bg-green-700 flex items-center justify-center transform transition-all duration-200 hover:scale-105 cursor-help"
@@ -97,7 +90,14 @@ const InspectionCard = ({
             )}
           </div>
 
-          <div className="flex-1 min-w-0">
+          <div
+            className="flex-1 min-w-0"
+            onClick={(e) => {
+              if (!e.defaultPrevented) {
+                navigate(`/app/inspection-detail/${inspection.id}`);
+              }
+            }}
+          >
             <h3 className="font-semibold text-lg text-white truncate">
               {inspection.clientName}
             </h3>
@@ -324,21 +324,12 @@ const ManageInspection = () => {
 
   const stats = {
     total: inspections.length,
-    thisMonth: inspections.filter((inspection) => {
-      const now = new Date();
-      const inspectionDate = inspection.createdAt.toDate();
-      return (
-        inspectionDate.getMonth() === now.getMonth() &&
-        inspectionDate.getFullYear() === now.getFullYear()
-      );
-    }).length,
-    thisWeek: inspections.filter((inspection) => {
-      const now = new Date();
-      const inspectionDate = inspection.createdAt.toDate();
-      const diffTime = Math.abs(now - inspectionDate);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays <= 7;
-    }).length,
+    inspections: inspections.filter(
+      (inspection) => inspection.type !== "training"
+    ).length,
+    trainings: inspections.filter(
+      (inspection) => inspection.type === "training"
+    ).length,
   };
 
   if (isLoading) {
@@ -371,7 +362,7 @@ const ManageInspection = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-zinc-800 border-zinc-700">
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
@@ -387,24 +378,24 @@ const ManageInspection = () => {
         <Card className="bg-zinc-800 border-zinc-700">
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Este Mês</p>
+              <p className="text-sm font-medium text-zinc-400">Inspeções</p>
               <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
-                {stats.thisMonth}
+                {stats.inspections}
               </h3>
             </div>
-            <ListTodo className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
+            <ClipboardCheck className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
           </CardContent>
         </Card>
 
         <Card className="bg-zinc-800 border-zinc-700">
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Esta Semana</p>
+              <p className="text-sm font-medium text-zinc-400">Treinamentos</p>
               <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
-                {stats.thisWeek}
+                {stats.trainings}
               </h3>
             </div>
-            <Eye className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
+            <GraduationCap className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
           </CardContent>
         </Card>
       </div>

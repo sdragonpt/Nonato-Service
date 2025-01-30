@@ -12,8 +12,12 @@
     "rules": "storage.rules",
     "cors": [
       {
-        "origin": ["*"],
-        "method": ["GET"],
+        "origin": [
+          "*"
+        ],
+        "method": [
+          "GET"
+        ],
         "maxAgeSeconds": 3600
       }
     ]

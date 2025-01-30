@@ -90,6 +90,55 @@ const generateInspectionPDF = async (
     return false;
   };
 
+  const writeWrappedText = (text, options = {}) => {
+    const {
+      x = initialX,
+      y: startY = y,
+      maxWidth = 200,
+      lineHeight = 12,
+      size = fontSize,
+      useFont = font,
+      color = rgb(0, 0, 0),
+    } = options;
+
+    const words = text.split(" ");
+    let line = "";
+    let currentY = startY;
+    let firstLine = true;
+
+    for (const word of words) {
+      const testLine = line + (line ? " " : "") + word;
+      const testWidth = useFont.widthOfTextAtSize(testLine, size);
+
+      if (testWidth > maxWidth && line !== "") {
+        writeText(line, {
+          x: firstLine ? x : x + 10, // Indenta as linhas subsequentes
+          y: currentY,
+          size,
+          useFont,
+          color,
+        });
+        line = word;
+        currentY -= lineHeight;
+        firstLine = false;
+      } else {
+        line = testLine;
+      }
+    }
+
+    if (line) {
+      writeText(line, {
+        x: firstLine ? x : x,
+        y: currentY,
+        size,
+        useFont,
+        color,
+      });
+    }
+
+    return firstLine ? startY - lineHeight : currentY - lineHeight;
+  };
+
   // Header logo
   try {
     const response = await fetch("/nonato2.png");
@@ -163,11 +212,14 @@ const generateInspectionPDF = async (
   y -= 20;
   writeText(`Equipamento: ${equipment.type || "N/A"}`, { y, x: 320 });
   y -= 20;
-  writeText(`Ativo: ${(checklistType.type || "N/A").replace(":", "")}`, {
-    y,
-    x: 320,
-  });
-  y -= 20;
+  const ativoText = `Ativo: ${(checklistType.type || "N/A").replace(":", "")}`;
+  y =
+    writeWrappedText(ativoText, {
+      x: 320,
+      y,
+      maxWidth: 220,
+      lineHeight: 15,
+    }) - 5;
   writeText(`Modelo: ${equipment.model || "N/A"}`, { y, x: 320 });
   y -= 40;
 
@@ -305,9 +357,8 @@ const generateInspectionPDF = async (
     }
   }
 
-  // Avaliação Geral
+  // Avaliação Geral ou Participantes do Treinamento
   if (y < margin + 350) {
-    // Se não houver espaço suficiente para avaliação + assinaturas
     currentPage = pdfDoc.addPage([595.28, 841.89]);
     pageNumber++;
     totalPages++;
@@ -316,83 +367,146 @@ const generateInspectionPDF = async (
 
   y -= 30;
   drawRect(initialX, y - 30, pageWidth, 30, rgb(0, 0, 0));
-  writeText("Avaliação Geral", {
-    x: 60,
-    y: y - 20,
-    useFont: boldFont,
-    color: rgb(1, 1, 1), // Branco
-  });
+  writeText(
+    inspection.type === "training"
+      ? "Participantes do Treinamento"
+      : "Avaliação Geral",
+    {
+      x: 60,
+      y: y - 20,
+      useFont: boldFont,
+      color: rgb(1, 1, 1),
+    }
+  );
   y -= 50;
 
-  writeText(`Condição Geral: ${inspection.overallCondition || "N/A"}`, {
-    y,
-    x: 60,
-  });
-  y -= 20;
-  // Status de segurança com indicador visual
-  writeText("Ativo seguro para usar: ", { y, x: 60, useFont: boldFont });
-  const baseTextWidth = boldFont.widthOfTextAtSize(
-    "Ativo seguro para usar: ",
-    fontSize
-  );
-  const statusText = inspection.safeToUse || "N/A";
-  const statusWidth = boldFont.widthOfTextAtSize(statusText, fontSize);
-  const boxPadding = 5;
-  const leftPadding = 8;
+  if (inspection.type === "training") {
+    // Add more vertical space before participants section
+    y -= 10;
 
-  if (inspection.safeToUse === "Sim") {
-    drawRect(
-      60 + baseTextWidth - 2,
-      y - boxPadding,
-      statusWidth + boxPadding * 2 + leftPadding,
-      fontSize + boxPadding * 2,
-      rgb(0, 0.5, 0)
-    );
-    writeText(statusText, {
-      y,
-      x: 60 + baseTextWidth + leftPadding,
-      color: rgb(1, 1, 1),
-      useFont: boldFont,
-    });
-  } else if (inspection.safeToUse === "Não") {
-    drawRect(
-      60 + baseTextWidth - 2,
-      y - boxPadding,
-      statusWidth + boxPadding * 2 + leftPadding,
-      fontSize + boxPadding * 2,
-      rgb(0.8, 0, 0)
-    );
-    writeText(statusText, {
-      y,
-      x: 60 + baseTextWidth + leftPadding,
-      color: rgb(1, 1, 1),
-      useFont: boldFont,
-    });
+    // Lista de participantes
+    if (
+      inspection.trainingParticipants &&
+      inspection.trainingParticipants.length > 0
+    ) {
+      for (const participant of inspection.trainingParticipants) {
+        // Add participant name
+        writeText(`• ${participant}`, { y, x: 60 });
+
+        // Add signature line after participant name
+        const participantTextWidth = font.widthOfTextAtSize(
+          `• ${participant}`,
+          fontSize
+        );
+        const signatureText = "Assinatura: ";
+        const signatureLineStart = 60 + participantTextWidth + 20; // 20px spacing after name
+        const signatureLineWidth = 200; // Width of signature line
+
+        // Add "Assinatura:" text
+        writeText(signatureText, {
+          x: signatureLineStart,
+          y,
+          size: fontSize,
+          font: font,
+          color: rgb(0, 0, 0),
+        });
+
+        // Adjust line start position to account for "Assinatura:" text
+        const signatureTextWidth = font.widthOfTextAtSize(
+          signatureText,
+          fontSize
+        );
+        const lineStart = signatureLineStart + signatureTextWidth + 5; // 5px gap after text
+
+        currentPage.drawLine({
+          start: { x: lineStart, y: y - 2 }, // Slightly above text baseline
+          end: { x: lineStart + signatureLineWidth, y: y - 2 },
+          thickness: 0.5,
+          color: rgb(0, 0, 0),
+        });
+
+        // Increase vertical spacing between participants
+        y -= 35; // Increased from 20 to 35 for more space between signatures
+      }
+    } else {
+      writeText("Nenhum participante registrado", {
+        y,
+        x: 60,
+        color: rgb(0.5, 0.5, 0.5),
+      });
+      y -= 20;
+    }
   } else {
-    writeText(statusText, { y, x: 60 + baseTextWidth, useFont: boldFont });
-  }
-  y -= 20;
-  writeText(
-    `Manutenção requerida: ${inspection.maintenanceRequired || "N/A"}`,
-    { y, x: 60 }
-  );
-  y -= 20;
-  writeText(`Status do ativo: ${inspection.assetStatus || "N/A"}`, {
-    y,
-    x: 60,
-  });
-  y -= 20;
-  writeText(
-    `Prioridade de manutenção: ${inspection.maintenancePriority || "N/A"}`,
-    { y, x: 60 }
-  );
-  y -= 30;
+    writeText(`Condição Geral: ${inspection.overallCondition || "N/A"}`, {
+      y,
+      x: 60,
+    });
+    y -= 20;
+    // Status de segurança com indicador visual
+    writeText("Ativo seguro para usar: ", { y, x: 60, useFont: boldFont });
+    const baseTextWidth = boldFont.widthOfTextAtSize(
+      "Ativo seguro para usar: ",
+      fontSize
+    );
+    const statusText = inspection.safeToUse || "N/A";
+    const statusWidth = boldFont.widthOfTextAtSize(statusText, fontSize);
+    const boxPadding = 5;
+    const leftPadding = 8;
 
-  if (inspection.additionalNotes) {
-    writeText("Notas Adicionais:", { y, useFont: boldFont, x: 60 });
-    y -= 15;
-    writeText(inspection.additionalNotes, { y, x: 60 });
-    y -= 50;
+    if (inspection.safeToUse === "Sim") {
+      drawRect(
+        60 + baseTextWidth - 2,
+        y - boxPadding,
+        statusWidth + boxPadding * 2 + leftPadding,
+        fontSize + boxPadding * 2,
+        rgb(0, 0.5, 0)
+      );
+      writeText(statusText, {
+        y,
+        x: 60 + baseTextWidth + leftPadding,
+        color: rgb(1, 1, 1),
+        useFont: boldFont,
+      });
+    } else if (inspection.safeToUse === "Não") {
+      drawRect(
+        60 + baseTextWidth - 2,
+        y - boxPadding,
+        statusWidth + boxPadding * 2 + leftPadding,
+        fontSize + boxPadding * 2,
+        rgb(0.8, 0, 0)
+      );
+      writeText(statusText, {
+        y,
+        x: 60 + baseTextWidth + leftPadding,
+        color: rgb(1, 1, 1),
+        useFont: boldFont,
+      });
+    } else {
+      writeText(statusText, { y, x: 60 + baseTextWidth, useFont: boldFont });
+    }
+    y -= 20;
+    writeText(
+      `Manutenção requerida: ${inspection.maintenanceRequired || "N/A"}`,
+      { y, x: 60 }
+    );
+    y -= 20;
+    writeText(`Status do ativo: ${inspection.assetStatus || "N/A"}`, {
+      y,
+      x: 60,
+    });
+    y -= 20;
+    writeText(
+      `Prioridade de manutenção: ${inspection.maintenancePriority || "N/A"}`,
+      { y, x: 60 }
+    );
+    y -= 30;
+
+    if (inspection.additionalNotes) {
+      writeText("Notas Adicionais:", { y, useFont: boldFont, x: 60 });
+      y -= 15;
+      writeText(inspection.additionalNotes, { y, x: 60 });
+      y -= 50;
+    }
   }
 
   // Adiciona número de página em todas as páginas
