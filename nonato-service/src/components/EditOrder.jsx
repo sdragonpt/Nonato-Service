@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   doc,
   getDoc,
@@ -6,26 +7,41 @@ import {
   collection,
   getDocs,
 } from "firebase/firestore";
-import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase.jsx";
 import {
   ArrowLeft,
   Loader2,
   Save,
-  AlertCircle,
+  AlertTriangle,
   Calendar,
   User,
   Printer,
   FileText,
-  CheckSquare,
-  AlertTriangle,
+  AlertCircle,
+  Building2,
+  PackageOpen,
   Clock,
   FileCheck,
   Users,
-  PackageOpen,
   Settings,
   ChevronDown,
 } from "lucide-react";
+
+// UI Components
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const EditOrder = () => {
   const { orderId } = useParams();
@@ -37,6 +53,8 @@ const EditOrder = () => {
     equipmentId: "",
     serviceType: "",
     priority: "normal",
+    description: "",
+    status: "",
     resultDescription: "",
     pontosEmAberto: "",
   });
@@ -57,6 +75,7 @@ const EditOrder = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [touched, setTouched] = useState({});
+  const [originalData, setOriginalData] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -64,7 +83,7 @@ const EditOrder = () => {
         setIsLoading(true);
         setError(null);
 
-        // Buscar dados em paralelo
+        // Fetch order, clients, and equipments in parallel
         const [orderSnapshot, clientsSnapshot, equipmentsSnapshot] =
           await Promise.all([
             getDoc(doc(db, "ordens", orderId)),
@@ -78,29 +97,34 @@ const EditOrder = () => {
         }
 
         const orderData = orderSnapshot.data();
+        setOriginalData(orderData);
 
-        // Processar dados da ordem
+        // Set form data
         setFormData({
           date: orderData.date || "",
           clientId: orderData.clientId || "",
           equipmentId: orderData.equipmentId || "",
           serviceType: orderData.serviceType || "",
           priority: orderData.priority || "normal",
+          description: orderData.description || "",
+          status: orderData.status || "Aberto",
           resultDescription: orderData.resultDescription || "",
-          pontosEmAberto: orderData.pontosEmAberto || "", // novo campo
+          pontosEmAberto: orderData.pontosEmAberto || "",
         });
 
-        // Processar checklist
-        setChecklist({
-          concluido: orderData.concluido || false,
-          retorno: orderData.retorno || false,
-          funcionarios: orderData.funcionarios || false,
-          documentacao: orderData.documentacao || false,
-          producao: orderData.producao || false,
-          pecas: orderData.pecas || false,
-        });
+        // Set checklist
+        setChecklist(
+          orderData.checklist || {
+            concluido: false,
+            retorno: false,
+            funcionarios: false,
+            documentacao: false,
+            producao: false,
+            pecas: false,
+          }
+        );
 
-        // Processar clientes e equipamentos
+        // Process clients and equipments
         const clientsData = clientsSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
@@ -113,11 +137,13 @@ const EditOrder = () => {
         }));
         setEquipments(equipmentsData);
 
-        // Filtrar equipamentos do cliente selecionado
-        const filteredEquips = equipmentsData.filter(
-          (e) => e.clientId === orderData.clientId
-        );
-        setFilteredEquipments(filteredEquips);
+        // Filter equipments for selected client
+        if (orderData.clientId) {
+          const filtered = equipmentsData.filter(
+            (equipment) => equipment.clientId === orderData.clientId
+          );
+          setFilteredEquipments(filtered);
+        }
       } catch (err) {
         console.error("Erro ao carregar dados:", err);
         setError("Erro ao carregar dados. Por favor, tente novamente.");
@@ -137,21 +163,15 @@ const EditOrder = () => {
     }));
 
     if (name === "clientId") {
-      const filtered = equipments.filter((e) => e.clientId === value);
+      const filtered = equipments.filter(
+        (equipment) => equipment.clientId === value
+      );
       setFilteredEquipments(filtered);
       setFormData((prev) => ({
         ...prev,
         equipmentId: "",
       }));
     }
-  };
-
-  const handleChecklistChange = (e) => {
-    const { name, type, checked, value } = e.target;
-    setChecklist((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
   };
 
   const handleBlur = (field) => {
@@ -161,10 +181,16 @@ const EditOrder = () => {
     }));
   };
 
+  const handleChecklistChange = (name, checked) => {
+    setChecklist((prev) => ({
+      ...prev,
+      [name]: checked,
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Marcar todos os campos como tocados
     const allTouched = Object.keys(formData).reduce(
       (acc, key) => ({
         ...acc,
@@ -174,7 +200,6 @@ const EditOrder = () => {
     );
     setTouched(allTouched);
 
-    // Validação
     if (!formData.clientId || !formData.equipmentId || !formData.serviceType) {
       setError("Por favor, preencha todos os campos obrigatórios");
       return;
@@ -191,7 +216,7 @@ const EditOrder = () => {
       };
 
       await updateDoc(doc(db, "ordens", orderId), serviceData);
-      navigate(-1);
+      navigate("/app/manage-orders");
     } catch (err) {
       console.error("Erro ao atualizar serviço:", err);
       setError(
@@ -204,289 +229,363 @@ const EditOrder = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 flex items-start max-w-md w-full">
-          <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
-          <p className="text-red-500">{error}</p>
-        </div>
-        <button
-          onClick={() => navigate(-1)}
-          className="mt-4 flex items-center px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Voltar
-        </button>
-      </div>
-    );
-  }
+  const hasChanges =
+    originalData &&
+    (JSON.stringify(formData) !== JSON.stringify(originalData) ||
+      JSON.stringify(checklist) !==
+        JSON.stringify(originalData.checklist || {}));
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-4">
-      <button
-        onClick={() => navigate(-1)}
-        className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all hover:scale-105 flex items-center justify-center"
-        aria-label="Voltar"
-      >
-        <ArrowLeft className="w-5 h-5" />
-      </button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">
+            Editar Ordem de Serviço
+          </h1>
+          <p className="text-sm text-zinc-400">
+            Atualize as informações da ordem de serviço
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => navigate(-1)}
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+        >
+          <ArrowLeft className="h-4 w-4 text-white" />
+        </Button>
+      </div>
 
-      <h2 className="text-2xl font-semibold text-center text-white mb-6">
-        Editar Ordem de Serviço
-      </h2>
+      {error && (
+        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-red-400">{error}</AlertDescription>
+        </Alert>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Dados principais */}
-        <div className="bg-gray-800 p-6 rounded-lg space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Data
-            </label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="date"
-                name="date"
-                value={formData.date}
+        {/* Main Information Card */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white">
+              Informações Principais
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Date Field */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">Data</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <input
+                  type="date"
+                  name="date"
+                  value={formData.date}
+                  onChange={handleChange}
+                  className="w-full pl-10 p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Client Selection */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
+                Cliente
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Select
+                  value={formData.clientId}
+                  onValueChange={(value) =>
+                    handleChange({ target: { name: "clientId", value } })
+                  }
+                >
+                  <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                    <SelectValue placeholder="Selecione um Cliente" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-800 border-zinc-700">
+                    {clients.map((client) => (
+                      <SelectItem
+                        key={client.id}
+                        value={client.id}
+                        className="text-white hover:bg-zinc-700"
+                      >
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Equipment Selection */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
+                Equipamento
+              </label>
+              <div className="relative">
+                <Printer className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Select
+                  value={formData.equipmentId}
+                  onValueChange={(value) =>
+                    handleChange({ target: { name: "equipmentId", value } })
+                  }
+                  disabled={!formData.clientId}
+                >
+                  <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                    <SelectValue placeholder="Selecione um Equipamento" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-800 border-zinc-700">
+                    {filteredEquipments.map((equipment) => (
+                      <SelectItem
+                        key={equipment.id}
+                        value={equipment.id}
+                        className="text-white hover:bg-zinc-700"
+                      >
+                        {`${equipment.brand} - ${equipment.model}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Service Type */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
+                Tipo de Serviço
+              </label>
+              <div className="relative">
+                <Settings className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Input
+                  type="text"
+                  name="serviceType"
+                  value={formData.serviceType}
+                  onChange={handleChange}
+                  onBlur={() => handleBlur("serviceType")}
+                  placeholder="Descreva o tipo de serviço"
+                  className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Priority Selection */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
+                Prioridade
+              </label>
+              <div className="relative">
+                <AlertCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Select
+                  value={formData.priority}
+                  onValueChange={(value) =>
+                    handleChange({ target: { name: "priority", value } })
+                  }
+                >
+                  <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                    <SelectValue placeholder="Selecione a Prioridade" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-800 border-zinc-700">
+                    <SelectItem
+                      value="low"
+                      className="text-white hover:bg-zinc-700"
+                    >
+                      Baixa
+                    </SelectItem>
+                    <SelectItem
+                      value="normal"
+                      className="text-white hover:bg-zinc-700"
+                    >
+                      Normal
+                    </SelectItem>
+                    <SelectItem
+                      value="high"
+                      className="text-white hover:bg-zinc-700"
+                    >
+                      Alta
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Status Selection */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
+                Status
+              </label>
+              <div className="relative">
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) =>
+                    handleChange({ target: { name: "status", value } })
+                  }
+                >
+                  <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                    <SelectValue placeholder="Selecione o Status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-800 border-zinc-700">
+                    <SelectItem
+                      value="Aberto"
+                      className="text-white hover:bg-zinc-700"
+                    >
+                      Aberto
+                    </SelectItem>
+                    <SelectItem
+                      value="Em Andamento"
+                      className="text-white hover:bg-zinc-700"
+                    >
+                      Em Andamento
+                    </SelectItem>
+                    <SelectItem
+                      value="Fechado"
+                      className="text-white hover:bg-zinc-700"
+                    >
+                      Fechado
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Checklist Card */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white">Checklist</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="flex items-center space-x-3 text-white cursor-pointer group">
+                <Checkbox
+                  name="concluido"
+                  checked={checklist.concluido}
+                  onCheckedChange={(checked) =>
+                    handleChecklistChange("concluido", checked)
+                  }
+                  className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                />
+                <span className="text-sm">Serviço Concluído</span>
+              </label>
+
+              <label className="flex items-center space-x-3 text-white cursor-pointer group">
+                <Checkbox
+                  name="retorno"
+                  checked={checklist.retorno}
+                  onCheckedChange={(checked) =>
+                    handleChecklistChange("retorno", checked)
+                  }
+                  className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                />
+                <span className="text-sm">Retorno Necessário</span>
+              </label>
+
+              <label className="flex items-center space-x-3 text-white cursor-pointer group">
+                <Checkbox
+                  name="funcionarios"
+                  checked={checklist.funcionarios}
+                  onCheckedChange={(checked) =>
+                    handleChecklistChange("funcionarios", checked)
+                  }
+                  className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                />
+                <span className="text-sm">Instrução dos Funcionários</span>
+              </label>
+
+              <label className="flex items-center space-x-3 text-white cursor-pointer group">
+                <Checkbox
+                  name="documentacao"
+                  checked={checklist.documentacao}
+                  onCheckedChange={(checked) =>
+                    handleChecklistChange("documentacao", checked)
+                  }
+                  className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                />
+                <span className="text-sm">Entrega da Documentação</span>
+              </label>
+
+              <label className="flex items-center space-x-3 text-white cursor-pointer group">
+                <Checkbox
+                  name="producao"
+                  checked={checklist.producao}
+                  onCheckedChange={(checked) =>
+                    handleChecklistChange("producao", checked)
+                  }
+                  className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                />
+                <span className="text-sm">Liberação para Produção</span>
+              </label>
+
+              <label className="flex items-center space-x-3 text-white cursor-pointer group">
+                <Checkbox
+                  name="pecas"
+                  checked={checklist.pecas}
+                  onCheckedChange={(checked) =>
+                    handleChecklistChange("pecas", checked)
+                  }
+                  className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                />
+                <span className="text-sm">Orçamento de Peças</span>
+              </label>
+            </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-zinc-400 mb-2">
+                Descrição / Observações
+              </label>
+              <Textarea
+                name="resultDescription"
+                value={formData.resultDescription}
                 onChange={handleChange}
-                onBlur={() => handleBlur("date")}
-                className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
+                placeholder="Adicione notas ou observações importantes"
+                className="min-h-[100px] bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 resize-none"
               />
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Cliente
-            </label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <select
-                name="clientId"
-                value={formData.clientId}
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-zinc-400 mb-2">
+                Pontos em Aberto
+              </label>
+              <Textarea
+                name="pontosEmAberto"
+                value={formData.pontosEmAberto}
                 onChange={handleChange}
-                onBlur={() => handleBlur("clientId")}
-                className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none"
-                required
-              >
-                <option value="">Selecione um Cliente</option>
-                {clients.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Equipamento
-            </label>
-            <div className="relative">
-              <Printer className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <select
-                name="equipmentId"
-                value={formData.equipmentId}
-                onChange={handleChange}
-                onBlur={() => handleBlur("equipmentId")}
-                className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none"
-                required
-                disabled={!formData.clientId}
-              >
-                <option value="">Selecione um Equipamento</option>
-                {filteredEquipments.map((equipment) => (
-                  <option key={equipment.id} value={equipment.id}>
-                    {equipment.brand} - {equipment.model}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Tipo de Serviço
-            </label>
-            <div className="relative">
-              <Settings className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                name="serviceType"
-                value={formData.serviceType}
-                onChange={handleChange}
-                onBlur={() => handleBlur("serviceType")}
-                placeholder="Descreva o tipo de serviço"
-                className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
+                placeholder="Descreva os pontos que ainda precisam ser resolvidos"
+                className="min-h-[100px] bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 resize-none"
               />
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Prioridade
-            </label>
-            <div className="relative">
-              <AlertTriangle className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <select
-                name="priority"
-                value={formData.priority}
-                onChange={handleChange}
-                className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none"
-              >
-                <option value="low">Baixa</option>
-                <option value="normal">Normal</option>
-                <option value="high">Alta</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
-            </div>
-          </div>
-        </div>
-
-        {/* Checklist */}
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <h3 className="text-lg font-medium text-white mb-4">Checklist</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className="flex items-center space-x-3 text-white cursor-pointer group">
-              <input
-                type="checkbox"
-                name="concluido"
-                checked={checklist.concluido}
-                onChange={handleChecklistChange}
-                className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
-              />
-              <span className="group-hover:text-blue-400 transition-colors">
-                Serviço Concluído
-              </span>
-            </label>
-
-            <label className="flex items-center space-x-3 text-white cursor-pointer group">
-              <input
-                type="checkbox"
-                name="retorno"
-                checked={checklist.retorno}
-                onChange={handleChecklistChange}
-                className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
-              />
-              <span className="group-hover:text-blue-400 transition-colors">
-                Retorno Necessário
-              </span>
-            </label>
-
-            <label className="flex items-center space-x-3 text-white cursor-pointer group">
-              <input
-                type="checkbox"
-                name="funcionarios"
-                checked={checklist.funcionarios}
-                onChange={handleChecklistChange}
-                className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
-              />
-              <span className="group-hover:text-blue-400 transition-colors">
-                Instrução dos Funcionários
-              </span>
-            </label>
-
-            <label className="flex items-center space-x-3 text-white cursor-pointer group">
-              <input
-                type="checkbox"
-                name="documentacao"
-                checked={checklist.documentacao}
-                onChange={handleChecklistChange}
-                className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
-              />
-              <span className="group-hover:text-blue-400 transition-colors">
-                Entrega da Documentação
-              </span>
-            </label>
-
-            <label className="flex items-center space-x-3 text-white cursor-pointer group">
-              <input
-                type="checkbox"
-                name="producao"
-                checked={checklist.producao}
-                onChange={handleChecklistChange}
-                className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
-              />
-              <span className="group-hover:text-blue-400 transition-colors">
-                Liberação para Produção
-              </span>
-            </label>
-
-            <label className="flex items-center space-x-3 text-white cursor-pointer group">
-              <input
-                type="checkbox"
-                name="pecas"
-                checked={checklist.pecas}
-                onChange={handleChecklistChange}
-                className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
-              />
-              <span className="group-hover:text-blue-400 transition-colors">
-                Orçamento de Peças
-              </span>
-            </label>
-          </div>
-
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Descrição / Observações
-            </label>
-            <textarea
-              name="resultDescription"
-              value={formData.resultDescription}
-              onChange={handleChange}
-              placeholder="Adicione notas ou observações importantes"
-              rows="4"
-              className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
-            />
-          </div>
-
-          {/* Nova seção de Pontos em Aberto */}
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Pontos em Aberto
-            </label>
-            <textarea
-              name="pontosEmAberto"
-              value={formData.pontosEmAberto}
-              onChange={handleChange}
-              placeholder="Descreva os pontos que ainda precisam ser resolvidos"
-              rows="4"
-              className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
-            />
-          </div>
-        </div>
-
-        {/* Botão de salvar */}
-        <div className="flex justify-end pt-6">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:hover:bg-blue-600 min-w-[200px]"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Salvando...
-              </>
-            ) : (
-              <>
-                <Save className="w-5 h-5 mr-2" />
-                Salvar Alterações
-              </>
-            )}
-          </button>
-        </div>
+        {/* Submit Button */}
+        <Button
+          type="submit"
+          disabled={isSubmitting || !hasChanges}
+          className="w-full bg-green-600 hover:bg-green-700"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Salvando...
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4 mr-2" />
+              Salvar Alterações
+            </>
+          )}
+        </Button>
       </form>
     </div>
   );

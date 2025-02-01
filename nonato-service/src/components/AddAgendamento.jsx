@@ -10,15 +10,29 @@ import {
   Save,
   ArrowLeft,
   Loader2,
-  AlertCircle,
+  AlertTriangle,
   Printer,
   Plus,
   Trash2,
 } from "lucide-react";
 
+// UI Components
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 const AddAgendamento = () => {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [clients, setClients] = useState([]);
   const [error, setError] = useState(null);
   const [equipments, setEquipments] = useState([]);
@@ -113,11 +127,10 @@ const AddAgendamento = () => {
     e.preventDefault();
 
     try {
-      setIsLoading(true);
+      setIsSaving(true);
       setError(null);
 
       if (isMultipleDates) {
-        // Create an appointment for each date
         const agendamentosPromises = selectedDates.map((data) =>
           addDoc(collection(db, "agendamentos"), {
             ...formData,
@@ -129,7 +142,6 @@ const AddAgendamento = () => {
 
         await Promise.all(agendamentosPromises);
       } else {
-        // Create single appointment
         await addDoc(collection(db, "agendamentos"), {
           ...formData,
           data: singleDate,
@@ -142,294 +154,382 @@ const AddAgendamento = () => {
     } catch (err) {
       console.error("Erro ao criar agendamentos:", err);
       setError("Erro ao salvar agendamentos. Por favor, tente novamente.");
-      setIsLoading(false);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-4">
-      <button
-        onClick={() => navigate(-1)}
-        className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all hover:scale-105 flex items-center justify-center"
-      >
-        <ArrowLeft className="w-5 h-5" />
-      </button>
-
-      <h2 className="text-2xl font-semibold text-center text-white mb-6">
-        Novo Agendamento
-      </h2>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Novo Agendamento</h1>
+          <p className="text-sm text-zinc-400">
+            Adicione um novo agendamento ao sistema
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => navigate(-1)}
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+        >
+          <ArrowLeft className="h-4 w-4 text-white" />
+        </Button>
+      </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded-lg flex items-center">
-          <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
-          <p className="text-red-500">{error}</p>
-        </div>
+        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-red-400">{error}</AlertDescription>
+        </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Toggle buttons */}
-        <div className="flex justify-center mb-6">
-          <div className="bg-gray-700 p-1 rounded-xl inline-flex relative shadow-lg">
-            <div
-              className={`absolute top-1 bottom-1 w-[120px] rounded-lg bg-green-600 transition-all duration-300 ease-in-out ${
-                isMultipleDates ? "translate-x-[120px]" : "translate-x-0"
-              }`}
-            />
-            <button
-              type="button"
-              onClick={() => setIsMultipleDates(false)}
-              className={`relative w-[120px] py-2 rounded-lg font-medium transition-colors duration-300 ${
-                !isMultipleDates
-                  ? "text-white"
-                  : "text-gray-400 hover:text-gray-200"
-              }`}
-            >
-              Data Única
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsMultipleDates(true)}
-              className={`relative w-[120px] py-2 rounded-lg font-medium transition-colors duration-300 ${
-                isMultipleDates
-                  ? "text-white"
-                  : "text-gray-400 hover:text-gray-200"
-              }`}
-            >
-              Múltiplas
-            </button>
-          </div>
-        </div>
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white">
+              Tipo de Agendamento
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-center">
+              <div className="bg-zinc-900 p-1 rounded-xl inline-flex relative shadow-lg">
+                <div
+                  className={`absolute top-1 bottom-1 w-[120px] rounded-lg bg-green-600 transition-all duration-300 ease-in-out ${
+                    isMultipleDates ? "translate-x-[120px]" : "translate-x-0"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsMultipleDates(false)}
+                  className={`relative w-[120px] py-2 rounded-lg font-medium transition-colors duration-300 ${
+                    !isMultipleDates
+                      ? "text-white"
+                      : "text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  Data Única
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsMultipleDates(true)}
+                  className={`relative w-[120px] py-2 rounded-lg font-medium transition-colors duration-300 ${
+                    isMultipleDates
+                      ? "text-white"
+                      : "text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  Múltiplas
+                </button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Datas e Hora */}
-        <div className="bg-gray-800 p-6 rounded-lg space-y-4">
-          {isMultipleDates ? (
-            <>
-              {selectedDates.map((date, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
-                      Data {index + 1}
-                    </label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="date"
-                        value={date}
-                        onChange={(e) =>
-                          handleDateChange(index, e.target.value)
-                        }
-                        className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                        required
-                      />
+        {/* Dates and Time Card */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white">Data e Hora</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isMultipleDates ? (
+              <>
+                {selectedDates.map((date, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-zinc-400 mb-1">
+                        Data {index + 1}
+                      </label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
+                        <Input
+                          type="date"
+                          value={date}
+                          onChange={(e) =>
+                            handleDateChange(index, e.target.value)
+                          }
+                          className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                          required
+                        />
+                      </div>
                     </div>
+                    {selectedDates.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeDate(index)}
+                        className="mt-6 text-red-400 hover:text-red-300 hover:bg-zinc-700"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </Button>
+                    )}
                   </div>
-                  {selectedDates.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeDate(index)}
-                      className="mt-6 p-2 text-red-400 hover:text-red-300 transition-colors"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  )}
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addDate}
+                  className="w-full border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Adicionar outra data
+                </Button>
+              </>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-1">
+                  Data
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
+                  <Input
+                    type="date"
+                    value={singleDate}
+                    onChange={(e) => setSingleDate(e.target.value)}
+                    className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                    required
+                  />
                 </div>
-              ))}
-              <button
-                type="button"
-                onClick={addDate}
-                className="mt-2 flex items-center text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Adicionar outra data
-              </button>
-            </>
-          ) : (
+              </div>
+            )}
+
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Data
+              <label className="block text-sm font-medium text-zinc-400 mb-1">
+                Hora
               </label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="date"
-                  value={singleDate}
-                  onChange={(e) => setSingleDate(e.target.value)}
-                  className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
+                <Input
+                  type="time"
+                  name="hora"
+                  value={formData.hora}
+                  onChange={handleChange}
+                  className="pl-10 bg-zinc-900 border-zinc-700 text-white"
                   required
                 />
               </div>
             </div>
-          )}
+          </CardContent>
+        </Card>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Hora
-            </label>
-            <div className="relative">
-              <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="time"
-                name="hora"
-                value={formData.hora}
-                onChange={handleChange}
-                className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Rest of the form remains the same */}
-        {/* Cliente e Tipo de Serviço */}
-        <div className="bg-gray-800 p-6 rounded-lg space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Cliente
-            </label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <select
-                name="clientId"
+        {/* Client and Service Details Card */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white">
+              Detalhes do Agendamento
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-1">
+                Cliente
+              </label>
+              <Select
                 value={formData.clientId}
-                onChange={handleChange}
-                className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, clientId: value }))
+                }
               >
-                <option value="">Selecione um cliente</option>
-                {clients.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                  <SelectValue placeholder="Selecione um cliente" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-800 border-zinc-700">
+                  {clients.map((client) => (
+                    <SelectItem
+                      key={client.id}
+                      value={client.id}
+                      className="text-white hover:bg-zinc-700"
+                    >
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Equipamento
-            </label>
-            <div className="relative">
-              <Printer className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <select
-                name="equipmentId"
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-1">
+                Equipamento
+              </label>
+              <Select
                 value={formData.equipmentId}
-                onChange={handleChange}
-                className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, equipmentId: value }))
+                }
                 disabled={!formData.clientId}
               >
-                <option value="">Selecione um equipamento</option>
-                {filteredEquipments.map((equipment) => (
-                  <option key={equipment.id} value={equipment.id}>
-                    {equipment.brand} - {equipment.model}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                  <SelectValue placeholder="Selecione um equipamento" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-800 border-zinc-700">
+                  {filteredEquipments.map((equipment) => (
+                    <SelectItem
+                      key={equipment.id}
+                      value={equipment.id}
+                      className="text-white hover:bg-zinc-700"
+                    >
+                      {equipment.brand} - {equipment.model}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Tipo de Serviço
-            </label>
-            <div className="relative">
-              <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                name="tipoServico"
-                value={formData.tipoServico}
-                onChange={handleChange}
-                placeholder="Descreva o tipo de serviço"
-                className="w-full p-3 pl-10 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
-              />
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-1">
+                Tipo de Serviço
+              </label>
+              <div className="relative">
+                <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
+                <Input
+                  type="text"
+                  name="tipoServico"
+                  value={formData.tipoServico}
+                  onChange={handleChange}
+                  placeholder="Descreva o tipo de serviço"
+                  className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                  required
+                />
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Prioridade e Status */}
-        <div className="bg-gray-800 p-6 rounded-lg space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Prioridade
-            </label>
-            <select
-              name="prioridade"
-              value={formData.prioridade}
+        {/* Priority and Status Card */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white">
+              Prioridade e Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-1">
+                Prioridade
+              </label>
+              <Select
+                value={formData.prioridade}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, prioridade: value }))
+                }
+              >
+                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                  <SelectValue placeholder="Selecione a prioridade" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-800 border-zinc-700">
+                  <SelectItem
+                    value="baixa"
+                    className="text-white hover:bg-zinc-700"
+                  >
+                    Baixa
+                  </SelectItem>
+                  <SelectItem
+                    value="normal"
+                    className="text-white hover:bg-zinc-700"
+                  >
+                    Normal
+                  </SelectItem>
+                  <SelectItem
+                    value="alta"
+                    className="text-white hover:bg-zinc-700"
+                  >
+                    Alta
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-1">
+                Status
+              </label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, status: value }))
+                }
+              >
+                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-800 border-zinc-700">
+                  <SelectItem
+                    value="agendado"
+                    className="text-white hover:bg-zinc-700"
+                  >
+                    Agendado
+                  </SelectItem>
+                  <SelectItem
+                    value="confirmado"
+                    className="text-white hover:bg-zinc-700"
+                  >
+                    Confirmado
+                  </SelectItem>
+                  <SelectItem
+                    value="cancelado"
+                    className="text-white hover:bg-zinc-700"
+                  >
+                    Cancelado
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Notes Card */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white">Observações</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <textarea
+              name="observacoes"
+              value={formData.observacoes}
               onChange={handleChange}
-              className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            >
-              <option value="baixa">Baixa</option>
-              <option value="normal">Normal</option>
-              <option value="alta">Alta</option>
-            </select>
-          </div>
+              rows="4"
+              placeholder="Adicione observações importantes"
+              className="w-full p-3 bg-zinc-900 text-white rounded-lg border border-zinc-700 focus:ring-2 focus:ring-green-500 focus:outline-none resize-none placeholder:text-zinc-500"
+            />
+          </CardContent>
+        </Card>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Status
-            </label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            >
-              <option value="agendado">Agendado</option>
-              <option value="confirmado">Confirmado</option>
-              <option value="cancelado">Cancelado</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Observações */}
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <label className="block text-sm font-medium text-gray-300 mb-1">
-            Observações
-          </label>
-          <textarea
-            name="observacoes"
-            value={formData.observacoes}
-            onChange={handleChange}
-            rows="4"
-            placeholder="Adicione observações importantes"
-            className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
-          />
-        </div>
-
-        {/* Botão Submit */}
-        <button
+        {/* Submit Button */}
+        <Button
           type="submit"
           disabled={
-            isLoading ||
+            isSaving ||
             (!isMultipleDates && !singleDate) ||
             (isMultipleDates && selectedDates.some((date) => !date))
           }
-          className="w-full p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+          className="w-full bg-green-600 hover:bg-green-700"
         >
-          {isLoading ? (
+          {isSaving ? (
             <>
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Salvando...
             </>
           ) : (
             <>
-              <Save className="w-5 h-5 mr-2" />
+              <Save className="w-4 h-4 mr-2" />
               {isMultipleDates
                 ? `Criar ${selectedDates.length} Agendamentos`
                 : "Criar Agendamento"}
             </>
           )}
-        </button>
+        </Button>
       </form>
     </div>
   );

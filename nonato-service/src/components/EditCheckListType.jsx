@@ -8,9 +8,16 @@ import {
   Plus,
   Trash2,
   Save,
-  AlertCircle,
+  AlertTriangle,
   Settings,
+  ListChecks,
 } from "lucide-react";
+
+// UI Components
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 const EditChecklistType = () => {
   const { typeId } = useParams();
@@ -261,13 +268,13 @@ const EditChecklistType = () => {
   const hasChanges = () => {
     if (!originalData) return false;
 
-    // Verifica mudanças no tipo
+    // Check type changes
     if (formData.type !== originalData.type) return true;
 
-    // Verifica mudanças nos grupos
+    // Check groups length changes
     if (formData.groups.length !== originalData.groups.length) return true;
 
-    // Verifica mudanças em cada grupo
+    // Check changes in each group
     return formData.groups.some((group, groupIndex) => {
       const originalGroup = originalData.groups[groupIndex];
       if (!originalGroup) return true;
@@ -283,13 +290,13 @@ const EditChecklistType = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validações
+    // Validations
     if (!formData.type.trim()) {
       setError("O nome do checklist é obrigatório");
       return;
     }
 
-    // Validar grupos e características
+    // Validate groups and characteristics
     const invalidGroup = formData.groups.find(
       (group) =>
         !group.name.trim() || !group.characteristics.some((char) => char.trim())
@@ -306,7 +313,7 @@ const EditChecklistType = () => {
       setIsSubmitting(true);
       setError(null);
 
-      // Limpar características vazias antes de salvar
+      // Clean empty characteristics before saving
       const cleanedGroups = formData.groups.map((group) => ({
         name: group.name,
         characteristics: group.characteristics.filter((char) => char.trim()),
@@ -329,168 +336,189 @@ const EditChecklistType = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-4">
-      <button
-        onClick={() => navigate(-1)}
-        className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all hover:scale-105 flex items-center justify-center"
-      >
-        <ArrowLeft className="w-5 h-5" />
-      </button>
-
-      <h2 className="text-2xl text-center text-white font-semibold mb-6">
-        Editar Checklist
-      </h2>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Editar Checklist</h1>
+          <p className="text-sm text-zinc-400">
+            Atualize as informações do checklist
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => navigate(-1)}
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+        >
+          <ArrowLeft className="h-4 w-4 text-white" />
+        </Button>
+      </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded-lg flex items-center">
-          <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
-          <p className="text-red-500">{error}</p>
-        </div>
+        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-red-400">{error}</AlertDescription>
+        </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Nome do Checklist */}
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Nome do Checklist
-            </label>
-            <input
-              type="text"
-              name="type"
-              value={formData.type}
-              onChange={handleChange}
-              onBlur={() => handleBlur("type")}
-              className="w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-              placeholder="Ex: Checklist de Manutenção de Impressoras"
-            />
-          </div>
-        </div>
+        {/* Checklist Name Card */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white">
+              Informações Básicas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
+                Nome do Checklist
+              </label>
+              <Input
+                type="text"
+                name="type"
+                value={formData.type}
+                onChange={handleChange}
+                onBlur={() => handleBlur("type")}
+                placeholder="Ex: Checklist de Manutenção de Impressoras"
+                className="bg-zinc-900 border-zinc-700 text-white"
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Grupos */}
+        {/* Groups Section */}
         <div className="space-y-4">
           {formData.groups.map((group, groupIndex) => (
-            <div
-              key={groupIndex}
-              className="bg-gray-800 p-6 rounded-lg space-y-4"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Nome do Grupo {groupIndex + 1}
+            <Card key={groupIndex} className="bg-zinc-800 border-zinc-700">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg text-white">
+                  Grupo {groupIndex + 1}
+                </CardTitle>
+                {formData.groups.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeGroup(groupIndex)}
+                    className="text-red-400 hover:text-red-300 hover:bg-zinc-700"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-400">
+                    Nome do Grupo
                   </label>
-                  <input
+                  <Input
                     type="text"
                     value={group.name}
                     onChange={(e) =>
                       handleGroupNameChange(groupIndex, e.target.value)
                     }
                     onBlur={() => handleGroupBlur(groupIndex)}
-                    className="w-full p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
                     placeholder="Ex: Verificação Inicial"
+                    className="bg-zinc-900 border-zinc-700 text-white"
                   />
                 </div>
-                {formData.groups.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeGroup(groupIndex)}
-                    className="ml-2 p-2 text-red-400 hover:text-red-300 transition-colors"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
 
-              {/* Características do Grupo */}
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <label className="block text-sm font-medium text-gray-300">
-                    Características do Grupo
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => addCharacteristic(groupIndex)}
-                    className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Adicionar
-                  </button>
-                </div>
-
-                {group.characteristics.map((characteristic, charIndex) => (
-                  <div key={charIndex} className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={characteristic}
-                      onChange={(e) =>
-                        handleCharacteristicChange(
-                          groupIndex,
-                          charIndex,
-                          e.target.value
-                        )
-                      }
-                      onBlur={() =>
-                        handleCharacteristicBlur(groupIndex, charIndex)
-                      }
-                      placeholder={`Característica ${charIndex + 1}`}
-                      className="flex-1 p-3 text-gray-300 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-                    />
-                    {group.characteristics.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          removeCharacteristic(groupIndex, charIndex)
-                        }
-                        className="p-2 text-red-400 hover:text-red-300 transition-colors"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    )}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-zinc-400">
+                      Características
+                    </label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addCharacteristic(groupIndex)}
+                      className="border-zinc-700 text-white hover:text-white bg-zinc-600 hover:bg-zinc-700"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar
+                    </Button>
                   </div>
-                ))}
-              </div>
-            </div>
+
+                  {group.characteristics.map((characteristic, charIndex) => (
+                    <div key={charIndex} className="flex items-center gap-2">
+                      <Input
+                        type="text"
+                        value={characteristic}
+                        onChange={(e) =>
+                          handleCharacteristicChange(
+                            groupIndex,
+                            charIndex,
+                            e.target.value
+                          )
+                        }
+                        onBlur={() =>
+                          handleCharacteristicBlur(groupIndex, charIndex)
+                        }
+                        placeholder={`Característica ${charIndex + 1}`}
+                        className="bg-zinc-900 border-zinc-700 text-white"
+                      />
+                      {group.characteristics.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            removeCharacteristic(groupIndex, charIndex)
+                          }
+                          className="text-red-400 hover:text-red-300 hover:bg-zinc-700"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           ))}
 
-          {/* Botão para adicionar novo grupo */}
-          <button
+          {/* Add New Group Button */}
+          <Button
             type="button"
+            variant="outline"
             onClick={addGroup}
-            className="w-full p-4 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors flex items-center justify-center"
+            className="w-full border-zinc-700 text-white hover:text-white bg-zinc-600 hover:bg-zinc-700"
           >
-            <Plus className="w-5 h-5 mr-2" />
+            <Plus className="w-4 h-4 mr-2" />
             Adicionar Novo Grupo
-          </button>
+          </Button>
         </div>
-      </form>
 
-      <div className="fixed bottom-4 left-0 right-0 flex justify-center items-center md:left-64">
-        <button
+        {/* Submit Button */}
+        <Button
           type="submit"
           onClick={handleSubmit}
           disabled={isSubmitting || !hasChanges()}
-          className="h-16 px-6 bg-[#117d49] text-white font-medium flex items-center justify-center rounded-full shadow-lg hover:bg-[#0d6238] transition-colors disabled:opacity-50 disabled:hover:bg-[#117d49]"
+          className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:hover:bg-green-600"
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Salvando...
             </>
           ) : (
             <>
-              <Save className="w-5 h-5 mr-2" />
+              <Save className="w-4 h-4 mr-2" />
               Salvar Alterações
             </>
           )}
-        </button>
-      </div>
+        </Button>
+      </form>
     </div>
   );
 };

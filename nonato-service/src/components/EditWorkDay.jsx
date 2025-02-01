@@ -6,7 +6,7 @@ import {
   ArrowLeft,
   Loader2,
   Save,
-  AlertCircle,
+  AlertTriangle,
   Calendar,
   Clock,
   Car,
@@ -15,6 +15,22 @@ import {
   Trash2,
 } from "lucide-react";
 
+// UI Components
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
 const EditWorkday = () => {
   const { workdayId } = useParams();
   const navigate = useNavigate();
@@ -22,6 +38,7 @@ const EditWorkday = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     workDate: "",
@@ -50,7 +67,12 @@ const EditWorkday = () => {
           return;
         }
 
-        setFormData(workdayDoc.data());
+        const data = workdayDoc.data();
+        // If workDate is a Firestore timestamp, convert it
+        if (data.workDate?.toDate) {
+          data.workDate = data.workDate.toDate().toISOString().split("T")[0];
+        }
+        setFormData(data);
       } catch (err) {
         console.error("Erro ao buscar dados:", err);
         setError("Erro ao carregar dados. Por favor, tente novamente.");
@@ -70,7 +92,7 @@ const EditWorkday = () => {
     }));
   };
 
-  const handleUpdate = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setIsSubmitting(true);
@@ -85,17 +107,12 @@ const EditWorkday = () => {
     } catch (err) {
       console.error("Erro ao atualizar:", err);
       setError("Erro ao salvar alterações. Por favor, tente novamente.");
+    } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async () => {
-    if (
-      !window.confirm("Tem certeza que deseja excluir este dia de trabalho?")
-    ) {
-      return;
-    }
-
     try {
       setIsDeleting(true);
       setError(null);
@@ -105,290 +122,359 @@ const EditWorkday = () => {
     } catch (err) {
       console.error("Erro ao excluir:", err);
       setError("Erro ao excluir registro. Por favor, tente novamente.");
+    } finally {
       setIsDeleting(false);
+      setDeleteDialogOpen(false);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-4">
-      <button
-        onClick={() => navigate(-1)}
-        className="fixed top-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all hover:scale-105 flex items-center justify-center"
-      >
-        <ArrowLeft className="w-5 h-5" />
-      </button>
-
-      <h2 className="text-2xl font-semibold text-center text-white mb-6">
-        Editar Dia de Trabalho
-      </h2>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">
+            Editar Dia de Trabalho
+          </h1>
+          <p className="text-sm text-zinc-400">
+            Atualize as informações do dia de trabalho
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => navigate(-1)}
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+        >
+          <ArrowLeft className="h-4 w-4 text-white" />
+        </Button>
+      </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded-lg flex items-center">
-          <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
-          <p className="text-red-500">{error}</p>
-        </div>
+        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-red-400">{error}</AlertDescription>
+        </Alert>
       )}
 
-      <form onSubmit={handleUpdate} className="space-y-6">
-        {/* Data */}
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <div className="flex items-center mb-4">
-            <Calendar className="w-5 h-5 text-gray-400 mr-2" />
-            <h3 className="text-lg font-medium text-white">Data</h3>
-          </div>
-          <input
-            type="date"
-            name="workDate"
-            value={formData.workDate}
-            onChange={handleChange}
-            className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            required
-          />
-        </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Date Card */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="flex items-center text-lg text-white">
+              <Calendar className="w-5 h-5 mr-2 text-zinc-400" />
+              Data
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <input
+                type="date"
+                name="workDate"
+                value={formData.workDate}
+                onChange={handleChange}
+                className="w-full pl-10 p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                required
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Horários de Ida */}
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <div className="flex items-center mb-4">
-            <Clock className="w-5 h-5 text-gray-400 mr-2" />
-            <h3 className="text-lg font-medium text-white">Horários de Ida</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Saída</label>
-              <input
-                type="time"
-                name="departureTime"
-                value={formData.departureTime}
-                onChange={handleChange}
-                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">
-                Chegada
-              </label>
-              <input
-                type="time"
-                name="arrivalTime"
-                value={formData.arrivalTime}
-                onChange={handleChange}
-                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Horário do Serviço */}
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <div className="flex items-center mb-4">
-            <Clock className="w-5 h-5 text-gray-400 mr-2" />
-            <h3 className="text-lg font-medium text-white">
-              Horário do Serviço
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Início</label>
-              <input
-                type="time"
-                name="startHour"
-                value={formData.startHour}
-                onChange={handleChange}
-                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Fim</label>
-              <input
-                type="time"
-                name="endHour"
-                value={formData.endHour}
-                onChange={handleChange}
-                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Horários de Retorno */}
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <div className="flex items-center mb-4">
-            <Clock className="w-5 h-5 text-gray-400 mr-2" />
-            <h3 className="text-lg font-medium text-white">
-              Horários de Retorno
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Saída</label>
-              <input
-                type="time"
-                name="returnDepartureTime"
-                value={formData.returnDepartureTime}
-                onChange={handleChange}
-                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">
-                Chegada
-              </label>
-              <input
-                type="time"
-                name="returnArrivalTime"
-                value={formData.returnArrivalTime}
-                onChange={handleChange}
-                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Quilometragem */}
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <div className="flex items-center mb-4">
-            <Car className="w-5 h-5 text-gray-400 mr-2" />
-            <h3 className="text-lg font-medium text-white">Quilometragem</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">KM Ida</label>
-              <input
-                type="number"
-                name="kmDeparture"
-                value={formData.kmDeparture}
-                onChange={handleChange}
-                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="0"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">
-                KM Volta
-              </label>
-              <input
-                type="number"
-                name="kmReturn"
-                value={formData.kmReturn}
-                onChange={handleChange}
-                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="0"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Pausa */}
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center">
-              <Coffee className="w-5 h-5 text-gray-400 mr-2" />
-              <h3 className="text-lg font-medium text-white">Pausa</h3>
-            </div>
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                name="pause"
-                checked={formData.pause}
-                onChange={handleChange}
-                className="sr-only"
-              />
-              <div
-                className={`relative w-10 h-6 rounded-full transition-colors ${
-                  formData.pause ? "bg-blue-500" : "bg-gray-600"
-                }`}
-              >
-                <div
-                  className={`absolute w-4 h-4 rounded-full bg-white top-1 transition-transform ${
-                    formData.pause ? "left-5" : "left-1"
-                  }`}
+        {/* Departure Times Card */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="flex items-center text-lg text-white">
+              <Clock className="w-5 h-5 mr-2 text-zinc-400" />
+              Horários de Ida
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  Saída
+                </label>
+                <input
+                  type="time"
+                  name="departureTime"
+                  value={formData.departureTime}
+                  onChange={handleChange}
+                  className="w-full p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
-            </label>
-          </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  Chegada
+                </label>
+                <input
+                  type="time"
+                  name="arrivalTime"
+                  value={formData.arrivalTime}
+                  onChange={handleChange}
+                  className="w-full p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          {formData.pause && (
-            <div className="mt-4">
-              <label className="block text-sm text-gray-400 mb-1">
-                Duração da Pausa
-              </label>
-              <input
-                type="text"
-                name="pauseHours"
-                value={formData.pauseHours}
-                onChange={handleChange}
-                placeholder="00:00"
-                pattern="^(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$"
-                className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        {/* Service Hours Card */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="flex items-center text-lg text-white">
+              <Clock className="w-5 h-5 mr-2 text-zinc-400" />
+              Horário do Serviço
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  Início
+                </label>
+                <input
+                  type="time"
+                  name="startHour"
+                  value={formData.startHour}
+                  onChange={handleChange}
+                  className="w-full p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">Fim</label>
+                <input
+                  type="time"
+                  name="endHour"
+                  value={formData.endHour}
+                  onChange={handleChange}
+                  className="w-full p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Return Times Card */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="flex items-center text-lg text-white">
+              <Clock className="w-5 h-5 mr-2 text-zinc-400" />
+              Horários de Retorno
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  Saída
+                </label>
+                <input
+                  type="time"
+                  name="returnDepartureTime"
+                  value={formData.returnDepartureTime}
+                  onChange={handleChange}
+                  className="w-full p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  Chegada
+                </label>
+                <input
+                  type="time"
+                  name="returnArrivalTime"
+                  value={formData.returnArrivalTime}
+                  onChange={handleChange}
+                  className="w-full p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Mileage Card */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="flex items-center text-lg text-white">
+              <Car className="w-5 h-5 mr-2 text-zinc-400" />
+              Quilometragem
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  KM Ida
+                </label>
+                <Input
+                  type="number"
+                  name="kmDeparture"
+                  value={formData.kmDeparture}
+                  onChange={handleChange}
+                  placeholder="0"
+                  className="bg-zinc-900 border-zinc-700 text-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  KM Volta
+                </label>
+                <Input
+                  type="number"
+                  name="kmReturn"
+                  value={formData.kmReturn}
+                  onChange={handleChange}
+                  placeholder="0"
+                  className="bg-zinc-900 border-zinc-700 text-white"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Break Card */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center text-lg text-white">
+                <Coffee className="w-5 h-5 mr-2 text-zinc-400" />
+                Pausa
+              </CardTitle>
+              <Switch
+                name="pause"
+                checked={formData.pause}
+                onCheckedChange={(checked) =>
+                  handleChange({
+                    target: { name: "pause", type: "checkbox", checked },
+                  })
+                }
               />
             </div>
+          </CardHeader>
+          {formData.pause && (
+            <CardContent>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  Duração da Pausa
+                </label>
+                <Input
+                  type="text"
+                  name="pauseHours"
+                  value={formData.pauseHours}
+                  onChange={handleChange}
+                  placeholder="00:00"
+                  pattern="^(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$"
+                  className="bg-zinc-900 border-zinc-700 text-white"
+                />
+              </div>
+            </CardContent>
           )}
-        </div>
+        </Card>
 
-        {/* Descrição */}
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <div className="flex items-center mb-4">
-            <FileText className="w-5 h-5 text-gray-400 mr-2" />
-            <h3 className="text-lg font-medium text-white">Descrição</h3>
-          </div>
-          <textarea
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            placeholder="Descreva o trabalho realizado..."
-            rows="4"
-            className="w-full p-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
-          />
-        </div>
+        {/* Description Card */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="flex items-center text-lg text-white">
+              <FileText className="w-5 h-5 mr-2 text-zinc-400" />
+              Descrição
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              placeholder="Descreva o trabalho realizado..."
+              className="min-h-[100px] bg-zinc-900 border-zinc-700 text-white resize-none"
+            />
+          </CardContent>
+        </Card>
 
-        {/* Botões de ação */}
-        <div className="flex flex-col space-y-4">
-          <button
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-full p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+            className="w-full sm:w-2/3 bg-green-600 hover:bg-green-700"
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Salvando...
               </>
             ) : (
               <>
-                <Save className="w-5 h-5 mr-2" />
+                <Save className="w-4 h-4 mr-2" />
                 Salvar Alterações
               </>
             )}
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button"
-            onClick={handleDelete}
+            onClick={() => setDeleteDialogOpen(true)}
             disabled={isDeleting}
-            className="w-full p-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+            variant="destructive"
+            className="w-full sm:w-1/3 bg-red-600 hover:bg-red-700"
           >
             {isDeleting ? (
               <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Excluindo...
               </>
             ) : (
               <>
-                <Trash2 className="w-5 h-5 mr-2" />
-                Excluir Dia de Trabalho
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir
               </>
             )}
-          </button>
+          </Button>
         </div>
       </form>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="bg-zinc-800 border-zinc-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Tem certeza que deseja excluir este dia de trabalho? Esta ação não
+              pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
