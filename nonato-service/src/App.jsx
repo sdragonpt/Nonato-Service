@@ -70,6 +70,7 @@ import InspectionDetail from "./components/InspectionDetail";
 import ProtectedRoute from "./ProtectedRoute";
 import UserProfile from "./components/UserProfile";
 import UserSettings from "./components/UserSettings";
+import DashboardPage from "./DashboardPage";
 import ManageUsers from "./ManageUsers";
 import { useAuth } from "./hooks/useAuth";
 
@@ -333,7 +334,12 @@ const DashboardShell = ({ children }) => {
       >
         <div className="h-full px-4 py-4 flex flex-col">
           <div className="flex items-center justify-between mb-8 h-16">
-            <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+            <Link
+              to="/app"
+              className="text-2xl font-bold text-white hover:text-zinc-200 transition-colors"
+            >
+              Dashboard
+            </Link>
             <Button
               variant="ghost"
               size="icon"
@@ -346,16 +352,31 @@ const DashboardShell = ({ children }) => {
 
           <div className="flex-1 space-y-4 overflow-y-auto">
             {NAVIGATION_ITEMS.map((section, idx) => (
-              <div key={idx} className="space-y-1">
+              <div key={idx} className="space-y-2">
                 <button
                   onClick={() =>
                     setActiveSection(
                       activeSection === section.title ? "" : section.title
                     )
                   }
-                  className="w-full flex items-center justify-between px-2 py-2 text-zinc-400 hover:text-white transition-colors"
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg ${
+                    activeSection === section.title
+                      ? "bg-green-700/50 hover:bg-green-700 border-green-700 border-2 text-white"
+                      : section.title === "Cadastro" ||
+                        section.title === "Gestão"
+                      ? "text-white font-bold hover:bg-zinc-700 border-2 border-transparent hover:border-zinc-700 hover:border-2"
+                      : "text-zinc-400 hover:text-white"
+                  } transition-colors`}
                 >
-                  <span className="text-sm font-semibold">{section.title}</span>
+                  <span
+                    className={`${
+                      section.title === "Cadastro" || section.title === "Gestão"
+                        ? "text-base"
+                        : "text-sm"
+                    } font-semibold`}
+                  >
+                    {section.title}
+                  </span>
                   <ChevronDown
                     className={`w-4 h-4 transition-transform ${
                       activeSection === section.title ? "rotate-180" : ""
@@ -364,7 +385,7 @@ const DashboardShell = ({ children }) => {
                 </button>
 
                 <div
-                  className={`space-y-1 ${
+                  className={`space-y-1 pl-2 ${
                     activeSection === section.title ? "block" : "hidden"
                   }`}
                 >
@@ -372,7 +393,7 @@ const DashboardShell = ({ children }) => {
                     <Link
                       key={itemIdx}
                       to={item.path}
-                      className={`flex items-center gap-x-3 px-2 py-2 text-sm rounded-lg ${
+                      className={`flex items-center gap-x-3 px-3 py-2 text-sm rounded-lg ${
                         isActiveLink(item.path)
                           ? "bg-zinc-800 text-white"
                           : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
@@ -506,7 +527,8 @@ const App = () => {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Navigate to="/start" />} />
+        <Route path="/" element={<Navigate to="/app" />} />
+        <Route path="/app" element={<Navigate to="/app/dashboard" />} />
         <Route path="/start" element={<InitialPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route
@@ -515,6 +537,7 @@ const App = () => {
             <ProtectedRoute>
               <DashboardShell>
                 <Routes>
+                  <Route path="/dashboard" element={<DashboardPage />} />
                   <Route path="add-client" element={<AddClient />} />
                   <Route path="add-equipment" element={<AddEquipment />} />
                   <Route path="add-order" element={<AddOrder />} />
