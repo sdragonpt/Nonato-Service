@@ -18,6 +18,11 @@ const generateInspectionPDF = async (
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
+  // Novas constantes para os estados
+  const stateCircleRadius = 4; // Reduzido de 6
+  const stateSpacing = 45; // Reduzido de 80
+  const stateStartX = 380;
+
   // Traduções
   const t = translations[language];
 
@@ -27,6 +32,7 @@ const generateInspectionPDF = async (
   const headerSize = 12;
   const margin = 50;
   let y = currentPage.getHeight() - margin;
+  const stateStartY = y - 40;
   const initialX = margin;
   const pageWidth = currentPage.getWidth() - 2 * margin;
   const minBottomMargin = 70;
@@ -130,6 +136,53 @@ const generateInspectionPDF = async (
     // N/A states (gray)
     "N/D": { color: rgb(0.7, 0.7, 0.7), opacity: 0.6 },
     "N/A": { color: rgb(0.7, 0.7, 0.7), opacity: 0.6 },
+  };
+
+  // Função auxiliar para escrever texto com quebra de linha
+  const writeWrappedCharName = (text, maxWidth, options = {}) => {
+    const words = text.split(" ");
+    let line = "";
+    let yOffset = 0;
+    let maxLines = 2;
+    let currentLine = 0;
+    let firstLineY = options.y; // Armazenar a posição Y da primeira linha
+
+    for (const word of words) {
+      const testLine = line + (line ? " " : "") + word;
+      const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+
+      if (testWidth > maxWidth && line !== "") {
+        // Escreve a linha atual
+        writeText(line, {
+          ...options,
+          y: options.y + yOffset,
+        });
+
+        currentLine++;
+        if (currentLine >= maxLines) {
+          line = word + "...";
+          break;
+        }
+
+        line = word;
+        yOffset -= 15; // Espaçamento entre linhas
+      } else {
+        line = testLine;
+      }
+    }
+
+    // Escreve a última linha
+    if (line) {
+      writeText(line, {
+        ...options,
+        y: options.y + yOffset,
+      });
+    }
+
+    return {
+      totalHeight: Math.abs(yOffset), // Altura total usada
+      firstLineY: firstLineY, // Posição Y da primeira linha
+    };
   };
 
   const getStateColor = (state, language = "pt") => {
@@ -260,6 +313,83 @@ const generateInspectionPDF = async (
     return firstLine ? startY - lineHeight : currentY - lineHeight;
   };
 
+  const processGroupImage = async (groupImageUrl) => {
+    if (!groupImageUrl) return null;
+
+    try {
+      const storageRef = ref(storage, groupImageUrl);
+      const preSignedUrl = await getDownloadURL(storageRef);
+      const imgResponse = await fetch(preSignedUrl);
+
+      if (!imgResponse.ok) {
+        throw new Error(`Failed to fetch group image: ${imgResponse.status}`);
+      }
+
+      const imgArrayBuffer = await imgResponse.arrayBuffer();
+      const pdfImage = await pdfDoc.embedJpg(imgArrayBuffer);
+
+      // Reduzir as dimensões máximas
+      const maxWidth = pageWidth * 0.6;
+      const maxHeight = 150;
+
+      // Calcular dimensões mantendo a proporção
+      const scale = Math.min(
+        maxWidth / pdfImage.width,
+        maxHeight / pdfImage.height
+      );
+
+      return {
+        image: pdfImage,
+        width: pdfImage.width * scale,
+        height: pdfImage.height * scale,
+      };
+    } catch (error) {
+      console.error("Error processing group image:", error);
+      return null;
+    }
+  };
+
+  // Nova função para desenhar os estados
+  const drawStateOptions = (page, y, selectedState, language) => {
+    const states = [
+      { key: "Bom", color: rgb(0, 0.5, 0) },
+      { key: "Reparar", color: rgb(0.9, 0.7, 0) },
+      { key: "Substituir", color: rgb(0.5, 0, 0.5) },
+      { key: "N/D", color: rgb(0.7, 0.7, 0.7) },
+    ];
+
+    states.forEach((state, index) => {
+      const x = stateStartX + index * stateSpacing;
+      const circleOffset = 10;
+
+      // Calcular o texto traduzido e sua largura
+      const translatedText = translateValue(state.key, "state", language);
+      const textWidth = font.widthOfTextAtSize(translatedText, fontSize - 2);
+
+      // Desenha o círculo
+      const circleX = x + stateCircleRadius;
+      page.drawCircle({
+        x: circleX,
+        y: y - stateCircleRadius - circleOffset,
+        size: stateCircleRadius * 2,
+        borderWidth: 1,
+        borderColor: rgb(0, 0, 0),
+        color: selectedState === state.key ? state.color : rgb(1, 1, 1),
+      });
+
+      // Calcula a posição x do texto para centralizá-lo sobre o círculo
+      const textX = circleX - textWidth / 2;
+
+      // Escreve o texto do estado traduzido
+      writeText(translatedText, {
+        x: textX,
+        y: y - 1,
+        size: fontSize - 2,
+        font: font,
+      });
+    });
+  };
+
   // Header logo
   try {
     const response = await fetch("/nonato2.png");
@@ -349,8 +479,29 @@ const generateInspectionPDF = async (
         y -= 30;
       }
 
+      // Primeiro, processamos a imagem para saber sua altura
+      const groupImageUrl = inspection.groupImages?.[group.name];
+      let imageHeight = 0;
+      let processedImage = null;
+
+      if (groupImageUrl) {
+        processedImage = await processGroupImage(groupImageUrl);
+        if (processedImage) {
+          imageHeight = processedImage.height + 20; // 20px de padding
+        }
+      }
+
+      // Agora desenhamos o retângulo incluindo espaço para a imagem
+      const totalHeight = 30 + imageHeight; // 30px para o título + altura da imagem
+      drawRect(
+        initialX,
+        y - totalHeight,
+        pageWidth,
+        totalHeight,
+        rgb(0.95, 0.95, 0.95)
+      );
+
       // Título do grupo
-      drawRect(initialX, y - 30, pageWidth, 30, rgb(0.95, 0.95, 0.95));
       writeText(group.name.replace(":", ""), {
         x: 60,
         y: y - 20,
@@ -358,154 +509,141 @@ const generateInspectionPDF = async (
       });
       y -= 40;
 
-      // Imagem do grupo
-      const groupImageUrl = inspection.groupImages?.[group.name];
-      if (groupImageUrl) {
-        try {
-          const storageRef = ref(storage, groupImageUrl);
-          const preSignedUrl = await getDownloadURL(storageRef);
-          const imgResponse = await fetch(preSignedUrl);
+      // Se tiver imagem, desenhar centralizada
+      if (processedImage) {
+        const xOffset = (pageWidth - processedImage.width) / 2;
+        currentPage.drawImage(processedImage.image, {
+          x: initialX + xOffset,
+          y: y - processedImage.height + 10, // +10 para dar um espaço do título
+          width: processedImage.width,
+          height: processedImage.height,
+        });
 
-          if (!imgResponse.ok) {
-            throw new Error(
-              `Falha ao buscar imagem do grupo: ${imgResponse.status} ${imgResponse.statusText}`
-            );
-          }
-
-          const imgArrayBuffer = await imgResponse.arrayBuffer();
-          const pdfImage = await pdfDoc.embedJpg(imgArrayBuffer);
-
-          const maxWidth = 200;
-          const maxHeight = 150;
-          const scale = Math.min(
-            maxWidth / pdfImage.width,
-            maxHeight / pdfImage.height
-          );
-          const imgDims = pdfImage.scale(scale);
-
-          if (checkAndCreateNewPage(imgDims.height + 20)) {
-            y -= 30;
-          }
-
-          currentPage.drawImage(pdfImage, {
-            x: initialX,
-            y: y - imgDims.height,
-            width: imgDims.width,
-            height: imgDims.height,
-          });
-
-          y -= imgDims.height + 20;
-        } catch (error) {
-          console.error("Erro ao carregar imagem do grupo:", error);
-        }
+        y -= processedImage.height + 20;
       }
 
-      // Características do grupo
-      for (const char of group.selectedCharacteristics || []) {
+      // Para cada característica, ajustar o layout para os estados ficarem à direita
+      for (const char of group.selectedCharacteristics) {
         if (checkAndCreateNewPage(150)) {
           y -= 30;
         }
 
-        const state = translateValue(
-          inspection.states?.[group.name]?.[char]?.state,
-          "state",
-          language
-        );
-        const description =
-          inspection.states?.[group.name]?.[char]?.description || "";
-        const imageUrl = inspection.states?.[group.name]?.[char]?.imageUrl;
+        const state = inspection.states?.[group.name]?.[char]?.state;
 
-        // Característica e estado
-        writeText(char, { y: y - 5, x: 55 });
+        // Nome da característica com quebra de linha se necessário
+        const { totalHeight, firstLineY } = writeWrappedCharName(char, 275, {
+          y: y - 15,
+          x: 55,
+          size: fontSize,
+          font: font,
+        });
 
         if (inspection.type !== "training") {
-          // Texto "Estado:" em preto
-          const stateLabel = `${t.state}: `;
-          writeText(stateLabel, {
-            y: y - 5,
-            x: initialX + 400,
-            color: rgb(0, 0, 0),
-          });
-
-          // Calcula posição após "Estado: "
-          const labelWidth = font.widthOfTextAtSize(stateLabel, fontSize);
-          const stateInfo = getStateInfo(state, language);
-          const boxPadding = 4;
-
-          // Desenha retângulo colorido apenas para o valor do estado
-          drawRect(
-            initialX + 400 + labelWidth - 2,
-            y - fontSize - boxPadding + 3,
-            stateInfo.width + boxPadding * 2,
-            fontSize + boxPadding * 2,
-            stateInfo.color
-          );
-
-          // Texto do valor do estado em branco
-          writeText(stateInfo.text, {
-            y: y - 5,
-            x: initialX + 400 + labelWidth + 2,
-            color: rgb(1, 1, 1),
-          });
-          y -= 25;
+          // Os estados sempre ficam alinhados com a primeira linha
+          drawStateOptions(currentPage, y - 15, state, language);
         }
 
-        y -= 25;
-        // Descrição
+        // Ajusta o y baseado na altura total do texto
+        y -= 45 + (totalHeight > 0 ? totalHeight : 0);
+
+        // O resto do código continua igual
+        const description =
+          inspection.states?.[group.name]?.[char]?.description || "";
         if (description) {
           writeText(`${t.observation}:`, { y, useFont: boldFont, x: 55 });
-          y -= 15;
+          y -= 20;
           writeText(description, { y, x: 55 });
           y -= 20;
         }
 
-        // Imagem
-        if (imageUrl) {
+        // Processamento de imagens das caracteristicas
+        const imageUrl1 = inspection.states?.[group.name]?.[char]?.imageUrl1;
+        const imageUrl2 = inspection.states?.[group.name]?.[char]?.imageUrl2;
+
+        if (imageUrl1 || imageUrl2) {
           try {
-            // Gere um URL pré-assinado com Firebase Storage
-            const storageRef = ref(storage, imageUrl); // `imageUrl` deve ser o caminho relativo no bucket, como "inspections/5/image.jpg"
-            const preSignedUrl = await getDownloadURL(storageRef);
-
-            // Faça o fetch da imagem usando o URL pré-assinado
-            const imgResponse = await fetch(preSignedUrl);
-            if (!imgResponse.ok) {
-              throw new Error(
-                `Falha ao buscar imagem: ${imgResponse.status} ${imgResponse.statusText}`
-              );
-            }
-
-            // Converta a imagem para um ArrayBuffer
-            const imgArrayBuffer = await imgResponse.arrayBuffer();
-
-            // Embeda a imagem no PDF
-            const pdfImage = await pdfDoc.embedJpg(imgArrayBuffer); // ou embedPng se for PNG
-
-            // Dimensione a imagem para caber no PDF
             const maxWidth = 150;
             const maxHeight = 100;
-            // Dimensione a imagem mantendo a proporção
-            const scale = Math.min(
-              maxWidth / pdfImage.width,
-              maxHeight / pdfImage.height
-            );
-            const imgDims = pdfImage.scale(scale);
+            const spacing = 20; // Espaço entre as imagens
 
-            // Verifique se há espaço suficiente na página
-            if (checkAndCreateNewPage(imgDims.height + 20)) {
+            // Processar primeira imagem
+            let image1 = null;
+            if (imageUrl1) {
+              const storageRef1 = ref(storage, imageUrl1);
+              const preSignedUrl1 = await getDownloadURL(storageRef1);
+              const imgResponse1 = await fetch(preSignedUrl1);
+
+              if (imgResponse1.ok) {
+                const imgArrayBuffer1 = await imgResponse1.arrayBuffer();
+                const pdfImage1 = await pdfDoc.embedJpg(imgArrayBuffer1);
+                const scale1 = Math.min(
+                  maxWidth / pdfImage1.width,
+                  maxHeight / pdfImage1.height
+                );
+                image1 = {
+                  image: pdfImage1,
+                  width: pdfImage1.width * scale1,
+                  height: pdfImage1.height * scale1,
+                };
+              }
+            }
+
+            // Processar segunda imagem
+            let image2 = null;
+            if (imageUrl2) {
+              const storageRef2 = ref(storage, imageUrl2);
+              const preSignedUrl2 = await getDownloadURL(storageRef2);
+              const imgResponse2 = await fetch(preSignedUrl2);
+
+              if (imgResponse2.ok) {
+                const imgArrayBuffer2 = await imgResponse2.arrayBuffer();
+                const pdfImage2 = await pdfDoc.embedJpg(imgArrayBuffer2);
+                const scale2 = Math.min(
+                  maxWidth / pdfImage2.width,
+                  maxHeight / pdfImage2.height
+                );
+                image2 = {
+                  image: pdfImage2,
+                  width: pdfImage2.width * scale2,
+                  height: pdfImage2.height * scale2,
+                };
+              }
+            }
+
+            // Calcular altura máxima entre as duas imagens
+            const maxImageHeight = Math.max(
+              image1?.height || 0,
+              image2?.height || 0
+            );
+
+            if (checkAndCreateNewPage(maxImageHeight + 20)) {
               y -= 30;
             }
 
-            // Desenhe a imagem na página
-            currentPage.drawImage(pdfImage, {
-              x: initialX,
-              y: y - imgDims.height,
-              width: imgDims.width,
-              height: imgDims.height,
-            });
+            // Desenhar primeira imagem
+            if (image1) {
+              currentPage.drawImage(image1.image, {
+                x: initialX,
+                y: y - image1.height,
+                width: image1.width,
+                height: image1.height,
+              });
+            }
 
-            y -= imgDims.height + 20; // Ajuste o cursor para evitar sobreposição
+            // Desenhar segunda imagem
+            if (image2) {
+              currentPage.drawImage(image2.image, {
+                x: initialX + (image1 ? image1.width + spacing : 0),
+                y: y - image2.height,
+                width: image2.width,
+                height: image2.height,
+              });
+            }
+
+            // Ajustar posição vertical baseado na maior altura
+            y -= maxImageHeight + 20;
           } catch (error) {
-            console.error("Erro ao carregar imagem da característica:", error);
+            console.error("Erro ao carregar imagens da característica:", error);
           }
         }
 
@@ -626,7 +764,7 @@ const generateInspectionPDF = async (
       fontSize
     );
     const boxPadding = 5;
-    const leftPadding = 8;
+    const leftPadding = 6;
 
     writeText(labelText, {
       y,

@@ -109,8 +109,11 @@ const InspectionDetail = () => {
             state: inspectionData.states?.[group.name]?.[char]?.state || "",
             description:
               inspectionData.states?.[group.name]?.[char]?.description || "",
-            imageUrl:
-              inspectionData.states?.[group.name]?.[char]?.imageUrl || null,
+            // Array de URLs de imagem
+            imageUrls: [
+              inspectionData.states?.[group.name]?.[char]?.imageUrl1 || null,
+              inspectionData.states?.[group.name]?.[char]?.imageUrl2 || null,
+            ],
           })),
         }));
 
@@ -131,7 +134,6 @@ const InspectionDetail = () => {
       setIsSaving(true);
       setError(null);
 
-      // Prepare states object
       const states = {};
       const groupImages = {};
       groups.forEach((group) => {
@@ -141,12 +143,12 @@ const InspectionDetail = () => {
           states[group.name][char.name] = {
             state: char.state,
             description: char.description,
-            imageUrl: char.imageUrl,
+            imageUrl1: char.imageUrls[0],
+            imageUrl2: char.imageUrls[1],
           };
         });
       });
 
-      // Update inspection document
       await updateDoc(doc(db, "inspections", id), {
         states,
         status: "completed",
@@ -222,16 +224,19 @@ const InspectionDetail = () => {
     }
   };
 
-  const handleImageUpload = async (groupName, characteristicName, file) => {
+  const handleImageUpload = async (
+    groupName,
+    characteristicName,
+    file,
+    imageIndex
+  ) => {
     try {
       setIsUploading(true);
 
-      // Compress image
       const compressedFile = await compressImage(file);
-
       const storageRef = ref(
         storage,
-        `inspections/${id}/${groupName}-${characteristicName}-${Date.now()}`
+        `inspections/${id}/${groupName}-${characteristicName}-${imageIndex}-${Date.now()}`
       );
 
       const snapshot = await uploadBytes(storageRef, compressedFile);
@@ -244,7 +249,12 @@ const InspectionDetail = () => {
                 ...group,
                 characteristics: group.characteristics.map((char) =>
                   char.name === characteristicName
-                    ? { ...char, imageUrl: url }
+                    ? {
+                        ...char,
+                        imageUrls: char.imageUrls.map((existingUrl, idx) =>
+                          idx === imageIndex ? url : existingUrl
+                        ),
+                      }
                     : char
                 ),
               }
@@ -259,7 +269,11 @@ const InspectionDetail = () => {
     }
   };
 
-  const handleDeleteImage = async (groupName, characteristicName) => {
+  const handleDeleteImage = async (
+    groupName,
+    characteristicName,
+    imageIndex
+  ) => {
     try {
       setIsDeleting(true);
 
@@ -268,8 +282,10 @@ const InspectionDetail = () => {
         (char) => char.name === characteristicName
       );
 
-      if (currentChar.imageUrl) {
-        const imageRef = ref(storage, currentChar.imageUrl);
+      const imageUrl = currentChar.imageUrls[imageIndex];
+
+      if (imageUrl) {
+        const imageRef = ref(storage, imageUrl);
         await deleteObject(imageRef);
 
         setGroups((prev) =>
@@ -279,7 +295,12 @@ const InspectionDetail = () => {
                   ...group,
                   characteristics: group.characteristics.map((char) =>
                     char.name === characteristicName
-                      ? { ...char, imageUrl: null }
+                      ? {
+                          ...char,
+                          imageUrls: char.imageUrls.map((url, idx) =>
+                            idx === imageIndex ? null : url
+                          ),
+                        }
                       : char
                   ),
                 }
@@ -403,6 +424,7 @@ const InspectionDetail = () => {
     characterName,
     onImageSelect,
     hasImage,
+    imageIndex,
   }) => {
     const [showOptions, setShowOptions] = useState(false);
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -851,35 +873,52 @@ const InspectionDetail = () => {
                       />
 
                       {/* Image handling */}
-                      <div className="flex items-center gap-3">
-                        <ImagePicker
-                          groupName={group.name}
-                          characterName={char.name}
-                          onImageSelect={(file) =>
-                            handleImageUpload(group.name, char.name, file)
-                          }
-                          hasImage={!!char.imageUrl}
-                        />
-                        {char.imageUrl && (
-                          <div className="relative">
-                            <img
-                              src={char.imageUrl}
-                              alt="Característica"
-                              className="w-20 h-20 object-cover rounded-lg"
-                            />
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              onClick={() =>
-                                handleDeleteImage(group.name, char.name)
+                      <div className="flex flex-col space-y-3">
+                        {[0, 1].map((imageIndex) => (
+                          <div
+                            key={imageIndex}
+                            className="flex items-center gap-3"
+                          >
+                            <ImagePicker
+                              groupName={group.name}
+                              characterName={char.name}
+                              onImageSelect={(file) =>
+                                handleImageUpload(
+                                  group.name,
+                                  char.name,
+                                  file,
+                                  imageIndex
+                                )
                               }
-                              disabled={isDeleting}
-                              className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
+                              hasImage={!!char.imageUrls[imageIndex]}
+                              imageIndex={imageIndex}
+                            />
+                            {char.imageUrls[imageIndex] && (
+                              <div className="relative">
+                                <img
+                                  src={char.imageUrls[imageIndex]}
+                                  alt={`Característica ${imageIndex + 1}`}
+                                  className="w-20 h-20 object-cover rounded-lg"
+                                />
+                                <Button
+                                  variant="destructive"
+                                  size="icon"
+                                  onClick={() =>
+                                    handleDeleteImage(
+                                      group.name,
+                                      char.name,
+                                      imageIndex
+                                    )
+                                  }
+                                  disabled={isDeleting}
+                                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
                           </div>
-                        )}
+                        ))}
                       </div>
                     </div>
                   ))}
