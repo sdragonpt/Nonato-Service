@@ -12,7 +12,9 @@ import { db } from "../firebase.jsx";
 import { useNavigate } from "react-router-dom";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { FileOpener } from "@capacitor-community/file-opener";
+
 import generateInspectionPDF from "./generateInspectionPDF";
+import LanguageDialog from "./LanguageDialog";
 
 // Lucide Icons
 import {
@@ -178,6 +180,8 @@ const ManageInspection = () => {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [inspectionToDelete, setInspectionToDelete] = useState(null);
+  const [languageDialogOpen, setLanguageDialogOpen] = useState(false);
+  const [inspectionToGenerate, setInspectionToGenerate] = useState(null);
 
   const fetchInspections = useCallback(async () => {
     try {
@@ -244,13 +248,20 @@ const ManageInspection = () => {
     setDeleteDialogOpen(true);
   };
 
-  const handleGeneratePDF = async (inspection) => {
+  const handleGeneratePDF = (inspection) => {
+    setInspectionToGenerate(inspection);
+    setLanguageDialogOpen(true);
+  };
+
+  const generatePDFWithLanguage = async (language) => {
     try {
       setIsGeneratingPDF(true);
       const [clientDoc, equipmentDoc, checklistDoc] = await Promise.all([
-        getDoc(doc(db, "clientes", inspection.clientId)),
-        getDoc(doc(db, "equipamentos", inspection.equipmentId)),
-        getDoc(doc(db, "checklist_machines", inspection.checklistTypeId)),
+        getDoc(doc(db, "clientes", inspectionToGenerate.clientId)), // corrigido
+        getDoc(doc(db, "equipamentos", inspectionToGenerate.equipmentId)),
+        getDoc(
+          doc(db, "checklist_machines", inspectionToGenerate.checklistTypeId)
+        ),
       ]);
 
       if (
@@ -262,14 +273,15 @@ const ManageInspection = () => {
       }
 
       const pdfBlob = await generateInspectionPDF(
-        inspection,
+        inspectionToGenerate,
         { id: clientDoc.id, ...clientDoc.data() },
         { id: equipmentDoc.id, ...equipmentDoc.data() },
-        { id: checklistDoc.id, ...checklistDoc.data() }
+        { id: checklistDoc.id, ...checklistDoc.data() },
+        language // Passar o idioma selecionado
       );
 
       const fileName = `Checklist_${clientDoc.data().name}_${
-        inspection.id
+        inspectionToGenerate.id
       }.pdf`;
 
       if (window?.Capacitor?.isNative) {
@@ -306,10 +318,11 @@ const ManageInspection = () => {
         URL.revokeObjectURL(url);
       }
     } catch (error) {
-      console.error("Erro ao gerar PDF:", error);
       setError("Erro ao gerar PDF. Por favor, tente novamente.");
     } finally {
       setIsGeneratingPDF(false);
+      setLanguageDialogOpen(false);
+      setInspectionToGenerate(null);
     }
   };
 
@@ -341,7 +354,7 @@ const ManageInspection = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -473,6 +486,14 @@ const ManageInspection = () => {
           </Card>
         )}
       </div>
+
+      {/* Componente de seleção de idioma */}
+      <LanguageDialog
+        open={languageDialogOpen}
+        onOpenChange={setLanguageDialogOpen}
+        onSelectLanguage={generatePDFWithLanguage}
+        isGeneratingPDF={isGeneratingPDF}
+      />
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

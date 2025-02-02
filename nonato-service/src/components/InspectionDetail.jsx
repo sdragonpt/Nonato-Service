@@ -61,6 +61,7 @@ const InspectionDetail = () => {
   const [additionalNotes, setAdditionalNotes] = useState("");
   const [trainingParticipants, setTrainingParticipants] = useState([]);
   const [newParticipantName, setNewParticipantName] = useState("");
+  const [isUploadingGroupImage, setIsUploadingGroupImage] = useState(false);
 
   useEffect(() => {
     const fetchInspectionDetails = async () => {
@@ -98,6 +99,7 @@ const InspectionDetail = () => {
         const selectedGroups = inspectionData.selectedGroups || [];
         const initialGroups = selectedGroups.map((group) => ({
           ...group,
+          imageUrl: inspectionData.groupImages?.[group.name] || null,
           characteristics: group.selectedCharacteristics.map((char) => ({
             name: char,
             state: inspectionData.states?.[group.name]?.[char]?.state || "",
@@ -127,8 +129,10 @@ const InspectionDetail = () => {
 
       // Prepare states object
       const states = {};
+      const groupImages = {};
       groups.forEach((group) => {
         states[group.name] = {};
+        groupImages[group.name] = group.imageUrl;
         group.characteristics.forEach((char) => {
           states[group.name][char.name] = {
             state: char.state,
@@ -150,6 +154,7 @@ const InspectionDetail = () => {
         maintenancePriority,
         additionalNotes,
         trainingParticipants,
+        groupImages,
       });
 
       navigate("/app/manage-inspection");
@@ -158,6 +163,58 @@ const InspectionDetail = () => {
       setError("Erro ao salvar alterações");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleUploadGroupImage = async (groupName, file) => {
+    try {
+      setIsUploadingGroupImage(true);
+
+      // Compress image
+      const compressedFile = await compressImage(file);
+
+      const storageRef = ref(
+        storage,
+        `inspections/${id}/group-${groupName}-${Date.now()}`
+      );
+
+      const snapshot = await uploadBytes(storageRef, compressedFile);
+      const url = await getDownloadURL(snapshot.ref);
+
+      setGroups((prev) =>
+        prev.map((group) =>
+          group.name === groupName ? { ...group, imageUrl: url } : group
+        )
+      );
+    } catch (error) {
+      console.error("Error:", error);
+      setError("Erro ao fazer upload da imagem do grupo");
+    } finally {
+      setIsUploadingGroupImage(false);
+    }
+  };
+
+  const handleDeleteGroupImage = async (groupName) => {
+    try {
+      setIsDeleting(true);
+
+      const currentGroup = groups.find((group) => group.name === groupName);
+
+      if (currentGroup.imageUrl) {
+        const imageRef = ref(storage, currentGroup.imageUrl);
+        await deleteObject(imageRef);
+
+        setGroups((prev) =>
+          prev.map((group) =>
+            group.name === groupName ? { ...group, imageUrl: null } : group
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      setError("Erro ao deletar imagem do grupo");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -692,19 +749,55 @@ const InspectionDetail = () => {
         <div className="space-y-4">
           {groups.map((group, groupIndex) => (
             <Card key={groupIndex} className="bg-zinc-800 border-zinc-700">
-              <CardHeader
-                className="cursor-pointer"
-                onClick={() => toggleGroup(group.name)}
-              >
+              <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg text-white">
-                    {group.name}
-                  </CardTitle>
-                  {expandedGroups[group.name] ? (
-                    <ChevronUp className="w-5 h-5 text-zinc-400" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-zinc-400" />
-                  )}
+                  <div
+                    className="flex-1 cursor-pointer"
+                    onClick={() => toggleGroup(group.name)}
+                  >
+                    <CardTitle className="text-lg text-white">
+                      {group.name}
+                    </CardTitle>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <ImagePicker
+                      groupName={group.name}
+                      characterName="group"
+                      onImageSelect={(file) =>
+                        handleUploadGroupImage(group.name, file)
+                      }
+                      hasImage={!!group.imageUrl}
+                    />
+                    {group.imageUrl && (
+                      <div className="relative">
+                        <img
+                          src={group.imageUrl}
+                          alt="Grupo"
+                          className="w-20 h-20 object-cover rounded-lg"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={() => handleDeleteGroupImage(group.name)}
+                          disabled={isDeleting}
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                    {expandedGroups[group.name] ? (
+                      <ChevronUp
+                        className="w-5 h-5 text-zinc-400 cursor-pointer"
+                        onClick={() => toggleGroup(group.name)}
+                      />
+                    ) : (
+                      <ChevronDown
+                        className="w-5 h-5 text-zinc-400 cursor-pointer"
+                        onClick={() => toggleGroup(group.name)}
+                      />
+                    )}
+                  </div>
                 </div>
               </CardHeader>
 

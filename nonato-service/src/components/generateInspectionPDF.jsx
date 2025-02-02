@@ -1,12 +1,14 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { ref, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebase.jsx";
+import { translations } from "../hooks/translations";
 
 const generateInspectionPDF = async (
   inspection,
   client,
   equipment,
-  checklistType
+  checklistType,
+  language = "pt"
 ) => {
   const pdfDoc = await PDFDocument.create();
   let currentPage = pdfDoc.addPage([595.28, 841.89]); // A4
@@ -15,6 +17,9 @@ const generateInspectionPDF = async (
 
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  // Traduções
+  const t = translations[language];
 
   // Configurações
   const fontSize = 10;
@@ -25,6 +30,135 @@ const generateInspectionPDF = async (
   const initialX = margin;
   const pageWidth = currentPage.getWidth() - 2 * margin;
   const minBottomMargin = 70;
+
+  const translateValue = (value, type, language) => {
+    const t = translations[language];
+
+    switch (type) {
+      case "condition":
+        switch (value) {
+          case "Excelente condição":
+            return t.conditions.excellent;
+          case "Boa condição":
+            return t.conditions.good;
+          case "Condição regular":
+            return t.conditions.regular;
+          case "Condição ruim":
+            return t.conditions.bad;
+          default:
+            return value;
+        }
+
+      case "yesNo":
+        switch (value) {
+          case "Sim":
+            return t.yesNo.yes;
+          case "Não":
+            return t.yesNo.no;
+          default:
+            return value;
+        }
+
+      case "status":
+        switch (value) {
+          case "Operacional":
+            return t.assetStatuses.operational;
+          case "Manutenção requerida":
+            return t.assetStatuses.maintenanceRequired;
+          case "Em manutenção":
+            return t.assetStatuses.inMaintenance;
+          case "Inoperante":
+            return t.assetStatuses.inoperative;
+          default:
+            return value;
+        }
+
+      case "priority":
+        switch (value) {
+          case "Baixo":
+            return t.priorities.low;
+          case "Médio":
+            return t.priorities.medium;
+          case "Alto":
+            return t.priorities.high;
+          case "Crítico":
+            return t.priorities.critical;
+          default:
+            return value;
+        }
+
+      case "state":
+        switch (value) {
+          case "Bom":
+            return t.states.good;
+          case "Reparar":
+            return t.states.repair;
+          case "Substituir":
+            return t.states.replace;
+          case "N/D":
+            return t.states.na;
+          default:
+            return value;
+        }
+
+      default:
+        return value;
+    }
+  };
+
+  const STATE_COLORS = {
+    // Good states (green)
+    Bom: { color: rgb(0, 0.5, 0), opacity: 0.8 },
+    Good: { color: rgb(0, 0.5, 0), opacity: 0.8 },
+    Bueno: { color: rgb(0, 0.5, 0), opacity: 0.8 },
+    Bon: { color: rgb(0, 0.5, 0), opacity: 0.8 },
+    Buono: { color: rgb(0, 0.5, 0), opacity: 0.8 },
+
+    // Repair states (yellow)
+    Reparar: { color: rgb(0.9, 0.7, 0), opacity: 0.8 },
+    Repair: { color: rgb(0.9, 0.7, 0), opacity: 0.8 },
+    Réparer: { color: rgb(0.9, 0.7, 0), opacity: 0.8 },
+    Riparare: { color: rgb(0.9, 0.7, 0), opacity: 0.8 },
+
+    // Replace states (purple)
+    Substituir: { color: rgb(0.5, 0, 0.5), opacity: 0.8 },
+    Replace: { color: rgb(0.5, 0, 0.5), opacity: 0.8 },
+    Sustituir: { color: rgb(0.5, 0, 0.5), opacity: 0.8 },
+    Remplacer: { color: rgb(0.5, 0, 0.5), opacity: 0.8 },
+    Sostituire: { color: rgb(0.5, 0, 0.5), opacity: 0.8 },
+
+    // N/A states (gray)
+    "N/D": { color: rgb(0.7, 0.7, 0.7), opacity: 0.6 },
+    "N/A": { color: rgb(0.7, 0.7, 0.7), opacity: 0.6 },
+  };
+
+  const getStateColor = (state, language = "pt") => {
+    // First try to get color for the original state
+    if (STATE_COLORS[state]) {
+      return STATE_COLORS[state];
+    }
+
+    // If not found, try to get color for the translated state
+    const translatedState = translateValue(state, "state", language);
+    if (STATE_COLORS[translatedState]) {
+      return STATE_COLORS[translatedState];
+    }
+
+    // Default color if neither is found
+    return { color: rgb(0.7, 0.7, 0.7), opacity: 0.6 };
+  };
+
+  const getStateInfo = (state, language) => {
+    const translatedState = translateValue(state, "state", language);
+    const stateWidth = font.widthOfTextAtSize(translatedState, fontSize);
+    const { color } = getStateColor(state, language);
+
+    return {
+      color,
+      width: stateWidth,
+      text: translatedState,
+    };
+  };
 
   // Funções auxiliares
   const writeText = (text, options = {}) => {
@@ -64,19 +198,6 @@ const generateInspectionPDF = async (
       height,
       color,
     });
-  };
-
-  const getStateColor = (state) => {
-    switch (state) {
-      case "Bom":
-        return { color: rgb(0, 0.5, 0), opacity: 0.8 };
-      case "Reparar":
-        return { color: rgb(0.9, 0.7, 0), opacity: 0.8 };
-      case "Substituir":
-        return { color: rgb(0.5, 0, 0.5), opacity: 0.8 };
-      default:
-        return { color: rgb(0.7, 0.7, 0.7), opacity: 0.6 };
-    }
   };
 
   const checkAndCreateNewPage = (requiredSpace) => {
@@ -184,9 +305,7 @@ const generateInspectionPDF = async (
   drawRect(initialX, y - 130, pageWidth, 130, rgb(0.95, 0.95, 0.95));
 
   writeText(
-    inspection.type === "training"
-      ? "Detalhes do Treinamento"
-      : "Detalhes da Inspeção",
+    inspection.type === "training" ? t.trainingDetails : t.inspectionDetails,
     {
       x: 60,
       y: y - 20,
@@ -195,24 +314,24 @@ const generateInspectionPDF = async (
   );
   y -= 40;
 
-  writeText(`Localização: ${client.address || "N/A"}`, { y, x: 60 });
+  writeText(`${t.location}: ${client.address || "N/A"}`, { y, x: 60 });
   y -= 20;
-  writeText(`Nome do inspetor: Nonato`, { y, x: 60 });
+  writeText(`${t.inspector}: Nonato`, { y, x: 60 });
   y -= 20;
-  writeText(`Relatório: Check_${inspection.id}`, {
-    y,
-    x: 60,
-  });
+  writeText(`${t.report}: Check_${inspection.id}`, { y, x: 60 });
   y -= -60;
 
-  writeText("Detalhes dos ativos", { useFont: boldFont, x: 320 });
+  writeText(t.assetDetails, { useFont: boldFont, x: 320 });
   y -= 20;
 
-  writeText(`Nome do Cliente: ${client.name || "N/A"}`, { y, x: 320 });
+  writeText(`${t.clientName}: ${client.name || "N/A"}`, { y, x: 320 });
   y -= 20;
-  writeText(`Equipamento: ${equipment.type || "N/A"}`, { y, x: 320 });
+  writeText(`${t.equipment}: ${equipment.type || "N/A"}`, { y, x: 320 });
   y -= 20;
-  const ativoText = `Ativo: ${(checklistType.type || "N/A").replace(":", "")}`;
+  const ativoText = `${t.asset}: ${(checklistType.type || "N/A").replace(
+    ":",
+    ""
+  )}`;
   y =
     writeWrappedText(ativoText, {
       x: 320,
@@ -220,7 +339,7 @@ const generateInspectionPDF = async (
       maxWidth: 220,
       lineHeight: 15,
     }) - 5;
-  writeText(`Modelo: ${equipment.model || "N/A"}`, { y, x: 320 });
+  writeText(`${t.model}: ${equipment.model || "N/A"}`, { y, x: 320 });
   y -= 40;
 
   // Grupos e características
@@ -239,13 +358,59 @@ const generateInspectionPDF = async (
       });
       y -= 40;
 
+      // Imagem do grupo
+      const groupImageUrl = inspection.groupImages?.[group.name];
+      if (groupImageUrl) {
+        try {
+          const storageRef = ref(storage, groupImageUrl);
+          const preSignedUrl = await getDownloadURL(storageRef);
+          const imgResponse = await fetch(preSignedUrl);
+
+          if (!imgResponse.ok) {
+            throw new Error(
+              `Falha ao buscar imagem do grupo: ${imgResponse.status} ${imgResponse.statusText}`
+            );
+          }
+
+          const imgArrayBuffer = await imgResponse.arrayBuffer();
+          const pdfImage = await pdfDoc.embedJpg(imgArrayBuffer);
+
+          const maxWidth = 200;
+          const maxHeight = 150;
+          const scale = Math.min(
+            maxWidth / pdfImage.width,
+            maxHeight / pdfImage.height
+          );
+          const imgDims = pdfImage.scale(scale);
+
+          if (checkAndCreateNewPage(imgDims.height + 20)) {
+            y -= 30;
+          }
+
+          currentPage.drawImage(pdfImage, {
+            x: initialX,
+            y: y - imgDims.height,
+            width: imgDims.width,
+            height: imgDims.height,
+          });
+
+          y -= imgDims.height + 20;
+        } catch (error) {
+          console.error("Erro ao carregar imagem do grupo:", error);
+        }
+      }
+
       // Características do grupo
       for (const char of group.selectedCharacteristics || []) {
         if (checkAndCreateNewPage(150)) {
           y -= 30;
         }
 
-        const state = inspection.states?.[group.name]?.[char]?.state || "N/D";
+        const state = translateValue(
+          inspection.states?.[group.name]?.[char]?.state,
+          "state",
+          language
+        );
         const description =
           inspection.states?.[group.name]?.[char]?.description || "";
         const imageUrl = inspection.states?.[group.name]?.[char]?.imageUrl;
@@ -256,28 +421,29 @@ const generateInspectionPDF = async (
 
         if (inspection.type !== "training") {
           // Texto "Estado:" em preto
-          writeText("Estado: ", {
+          const stateLabel = `${t.state}: `;
+          writeText(stateLabel, {
             y: y - 5,
             x: initialX + 400,
             color: rgb(0, 0, 0),
           });
 
           // Calcula posição após "Estado: "
-          const labelWidth = font.widthOfTextAtSize("Estado: ", fontSize);
-          const stateWidth = font.widthOfTextAtSize(state, fontSize);
+          const labelWidth = font.widthOfTextAtSize(stateLabel, fontSize);
+          const stateInfo = getStateInfo(state, language);
           const boxPadding = 4;
 
           // Desenha retângulo colorido apenas para o valor do estado
           drawRect(
             initialX + 400 + labelWidth - 2,
             y - fontSize - boxPadding + 3,
-            stateWidth + 8,
+            stateInfo.width + boxPadding * 2,
             fontSize + boxPadding * 2,
-            stateColor.color
+            stateInfo.color
           );
 
           // Texto do valor do estado em branco
-          writeText(state, {
+          writeText(stateInfo.text, {
             y: y - 5,
             x: initialX + 400 + labelWidth + 2,
             color: rgb(1, 1, 1),
@@ -288,7 +454,7 @@ const generateInspectionPDF = async (
         y -= 25;
         // Descrição
         if (description) {
-          writeText("Observação:", { y, useFont: boldFont, x: 55 });
+          writeText(`${t.observation}:`, { y, useFont: boldFont, x: 55 });
           y -= 15;
           writeText(description, { y, x: 55 });
           y -= 20;
@@ -369,8 +535,8 @@ const generateInspectionPDF = async (
   drawRect(initialX, y - 30, pageWidth, 30, rgb(0, 0, 0));
   writeText(
     inspection.type === "training"
-      ? "Participantes do Treinamento"
-      : "Avaliação Geral",
+      ? t.trainingParticipants
+      : t.generalEvaluation,
     {
       x: 60,
       y: y - 20,
@@ -403,7 +569,7 @@ const generateInspectionPDF = async (
         const signatureLineWidth = 200; // Width of signature line
 
         // Add "Assinatura:" text
-        writeText(signatureText, {
+        writeText(`${t.signature}: `, {
           x: signatureLineStart,
           y,
           size: fontSize,
@@ -429,7 +595,7 @@ const generateInspectionPDF = async (
         y -= 35; // Increased from 20 to 35 for more space between signatures
       }
     } else {
-      writeText("Nenhum participante registrado", {
+      writeText(t.noParticipants, {
         y,
         x: 60,
         color: rgb(0.5, 0.5, 0.5),
@@ -437,72 +603,94 @@ const generateInspectionPDF = async (
       y -= 20;
     }
   } else {
-    writeText(`Condição Geral: ${inspection.overallCondition || "N/A"}`, {
-      y,
-      x: 60,
-    });
+    writeText(
+      `${t.overallCondition}: ${translateValue(
+        inspection.overallCondition,
+        "condition",
+        language
+      )}`,
+      { y, x: 60 }
+    );
     y -= 20;
+
     // Status de segurança com indicador visual
-    writeText("Ativo seguro para usar: ", { y, x: 60, useFont: boldFont });
-    const baseTextWidth = boldFont.widthOfTextAtSize(
-      "Ativo seguro para usar: ",
+    const translatedSafeToUse = translateValue(
+      inspection.safeToUse,
+      "yesNo",
+      language
+    );
+    const labelText = `${t.safeToUse}: `;
+
+    const baseTextWidth = boldFont.widthOfTextAtSize(labelText, fontSize);
+    const translatedStatusWidth = boldFont.widthOfTextAtSize(
+      translatedSafeToUse,
       fontSize
     );
-    const statusText = inspection.safeToUse || "N/A";
-    const statusWidth = boldFont.widthOfTextAtSize(statusText, fontSize);
     const boxPadding = 5;
     const leftPadding = 8;
 
-    if (inspection.safeToUse === "Sim") {
+    writeText(labelText, {
+      y,
+      x: 60,
+      useFont: boldFont,
+    });
+
+    if (inspection.safeToUse === "Sim" || inspection.safeToUse === "Não") {
+      // Desenha o retângulo colorido
       drawRect(
         60 + baseTextWidth - 2,
         y - boxPadding,
-        statusWidth + boxPadding * 2 + leftPadding,
+        translatedStatusWidth + boxPadding * 2 + leftPadding,
         fontSize + boxPadding * 2,
-        rgb(0, 0.5, 0)
+        inspection.safeToUse === "Sim" ? rgb(0, 0.5, 0) : rgb(0.8, 0, 0)
       );
-      writeText(statusText, {
-        y,
-        x: 60 + baseTextWidth + leftPadding,
-        color: rgb(1, 1, 1),
-        useFont: boldFont,
-      });
-    } else if (inspection.safeToUse === "Não") {
-      drawRect(
-        60 + baseTextWidth - 2,
-        y - boxPadding,
-        statusWidth + boxPadding * 2 + leftPadding,
-        fontSize + boxPadding * 2,
-        rgb(0.8, 0, 0)
-      );
-      writeText(statusText, {
+
+      // Escreve o texto traduzido
+      writeText(translatedSafeToUse, {
         y,
         x: 60 + baseTextWidth + leftPadding,
         color: rgb(1, 1, 1),
         useFont: boldFont,
       });
     } else {
-      writeText(statusText, { y, x: 60 + baseTextWidth, useFont: boldFont });
+      // Caso não seja Sim ou Não
+      writeText(translatedSafeToUse, {
+        y,
+        x: 60 + baseTextWidth,
+        useFont: boldFont,
+      });
     }
     y -= 20;
     writeText(
-      `Manutenção requerida: ${inspection.maintenanceRequired || "N/A"}`,
+      `${t.maintenanceRequired}: ${translateValue(
+        inspection.maintenanceRequired,
+        "yesNo",
+        language
+      )}`,
       { y, x: 60 }
     );
     y -= 20;
-    writeText(`Status do ativo: ${inspection.assetStatus || "N/A"}`, {
-      y,
-      x: 60,
-    });
+    writeText(
+      `${t.assetStatus}: ${translateValue(
+        inspection.assetStatus,
+        "status",
+        language
+      )}`,
+      { y, x: 60 }
+    );
     y -= 20;
     writeText(
-      `Prioridade de manutenção: ${inspection.maintenancePriority || "N/A"}`,
+      `${t.maintenancePriority}: ${translateValue(
+        inspection.maintenancePriority,
+        "priority",
+        language
+      )}`,
       { y, x: 60 }
     );
     y -= 30;
 
     if (inspection.additionalNotes) {
-      writeText("Notas Adicionais:", { y, useFont: boldFont, x: 60 });
+      writeText(`${t.additionalNotes}:`, { y, useFont: boldFont, x: 60 });
       y -= 15;
       writeText(inspection.additionalNotes, { y, x: 60 });
       y -= 50;
@@ -539,7 +727,7 @@ const generateInspectionPDF = async (
     color: rgb(0, 0, 0),
   });
 
-  writeText("(Cliente)", {
+  writeText(`(${t.client})`, {
     y: y - 15,
     x: startXClient,
     width: lineWidth,
@@ -554,7 +742,7 @@ const generateInspectionPDF = async (
     color: rgb(0, 0, 0),
   });
 
-  writeText("(Técnico)", {
+  writeText(`(${t.technician})`, {
     y: y - 15,
     x: startXTecnico,
     width: lineWidth,
