@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -8,7 +8,7 @@ import {
   Link,
   useNavigate,
 } from "react-router-dom";
-import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+import { getAuth, signOut } from "firebase/auth";
 import {
   Users,
   Wrench,
@@ -36,8 +36,6 @@ import InitialPage from "./components/InitialPage";
 import ManageOrders from "./components/ManageOrders";
 import AddEquipment from "./components/AddEquipment";
 import AddClient from "./components/AddClient";
-import ClosedOrders from "./components/ClosedOrders";
-import OpenOrders from "./components/OpenOrders";
 import ManageClients from "./components/ManageClients";
 import ClientDetail from "./components/ClientDetail";
 import EquipmentDetail from "./components/EquipmentDetail";
@@ -52,7 +50,6 @@ import LoginPage from "./components/LoginPage";
 import ManageAgenda from "./components/ManageAgenda";
 import AddAgendamento from "./components/AddAgendamento";
 import EditAgendamento from "./components/EditAgendamento";
-import WeekDetail from "./components/WeekDetail";
 import ManageServices from "./components/ManageServices";
 import AddService from "./components/AddService";
 import EditService from "./components/EditService";
@@ -72,8 +69,8 @@ import UserProfile from "./components/UserProfile";
 import UserSettings from "./components/UserSettings";
 import DashboardPage from "./DashboardPage";
 import ManageUsers from "./ManageUsers";
-import { useAuth } from "./hooks/useAuth";
 
+import { useAuth } from "./hooks/useAuth";
 import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
 import { Capacitor } from "@capacitor/core";
 
@@ -162,57 +159,6 @@ const NAVIGATION_ITEMS = [
   //   ],
   // },
 ];
-
-// Componente para renderizar a navegação com base no role do usuário
-const Navigation = () => {
-  const { user, loading } = useAuth();
-
-  // Se não tiver usuário ou role, não mostra nada
-  if (!user?.role) {
-    return null;
-  }
-
-  // Garante que NAVIGATION_ITEMS existe
-  if (!Array.isArray(NAVIGATION_ITEMS)) {
-    return null;
-  }
-
-  const filteredNavigation = NAVIGATION_ITEMS.map((section) => ({
-    ...section,
-    items: section.items.filter(
-      (item) => Array.isArray(item.roles) && item.roles.includes(user.role)
-    ),
-  })).filter((section) => section.items.length > 0);
-
-  // Se não tiver items após filtro, mostra mensagem
-  if (filteredNavigation.length === 0) {
-    return null;
-  }
-
-  return (
-    <nav>
-      {filteredNavigation.map((section, idx) => (
-        <div key={idx} className="mb-6">
-          <h2 className="text-zinc-400 text-sm font-medium mb-2">
-            {section.title}
-          </h2>
-          <div className="space-y-1">
-            {section.items.map((item, itemIdx) => (
-              <Link
-                key={itemIdx}
-                to={item.path}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-zinc-200 hover:bg-zinc-800 transition-colors"
-              >
-                <item.icon className="h-5 w-5" />
-                <span>{item.label}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      ))}
-    </nav>
-  );
-};
 
 // Componente de rota protegida por role
 const RoleRoute = ({ children, allowedRoles }) => {
@@ -559,8 +505,6 @@ const App = () => {
                     path="edit-service/:serviceId"
                     element={<EditService />}
                   />
-                  <Route path="closed-orders" element={<ClosedOrders />} />
-                  <Route path="open-orders" element={<OpenOrders />} />
                   <Route path="manage-clients" element={<ManageClients />} />
                   <Route path="client/:clientId" element={<ClientDetail />} />
                   <Route
@@ -600,10 +544,6 @@ const App = () => {
                   <Route
                     path="edit-agendamento/:agendamentoId"
                     element={<EditAgendamento />}
-                  />
-                  <Route
-                    path="agenda/:year/:month/week/:week"
-                    element={<WeekDetail />}
                   />
                   <Route path="manage-budgets" element={<ManageBudgets />} />
                   <Route path="add-budget" element={<AddBudget />} />

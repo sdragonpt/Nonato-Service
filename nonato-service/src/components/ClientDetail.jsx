@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   doc,
   getDoc,
   collection,
   getDocs,
-  updateDoc,
   deleteDoc,
   query,
   where,
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Loader2,
   ArrowLeft,
@@ -18,14 +17,11 @@ import {
   Trash2,
   Edit2,
   Plus,
-  Wrench,
   Map,
   Mail,
   Phone,
   FileText,
   AlertTriangle,
-  Building2,
-  User,
 } from "lucide-react";
 
 // UI Components
@@ -51,12 +47,12 @@ const ClientDetail = () => {
   const [equipments, setEquipments] = useState([]);
   const [newPhotoURL, setNewPhotoURL] = useState("");
   const [imageFile, setImageFile] = useState(null);
-  const [photoChanged, setPhotoChanged] = useState(false);
+  const [, setPhotoChanged] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [photoLoading, setPhotoLoading] = useState(false);
+  const [, setPhotoLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -123,32 +119,6 @@ const ClientDetail = () => {
       reader.readAsDataURL(file);
       setImageFile(file);
       setPhotoChanged(true);
-    }
-  };
-
-  const handleSavePhoto = async () => {
-    if (!imageFile) {
-      setError("Por favor, selecione uma imagem para salvar.");
-      return;
-    }
-
-    try {
-      setPhotoLoading(true);
-      const clientDocRef = doc(db, "clientes", clientId);
-      await updateDoc(clientDocRef, {
-        profilePic: newPhotoURL,
-      });
-
-      setClient((prevClient) => ({
-        ...prevClient,
-        profilePic: newPhotoURL,
-      }));
-      setPhotoChanged(false);
-    } catch (err) {
-      console.error("Erro ao salvar foto:", err);
-      setError("Erro ao salvar foto. Por favor, tente novamente.");
-    } finally {
-      setPhotoLoading(false);
     }
   };
 

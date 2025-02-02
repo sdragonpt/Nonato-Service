@@ -1,11 +1,11 @@
-import React, { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "./hooks/useAuth";
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  const [error, setError] = useState(null);
+  const [error] = useState(null);
   const navigate = useNavigate();
 
   if (loading) {

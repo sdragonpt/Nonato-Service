@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db, storage } from "../firebase.jsx";
 import { useParams, useNavigate } from "react-router-dom";
@@ -19,7 +19,6 @@ import {
   ChevronDown,
   ChevronUp,
   X,
-  Plus,
   Trash2,
   UserPlus,
   GraduationCap,

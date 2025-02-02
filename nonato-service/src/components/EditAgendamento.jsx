@@ -1,27 +1,21 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   doc,
   getDoc,
   updateDoc,
   collection,
   getDocs,
-  deleteDoc,
-  addDoc,
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Calendar,
   Clock,
-  User,
   FileText,
   Save,
   ArrowLeft,
   Loader2,
   AlertTriangle,
-  Printer,
-  Plus,
-  Trash2,
 } from "lucide-react";
 
 // UI Components
@@ -42,13 +36,13 @@ const EditAgendamento = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isDateLoading, setIsDateLoading] = useState(false);
+  const [isDateLoading] = useState(false);
   const [clients, setClients] = useState([]);
   const [error, setError] = useState(null);
   const [equipments, setEquipments] = useState([]);
   const [filteredEquipments, setFilteredEquipments] = useState([]);
   const [selectedDates, setSelectedDates] = useState([""]);
-  const [originalAgendamento, setOriginalAgendamento] = useState(null);
+  const [, setOriginalAgendamento] = useState(null);
 
   const [formData, setFormData] = useState({
     hora: "",

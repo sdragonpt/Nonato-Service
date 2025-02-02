@@ -1,14 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  collection,
-  getDocs,
-  deleteDoc,
-  doc,
-  query,
-  orderBy,
-  where,
-} from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 
 // Lucide Icons
@@ -22,13 +14,7 @@ import {
   AlertTriangle,
   Clock,
   CheckCircle2,
-  Calendar,
-  AlertCircle,
-  ArrowUpDown,
-  RefreshCw,
-  Download,
   ClipboardList,
-  ClipboardCheck,
 } from "lucide-react";
 
 // UI Components
@@ -51,13 +37,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const OrderCard = ({
@@ -68,21 +48,6 @@ const OrderCard = ({
   equipment,
   navigate,
 }) => {
-  const priorityColors = {
-    high: "text-red-400 bg-red-500/10",
-    medium: "text-yellow-400 bg-yellow-500/10",
-    low: "text-green-400 bg-green-500/10",
-  };
-
-  const statusColors = {
-    Aberto: "text-blue-400 bg-blue-500/10",
-    "Em Andamento": "text-purple-400 bg-purple-500/10",
-    Fechado: "text-green-400 bg-green-500/10",
-  };
-
-  const isToday =
-    new Date(order.date).toDateString() === new Date().toDateString();
-
   return (
     <Card
       className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"

@@ -1,17 +1,14 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   collection,
   getDocs,
   query,
   where,
-  doc,
-  getDoc,
   addDoc,
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 import {
-  FileText,
   User,
   ClipboardList,
   Loader2,
@@ -28,7 +25,6 @@ import ServiceInput from "./ServiceInput";
 // UI Components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Select,

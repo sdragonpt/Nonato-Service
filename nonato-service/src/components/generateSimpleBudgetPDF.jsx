@@ -25,17 +25,6 @@ const generateSimpleBudgetPDF = async (budget) => {
   }
 
   // Função auxiliar para obter o rótulo da unidade
-  const getUnitLabel = (type) => {
-    const types = {
-      base: "un",
-      un: "un",
-      hour: "hora(s)",
-      day: "dia(s)",
-      km: "km",
-      total: "Total", // Novo tipo para valores múltiplos
-    };
-    return types[type] || type;
-  };
 
   // Configurações do logo
   const imgWidth = 100;

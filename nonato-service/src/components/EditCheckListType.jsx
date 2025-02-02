@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase.jsx";
@@ -9,8 +9,6 @@ import {
   Trash2,
   Save,
   AlertTriangle,
-  Settings,
-  ListChecks,
 } from "lucide-react";
 
 // UI Components
@@ -36,7 +34,7 @@ const EditChecklistType = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  const [touched, setTouched] = useState({
+  const [, setTouched] = useState({
     type: false,
     groups: [
       {

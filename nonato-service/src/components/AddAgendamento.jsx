@@ -1,17 +1,15 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { collection, addDoc, getDocs } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 import { useNavigate } from "react-router-dom";
 import {
   Calendar,
   Clock,
-  User,
   FileText,
   Save,
   ArrowLeft,
   Loader2,
   AlertTriangle,
-  Printer,
   Plus,
   Trash2,
 } from "lucide-react";

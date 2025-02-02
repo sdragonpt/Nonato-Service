@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { getAuth, updateProfile, updateEmail } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase.jsx";
@@ -35,7 +35,7 @@ const UserProfile = () => {
     role: "",
   });
 
-  const [profilePic, setProfilePic] = useState(null);
+  const [, setProfilePic] = useState(null);
   const [profilePicPreview, setProfilePicPreview] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { doc, getDoc, setDoc, increment } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 import { useNavigate, useParams } from "react-router-dom";
@@ -31,7 +31,7 @@ const AddEquipment = () => {
     model: "",
     serialNumber: "",
   });
-  const [equipmentPic, setEquipmentPic] = useState(null);
+  const [, setEquipmentPic] = useState(null);
   const [equipmentPicPreview, setEquipmentPicPreview] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);

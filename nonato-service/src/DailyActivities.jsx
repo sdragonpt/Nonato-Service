@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   collection,
@@ -10,13 +10,6 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase.jsx";
 import {
-  Users,
-  ClipboardList,
-  Wrench,
-  FileText,
-  CheckSquare,
-  Calendar,
-  ClipboardCheck,
   Loader2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";

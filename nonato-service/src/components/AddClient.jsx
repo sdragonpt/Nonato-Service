@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { doc, setDoc, getDoc, increment } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 import { useNavigate } from "react-router-dom";
@@ -40,7 +40,7 @@ const AddClient = () => {
     type: "individual", // Default to individual
     company: "", // For company name if type is individual
   });
-  const [profilePic, setProfilePic] = useState(null);
+  const [, setProfilePic] = useState(null);
   const [profilePicPreview, setProfilePicPreview] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);

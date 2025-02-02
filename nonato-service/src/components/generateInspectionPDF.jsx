@@ -414,7 +414,6 @@ const generateInspectionPDF = async (
         const description =
           inspection.states?.[group.name]?.[char]?.description || "";
         const imageUrl = inspection.states?.[group.name]?.[char]?.imageUrl;
-        const stateColor = getStateColor(state);
 
         // Característica e estado
         writeText(char, { y: y - 5, x: 55 });

@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   getAuth,
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
   fetchSignInMethodsForEmail,
-  EmailAuthProvider,
-  linkWithCredential,
-  signInWithRedirect,
   getRedirectResult,
   signInWithCredential,
 } from "firebase/auth";

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   doc,
   setDoc,
@@ -22,14 +22,13 @@ import {
   Package,
   CheckSquare,
   Search,
-  Plus,
   ListChecks,
   ClipboardCheck,
   GraduationCap,
 } from "lucide-react";
 
 // UI Components
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

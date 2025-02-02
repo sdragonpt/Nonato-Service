@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   collection,
@@ -17,7 +17,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
-  User,
   Edit2,
   Trash2,
   RotateCcw,
@@ -27,15 +26,13 @@ import {
   MoreVertical,
   Calendar,
   RefreshCw,
-  ArrowUpDown,
-  Download,
   ClipboardList,
   AlertCircle,
   X,
 } from "lucide-react";
 
 // UI Components
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

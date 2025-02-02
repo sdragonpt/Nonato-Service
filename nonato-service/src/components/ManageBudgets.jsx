@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import generateSimpleBudgetPDF from "./generateSimpleBudgetPDF";
 import generateBudgetPDF from "./generateBudgetPDF";
@@ -12,7 +12,6 @@ import {
   query,
   orderBy,
   getDoc,
-  where,
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 import {
@@ -28,12 +27,11 @@ import {
   Calendar,
   Receipt,
   FileCheck,
-  RefreshCw,
   AlertTriangle,
 } from "lucide-react";
 
 // UI Components
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -43,7 +41,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 
 const BudgetCard = ({ budget, onDelete, onViewPDF, clientName }) => {
   // Determina qual ícone usar baseado no tipo do documento
@@ -122,7 +119,7 @@ const ManageBudgets = () => {
   const [error, setError] = useState(null);
   const [clientNames, setClientNames] = useState({});
   const [activeTab, setActiveTab] = useState("simple");
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [, setIsGeneratingPDF] = useState(false);
   const [isFilterLoading, setIsFilterLoading] = useState(false);
   const [documentTypeFilter, setDocumentTypeFilter] = useState(() => {
     const saved = localStorage.getItem("documentTypeFilter");

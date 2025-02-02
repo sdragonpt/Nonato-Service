@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   doc,
@@ -24,11 +24,9 @@ import {
   Edit2,
   CheckSquare,
   Calendar,
-  Clock,
   User,
   Printer,
   Settings,
-  Building2,
   AlertCircle,
   PackageOpen,
 } from "lucide-react";
@@ -46,7 +44,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const OrderDetail = () => {
   const { orderId } = useParams();
@@ -60,7 +57,7 @@ const OrderDetail = () => {
   const [isClosing, setIsClosing] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [error, setError] = useState(null);
-  const [totals, setTotals] = useState(null);
+  const [] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Keep original calculateHours, calculateHoursWithPause, and calculateOrderTotals functions
@@ -71,15 +68,14 @@ const OrderDetail = () => {
       setIsLoading(true);
       setError(null);
 
-      const [orderDoc, clientsSnapshot, equipmentsSnapshot, workdaysSnapshot] =
-        await Promise.all([
-          getDoc(doc(db, "ordens", orderId)),
-          getDocs(collection(db, "clientes")),
-          getDocs(collection(db, "equipamentos")),
-          getDocs(
-            query(collection(db, "workdays"), where("orderId", "==", orderId))
-          ),
-        ]);
+      const [orderDoc, , , workdaysSnapshot] = await Promise.all([
+        getDoc(doc(db, "ordens", orderId)),
+        getDocs(collection(db, "clientes")),
+        getDocs(collection(db, "equipamentos")),
+        getDocs(
+          query(collection(db, "workdays"), where("orderId", "==", orderId))
+        ),
+      ]);
 
       if (!orderDoc.exists()) {
         setError("Ordem de serviço não encontrada");

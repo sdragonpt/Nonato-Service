@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { db } from "../firebase";
 import {
   collection,
@@ -17,15 +17,8 @@ import {
   Calendar,
   User,
   Printer,
-  FileText,
   AlertCircle,
-  Building2,
-  PackageOpen,
-  Clock,
-  FileCheck,
-  Users,
   Settings,
-  ChevronDown,
 } from "lucide-react";
 
 // UI Components
@@ -41,7 +34,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const AddOrder = () => {
@@ -68,7 +60,7 @@ const AddOrder = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  const [touched, setTouched] = useState({});
+  const [, setTouched] = useState({});
   const navigate = useNavigate();
 
   const [checklist, setChecklist] = useState({

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase.jsx";
@@ -32,7 +32,7 @@ const EditEquipment = () => {
     model: "",
     serialNumber: "",
   });
-  const [equipmentPic, setEquipmentPic] = useState(null);
+  const [, setEquipmentPic] = useState(null);
   const [equipmentPicPreview, setEquipmentPicPreview] = useState("");
   const [clientName, setClientName] = useState("");
   const [isLoading, setIsLoading] = useState(true);

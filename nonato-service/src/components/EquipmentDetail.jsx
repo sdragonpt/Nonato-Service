@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../firebase.jsx";
@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 // UI Components
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,8 +36,8 @@ const EquipmentDetail = () => {
   const [equipment, setEquipment] = useState(null);
   const [clientName, setClientName] = useState("");
   const [newPhotoURL, setNewPhotoURL] = useState("");
-  const [imageFile, setImageFile] = useState(null);
-  const [photoChanged, setPhotoChanged] = useState(false);
+  const [, setImageFile] = useState(null);
+  const [, setPhotoChanged] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
