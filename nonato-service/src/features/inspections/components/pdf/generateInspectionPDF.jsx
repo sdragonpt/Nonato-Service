@@ -127,11 +127,11 @@ const generateInspectionPDF = async (
     Riparare: { color: rgb(0.9, 0.7, 0), opacity: 0.8 },
 
     // Replace states (purple)
-    Substituir: { color: rgb(0.5, 0, 0.5), opacity: 0.8 },
-    Replace: { color: rgb(0.5, 0, 0.5), opacity: 0.8 },
-    Sustituir: { color: rgb(0.5, 0, 0.5), opacity: 0.8 },
-    Remplacer: { color: rgb(0.5, 0, 0.5), opacity: 0.8 },
-    Sostituire: { color: rgb(0.5, 0, 0.5), opacity: 0.8 },
+    Substituir: { color: rgb(1, 0.2, 0.2), opacity: 0.8 },
+    Replace: { color: rgb(1, 0.2, 0.2), opacity: 0.8 },
+    Sustituir: { color: rgb(1, 0.2, 0.2), opacity: 0.8 },
+    Remplacer: { color: rgb(1, 0.2, 0.2), opacity: 0.8 },
+    Sostituire: { color: rgb(1, 0.2, 0.2), opacity: 0.8 },
 
     // N/A states (gray)
     "N/D": { color: rgb(0.7, 0.7, 0.7), opacity: 0.6 },
@@ -354,7 +354,7 @@ const generateInspectionPDF = async (
     const states = [
       { key: "Bom", color: rgb(0, 0.5, 0) },
       { key: "Reparar", color: rgb(0.9, 0.7, 0) },
-      { key: "Substituir", color: rgb(0.5, 0, 0.5) },
+      { key: "Substituir", color: rgb(1, 0.2, 0.2) },
       { key: "N/D", color: rgb(0.7, 0.7, 0.7) },
     ];
 
