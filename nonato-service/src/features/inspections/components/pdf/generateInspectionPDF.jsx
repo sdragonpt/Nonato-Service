@@ -444,33 +444,55 @@ const generateInspectionPDF = async (
   );
   y -= 40;
 
-  writeText(`${t.location}: ${client.address || "N/A"}`, { y, x: 60 });
-  y -= 20;
-  writeText(`${t.inspector}: Nonato`, { y, x: 60 });
-  y -= 20;
-  writeText(`${t.report}: Check_${inspection.id}`, { y, x: 60 });
-  y -= -60;
+  // Guarda a posição y inicial
+  const initialY = y;
+  let leftY = y;
+  let rightY = y;
 
-  writeText(t.assetDetails, { useFont: boldFont, x: 320 });
-  y -= 20;
+  // Lado esquerdo
+  const locationText = `${t.location}: ${client.address || "N/A"}`;
+  leftY =
+    writeWrappedText(locationText, {
+      x: 60,
+      y: leftY,
+      maxWidth: 220,
+      lineHeight: 15,
+    }) - 5;
 
-  writeText(`${t.clientName}: ${client.name || "N/A"}`, { y, x: 320 });
-  y -= 20;
-  writeText(`${t.equipment}: ${equipment.type || "N/A"}`, { y, x: 320 });
-  y -= 20;
+  writeText(`${t.inspector}: Nonato`, { y: leftY, x: 60 });
+  leftY -= 20;
+  writeText(`${t.report}: Check_${inspection.id}`, { y: leftY, x: 60 });
+  leftY -= -20;
+
+  // Lado direito
+  writeText(t.assetDetails, { useFont: boldFont, x: 320, y: rightY + 20 });
+  rightY -= 0;
+
+  writeText(`${t.clientName}: ${client.name || "N/A"}`, { y: rightY, x: 320 });
+  rightY -= 20;
+  writeText(`${t.equipment}: ${equipment.type || "N/A"}`, {
+    y: rightY,
+    x: 320,
+  });
+  rightY -= 20;
+
   const ativoText = `${t.asset}: ${(checklistType.type || "N/A").replace(
     ":",
     ""
   )}`;
-  y =
+  rightY =
     writeWrappedText(ativoText, {
       x: 320,
-      y,
+      y: rightY,
       maxWidth: 220,
       lineHeight: 15,
     }) - 5;
-  writeText(`${t.model}: ${equipment.model || "N/A"}`, { y, x: 320 });
-  y -= 40;
+
+  writeText(`${t.model}: ${equipment.model || "N/A"}`, { y: rightY, x: 320 });
+  rightY -= 40;
+
+  // Usa o menor valor de y entre as duas colunas
+  y = Math.min(leftY, rightY);
 
   // Grupos e características
   if (inspection.selectedGroups) {
