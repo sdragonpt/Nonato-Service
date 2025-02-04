@@ -26,6 +26,9 @@ import {
   ListChecksIcon,
   FolderIcon,
   RefreshCw,
+  PackageCheck, // Para recepção
+  GraduationCap,
+  Wrench,
 } from "lucide-react";
 
 // UI Components
@@ -48,113 +51,153 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
 
+import { CHECKLIST_CATEGORIES_MAP } from "./components/ChecklistTypeSelector";
+import ChecklistFilter from "./components/ChecklistFilter";
+
+const CATEGORY_ICONS = {
+  maintenance: {
+    icon: Wrench,
+    bgColor: "bg-blue-600",
+    iconColor: "text-white",
+  },
+  reception: {
+    icon: PackageCheck,
+    bgColor: "bg-green-600",
+    iconColor: "text-white",
+  },
+  training: {
+    icon: GraduationCap,
+    bgColor: "bg-purple-600",
+    iconColor: "text-white",
+  },
+};
+
 const ChecklistTypeCard = ({
   type,
   onDelete,
   onEdit,
   onToggleExpand,
   isExpanded,
-}) => (
-  <Card className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors">
-    <CardContent className="p-4">
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-full bg-green-600 flex items-center justify-center">
-          <Settings className="w-5 h-5 text-white" />
-        </div>
+}) => {
+  // Pega o ícone e cores correspondentes à categoria, ou usa o padrão
+  const categoryConfig = CATEGORY_ICONS[type.category] || {
+    icon: Settings,
+    bgColor: "bg-zinc-600",
+    iconColor: "text-white",
+  };
+  const IconComponent = categoryConfig.icon;
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-lg text-white truncate">
-              {type.type}
-            </h3>
-          </div>
-          <div className="flex items-center text-zinc-400 text-sm gap-3">
-            <div className="flex items-center">
-              <Layers className="w-4 h-4 mr-1" />
-              <span>{type.groups?.length || 0} grupo(s)</span>
-            </div>
-            <div className="flex items-center">
-              <ListChecks className="w-4 h-4 mr-1" />
-              <span>
-                {type.groups?.reduce(
-                  (total, group) =>
-                    total + (group.characteristics?.length || 0),
-                  0
-                )}{" "}
-                item(ns)
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full hover:bg-zinc-600"
-          onClick={onToggleExpand}
-        >
-          {isExpanded ? (
-            <ChevronDown className="h-4 w-4 text-white" />
-          ) : (
-            <ChevronRight className="h-4 w-4 text-white" />
-          )}
-        </Button>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full hover:bg-zinc-700 text-white"
-            >
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="bg-zinc-800 border-zinc-700"
+  return (
+    <Card className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <div
+            className={`h-10 w-10 rounded-full ${categoryConfig.bgColor} flex items-center justify-center`}
           >
-            <DropdownMenuItem
-              onClick={onEdit}
-              className="text-white hover:bg-zinc-700 cursor-pointer"
-            >
-              <Edit2 className="w-4 h-4 mr-2" />
-              Editar
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={onDelete}
-              className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Excluir
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+            <IconComponent className={`w-5 h-5 ${categoryConfig.iconColor}`} />
+          </div>
 
-      {isExpanded && type.groups && type.groups.length > 0 && (
-        <div className="mt-4 space-y-4 border-t border-zinc-700 pt-4">
-          {type.groups.map((group, index) => (
-            <div key={index} className="bg-zinc-900 rounded-lg p-4">
-              <h4 className="text-white font-medium mb-2">{group.name}</h4>
-              <div className="pl-4 space-y-1">
-                {group.characteristics?.map((char, charIndex) => (
-                  <div
-                    key={charIndex}
-                    className="text-zinc-400 text-sm flex items-center gap-2"
-                  >
-                    <div className="w-1 h-1 rounded-full bg-zinc-500"></div>
-                    {char}
-                  </div>
-                ))}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-lg text-white truncate">
+                {type.type}
+              </h3>
+            </div>
+            <div className="flex items-center text-zinc-400 text-sm gap-3">
+              <div className="flex items-center">
+                <ClipboardList className="w-4 h-4 mr-1" />
+                <span>
+                  {CHECKLIST_CATEGORIES_MAP[type.category]?.label ||
+                    "Sem categoria"}
+                </span>
+              </div>
+              <div className="flex items-center">
+                <Layers className="w-4 h-4 mr-1" />
+                <span>{type.groups?.length || 0} grupo(s)</span>
+              </div>
+              <div className="flex items-center">
+                <ListChecks className="w-4 h-4 mr-1" />
+                <span>
+                  {type.groups?.reduce(
+                    (total, group) =>
+                      total + (group.characteristics?.length || 0),
+                    0
+                  )}{" "}
+                  item(ns)
+                </span>
               </div>
             </div>
-          ))}
+          </div>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full hover:bg-zinc-600"
+            onClick={onToggleExpand}
+          >
+            {isExpanded ? (
+              <ChevronDown className="h-4 w-4 text-white" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-white" />
+            )}
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full hover:bg-zinc-700 text-white"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="bg-zinc-800 border-zinc-700"
+            >
+              <DropdownMenuItem
+                onClick={onEdit}
+                className="text-white hover:bg-zinc-700 cursor-pointer"
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={onDelete}
+                className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-      )}
-    </CardContent>
-  </Card>
-);
+
+        {isExpanded && type.groups && type.groups.length > 0 && (
+          <div className="mt-4 space-y-4 border-t border-zinc-700 pt-4">
+            {type.groups.map((group, index) => (
+              <div key={index} className="bg-zinc-900 rounded-lg p-4">
+                <h4 className="text-white font-medium mb-2">{group.name}</h4>
+                <div className="pl-4 space-y-1">
+                  {group.characteristics?.map((char, charIndex) => (
+                    <div
+                      key={charIndex}
+                      className="text-zinc-400 text-sm flex items-center gap-2"
+                    >
+                      <div className="w-1 h-1 rounded-full bg-zinc-500"></div>
+                      {char}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 const ManageChecklist = () => {
   const [types, setTypes] = useState([]);
@@ -165,6 +208,7 @@ const ManageChecklist = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [typeToDelete, setTypeToDelete] = useState(null);
   const navigate = useNavigate();
+  const [categoryFilter, setCategoryFilter] = useState("all");
 
   const fetchTypes = async () => {
     try {
@@ -210,9 +254,14 @@ const ManageChecklist = () => {
     setExpandedTypes((prev) => ({ ...prev, [typeId]: !prev[typeId] }));
   };
 
-  const filteredTypes = types.filter((type) =>
-    type.type.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredTypes = types.filter((type) => {
+    const matchesSearch = type.type
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesCategory =
+      categoryFilter === "all" || type.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   const stats = {
     totalTypes: types.length,
@@ -266,7 +315,7 @@ const ManageChecklist = () => {
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
               <p className="text-sm font-medium text-zinc-400">
-                Total de Tipos
+                Total de Checklists
               </p>
               <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
                 {stats.totalTypes}
@@ -319,6 +368,17 @@ const ManageChecklist = () => {
             />
           </div>
 
+          {/* Category Filter */}
+          <div className="flex justify-between items-center">
+            <ChecklistFilter
+              value={categoryFilter}
+              onValueChange={setCategoryFilter}
+            />
+            <span className="text-sm text-zinc-400">
+              {filteredTypes.length} tipo(s) encontrado(s)
+            </span>
+          </div>
+
           {error && (
             <Alert
               variant="destructive"
@@ -330,12 +390,6 @@ const ManageChecklist = () => {
               </AlertDescription>
             </Alert>
           )}
-
-          <div className="flex justify-end">
-            <span className="text-sm text-zinc-400">
-              {filteredTypes.length} tipo(s) encontrado(s)
-            </span>
-          </div>
         </CardContent>
       </Card>
 

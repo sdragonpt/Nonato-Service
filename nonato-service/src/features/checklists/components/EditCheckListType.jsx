@@ -22,6 +22,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 
+import ChecklistTypeSelector from "./ChecklistTypeSelector";
+
 const EditChecklistType = () => {
   const { typeId } = useParams();
   const navigate = useNavigate();
@@ -41,6 +43,7 @@ const EditChecklistType = () => {
   const [error, setError] = useState(null);
   const [, setTouched] = useState({
     type: false,
+    category: "",
     groups: [
       {
         name: false,
@@ -65,6 +68,7 @@ const EditChecklistType = () => {
         const data = typeData.data();
         const formattedData = {
           type: data.type || "",
+          category: data.category || "",
           groups: data.groups || [
             {
               name: "",
@@ -271,8 +275,9 @@ const EditChecklistType = () => {
   const hasChanges = () => {
     if (!originalData) return false;
 
-    // Check type changes
+    // Check type and category changes
     if (formData.type !== originalData.type) return true;
+    if (formData.category !== originalData.category) return true; // Adiciona verificação da categoria
 
     // Check groups length changes
     if (formData.groups.length !== originalData.groups.length) return true;
@@ -324,6 +329,7 @@ const EditChecklistType = () => {
 
       await updateDoc(doc(db, "checklist_machines", typeId), {
         type: formData.type,
+        category: formData.category,
         groups: cleanedGroups,
         updatedAt: new Date(),
       });
@@ -397,6 +403,13 @@ const EditChecklistType = () => {
             </div>
           </CardContent>
         </Card>
+
+        <ChecklistTypeSelector
+          value={formData.category}
+          onValueChange={(value) =>
+            setFormData((prev) => ({ ...prev, category: value }))
+          }
+        />
 
         {/* Groups Section */}
         <div className="space-y-4">

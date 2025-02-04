@@ -22,10 +22,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 
+import ChecklistTypeSelector from "./ChecklistTypeSelector";
+
 const AddChecklistType = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     type: "",
+    category: "",
     groups: [
       {
         name: "",
@@ -228,6 +231,11 @@ const AddChecklistType = () => {
       return;
     }
 
+    if (!formData.category) {
+      setError("A categoria do checklist é obrigatória");
+      return;
+    }
+
     // Validate groups and characteristics
     const invalidGroup = formData.groups.find(
       (group) =>
@@ -255,6 +263,7 @@ const AddChecklistType = () => {
 
       await setDoc(doc(db, "checklist_machines", newTypeId.toString()), {
         type: formData.type,
+        category: formData.category,
         groups: cleanedGroups,
         createdAt: new Date(),
       });
@@ -339,6 +348,13 @@ const AddChecklistType = () => {
             </div>
           </CardContent>
         </Card>
+
+        <ChecklistTypeSelector
+          value={formData.category}
+          onValueChange={(value) =>
+            setFormData((prev) => ({ ...prev, category: value }))
+          }
+        />
 
         {/* Groups Section */}
         <div className="space-y-4">

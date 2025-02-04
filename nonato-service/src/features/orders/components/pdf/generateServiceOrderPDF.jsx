@@ -132,7 +132,7 @@ const generateServiceOrderPDF = async (
       borderWidth: 1, // Largura da borda
     });
 
-    yPos = pageHeight - (topOffset + 80);
+    yPos = pageHeight - (topOffset + 100);
   };
 
   // Adiciona número de página em todas as páginas
@@ -161,92 +161,132 @@ const generateServiceOrderPDF = async (
   // Função para desenhar texto com retângulo ao redor
   const drawTextWithBox = (text, x, y, width, textOptions = {}) => {
     const { size = fontSize, useFont = font } = textOptions;
+    const maxWidth = width - 10; // Margem para o texto dentro do retângulo
+
+    // Quebrar o texto em linhas
+    const words = text.split(" ");
+    let lines = [""];
+    let currentLine = 0;
+
+    for (const word of words) {
+      const testLine =
+        lines[currentLine] + (lines[currentLine] ? " " : "") + word;
+      const testWidth = useFont.widthOfTextAtSize(testLine, size);
+
+      if (testWidth <= maxWidth) {
+        lines[currentLine] = testLine;
+      } else {
+        currentLine++;
+        lines[currentLine] = word;
+      }
+    }
+
+    const lineHeight = size + 4;
+    const boxHeight = lines.length * lineHeight + 6;
 
     // Desenhar retângulo
     currentPage.drawRectangle({
       x: x - 2,
-      y: y - fontSize + 6,
+      y: y - boxHeight + lineHeight,
       width: width,
-      height: fontSize + 6,
+      height: boxHeight,
       borderColor: rgb(0, 0, 0),
       borderWidth: 1,
       opacity: 0.3,
     });
 
-    // Desenhar texto
-    currentPage.drawText(text, {
-      x,
-      y,
-      size,
-      font: useFont,
+    // Desenhar cada linha do texto
+    lines.forEach((line, index) => {
+      currentPage.drawText(line, {
+        x,
+        y: y - index * lineHeight,
+        size,
+        font: useFont,
+      });
     });
 
-    return y - 20; // Retorna a próxima posição Y
+    return y - (boxHeight + 2); // Retorna a próxima posição Y
   };
 
   // Desenhar informações básicas
   const drawBasicInfo = () => {
     let localYPos = yPos - 40;
+    let startingY = localYPos + 30; // Posição inicial do retângulo exterior
 
-    // Técnico e Data
-    localYPos = drawTextWithBox(`Técnico: Nonato`, 58, localYPos, 230);
-    drawTextWithBox(`Data: ${safeText(order.date)}`, 307, localYPos + 20, 230);
+    const countLines = (text, maxWidth) => {
+      const words = text.split(" ");
+      let lines = 1;
+      let currentLine = "";
 
-    // Cliente e Máquina
-    localYPos = drawTextWithBox(
-      `Cliente: ${safeText(client.name)}`,
-      58,
-      localYPos,
-      230
-    );
-    drawTextWithBox(
-      `Máquina/Modelo: ${safeText(equipment.brand)} ${safeText(
-        equipment.model
-      )}`,
-      307,
-      localYPos + 20,
-      230
-    );
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const width = font.widthOfTextAtSize(testLine, fontSize);
 
-    // Cidade e Número da Máquina
-    localYPos = drawTextWithBox(
-      `Cidade: ${safeText(client.address)}`,
-      58,
-      localYPos,
-      230
-    );
-    drawTextWithBox(
-      `Número da Máquina: ${safeText(equipment.serialNumber)}`,
-      307,
-      localYPos + 20,
-      230
-    );
+        if (width <= maxWidth) {
+          currentLine = testLine;
+        } else {
+          lines++;
+          currentLine = word;
+        }
+      }
+      return lines;
+    };
 
-    // Telefone e Tipo de Serviço
-    localYPos = drawTextWithBox(
-      `Telefone: ${safeText(client.phone)}`,
-      58,
-      localYPos,
-      230
-    );
-    drawTextWithBox(
-      `Tipo de Serviço: ${safeText(order.serviceType)}`,
-      307,
-      localYPos + 20,
-      230
-    );
+    // Arrays para armazenar os textos
+    const leftColumn = [
+      { text: `Técnico: Nonato` },
+      { text: `Cliente: ${safeText(client.name)}` },
+      { text: `Cidade: ${safeText(client.address)}` },
+      { text: `Telefone: ${safeText(client.phone)}` },
+    ];
 
-    // Retângulo ao redor de todas as informações básicas
+    const rightColumn = [
+      { text: `Data: ${safeText(order.date)}` },
+      {
+        text: `Máquina/Modelo: ${safeText(equipment.brand)} ${safeText(
+          equipment.model
+        )}`,
+      },
+      { text: `Número da Máquina: ${safeText(equipment.serialNumber)}` },
+      { text: `Tipo de Serviço: ${safeText(order.serviceType)}` },
+    ];
+
+    // Desenhar coluna esquerda
+    leftColumn.forEach((item, index) => {
+      localYPos = drawTextWithBox(item.text, 58, localYPos, 230);
+      if (index < leftColumn.length - 1) {
+        localYPos -= 5; // Espaçamento entre boxes
+      }
+    });
+
+    // Resetar posição Y para a coluna direita
+    let rightYPos = yPos - 40;
+
+    // Desenhar coluna direita
+    rightColumn.forEach((item, index) => {
+      rightYPos = drawTextWithBox(item.text, 307, rightYPos, 230);
+      if (index < rightColumn.length - 1) {
+        rightYPos -= 5; // Espaçamento entre boxes
+      }
+    });
+
+    // Usar a posição Y mais baixa entre as duas colunas
+    const lowestY = Math.min(localYPos, rightYPos);
+
+    const addressLines = countLines(safeText(client.address), 210); // 230 - margem
+    const rectangleOffset = addressLines > 1 ? 140 : 127;
+
+    // Desenhar o retângulo ao redor de todas as informações básicas
     currentPage.drawRectangle({
       x: 50,
-      y: yPos - 110,
+      y: startingY - rectangleOffset,
       width: 496,
-      height: yPos - localYPos - 32,
+      height: startingY - lowestY - 15, // +20 para margem inferior
       borderColor: rgb(0, 0, 0),
       borderWidth: 1,
     });
 
-    return localYPos - 10; // Retorna a posição final
+    return lowestY - 10;
   };
 
   // Função para desenhar cabeçalho da tabela
@@ -379,8 +419,6 @@ const generateServiceOrderPDF = async (
     yPos = drawTableRow(workday);
   });
 
-  // ... continuação do código anterior ...
-
   // Função para desenhar as descrições
   const drawDescriptions = () => {
     // Verificar se existem descrições válidas
@@ -404,7 +442,7 @@ const generateServiceOrderPDF = async (
 
     // Desenhar cada descrição
     sortedWorkdays.forEach((day) => {
-      const description = safeText(day.description);
+      const description = sanitizeText(safeText(day.description));
       if (
         description.trim() !== "" &&
         description.trim().toUpperCase() !== "N/A"
@@ -414,44 +452,80 @@ const generateServiceOrderPDF = async (
           drawPageHeader();
         }
 
-        yPos -= 30;
-        // Data do dia
+        yPos -= 10;
+
+        // Data do dia - Ajustado para ter mais espaçamento
         currentPage.drawText(`Dia: ${formatDate(day.workDate)}`, {
-          x: 54,
-          y: yPos - 2,
+          x: 55,
+          y: yPos - 18, // Aumentado o espaçamento aqui
           size: fontSize,
           font: font,
         });
 
-        // Caixa de descrição
-        const boxHeight = fontSize + 20;
+        // Calcular altura necessária para a descrição
+        const maxWidth = 376; // 396 - 20 (margem)
+        const words = description
+          .split(" ")
+          .filter((word) => word.trim() !== "");
+        let lines = [""];
+        let currentLine = 0;
+
+        for (const word of words) {
+          const testLine =
+            lines[currentLine] + (lines[currentLine] ? " " : "") + word;
+          const testWidth = font.widthOfTextAtSize(testLine, 8);
+
+          if (testWidth <= maxWidth) {
+            lines[currentLine] = testLine;
+          } else {
+            currentLine++;
+            lines[currentLine] = word;
+          }
+        }
+
+        const lineHeight = 12;
+        const minHeight = Math.max(
+          fontSize + 20,
+          lines.length * lineHeight + 16
+        );
+        const boxHeight = Math.max(minHeight, fontSize + 20);
+
+        // Ajustando a posição dos retângulos para dar mais espaço para a data
+        const boxTopY = yPos - 5; // Reduzido para criar mais espaço entre a data e a caixa
+
+        // Retângulo cinza (fundo)
         currentPage.drawRectangle({
           x: 150,
-          y: yPos - 20,
+          y: boxTopY - boxHeight,
           width: 396,
           height: boxHeight,
           borderColor: rgb(0, 0, 0),
           color: rgb(0.9, 0.9, 0.9),
         });
 
+        // Retângulo exterior
         currentPage.drawRectangle({
           x: 50,
-          y: yPos - 20,
+          y: boxTopY - boxHeight,
           width: 496,
           height: boxHeight,
           borderColor: rgb(0, 0, 0),
           borderWidth: 1,
         });
 
-        // Texto da descrição
-        currentPage.drawText(description, {
-          x: 160,
-          y: yPos - 1,
-          size: 8,
-          font: font,
+        // Desenhar cada linha do texto com posicionamento correto
+        lines.forEach((line, index) => {
+          if (line.trim()) {
+            currentPage.drawText(line.trim(), {
+              x: 160,
+              y: boxTopY - index * lineHeight - 15,
+              size: 8,
+              font: font,
+            });
+          }
         });
 
-        yPos -= 10;
+        yPos -= boxHeight + 20;
       }
     });
 
@@ -551,13 +625,13 @@ const generateServiceOrderPDF = async (
   // Função auxiliar para tratar o texto antes de renderizar
   const sanitizeText = (text) => {
     if (!text) return "";
-    // Substituir quebras de linha por espaços e remover caracteres especiais
     return text
-      .replace(/\n/g, " ")
-      .replace(/\r/g, " ")
-      .replace(/\t/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
+      .replace(/\n/g, " ") // Substitui quebras de linha por espaços
+      .replace(/\r/g, " ") // Substitui retornos de carro por espaços
+      .replace(/\t/g, " ") // Substitui tabulações por espaços
+      .replace(/\s+/g, " ") // Substitui múltiplos espaços por um único espaço
+      .replace(/[^\x20-\x7E]/g, "") // Remove caracteres não-ASCII
+      .trim(); // Remove espaços no início e fim
   };
 
   // Função auxiliar para calcular a altura necessária do texto
@@ -631,57 +705,77 @@ const generateServiceOrderPDF = async (
       font,
       minHeight = 30,
       padding = 10,
+      labelOffset = 6,
     } = options;
 
-    // Desenhar o label
-    page.drawText(label, {
+    // Data do dia - Ajustado para ter mais espaçamento
+    currentPage.drawText(label, {
       x: x + 5,
-      y: y - 7,
+      y: y - 12 - labelOffset/2,
       size: fontSize,
-      font: font,
+      font: boldFont,
     });
 
-    // Calcular altura necessária para o texto
-    const maxTextWidth = boxWidth - padding * 2;
-    const textHeight = Math.max(
+    // Calcular altura necessária para a descrição
+    const maxWidth = boxWidth - padding * 2;
+    const words = sanitizeText(safeText(text))
+      .split(" ")
+      .filter((word) => word.trim() !== "");
+    let lines = [""];
+    let currentLine = 0;
+
+    for (const word of words) {
+      const testLine =
+        lines[currentLine] + (lines[currentLine] ? " " : "") + word;
+      const testWidth = font.widthOfTextAtSize(testLine, fontSize - 2);
+
+      if (testWidth <= maxWidth) {
+        lines[currentLine] = testLine;
+      } else {
+        currentLine++;
+        lines[currentLine] = word;
+      }
+    }
+
+    const lineHeight = fontSize + 2;
+    const boxHeight = Math.max(
       minHeight,
-      calculateTextHeight(safeText(text), maxTextWidth, fontSize - 2, font) +
-        padding * 2
+      lines.length * lineHeight + padding * 2
     );
 
-    // Desenhar o retângulo cinza (background)
+    // Retângulo cinza (fundo)
     page.drawRectangle({
       x: x + labelWidth,
-      y: y - textHeight + padding,
+      y: y - boxHeight,
       width: boxWidth,
-      height: textHeight,
+      height: boxHeight,
       borderColor: rgb(0, 0, 0),
       color: rgb(0.9, 0.9, 0.9),
     });
 
-    // Desenhar o retângulo da borda
+    // Retângulo exterior
     page.drawRectangle({
       x: x,
-      y: y - textHeight + padding,
+      y: y - boxHeight,
       width: boxWidth + labelWidth,
-      height: textHeight,
+      height: boxHeight,
       borderColor: rgb(0, 0, 0),
       borderWidth: 1,
     });
 
-    // Desenhar o texto com quebra de linha
-    drawWrappedText(
-      page,
-      safeText(text),
-      x + labelWidth + padding,
-      y - padding / 2,
-      maxTextWidth,
-      fontSize - 2,
-      font
-    );
+    // Desenhar cada linha do texto
+    lines.forEach((line, index) => {
+      if (line.trim()) {
+        page.drawText(line.trim(), {
+          x: x + labelWidth + padding,
+          y: y - index * lineHeight - padding - 2,
+          size: fontSize - 2,
+          font: font,
+        });
+      }
+    });
 
-    // Retornar a nova posição Y
-    return y - textHeight - 20;
+    return y - boxHeight - 10; // Ajustado o espaçamento para próximo elemento
   };
 
   // Função para desenhar resultados com os checkboxes originais
@@ -792,6 +886,7 @@ const generateServiceOrderPDF = async (
         fontSize,
         boxWidth: 396,
         minHeight: 10,
+        labelOffset: 10,
       }
     );
 
@@ -817,7 +912,7 @@ const generateServiceOrderPDF = async (
       drawPageHeader();
     }
 
-    yPos -= 20;
+    yPos -= 30;
     currentPage.drawText("Assinatura Cliente e Técnico:", {
       x: 50,
       y: yPos,

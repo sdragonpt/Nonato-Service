@@ -25,6 +25,8 @@ import {
   ListChecks,
   ClipboardCheck,
   GraduationCap,
+  Wrench,
+  PackageCheck,
 } from "lucide-react";
 
 // UI Components
@@ -48,6 +50,7 @@ const AddInspection = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -123,7 +126,7 @@ const AddInspection = () => {
     fetchTypes();
   }, [currentStep]);
 
-  const handleNext = async () => {
+  const handleNext = () => {
     let validationError = null;
 
     switch (currentStep) {
@@ -136,10 +139,14 @@ const AddInspection = () => {
           validationError = "Selecione um equipamento para continuar";
         break;
       case 3:
-        if (!selectedType)
-          validationError = "Selecione um tipo de checklist para continuar";
+        if (!selectedCategory)
+          validationError = "Selecione uma categoria para continuar";
         break;
       case 4:
+        if (!selectedType)
+          validationError = "Selecione um checklist para continuar";
+        break;
+      case 5:
         if (!selectedInspectionType)
           validationError = "Selecione um tipo de inspeção para continuar";
         break;
@@ -156,6 +163,10 @@ const AddInspection = () => {
 
   const handleBack = () => {
     setError(null);
+    if (currentStep === 3) {
+      setSelectedCategory(null);
+      setSelectedType(null);
+    }
     setCurrentStep((prev) => prev - 1);
   };
 
@@ -284,9 +295,7 @@ const AddInspection = () => {
           <div className="space-y-4">
             <div className="p-4 bg-zinc-800 rounded-lg">
               <p className="text-sm text-zinc-400">Cliente selecionado:</p>
-              <p className="text-white font-medium">
-                {selectedClient?.name || ""}
-              </p>
+              <p className="text-white font-medium">{selectedClient?.name}</p>
             </div>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {equipments.map((equipment) => (
@@ -301,11 +310,9 @@ const AddInspection = () => {
                 >
                   <Package className="w-5 h-5 mr-3 text-zinc-400" />
                   <div>
-                    <span className="text-white block">
-                      {equipment.type || ""}
-                    </span>
+                    <span className="text-white block">{equipment.type}</span>
                     <span className="text-sm text-zinc-400">
-                      {equipment.brand || ""} {equipment.model || ""}
+                      {equipment.brand} {equipment.model}
                     </span>
                   </div>
                 </div>
@@ -314,47 +321,136 @@ const AddInspection = () => {
           </div>
         );
 
-      case 3:
+      case 3: // Seleção de Categoria
         return (
           <div className="space-y-4">
             <div className="p-4 bg-zinc-800 rounded-lg">
               <p className="text-sm text-zinc-400">Equipamento selecionado:</p>
               <p className="text-white font-medium">
-                {selectedEquipment?.type || ""}
+                {selectedEquipment?.type}
               </p>
             </div>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {types.map((type) => (
-                <div
-                  key={type.id}
-                  onClick={() => setSelectedType(type)}
-                  className={`p-4 rounded-lg cursor-pointer flex items-center ${
-                    selectedType?.id === type.id
-                      ? "bg-green-600"
-                      : "bg-zinc-800 hover:bg-zinc-700"
-                  }`}
-                >
-                  <CheckSquare className="w-5 h-5 mr-3 text-zinc-400" />
+
+            <div className="space-y-4">
+              <div
+                onClick={() => setSelectedCategory("maintenance")}
+                className={`p-6 rounded-lg cursor-pointer ${
+                  selectedCategory === "maintenance"
+                    ? "bg-green-600"
+                    : "bg-zinc-800 hover:bg-zinc-700"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center">
+                    <Wrench className="w-5 h-5 text-white" />
+                  </div>
                   <div>
-                    <span className="text-white block">{type.type || ""}</span>
-                    <span className="text-sm text-zinc-400">
-                      {type.groups?.length || 0} grupo(s)
-                    </span>
+                    <h3 className="text-lg font-medium text-white">
+                      Checklist de Manutenção
+                    </h3>
+                    <p className="text-sm text-zinc-400">
+                      Para acompanhamento e registro de manutenções
+                    </p>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              <div
+                onClick={() => setSelectedCategory("reception")}
+                className={`p-6 rounded-lg cursor-pointer ${
+                  selectedCategory === "reception"
+                    ? "bg-green-600"
+                    : "bg-zinc-800 hover:bg-zinc-700"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-green-600 flex items-center justify-center">
+                    <PackageCheck className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-white">
+                      Checklist de Recepção
+                    </h3>
+                    <p className="text-sm text-zinc-400">
+                      Para verificação inicial de equipamentos
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                onClick={() => setSelectedCategory("training")}
+                className={`p-6 rounded-lg cursor-pointer ${
+                  selectedCategory === "training"
+                    ? "bg-green-600"
+                    : "bg-zinc-800 hover:bg-zinc-700"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-purple-600 flex items-center justify-center">
+                    <GraduationCap className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-white">
+                      Checklist de Treinamento
+                    </h3>
+                    <p className="text-sm text-zinc-400">
+                      Para acompanhamento do processo de treinamento
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         );
 
-      case 4:
+      case 4: // Seleção do Checklist
+        return (
+          <div className="space-y-4">
+            <div className="p-4 bg-zinc-800 rounded-lg">
+              <p className="text-sm text-zinc-400">Categoria selecionada:</p>
+              <p className="text-white font-medium">
+                {selectedCategory === "maintenance" &&
+                  "Checklist de Manutenção"}
+                {selectedCategory === "reception" && "Checklist de Recepção"}
+                {selectedCategory === "training" && "Checklist de Treinamento"}
+              </p>
+            </div>
+
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {types
+                .filter((type) => type.category === selectedCategory)
+                .map((type) => (
+                  <div
+                    key={type.id}
+                    onClick={() => setSelectedType(type)}
+                    className={`p-4 rounded-lg cursor-pointer flex items-center ${
+                      selectedType?.id === type.id
+                        ? "bg-green-600"
+                        : "bg-zinc-800 hover:bg-zinc-700"
+                    }`}
+                  >
+                    <CheckSquare className="w-5 h-5 mr-3 text-zinc-400" />
+                    <div>
+                      <span className="text-white block">
+                        {type.type || ""}
+                      </span>
+                      <span className="text-sm text-zinc-400">
+                        {type.groups?.length || 0} grupo(s)
+                      </span>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        );
+
+      case 5:
         return (
           <div className="space-y-4">
             <div className="p-4 bg-zinc-800 rounded-lg">
               <p className="text-sm text-zinc-400">Checklist selecionado:</p>
-              <p className="text-white font-medium">
-                {selectedType?.type || ""}
-              </p>
+              <p className="text-white font-medium">{selectedType?.type}</p>
             </div>
             <div className="space-y-4">
               <div
@@ -400,7 +496,7 @@ const AddInspection = () => {
           </div>
         );
 
-      case 5:
+      case 6:
         return (
           <div className="space-y-4">
             <div className="p-4 bg-zinc-800 rounded-lg space-y-2">
@@ -408,7 +504,7 @@ const AddInspection = () => {
                 <div>
                   <p className="text-sm text-zinc-400">Checklist selecionado</p>
                   <h3 className="text-lg text-white font-medium">
-                    {selectedType?.type || ""}
+                    {selectedType?.type}
                   </h3>
                   <p className="text-sm text-zinc-400 mt-1">
                     Tipo:{" "}
@@ -503,6 +599,7 @@ const AddInspection = () => {
                         </div>
                       </div>
                     </div>
+
                     {selectedGroup && (
                       <div className="px-4 pb-4">
                         <div className="pl-11">
@@ -572,7 +669,6 @@ const AddInspection = () => {
             </div>
           </div>
         );
-
       default:
         return null;
     }
@@ -609,7 +705,7 @@ const AddInspection = () => {
       <div className="bg-zinc-800 p-4 rounded-lg">
         <div className="flex justify-between items-center">
           <div className="flex space-x-2">
-            {[1, 2, 3, 4, 5].map((step) => (
+            {[1, 2, 3, 4, 5, 6].map((step) => (
               <div
                 key={step}
                 className={`w-3 h-3 rounded-full ${
@@ -625,9 +721,10 @@ const AddInspection = () => {
           <span className="text-zinc-400">
             {currentStep === 1 && "Selecione o cliente"}
             {currentStep === 2 && "Selecione o equipamento"}
-            {currentStep === 3 && "Selecione o checklist"}
-            {currentStep === 4 && "Selecione o tipo"}
-            {currentStep === 5 && "Selecione os grupos"}
+            {currentStep === 3 && "Selecione a categoria"}
+            {currentStep === 4 && "Selecione o checklist"}
+            {currentStep === 5 && "Selecione o tipo"}
+            {currentStep === 6 && "Selecione os grupos"}
           </span>
         </div>
       </div>
@@ -649,7 +746,7 @@ const AddInspection = () => {
           </Button>
         )}
 
-        {currentStep < 5 ? (
+        {currentStep < 6 ? (
           <Button
             onClick={handleNext}
             className="ml-auto bg-green-600 hover:bg-green-700"
@@ -671,7 +768,7 @@ const AddInspection = () => {
             ) : (
               <>
                 <Save className="w-4 h-4 mr-2" />
-                Finalizar
+                Atualizar Inspeção
               </>
             )}
           </Button>

@@ -203,7 +203,9 @@ const ManageAgenda = () => {
     const today = new Date().toISOString().split("T")[0];
     const updatesNeeded = appointments.filter(
       (appointment) =>
-        appointment.data < today && appointment.status === "agendado"
+        appointment.data < today &&
+        (appointment.status === "agendado" ||
+          appointment.status === "confirmado")
     );
 
     if (updatesNeeded.length === 0) return appointments;
@@ -219,7 +221,9 @@ const ManageAgenda = () => {
       );
 
       return appointments.map((appointment) =>
-        appointment.data < today && appointment.status === "agendado"
+        appointment.data < today &&
+        (appointment.status === "agendado" ||
+          appointment.status === "confirmado")
           ? { ...appointment, status: "terminado", concluido: true }
           : appointment
       );
