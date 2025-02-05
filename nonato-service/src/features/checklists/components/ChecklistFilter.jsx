@@ -10,22 +10,15 @@ import {
 import { Filter } from "lucide-react";
 
 const CHECKLIST_CATEGORIES = [
+  { value: "all", label: "Todas as categorias" },
+  { value: "maintenance", label: "Checklist de Manutenção" },
   {
-    value: "all",
-    label: "Todas as categorias",
+    value: "operational_training",
+    label: "Checklist de Treinamento Operacional",
   },
-  {
-    value: "maintenance",
-    label: "Checklist de Manutenção",
-  },
-  {
-    value: "reception",
-    label: "Checklist de Recepção",
-  },
-  {
-    value: "training",
-    label: "Checklist de Treinamento",
-  },
+  { value: "receiving", label: "Checklist de Recebimento" },
+  { value: "programming", label: "Checklist de Programação" },
+  { value: "installation", label: "Checklist de Instalação" },
 ];
 
 const ChecklistFilter = ({ value, onValueChange }) => {
@@ -33,7 +26,7 @@ const ChecklistFilter = ({ value, onValueChange }) => {
     <div className="flex items-center gap-2">
       <Filter className="w-4 h-4 text-zinc-400" />
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white w-[200px]">
+        <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white w-[280px]">
           <SelectValue placeholder="Filtrar por categoria" />
         </SelectTrigger>
         <SelectContent className="bg-zinc-800 border-zinc-700">

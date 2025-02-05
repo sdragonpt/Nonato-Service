@@ -27,6 +27,8 @@ import {
   GraduationCap,
   Wrench,
   PackageCheck,
+  Code,
+  Settings,
 } from "lucide-react";
 
 // UI Components
@@ -356,32 +358,9 @@ const AddInspection = () => {
               </div>
 
               <div
-                onClick={() => setSelectedCategory("reception")}
+                onClick={() => setSelectedCategory("operational_training")}
                 className={`p-6 rounded-lg cursor-pointer ${
-                  selectedCategory === "reception"
-                    ? "bg-green-600"
-                    : "bg-zinc-800 hover:bg-zinc-700"
-                }`}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-green-600 flex items-center justify-center">
-                    <PackageCheck className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-medium text-white">
-                      Checklist de Recepção
-                    </h3>
-                    <p className="text-sm text-zinc-400">
-                      Para verificação inicial de equipamentos
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                onClick={() => setSelectedCategory("training")}
-                className={`p-6 rounded-lg cursor-pointer ${
-                  selectedCategory === "training"
+                  selectedCategory === "operational_training"
                     ? "bg-green-600"
                     : "bg-zinc-800 hover:bg-zinc-700"
                 }`}
@@ -392,10 +371,82 @@ const AddInspection = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-medium text-white">
-                      Checklist de Treinamento
+                      Checklist de Treinamento Operacional
                     </h3>
                     <p className="text-sm text-zinc-400">
-                      Para acompanhamento do processo de treinamento
+                      Para acompanhamento do treinamento operacional dos
+                      equipamentos
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                onClick={() => setSelectedCategory("receiving")}
+                className={`p-6 rounded-lg cursor-pointer ${
+                  selectedCategory === "receiving"
+                    ? "bg-green-600"
+                    : "bg-zinc-800 hover:bg-zinc-700"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-green-600 flex items-center justify-center">
+                    <PackageCheck className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-white">
+                      Checklist de Recebimento
+                    </h3>
+                    <p className="text-sm text-zinc-400">
+                      Para verificação inicial de equipamentos
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                onClick={() => setSelectedCategory("programming")}
+                className={`p-6 rounded-lg cursor-pointer ${
+                  selectedCategory === "programming"
+                    ? "bg-green-600"
+                    : "bg-zinc-800 hover:bg-zinc-700"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-yellow-600 flex items-center justify-center">
+                    <Code className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-white">
+                      Checklist de Programação
+                    </h3>
+                    <p className="text-sm text-zinc-400">
+                      Para verificação e configuração da programação dos
+                      equipamentos
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                onClick={() => setSelectedCategory("installation")}
+                className={`p-6 rounded-lg cursor-pointer ${
+                  selectedCategory === "installation"
+                    ? "bg-green-600"
+                    : "bg-zinc-800 hover:bg-zinc-700"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-orange-600 flex items-center justify-center">
+                    <Settings className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-white">
+                      Checklist de Instalação
+                    </h3>
+                    <p className="text-sm text-zinc-400">
+                      Para acompanhamento do processo de instalação dos
+                      equipamentos
                     </p>
                   </div>
                 </div>
@@ -412,8 +463,13 @@ const AddInspection = () => {
               <p className="text-white font-medium">
                 {selectedCategory === "maintenance" &&
                   "Checklist de Manutenção"}
-                {selectedCategory === "reception" && "Checklist de Recepção"}
-                {selectedCategory === "training" && "Checklist de Treinamento"}
+                {selectedCategory === "operational_training" &&
+                  "Checklist de Treinamento Operacional"}
+                {selectedCategory === "receiving" && "Checklist de Recebimento"}
+                {selectedCategory === "programming" &&
+                  "Checklist de Programação"}
+                {selectedCategory === "installation" &&
+                  "Checklist de Instalação"}
               </p>
             </div>
 

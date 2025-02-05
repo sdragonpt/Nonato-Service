@@ -29,6 +29,7 @@ import {
   PackageCheck, // Para recepção
   GraduationCap,
   Wrench,
+  Code,
 } from "lucide-react";
 
 // UI Components
@@ -51,7 +52,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
 
-import { CHECKLIST_CATEGORIES_MAP } from "./components/ChecklistTypeSelector";
+import { CHECKLIST_CATEGORIES_MAP } from "./components/ChecklistCategories";
 import ChecklistFilter from "./components/ChecklistFilter";
 
 const CATEGORY_ICONS = {
@@ -60,14 +61,24 @@ const CATEGORY_ICONS = {
     bgColor: "bg-blue-600",
     iconColor: "text-white",
   },
-  reception: {
+  operational_training: {
+    icon: GraduationCap,
+    bgColor: "bg-purple-600",
+    iconColor: "text-white",
+  },
+  receiving: {
     icon: PackageCheck,
     bgColor: "bg-green-600",
     iconColor: "text-white",
   },
-  training: {
-    icon: GraduationCap,
-    bgColor: "bg-purple-600",
+  programming: {
+    icon: Code,
+    bgColor: "bg-yellow-600",
+    iconColor: "text-white",
+  },
+  installation: {
+    icon: Settings,
+    bgColor: "bg-orange-600",
     iconColor: "text-white",
   },
 };
