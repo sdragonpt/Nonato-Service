@@ -348,7 +348,7 @@ const AddInspection = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-medium text-white">
-                      Checklist de Manutenção
+                      Manutenção
                     </h3>
                     <p className="text-sm text-zinc-400">
                       Para acompanhamento e registro de manutenções
@@ -371,7 +371,7 @@ const AddInspection = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-medium text-white">
-                      Checklist de Treinamento Operacional
+                      Treinamento Operacional
                     </h3>
                     <p className="text-sm text-zinc-400">
                       Para acompanhamento do treinamento operacional dos
@@ -395,7 +395,7 @@ const AddInspection = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-medium text-white">
-                      Checklist de Recebimento
+                      Recebimento
                     </h3>
                     <p className="text-sm text-zinc-400">
                       Para verificação inicial de equipamentos
@@ -418,7 +418,7 @@ const AddInspection = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-medium text-white">
-                      Checklist de Programação
+                      Programação
                     </h3>
                     <p className="text-sm text-zinc-400">
                       Para verificação e configuração da programação dos
@@ -442,7 +442,7 @@ const AddInspection = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-medium text-white">
-                      Checklist de Instalação
+                      Instalação
                     </h3>
                     <p className="text-sm text-zinc-400">
                       Para acompanhamento do processo de instalação dos
@@ -462,14 +462,14 @@ const AddInspection = () => {
               <p className="text-sm text-zinc-400">Categoria selecionada:</p>
               <p className="text-white font-medium">
                 {selectedCategory === "maintenance" &&
-                  "Checklist de Manutenção"}
+                  "Manutenção"}
                 {selectedCategory === "operational_training" &&
-                  "Checklist de Treinamento Operacional"}
-                {selectedCategory === "receiving" && "Checklist de Recebimento"}
+                  "Treinamento Operacional"}
+                {selectedCategory === "receiving" && "Recebimento"}
                 {selectedCategory === "programming" &&
-                  "Checklist de Programação"}
+                  "Programação"}
                 {selectedCategory === "installation" &&
-                  "Checklist de Instalação"}
+                  "Instalação"}
               </p>
             </div>
 
