@@ -2,27 +2,27 @@
 export const CHECKLIST_CATEGORIES = [
     {
       value: "maintenance",
-      label: "Checklist de Manutenção",
+      label: "Manutenção",
       description: "Para acompanhamento e registro de manutenções regulares"
     },
     {
       value: "operational_training",
-      label: "Checklist de Treinamento Operacional",
+      label: "Treinamento Operacional",
       description: "Para acompanhamento do treinamento operacional dos equipamentos"
     },
     {
       value: "receiving",
-      label: "Checklist de Recebimento do Equipamento",
+      label: "Recebimento do Equipamento",
       description: "Para verificação inicial de equipamentos recebidos"
     },
     {
       value: "programming",
-      label: "Checklist de Programação",
+      label: "Programação",
       description: "Para verificação e configuração da programação dos equipamentos"
     },
     {
       value: "installation",
-      label: "Checklist de Instalação",
+      label: "Instalação",
       description: "Para acompanhamento do processo de instalação dos equipamentos"
     }
   ];

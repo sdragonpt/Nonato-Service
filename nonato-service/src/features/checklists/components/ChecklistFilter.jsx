@@ -11,14 +11,14 @@ import { Filter } from "lucide-react";
 
 const CHECKLIST_CATEGORIES = [
   { value: "all", label: "Todas as categorias" },
-  { value: "maintenance", label: "Checklist de Manutenção" },
+  { value: "maintenance", label: "Manutenção" },
   {
     value: "operational_training",
-    label: "Checklist de Treinamento Operacional",
+    label: "Treinamento Operacional",
   },
-  { value: "receiving", label: "Checklist de Recebimento" },
-  { value: "programming", label: "Checklist de Programação" },
-  { value: "installation", label: "Checklist de Instalação" },
+  { value: "receiving", label: "Recebimento" },
+  { value: "programming", label: "Programação" },
+  { value: "installation", label: "Instalação" },
 ];
 
 const ChecklistFilter = ({ value, onValueChange }) => {
