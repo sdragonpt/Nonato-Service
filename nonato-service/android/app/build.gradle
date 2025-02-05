@@ -1,8 +1,11 @@
 apply plugin: 'com.android.application'
+// Remova esta linha daqui, pois está duplicada abaixo no try/catch
+// apply plugin: 'com.google.gms.google-services'
 
 android {
     namespace "com.nonatoservice.app"
     compileSdk rootProject.ext.compileSdkVersion
+
     defaultConfig {
         applicationId "com.nonatoservice.app"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -11,11 +14,10 @@ android {
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+
     buildTypes {
         release {
             minifyEnabled false
@@ -28,6 +30,8 @@ repositories {
     flatDir{
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
     }
+    google()  // Adicione esta linha
+    mavenCentral()  // Adicione esta linha
 }
 
 dependencies {
@@ -40,15 +44,28 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    
+    // Firebase
+    implementation platform('com.google.firebase:firebase-bom:33.8.0')
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-auth'
+    
+    // Google Sign-In
+    implementation 'com.google.android.gms:play-services-auth:20.7.0'  // Adicione esta linha
 }
 
 apply from: 'capacitor.build.gradle'
 
+// Modificar o try/catch para adicionar mais logging
 try {
     def servicesJSON = file('google-services.json')
     if (servicesJSON.text) {
+        logger.info("google-services.json found, applying google-services plugin")
         apply plugin: 'com.google.gms.google-services'
+    } else {
+        logger.warn("google-services.json is empty")
     }
 } catch(Exception e) {
+    logger.error("Error processing google-services.json: ${e.message}")
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }
