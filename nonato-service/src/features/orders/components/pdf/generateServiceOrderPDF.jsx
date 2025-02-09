@@ -291,8 +291,8 @@ const generateServiceOrderPDF = async (
 
   // Função para desenhar cabeçalho da tabela
   const drawTableHeader = () => {
-    const headers = ["DATA", "IDA", "RETORNO", "KM", "HORAS", "PAUSA"];
-    const headerWidths = [44, 105, 105, 101, 101, 40];
+    const headers = ["DATA", "IDA", "HORAS", "RETORNO", "KM", "PAUSA"];
+    const headerWidths = [44, 105, 101, 105, 101, 40];
 
     let xPos = 50;
     headers.forEach((header, index) => {
@@ -321,11 +321,24 @@ const generateServiceOrderPDF = async (
     return yPos - 20;
   };
 
-  // Função para desenhar uma linha da tabela
+  // Update the table row function's column widths
   const drawTableRow = (workday) => {
     const cellHeight = 20;
     const columnWidths = [
-      44, 40, 40, 25, 40, 40, 25, 38, 38, 25, 38, 38, 25, 40,
+      44, // DATA
+      40,
+      40,
+      25, // IDA
+      38,
+      38,
+      25, // HORAS
+      40,
+      40,
+      25, // RETORNO
+      38,
+      38,
+      25, // KM
+      40, // PAUSA
     ];
 
     // Calcular valores
@@ -342,20 +355,20 @@ const generateServiceOrderPDF = async (
     const kmTotal = Number(workday.kmDeparture) + Number(workday.kmReturn);
 
     const rowData = [
-      formatDate(workday.workDate),
-      workday.departureTime,
+      formatDate(workday.workDate), // DATA
+      workday.departureTime, // IDA
       workday.arrivalTime,
       hoursIda,
-      workday.returnDepartureTime,
-      workday.returnArrivalTime,
-      hoursRetorno,
-      workday.kmDeparture,
-      workday.kmReturn,
-      kmTotal.toString(),
-      workday.startHour,
+      workday.startHour, // HORAS (trabalho)
       workday.endHour,
       hoursWork,
-      workday.pauseHours,
+      workday.returnDepartureTime, // RETORNO
+      workday.returnArrivalTime,
+      hoursRetorno,
+      workday.kmDeparture, // KM
+      workday.kmReturn,
+      kmTotal.toString(),
+      workday.pauseHours, // PAUSA
     ];
 
     let xPos = 50;
@@ -394,7 +407,7 @@ const generateServiceOrderPDF = async (
       xPos += columnWidths[index];
     });
 
-    return yPos - cellHeight; // Retorna próxima posição Y
+    return yPos - cellHeight;
   };
 
   // Desenhar informações básicas
@@ -711,7 +724,7 @@ const generateServiceOrderPDF = async (
     // Data do dia - Ajustado para ter mais espaçamento
     currentPage.drawText(label, {
       x: x + 5,
-      y: y - 12 - labelOffset/2,
+      y: y - 12 - labelOffset / 2,
       size: fontSize,
       font: boldFont,
     });
