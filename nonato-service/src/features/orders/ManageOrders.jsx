@@ -406,7 +406,7 @@ const ManageOrders = () => {
                   client={clients[order.clientId]}
                   equipment={equipments[order.equipmentId]}
                   onDelete={confirmDelete}
-                  onEdit={(id) => navigate(`/app/edit-order/${id}`)}
+                  onEdit={(id) => navigate(`/app/edit-service-order/${id}`)}
                   navigate={navigate}
                 />
               ))}

@@ -613,7 +613,7 @@ const OrderDetail = () => {
           <ArrowLeft className="h-5 w-5 text-white" />
         </Button>
         <Button
-          onClick={() => navigate(`/app/edit-order/${orderId}`)}
+          onClick={() => navigate(`/app/edit-service-order/${orderId}`)}
           variant="outline"
           size="icon"
           className="h-12 w-12 rounded-full border-zinc-700 bg-green-600 hover:bg-green-700"
