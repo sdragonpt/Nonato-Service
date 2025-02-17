@@ -49,7 +49,7 @@ import {
   formatCurrency,
 } from "@/utils/formatters/budgetCalculations";
 
-const BudgetCard = ({ budget, onDelete, onViewPDF, onEdit, clientName }) => {
+const BudgetCard = ({ budget, onDelete, onViewPDF, clientName, navigate }) => {
   const Icon =
     budget.type === "simple"
       ? budget.isExpense
@@ -645,6 +645,7 @@ const ManageBudgets = () => {
                   clientName={budget.clientData.name}
                   onDelete={handleDelete}
                   onViewPDF={handleViewPDF}
+                  navigate={navigate}
                 />
               ))
             ) : (
@@ -682,6 +683,7 @@ const ManageBudgets = () => {
                   clientName={clientNames[budget.clientId]}
                   onDelete={handleDelete}
                   onViewPDF={handleViewPDF}
+                  navigate={navigate}
                 />
               ))
             ) : (
