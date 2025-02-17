@@ -265,7 +265,10 @@ const generateSimpleBudgetPDF = async (budget) => {
   }
 
   y -= 10;
-  const totalsData = calculateTotalsWithIVA(selectedServices, budget.ivaRate);
+  const totalsData = calculateTotalsWithIVA(
+    budget.services,
+    budget.ivaRate || 0
+  );
   drawRect(295, y - 10, 250, 30, rgb(0.95, 0.95, 0.95));
   writeText("Subtotal", {
     x: 300,

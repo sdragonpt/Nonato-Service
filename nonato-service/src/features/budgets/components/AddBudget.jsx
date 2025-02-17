@@ -12,9 +12,11 @@ import {
   ArrowLeft,
   Clock,
   Receipt,
+  Calculator,
 } from "lucide-react";
 import generateBudgetPDF from "./pdf/generateBudgetPDF.jsx";
 import ServiceInput from "../../../components/shared/ServiceInput.jsx";
+import IVASelector from "./IVASelector.jsx";
 
 // UI Components
 import {
@@ -48,6 +50,7 @@ const AddBudget = () => {
   const [selectedServiceId, setSelectedServiceId] = useState("");
   const [selectedServices, setSelectedServices] = useState([]);
   const [totalAmount, setTotalAmount] = useState(0);
+  const [ivaRate, setIvaRate] = useState(23);
 
   // Fetch clients
   useEffect(() => {
@@ -264,7 +267,8 @@ const AddBudget = () => {
         selectedOrder,
         selectedClient,
         formattedServices,
-        orderNumber
+        orderNumber,
+        ivaRate
       );
 
       const orcamentosRef = collection(db, "orcamentos");
@@ -275,6 +279,7 @@ const AddBudget = () => {
         services: formattedServices,
         total: selectedServices.reduce((acc, curr) => acc + curr.total, 0),
         createdAt: new Date(),
+        ivaRate,
       });
 
       navigate("/app/manage-budgets");
@@ -363,6 +368,19 @@ const AddBudget = () => {
                 ))}
               </SelectContent>
             </Select>
+          </CardContent>
+        </Card>
+
+        {/* IVA */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white flex items-center gap-2">
+              <Calculator className="w-5 h-5" />
+              Configurações de IVA
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <IVASelector value={ivaRate} onChange={setIvaRate} />
           </CardContent>
         </Card>
 

@@ -12,6 +12,7 @@ import {
   UserSquare,
   Phone,
   MapPin,
+  Calculator,
 } from "lucide-react";
 import {
   collection,
@@ -24,6 +25,7 @@ import {
 import { db } from "../../../firebase.jsx";
 import generateSimpleBudgetPDF from "./pdf/generateSimpleBudgetPDF.jsx";
 import ServiceInput from "../../../components/shared/ServiceInput.jsx";
+import IVASelector from "./IVASelector.jsx";
 
 // UI Components
 import {
@@ -52,6 +54,7 @@ const AddSimpleBudget = () => {
   const [error, setError] = useState(null);
   const [selectedServiceId, setSelectedServiceId] = useState("");
   const [totalAmount, setTotalAmount] = useState(0);
+  const [ivaRate, setIvaRate] = useState(23);
 
   // Fetch available services
   useEffect(() => {
@@ -150,6 +153,7 @@ const AddSimpleBudget = () => {
         total: selectedServices.reduce((acc, curr) => acc + curr.total, 0),
         createdAt: new Date(),
         isExpense,
+        ivaRate,
       };
 
       await addDoc(budgetsRef, budgetData);
@@ -311,6 +315,19 @@ const AddSimpleBudget = () => {
                 />
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* IVA */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white flex items-center gap-2">
+              <Calculator className="w-5 h-5" />
+              Configurações de IVA
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <IVASelector value={ivaRate} onChange={setIvaRate} />
           </CardContent>
         </Card>
 

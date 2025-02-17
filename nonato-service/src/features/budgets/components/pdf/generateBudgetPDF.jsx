@@ -278,7 +278,10 @@ const generateBudgetPDF = async (
   }
 
   y -= 10;
-  const totalsData = calculateTotalsWithIVA(selectedServices, budget.ivaRate);
+  const totalsData = calculateTotalsWithIVA(
+    selectedServices,
+    order.ivaRate || 0
+  );
   drawRect(295, y - 10, 250, 30, rgb(0.95, 0.95, 0.95));
   writeText("Subtotal", {
     x: 300,
@@ -295,10 +298,10 @@ const generateBudgetPDF = async (
   });
 
   // Add IVA if rate is greater than 0
-  if (budget.ivaRate > 0 && budget.showIVA) {
+  if (order.ivaRate > 0 && order.showIVA) {
     y -= 40;
     drawRect(295, y - 10, 250, 30, rgb(0.95, 0.95, 0.95));
-    writeText(`IVA (${budget.ivaRate}%)`, {
+    writeText(`IVA (${order.ivaRate}%)`, {
       x: 300,
       y: y,
       color: rgb(0, 0, 0),
@@ -324,7 +327,7 @@ const generateBudgetPDF = async (
   });
   writeText(
     `${formatEuroNumber(
-      budget.showIVA ? totalsData.total : totalsData.subtotal
+      order.showIVA ? totalsData.total : totalsData.subtotal
     )} €`,
     {
       x: 40,

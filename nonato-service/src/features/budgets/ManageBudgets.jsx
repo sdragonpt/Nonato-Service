@@ -240,7 +240,7 @@ const ManageBudgets = () => {
     }
   };
 
-  const handleViewPDF = async (budget) => {
+  const handleViewPDF = async (budget, showIVA) => {
     try {
       setIsGeneratingPDF(true);
 
@@ -266,9 +266,13 @@ const ManageBudgets = () => {
         };
 
         pdfBlob = await generateBudgetPDF(
-          budget,
+          {
+            ...budget,
+            showIVA: showIVA, // Adicione esta linha
+            ivaRate: budget.ivaRate || 0, // Adicione esta linha
+          },
           clientData,
-          formattedServices,
+          budget.services,
           budget.orderNumber
         );
 
@@ -301,6 +305,8 @@ const ManageBudgets = () => {
           ),
           createdAt: budget.createdAt || new Date(),
           isExpense: budget.isExpense || false,
+          showIVA: showIVA, // Adicione esta linha
+          ivaRate: budget.ivaRate || 0, // Adicione esta linha
         };
 
         pdfBlob = await generateSimpleBudgetPDF(formattedBudget);
