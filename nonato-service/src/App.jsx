@@ -54,6 +54,8 @@ import ManageServices from "./features/services/ManageServices";
 import AddService from "./features/services/components/AddService";
 import EditService from "./features/services/components/EditService";
 import AddBudget from "./features/budgets/components/AddBudget";
+import EditBudget from "./features/budgets/components/EditBudget";
+import EditSimpleBudget from "./features/budgets/components/EditSimpleBudget";
 import ManageBudgets from "./features/budgets/ManageBudgets";
 import AddSimpleBudget from "./features/budgets/components/AddSimpleBudget";
 import ErrorBoundary from "./components/layout/ErrorBoundary";
@@ -550,6 +552,14 @@ const App = () => {
                   <Route
                     path="add-simple-budget"
                     element={<AddSimpleBudget />}
+                  />
+                  <Route
+                    path="edit-budget/:budgetId"
+                    element={<EditBudget />}
+                  />
+                  <Route
+                    path="edit-simple-budget/:budgetId"
+                    element={<EditSimpleBudget />}
                   />
                   <Route
                     path="manage-checklist"

@@ -29,6 +29,7 @@ import {
   FileCheck,
   AlertTriangle,
   Edit,
+  Edit2,
 } from "lucide-react";
 
 // UI Components
@@ -108,6 +109,19 @@ const BudgetCard = ({ budget, onDelete, onViewPDF, onEdit, clientName }) => {
               className="bg-zinc-800 border-zinc-700"
             >
               <DropdownMenuItem
+                onClick={() =>
+                  navigate(
+                    `/app/edit-${
+                      budget.type === "simple" ? "simple-" : ""
+                    }budget/${budget.id}`
+                  )
+                }
+                className="text-white hover:bg-zinc-700 cursor-pointer"
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem
                 onClick={() => onViewPDF(budget, true)}
                 className="text-white hover:bg-zinc-700 cursor-pointer"
               >
@@ -120,13 +134,6 @@ const BudgetCard = ({ budget, onDelete, onViewPDF, onEdit, clientName }) => {
               >
                 <Eye className="w-4 h-4 mr-2" />
                 Ver PDF sem IVA
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onEdit(budget)}
-                className="text-white hover:bg-zinc-700 cursor-pointer"
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Editar
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
