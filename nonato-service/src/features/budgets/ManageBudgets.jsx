@@ -28,6 +28,7 @@ import {
   Receipt,
   FileCheck,
   AlertTriangle,
+  Edit,
 } from "lucide-react";
 
 // UI Components
@@ -42,14 +43,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const BudgetCard = ({ budget, onDelete, onViewPDF, clientName }) => {
-  // Determina qual ícone usar baseado no tipo do documento
+import {
+  calculateTotalsWithIVA,
+  formatCurrency,
+} from "@/utils/formatters/budgetCalculations";
+
+const BudgetCard = ({ budget, onDelete, onViewPDF, onEdit, clientName }) => {
   const Icon =
     budget.type === "simple"
       ? budget.isExpense
         ? Receipt
-        : FileCheck // Para documentos sem cadastro
-      : FileText; // Para documentos com cadastro
+        : FileCheck
+      : FileText;
+
+  const totalsData = calculateTotalsWithIVA(
+    budget.services,
+    budget.ivaRate || 0
+  );
 
   return (
     <Card className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors">
@@ -69,9 +79,18 @@ const BudgetCard = ({ budget, onDelete, onViewPDF, clientName }) => {
             <p className="text-zinc-400 text-sm">
               {budget.createdAt?.toDate().toLocaleDateString()}
             </p>
-            <p className="text-zinc-400 text-sm mt-1">
-              Total: {budget.total.toFixed(2)}€
-            </p>
+            <div className="text-zinc-400 text-sm mt-1">
+              <p>Subtotal: {formatCurrency(totalsData.subtotal)}€</p>
+              {budget.ivaRate > 0 && (
+                <p>
+                  IVA ({budget.ivaRate}%):{" "}
+                  {formatCurrency(totalsData.ivaAmount)}€
+                </p>
+              )}
+              <p className="font-medium text-white">
+                Total: {formatCurrency(totalsData.total)}€
+              </p>
+            </div>
           </div>
 
           <DropdownMenu>
@@ -89,11 +108,25 @@ const BudgetCard = ({ budget, onDelete, onViewPDF, clientName }) => {
               className="bg-zinc-800 border-zinc-700"
             >
               <DropdownMenuItem
-                onClick={() => onViewPDF(budget)}
+                onClick={() => onViewPDF(budget, true)}
                 className="text-white hover:bg-zinc-700 cursor-pointer"
               >
                 <Eye className="w-4 h-4 mr-2" />
-                Ver PDF
+                Ver PDF com IVA
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onViewPDF(budget, false)}
+                className="text-white hover:bg-zinc-700 cursor-pointer"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Ver PDF sem IVA
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onEdit(budget)}
+                className="text-white hover:bg-zinc-700 cursor-pointer"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Editar
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"

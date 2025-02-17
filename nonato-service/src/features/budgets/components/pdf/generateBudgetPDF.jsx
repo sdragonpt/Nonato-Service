@@ -1,5 +1,9 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import formatEuroNumber from "../../../../utils/formatters/formatEuroNumber";
+import {
+  calculateTotalsWithIVA,
+  formatCurrency,
+} from "@/utils/formatters/budgetCalculations";
 
 const generateBudgetPDF = async (
   order,
@@ -274,7 +278,43 @@ const generateBudgetPDF = async (
   }
 
   y -= 10;
-  const total = selectedServices.reduce((acc, curr) => acc + curr.total, 0);
+  const totalsData = calculateTotalsWithIVA(selectedServices, budget.ivaRate);
+  drawRect(295, y - 10, 250, 30, rgb(0.95, 0.95, 0.95));
+  writeText("Subtotal", {
+    x: 300,
+    y: y,
+    color: rgb(0, 0, 0),
+    useFont: boldFont,
+  });
+  writeText(`${formatEuroNumber(totalsData.subtotal)} €`, {
+    x: 40,
+    y: y,
+    align: "right",
+    color: rgb(0, 0, 0),
+    useFont: boldFont,
+  });
+
+  // Add IVA if rate is greater than 0
+  if (budget.ivaRate > 0 && budget.showIVA) {
+    y -= 40;
+    drawRect(295, y - 10, 250, 30, rgb(0.95, 0.95, 0.95));
+    writeText(`IVA (${budget.ivaRate}%)`, {
+      x: 300,
+      y: y,
+      color: rgb(0, 0, 0),
+      useFont: boldFont,
+    });
+    writeText(`${formatEuroNumber(totalsData.ivaAmount)} €`, {
+      x: 40,
+      y: y,
+      align: "right",
+      color: rgb(0, 0, 0),
+      useFont: boldFont,
+    });
+  }
+
+  // Add final total
+  y -= 40;
   drawRect(295, y - 10, 250, 30, rgb(0, 0, 0));
   writeText("Total", {
     x: 300,
@@ -282,13 +322,18 @@ const generateBudgetPDF = async (
     color: rgb(1, 1, 1),
     useFont: boldFont,
   });
-  writeText(`${formatEuroNumber(total)} €`, {
-    x: 40,
-    y: y,
-    align: "right",
-    color: rgb(1, 1, 1),
-    useFont: boldFont,
-  });
+  writeText(
+    `${formatEuroNumber(
+      budget.showIVA ? totalsData.total : totalsData.subtotal
+    )} €`,
+    {
+      x: 40,
+      y: y,
+      align: "right",
+      color: rgb(1, 1, 1),
+      useFont: boldFont,
+    }
+  );
 
   // Verifica se precisa de nova página para as seções finais
   if (checkAndCreateNewPage(300)) {
