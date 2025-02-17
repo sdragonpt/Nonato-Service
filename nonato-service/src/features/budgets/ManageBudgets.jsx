@@ -122,7 +122,7 @@ const BudgetCard = ({ budget, onDelete, onViewPDF, onEdit, clientName }) => {
                 Ver PDF sem IVA
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => onEdit(budget)}
+                onClick={() => onEdit(budget.id)}
                 className="text-white hover:bg-zinc-700 cursor-pointer"
               >
                 <Edit className="w-4 h-4 mr-2" />
@@ -213,6 +213,21 @@ const ManageBudgets = () => {
 
     fetchBudgets();
   }, []);
+
+  const handleEdit = (budget) => {
+    // Certifique-se que budget.id existe
+    if (!budget.id) {
+      console.error("ID do orçamento não encontrado");
+      return;
+    }
+
+    // Verifique o tipo de orçamento e navegue para a rota apropriada
+    if (budget.type === "simple") {
+      navigate(`/app/edit-simple-budget/${budget.id}`);
+    } else {
+      navigate(`/app/edit-budget/${budget.id}`);
+    }
+  };
 
   const handleFilterChange = async (newFilter) => {
     try {
@@ -638,6 +653,7 @@ const ManageBudgets = () => {
                   clientName={budget.clientData.name}
                   onDelete={handleDelete}
                   onViewPDF={handleViewPDF}
+                  onEdit={handleEdit}
                 />
               ))
             ) : (
@@ -675,6 +691,7 @@ const ManageBudgets = () => {
                   clientName={clientNames[budget.clientId]}
                   onDelete={handleDelete}
                   onViewPDF={handleViewPDF}
+                  onEdit={handleEdit}
                 />
               ))
             ) : (
