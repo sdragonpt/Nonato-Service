@@ -71,6 +71,14 @@ import UserProfile from "./features/users/components/UserProfile";
 import UserSettings from "./features/users/components/UserSettings";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import ManageUsers from "./features/users/ManageUsers";
+import ManagePartsLibrary from "./features/parts/ManagePartsLibrary";
+import AddPart from "./features/parts/components/AddPart";
+import EditPart from "./features/parts/components/EditPart";
+import PartDetail from "./features/parts/components/PartDetail";
+import AddCategory from "./features/parts/components/AddCategory";
+import AddSubcategory from "./features/parts/components/AddSubcategory";
+import EditCategory from "./features/parts/components/EditCategory";
+import ManageCategories from "./features/parts/ManageCategories";
 
 import { useAuth } from "./hooks/useAuth";
 import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
@@ -585,6 +593,26 @@ const App = () => {
                   <Route
                     path="inspection-detail/:inspectionId"
                     element={<InspectionDetail />}
+                  />
+                  <Route
+                    path="parts-library"
+                    element={<ManagePartsLibrary />}
+                  />
+                  <Route path="add-part" element={<AddPart />} />
+                  <Route path="edit-part/:partId" element={<EditPart />} />
+                  <Route path="part/:partId" element={<PartDetail />} />
+                  <Route path="add-category" element={<AddCategory />} />
+                  <Route
+                    path="add-subcategory/:categoryId"
+                    element={<AddSubcategory />}
+                  />
+                  <Route
+                    path="edit-category/:categoryId"
+                    element={<EditCategory />}
+                  />
+                  <Route
+                    path="manage-categories"
+                    element={<ManageCategories />}
                   />
                 </Routes>
               </DashboardShell>
