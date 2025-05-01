@@ -29,6 +29,7 @@ import {
   Grid,
   List,
   X,
+  Upload,
 } from "lucide-react";
 
 // UI Components
@@ -267,13 +268,22 @@ const ManagePartsLibrary = () => {
             Gerencie todas as peças disponíveis no sistema
           </p>
         </div>
-        <Button
-          onClick={() => navigate("/app/add-part")}
-          className="hidden sm:flex bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Peça
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => navigate("/app/add-part")}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Peça
+          </Button>
+          <Button
+            onClick={() => navigate("/app/import-parts")}
+            className="bg-amber-600 hover:bg-amber-700"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Importar
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -519,6 +529,14 @@ const ManagePartsLibrary = () => {
               <Tag className="w-4 h-4 mr-2" />
               Gerenciar Categorias
             </Button>
+
+            <Button
+              onClick={() => navigate("/app/import-parts")}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Importar Peças
+            </Button>
           </div>
 
           {/* Parts Grid or List */}
@@ -727,7 +745,7 @@ const ManagePartsLibrary = () => {
                   variant="outline"
                   size="sm"
                   onClick={handleBackToCategories}
-                  className="h-8 border-zinc-700 text-white hover:bg-zinc-700 bg-green-600"
+                  className="h-8 border-zinc-700 text-white hover:bg-zinc-700"
                 >
                   <ArrowLeft className="h-3 w-3 mr-1" />
                   Voltar
@@ -1022,6 +1040,14 @@ const ManagePartsLibrary = () => {
                 Gerenciar Categorias
               </Button>
 
+              <Button
+                onClick={() => navigate("/app/import-parts")}
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Importar Peças
+              </Button>
+
               {selectedCategory && (
                 <Button
                   onClick={() =>
@@ -1103,6 +1129,13 @@ const ManagePartsLibrary = () => {
           className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
         >
           <Download className="h-5 w-5" />
+        </Button>
+        <Button
+          onClick={() => navigate("/app/import-parts")}
+          size="icon"
+          className="rounded-full shadow-lg bg-amber-600 hover:bg-amber-700"
+        >
+          <Upload className="h-5 w-5" />
         </Button>
         <Button
           onClick={() => navigate("/app/add-part")}

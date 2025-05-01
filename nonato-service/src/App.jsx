@@ -79,6 +79,7 @@ import AddCategory from "./features/parts/components/AddCategory";
 import AddSubcategory from "./features/parts/components/AddSubcategory";
 import EditCategory from "./features/parts/components/EditCategory";
 import ManageCategories from "./features/parts/ManageCategories";
+import ImportParts from "./features/parts/ImportParts";
 
 import { useAuth } from "./hooks/useAuth";
 import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
@@ -614,6 +615,7 @@ const App = () => {
                     path="manage-categories"
                     element={<ManageCategories />}
                   />
+                  <Route path="import-parts" element={<ImportParts />} />
                 </Routes>
               </DashboardShell>
             </ProtectedRoute>
