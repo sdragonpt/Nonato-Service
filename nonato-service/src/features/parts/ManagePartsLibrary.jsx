@@ -30,6 +30,7 @@ import {
   List,
   X,
   Upload,
+  ChevronLeft, // Novo
 } from "lucide-react";
 
 // UI Components
@@ -87,16 +88,25 @@ const ManagePartsLibrary = () => {
   const [viewMode, setViewMode] = useState("grid"); // "grid" or "list"
   const [activeTab, setActiveTab] = useState("all");
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12; // Ou qualquer número que preferir
+
   // Reset error and selection when changing tabs
   const handleTabChange = (value) => {
     setActiveTab(value);
     setError(null);
+    setCurrentPage(1); // Resetar página quando mudar de tab
     if (value === "all") {
       setSelectedCategory(null);
       setSelectedSubcategory(null);
     }
   };
   const navigate = useNavigate();
+
+  const paginate = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo(0, 0);
+  };
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -192,6 +202,17 @@ const ManagePartsLibrary = () => {
     fetchParts();
   }, [fetchParts]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    searchTerm,
+    filterCategory,
+    sortField,
+    sortOrder,
+    selectedCategory,
+    selectedSubcategory,
+  ]);
+
   const handleDelete = async (partId) => {
     try {
       await deleteDoc(doc(db, "pecas", partId));
@@ -247,6 +268,11 @@ const ManagePartsLibrary = () => {
   const getMainCategories = () => {
     return categories.filter((cat) => !cat.parentId);
   };
+
+  const indexOfLastPart = currentPage * itemsPerPage;
+  const indexOfFirstPart = indexOfLastPart - itemsPerPage;
+  const currentParts = filteredParts.slice(indexOfFirstPart, indexOfLastPart);
+  const totalPages = Math.ceil(filteredParts.length / itemsPerPage);
 
   if (isLoading && !parts.length) {
     return (
@@ -462,7 +488,8 @@ const ManagePartsLibrary = () => {
                   </Button>
                 </div>
                 <span className="text-center sm:text-right text-sm text-zinc-400">
-                  {filteredParts.length} peça(s) encontrada(s)
+                  {filteredParts.length} peça(s) encontrada(s) - Página{" "}
+                  {currentPage} de {totalPages}
                 </span>
               </div>
 
@@ -542,7 +569,7 @@ const ManagePartsLibrary = () => {
           {/* Parts Grid or List */}
           {viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-              {filteredParts.map((part) => (
+              {currentParts.map((part) => (
                 <Card
                   key={part.id}
                   onClick={() => navigate(`/app/part/${part.id}`)}
@@ -641,7 +668,7 @@ const ManagePartsLibrary = () => {
             </div>
           ) : (
             <div className="mt-4 space-y-2">
-              {filteredParts.map((part) => (
+              {currentParts.map((part) => (
                 <Card
                   key={part.id}
                   onClick={() => navigate(`/app/part/${part.id}`)}
@@ -733,6 +760,96 @@ const ManagePartsLibrary = () => {
               )}
             </div>
           )}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-8">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => paginate(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              {/* Mostra página inicial, três páginas próximas à atual e a última */}
+              {currentPage > 3 && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => paginate(1)}
+                    className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
+                  >
+                    1
+                  </Button>
+                  {currentPage > 4 && (
+                    <span className="text-zinc-400">...</span>
+                  )}
+                </>
+              )}
+
+              {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
+                let pageNumber;
+                if (totalPages <= 5) {
+                  pageNumber = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNumber = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNumber = totalPages - 4 + i;
+                } else {
+                  pageNumber = currentPage - 2 + i;
+                }
+
+                if (pageNumber >= 1 && pageNumber <= totalPages) {
+                  return (
+                    <Button
+                      key={pageNumber}
+                      variant={
+                        currentPage === pageNumber ? "secondary" : "outline"
+                      }
+                      size="icon"
+                      onClick={() => paginate(pageNumber)}
+                      className={`border-zinc-700 ${
+                        currentPage === pageNumber
+                          ? "bg-zinc-700 text-white hover:bg-zinc-600"
+                          : "text-white hover:bg-zinc-700 bg-zinc-800"
+                      }`}
+                    >
+                      {pageNumber}
+                    </Button>
+                  );
+                }
+                return null;
+              })}
+
+              {currentPage < totalPages - 2 && (
+                <>
+                  {currentPage < totalPages - 3 && (
+                    <span className="text-zinc-400">...</span>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => paginate(totalPages)}
+                    className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
+                  >
+                    {totalPages}
+                  </Button>
+                </>
+              )}
+
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => paginate(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </TabsContent>
 
         {/* Categories Tab */}
@@ -745,7 +862,7 @@ const ManagePartsLibrary = () => {
                   variant="outline"
                   size="sm"
                   onClick={handleBackToCategories}
-                  className="h-8 border-zinc-700 text-white hover:bg-zinc-700"
+                  className="h-8 border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
                 >
                   <ArrowLeft className="h-3 w-3 mr-1" />
                   Voltar

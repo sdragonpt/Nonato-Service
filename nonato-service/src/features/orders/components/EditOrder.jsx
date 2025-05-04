@@ -55,6 +55,8 @@ const EditOrder = () => {
     status: "",
     resultDescription: "",
     pontosEmAberto: "",
+    items: [], // ✓ Adicionar items
+    isQuote: false, // ✓ Adicionar isQuote
   });
 
   const [checklist, setChecklist] = useState({
@@ -74,6 +76,8 @@ const EditOrder = () => {
   const [error, setError] = useState(null);
   const [, setTouched] = useState({});
   const [originalData, setOriginalData] = useState(null);
+
+  const isQuote = formData.isQuote || originalData?.isQuote;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -108,6 +112,14 @@ const EditOrder = () => {
           status: orderData.status || "Aberto",
           resultDescription: orderData.resultDescription || "",
           pontosEmAberto: orderData.pontosEmAberto || "",
+          isQuote: orderData.isQuote || false, // ✓ Adicionar isQuote
+          items:
+            orderData.isQuote && orderData.items
+              ? orderData.items.map((item) => ({
+                  ...item,
+                  price: item.price || 0,
+                }))
+              : [], // ✓ Inicializar items corretamente
         });
 
         // Set checklist
@@ -189,20 +201,6 @@ const EditOrder = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const allTouched = Object.keys(formData).reduce(
-      (acc, key) => ({
-        ...acc,
-        [key]: true,
-      }),
-      {}
-    );
-    setTouched(allTouched);
-
-    if (!formData.clientId || !formData.equipmentId || !formData.serviceType) {
-      setError("Por favor, preencha todos os campos obrigatórios");
-      return;
-    }
-
     try {
       setIsSubmitting(true);
       setError(null);
@@ -211,6 +209,8 @@ const EditOrder = () => {
         ...formData,
         checklist,
         lastUpdated: new Date(),
+        // Incluir items atualizados se for orçamento
+        ...(formData.isQuote && { items: formData.items }),
       };
 
       await updateDoc(doc(db, "ordens", orderId), serviceData);
@@ -223,6 +223,16 @@ const EditOrder = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleItemPriceChange = (index, price) => {
+    const numericPrice = parseFloat(price) || 0;
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.map((item, i) =>
+        i === index ? { ...item, price: numericPrice } : item
+      ),
+    }));
   };
 
   if (isLoading) {
@@ -269,6 +279,73 @@ const EditOrder = () => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {formData.isQuote && formData.items && formData.items.length > 0 && (
+          <Card className="bg-zinc-800 border-zinc-700">
+            <CardHeader>
+              <CardTitle className="text-lg text-white">
+                Definir Preços dos Itens
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {formData.items.map((item, index) => (
+                  <div
+                    key={index}
+                    className="grid grid-cols-12 gap-4 items-center bg-zinc-700/50 p-4 rounded-lg"
+                  >
+                    <div className="col-span-4">
+                      <label className="text-sm text-zinc-400">Item</label>
+                      <p className="text-white">{item.name}</p>
+                      <p className="text-sm text-zinc-400">
+                        Código: {item.code}
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-sm text-zinc-400">
+                        Quantidade
+                      </label>
+                      <p className="text-white">{item.quantity}</p>
+                    </div>
+                    <div className="col-span-3">
+                      <label className="text-sm text-zinc-400">
+                        Preço Unitário (€)
+                      </label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={item.price}
+                        onChange={(e) =>
+                          handleItemPriceChange(index, e.target.value)
+                        }
+                        className="bg-zinc-900 border-zinc-700 text-white"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <label className="text-sm text-zinc-400">Subtotal</label>
+                      <p className="text-white font-medium">
+                        € {(item.quantity * item.price).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                <div className="text-right pt-4 border-t border-zinc-700">
+                  <p className="text-lg font-bold text-green-400">
+                    Total do Orçamento: €{" "}
+                    {formData.items
+                      .reduce(
+                        (sum, item) => sum + item.quantity * item.price,
+                        0
+                      )
+                      .toFixed(2)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Main Information Card */}
         <Card className="bg-zinc-800 border-zinc-700">
           <CardHeader>
@@ -372,6 +449,7 @@ const EditOrder = () => {
                   placeholder="Descreva o tipo de serviço"
                   className="pl-10 bg-zinc-900 border-zinc-700 text-white"
                   required
+                  readOnly={isQuote}
                 />
               </div>
             </div>
@@ -461,7 +539,14 @@ const EditOrder = () => {
         {/* Checklist Card */}
         <Card className="bg-zinc-800 border-zinc-700">
           <CardHeader>
-            <CardTitle className="text-lg text-white">Checklist</CardTitle>
+            <CardTitle className="text-lg text-white">
+              Checklist
+              {isQuote && (
+                <span className="text-sm text-zinc-400 ml-2">
+                  (Bloqueado para orçamento)
+                </span>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -473,6 +558,7 @@ const EditOrder = () => {
                     handleChecklistChange("concluido", checked)
                   }
                   className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                  disabled={isQuote} // Bloqueado se for orçamento
                 />
                 <span className="text-sm">Serviço Concluído</span>
               </label>
@@ -485,6 +571,7 @@ const EditOrder = () => {
                     handleChecklistChange("retorno", checked)
                   }
                   className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                  disabled={isQuote} // Bloqueado se for orçamento
                 />
                 <span className="text-sm">Retorno Necessário</span>
               </label>
@@ -497,6 +584,7 @@ const EditOrder = () => {
                     handleChecklistChange("funcionarios", checked)
                   }
                   className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                  disabled={isQuote} // Bloqueado se for orçamento
                 />
                 <span className="text-sm">Instrução dos Funcionários</span>
               </label>
@@ -509,6 +597,7 @@ const EditOrder = () => {
                     handleChecklistChange("documentacao", checked)
                   }
                   className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                  disabled={isQuote} // Bloqueado se for orçamento
                 />
                 <span className="text-sm">Entrega da Documentação</span>
               </label>
@@ -521,6 +610,7 @@ const EditOrder = () => {
                     handleChecklistChange("producao", checked)
                   }
                   className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                  disabled={isQuote} // Bloqueado se for orçamento
                 />
                 <span className="text-sm">Liberação para Produção</span>
               </label>
@@ -533,6 +623,7 @@ const EditOrder = () => {
                     handleChecklistChange("pecas", checked)
                   }
                   className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                  disabled={isQuote} // Bloqueado se for orçamento
                 />
                 <span className="text-sm">Orçamento de Peças</span>
               </label>
@@ -548,6 +639,7 @@ const EditOrder = () => {
                 onChange={handleChange}
                 placeholder="Adicione notas ou observações importantes"
                 className="min-h-[100px] bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 resize-none"
+                disabled={isQuote} // Bloqueado se for orçamento
               />
             </div>
 
@@ -561,6 +653,7 @@ const EditOrder = () => {
                 onChange={handleChange}
                 placeholder="Descreva os pontos que ainda precisam ser resolvidos"
                 className="min-h-[100px] bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 resize-none"
+                disabled={isQuote} // Bloqueado se for orçamento
               />
             </div>
           </CardContent>

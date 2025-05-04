@@ -81,6 +81,10 @@ import EditCategory from "./features/parts/components/EditCategory";
 import ManageCategories from "./features/parts/ManageCategories";
 import ImportParts from "./features/parts/ImportParts";
 
+//Loja
+import PublicShop from "./features/publicShop/PublicShop";
+import ManageOnlineQuotes from "./features/onlineQuotes/ManageOnlineQuotes";
+
 import { useAuth } from "./hooks/useAuth";
 import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
 import { Capacitor } from "@capacitor/core";
@@ -488,12 +492,21 @@ const App = () => {
         <Route path="/app" element={<Navigate to="/app/dashboard" />} />
         <Route path="/start" element={<InitialPage />} />
         <Route path="/login" element={<LoginPage />} />
+
+        <Route path="/loja" element={<PublicShop />} />
+        <Route path="/loja/categoria/:categoryId" element={<PublicShop />} />
+        <Route path="/loja/busca" element={<PublicShop />} />
+
         <Route
           path="/app/*"
           element={
             <ProtectedRoute>
               <DashboardShell>
                 <Routes>
+                  <Route
+                    path="/orcamento-online"
+                    element={<ManageOnlineQuotes />}
+                  />
                   <Route path="/dashboard" element={<DashboardPage />} />
                   <Route path="add-client" element={<AddClient />} />
                   <Route path="add-equipment" element={<AddEquipment />} />

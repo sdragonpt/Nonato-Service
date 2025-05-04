@@ -322,12 +322,8 @@ const AddPart = () => {
     setTouched((prev) => ({ ...prev, ...allFields }));
 
     // Validate required fields
-    if (
-      !formData.name.trim() ||
-      !formData.code.trim() ||
-      !formData.price.trim()
-    ) {
-      setError("Os campos Nome, Código e Preço são obrigatórios");
+    if (!formData.name.trim() || !formData.code.trim()) {
+      setError("Os campos Nome e Código são obrigatórios");
       return;
     }
 
@@ -515,7 +511,7 @@ const AddPart = () => {
             {/* Price Field */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-400">
-                Preço (€) <span className="text-red-500">*</span>
+                Preço (€)
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
