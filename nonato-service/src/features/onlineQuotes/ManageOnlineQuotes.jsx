@@ -317,7 +317,7 @@ const ManageOnlineQuotes = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-900 space-y-6 pb-24 p-4 sm:p-6 lg:p-8">
+    <div className="space-y-6 pb-24">
       {/* Header */}
       <div className="bg-zinc-900">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

@@ -30,7 +30,7 @@ import {
   List,
   X,
   Upload,
-  ChevronLeft, // Novo
+  ChevronLeft,
 } from "lucide-react";
 
 // UI Components
@@ -58,14 +58,6 @@ import {
 } from "@/components/ui/avatar.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog.jsx";
-import {
   Tabs,
   TabsContent,
   TabsList,
@@ -85,23 +77,23 @@ const ManagePartsLibrary = () => {
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [partToDelete, setPartToDelete] = useState(null);
-  const [viewMode, setViewMode] = useState("grid"); // "grid" or "list"
+  const [viewMode, setViewMode] = useState("grid");
   const [activeTab, setActiveTab] = useState("all");
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12; // Ou qualquer número que preferir
+  const itemsPerPage = 12;
 
-  // Reset error and selection when changing tabs
+  const navigate = useNavigate();
+
   const handleTabChange = (value) => {
     setActiveTab(value);
     setError(null);
-    setCurrentPage(1); // Resetar página quando mudar de tab
+    setCurrentPage(1);
     if (value === "all") {
       setSelectedCategory(null);
       setSelectedSubcategory(null);
     }
   };
-  const navigate = useNavigate();
 
   const paginate = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -155,10 +147,8 @@ const ManagePartsLibrary = () => {
       console.error("Erro ao buscar peças:", err);
       setError("Erro ao carregar peças. Por favor, tente novamente.");
 
-      // Fallback para uma consulta mais simples em caso de erro de índice
       if (err.code === "failed-precondition" || err.message.includes("index")) {
         try {
-          // Consulta sem ordenação como fallback
           let fallbackQuery;
           if (selectedSubcategory) {
             fallbackQuery = query(
@@ -181,7 +171,6 @@ const ManagePartsLibrary = () => {
           }));
           setParts(fallbackData);
 
-          // Ainda mostramos o erro, mas temos dados para exibir
           setError(
             "Os dados estão sendo exibidos sem ordenação enquanto o índice é criado. Por favor, aguarde alguns minutos e tente novamente."
           );
@@ -213,10 +202,10 @@ const ManagePartsLibrary = () => {
     selectedSubcategory,
   ]);
 
-  const handleDelete = async (partId) => {
+  const handleDelete = async (part) => {
     try {
-      await deleteDoc(doc(db, "pecas", partId));
-      setParts((prev) => prev.filter((part) => part.id !== partId));
+      await deleteDoc(doc(db, "pecas", part.id));
+      fetchParts();
       setDeleteDialogOpen(false);
       setPartToDelete(null);
     } catch (error) {
@@ -229,6 +218,11 @@ const ManagePartsLibrary = () => {
     e.stopPropagation();
     setPartToDelete(part);
     setDeleteDialogOpen(true);
+  };
+
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setPartToDelete(null);
   };
 
   const handleCategoryClick = (category) => {
@@ -515,57 +509,6 @@ const ManagePartsLibrary = () => {
             </CardContent>
           </Card>
 
-          {/* Quick Actions - Desktop Only */}
-          <div className="hidden sm:flex gap-2 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setError(null);
-                fetchParts();
-              }}
-              className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Atualizar Lista
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={() => {
-                const csvContent = convertToCSV(parts);
-                downloadCSV(csvContent, "pecas.csv");
-              }}
-              className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Exportar CSV
-            </Button>
-
-            <Button
-              onClick={() => navigate("/app/add-category")}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Categoria
-            </Button>
-
-            <Button
-              onClick={() => navigate("/app/manage-categories")}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
-            >
-              <Tag className="w-4 h-4 mr-2" />
-              Gerenciar Categorias
-            </Button>
-
-            <Button
-              onClick={() => navigate("/app/import-parts")}
-              className="bg-amber-600 hover:bg-amber-700 text-white"
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              Importar Peças
-            </Button>
-          </div>
-
           {/* Parts Grid or List */}
           {viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
@@ -613,7 +556,6 @@ const ManagePartsLibrary = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
                           align="end"
-                          onClick={(e) => e.stopPropagation()}
                           className="bg-zinc-800 border-zinc-700"
                         >
                           <DropdownMenuItem
@@ -718,7 +660,6 @@ const ManagePartsLibrary = () => {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent
                             align="end"
-                            onClick={(e) => e.stopPropagation()}
                             className="bg-zinc-800 border-zinc-700"
                           >
                             <DropdownMenuItem
@@ -772,7 +713,6 @@ const ManagePartsLibrary = () => {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
 
-              {/* Mostra página inicial, três páginas próximas à atual e a última */}
               {currentPage > 3 && (
                 <>
                   <Button
@@ -936,136 +876,9 @@ const ManagePartsLibrary = () => {
               </div>
             )}
 
-            {/* Display Subcategories */}
-            {selectedCategory && !selectedSubcategory && (
-              <>
-                <div className="relative w-full">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <Input
-                    placeholder="Buscar subcategorias ou peças..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
-                  />
-                </div>
-
-                <h3 className="text-lg font-semibold text-white mt-6 mb-3">
-                  Subcategorias
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {getSubcategories(selectedCategory.id)
-                    .filter((subcat) =>
-                      subcat.name
-                        .toLowerCase()
-                        .includes(searchTerm.toLowerCase())
-                    )
-                    .map((subcategory) => (
-                      <Card
-                        key={subcategory.id}
-                        onClick={() => handleSubcategoryClick(subcategory)}
-                        className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <Tag className="h-5 w-5 text-purple-500" />
-                              <h3 className="font-semibold text-base text-white">
-                                {subcategory.name}
-                              </h3>
-                            </div>
-                            <ChevronRight className="h-4 w-4 text-zinc-400" />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-
-                  {getSubcategories(selectedCategory.id).length === 0 && (
-                    <Card className="md:col-span-2 lg:col-span-3 bg-zinc-800 border-zinc-700">
-                      <CardContent className="p-6 text-center">
-                        <p className="text-zinc-400">
-                          Nenhuma subcategoria encontrada para{" "}
-                          {selectedCategory.name}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-
-                {/* Show Parts in this Category */}
-                <h3 className="text-lg font-semibold text-white mt-6 mb-3">
-                  Peças nesta Categoria
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {parts
-                    .filter(
-                      (part) =>
-                        part.categoryId === selectedCategory.id &&
-                        !part.subcategoryId &&
-                        (part.name
-                          .toLowerCase()
-                          .includes(searchTerm.toLowerCase()) ||
-                          part.code
-                            .toLowerCase()
-                            .includes(searchTerm.toLowerCase()))
-                    )
-                    .map((part) => (
-                      <Card
-                        key={part.id}
-                        onClick={() => navigate(`/app/part/${part.id}`)}
-                        className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={part.image} alt={part.name} />
-                              <AvatarFallback className="bg-zinc-700 text-white text-sm">
-                                {part.name?.[0]?.toUpperCase() || "P"}
-                              </AvatarFallback>
-                            </Avatar>
-
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-semibold text-base text-white truncate">
-                                  {part.name}
-                                </h3>
-                                <Badge className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20">
-                                  {part.code}
-                                </Badge>
-                              </div>
-                              <p className="text-white text-sm">
-                                {new Intl.NumberFormat("pt-PT", {
-                                  style: "currency",
-                                  currency: "EUR",
-                                }).format(part.price || 0)}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-
-                  {parts.filter(
-                    (part) =>
-                      part.categoryId === selectedCategory.id &&
-                      !part.subcategoryId
-                  ).length === 0 && (
-                    <Card className="md:col-span-2 lg:col-span-3 bg-zinc-800 border-zinc-700">
-                      <CardContent className="p-6 text-center">
-                        <p className="text-zinc-400">
-                          Nenhuma peça encontrada nesta categoria
-                        </p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              </>
-            )}
-
             {/* Display Parts in Subcategory */}
             {selectedSubcategory && (
-              <>
+              <div className="space-y-4">
                 <div className="relative w-full">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                   <Input
@@ -1076,7 +889,7 @@ const ManagePartsLibrary = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {parts
                     .filter(
                       (part) =>
@@ -1136,7 +949,7 @@ const ManagePartsLibrary = () => {
                     </Card>
                   )}
                 </div>
-              </>
+              </div>
             )}
 
             {/* Action Buttons for Categories Tab */}
@@ -1193,37 +1006,40 @@ const ManagePartsLibrary = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
-          <DialogHeader>
-            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+      {/* Delete Confirmation Dialog - Alternative to Dialog component */}
+      {deleteDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50" onClick={cancelDelete} />
+          <div className="relative bg-zinc-800 border border-zinc-700 rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-white mb-2">
+              Confirmar exclusão
+            </h3>
+            <p className="text-zinc-400 mb-6">
               Tem certeza que deseja excluir a peça{" "}
               <span className="font-semibold text-white">
                 {partToDelete?.name}
               </span>
               ? Esta ação não pode ser desfeita.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => handleDelete(partToDelete?.id)}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Excluir
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={cancelDelete}
+                className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => handleDelete(partToDelete)}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Excluir
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FAB Menu for Mobile */}
       <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden">

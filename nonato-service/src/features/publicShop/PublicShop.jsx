@@ -44,6 +44,8 @@ import {
 } from "@/components/ui/dialog.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 
+import { notifyNewQuoteRequest } from "../../services/notificationService";
+
 const PublicShop = () => {
   const [parts, setParts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -74,6 +76,20 @@ const PublicShop = () => {
     company: "",
     message: "",
   });
+
+  //Change Page Name
+  useEffect(() => {
+    // Salvar o título original
+    const originalTitle = document.title;
+
+    // Mudar para o novo título
+    document.title = "Nonato Service - Peças";
+
+    // Restaurar o título original quando o componente for desmontado
+    return () => {
+      document.title = originalTitle;
+    };
+  }, []);
 
   // Load parts and categories
   useEffect(() => {
@@ -213,7 +229,6 @@ const PublicShop = () => {
       setIsSubmitting(true);
       setError(null);
 
-      // Prepare quote data
       const quoteData = {
         status: "pending",
         clientInfo: quoteFormData,
@@ -229,11 +244,25 @@ const PublicShop = () => {
         source: "public-shop",
       };
 
-      // Salvar no Firestore
       const docRef = await addDoc(
         collection(db, "orcamentos-online"),
         quoteData
       );
+
+      // Notificar admins sobre novo orçamento
+      // Buscar todos os admins
+      const usersQuery = query(
+        collection(db, "users"),
+        where("role", "==", "admin")
+      );
+      const usersSnapshot = await getDocs(usersQuery);
+
+      usersSnapshot.docs.forEach(async (userDoc) => {
+        await notifyNewQuoteRequest(userDoc.id, {
+          id: docRef.id,
+          customerName: quoteFormData.name,
+        });
+      });
 
       // Clear cart and close modals
       setCart([]);
@@ -265,8 +294,12 @@ const PublicShop = () => {
       <header className="sticky top-0 z-50 bg-zinc-800 border-b border-zinc-700">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Package className="h-6 w-6 text-green-500" />
-            <h1 className="text-xl font-bold">Loja de Peças</h1>
+            <img
+              src="/nonato.png"
+              alt="Nonato Service Logo"
+              className="h-8 w-8"
+            />
+            <h1 className="text-xl font-bold">Nonato Service - Peças</h1>
           </div>
 
           <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
@@ -283,20 +316,20 @@ const PublicShop = () => {
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent className="bg-zinc-800 border-zinc-700 text-white">
-              <SheetHeader>
+            <SheetContent className="bg-zinc-800 border-zinc-700 text-white flex flex-col h-full">
+              <SheetHeader className="flex-shrink-0 pb-4">
                 <SheetTitle className="text-white">
                   Carrinho de Compras
                 </SheetTitle>
               </SheetHeader>
 
-              <div className="mt-8 space-y-4">
+              <div className="flex-1 min-h-0 overflow-y-auto py-4">
                 {cart.length === 0 ? (
                   <p className="text-zinc-400 text-center py-8">
                     Seu carrinho está vazio
                   </p>
                 ) : (
-                  <>
+                  <div className="space-y-4">
                     {cart.map((item) => (
                       <div
                         key={item.id}
@@ -340,19 +373,21 @@ const PublicShop = () => {
                         </div>
                       </div>
                     ))}
-
-                    <div className="pt-4 border-t border-zinc-700">
-                      <Button
-                        className="w-full bg-green-600 hover:bg-green-700"
-                        onClick={() => setShowQuoteModal(true)}
-                        disabled={cart.length === 0}
-                      >
-                        Solicitar Orçamento
-                      </Button>
-                    </div>
-                  </>
+                  </div>
                 )}
               </div>
+
+              {cart.length > 0 && (
+                <div className="flex-shrink-0 pt-4 border-t border-zinc-700 bg-zinc-800">
+                  <Button
+                    className="w-full bg-green-600 hover:bg-green-700"
+                    onClick={() => setShowQuoteModal(true)}
+                    disabled={cart.length === 0}
+                  >
+                    Solicitar Orçamento
+                  </Button>
+                </div>
+              )}
             </SheetContent>
           </Sheet>
         </div>

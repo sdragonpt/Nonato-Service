@@ -1,17 +1,15 @@
 import { useState, useEffect } from "react";
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { collection, getDocs } from "firebase/firestore";
+  collection,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  getDoc,
+  doc,
+} from "firebase/firestore";
 import { db } from "../../firebase.jsx";
+import { useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -19,6 +17,11 @@ import {
   CardTitle,
 } from "@/components/ui/card.jsx";
 import { Button } from "@/components/ui/button.jsx";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar.jsx";
 import {
   Users,
   ClipboardList,
@@ -28,13 +31,16 @@ import {
   Calendar,
   ClipboardCheck,
   Loader2,
+  AlertTriangle,
+  Clock,
+  ArrowRight,
+  AlertCircle,
 } from "lucide-react";
-
-import DailyActivities from "./DailyActivities.jsx";
 
 const DashboardPage = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState("daily");
+  const [openOrders, setOpenOrders] = useState([]);
+  const [totalOpenOrders, setTotalOpenOrders] = useState(0);
   const [stats, setStats] = useState({
     clients: 0,
     orders: 0,
@@ -44,85 +50,24 @@ const DashboardPage = () => {
     inspections: 0,
     appointments: 0,
   });
+  const navigate = useNavigate();
 
-  // Mock data for different periods
-  const periodData = {
-    daily: {
-      orders: [
-        { time: "00:00", value: 4 },
-        { time: "04:00", value: 3 },
-        { time: "08:00", value: 7 },
-        { time: "12:00", value: 12 },
-        { time: "16:00", value: 9 },
-        { time: "20:00", value: 6 },
-      ],
-      revenue: [
-        { time: "00:00", value: 400 },
-        { time: "04:00", value: 300 },
-        { time: "08:00", value: 700 },
-        { time: "12:00", value: 1200 },
-        { time: "16:00", value: 900 },
-        { time: "20:00", value: 600 },
-      ],
-    },
-    weekly: {
-      orders: [
-        { time: "Dom", value: 15 },
-        { time: "Seg", value: 25 },
-        { time: "Ter", value: 20 },
-        { time: "Qua", value: 30 },
-        { time: "Qui", value: 22 },
-        { time: "Sex", value: 28 },
-        { time: "Sáb", value: 15 },
-      ],
-      revenue: [
-        { time: "Dom", value: 1500 },
-        { time: "Seg", value: 2500 },
-        { time: "Ter", value: 2000 },
-        { time: "Qua", value: 3000 },
-        { time: "Qui", value: 2200 },
-        { time: "Sex", value: 2800 },
-        { time: "Sáb", value: 1500 },
-      ],
-    },
-    monthly: {
-      orders: [
-        { time: "1", value: 45 },
-        { time: "5", value: 55 },
-        { time: "10", value: 75 },
-        { time: "15", value: 85 },
-        { time: "20", value: 65 },
-        { time: "25", value: 80 },
-        { time: "30", value: 70 },
-      ],
-      revenue: [
-        { time: "1", value: 4500 },
-        { time: "5", value: 5500 },
-        { time: "10", value: 7500 },
-        { time: "15", value: 8500 },
-        { time: "20", value: 6500 },
-        { time: "25", value: 8000 },
-        { time: "30", value: 7000 },
-      ],
-    },
-    yearly: {
-      orders: [
-        { time: "Jan", value: 150 },
-        { time: "Mar", value: 200 },
-        { time: "Mai", value: 250 },
-        { time: "Jul", value: 300 },
-        { time: "Set", value: 280 },
-        { time: "Nov", value: 260 },
-      ],
-      revenue: [
-        { time: "Jan", value: 15000 },
-        { time: "Mar", value: 20000 },
-        { time: "Mai", value: 25000 },
-        { time: "Jul", value: 30000 },
-        { time: "Set", value: 28000 },
-        { time: "Nov", value: 26000 },
-      ],
-    },
+  const priorityColors = {
+    high: "text-red-400 bg-red-500/10",
+    normal: "text-blue-400 bg-blue-500/10",
+    low: "text-green-400 bg-green-500/10",
+  };
+
+  const priorityLabels = {
+    high: "Alta",
+    normal: "Normal",
+    low: "Baixa",
+  };
+
+  const priorityIcons = {
+    high: AlertCircle,
+    normal: Clock,
+    low: AlertTriangle,
   };
 
   useEffect(() => {
@@ -158,6 +103,56 @@ const DashboardPage = () => {
           inspections: inspectionsSnap.size,
           appointments: appointmentsSnap.size,
         });
+
+        // Fetch open orders
+        const openOrdersQuery = query(
+          collection(db, "ordens"),
+          where("status", "!=", "Fechado"),
+          orderBy("status", "desc"),
+          orderBy("date", "desc")
+        );
+
+        const openOrdersSnap = await getDocs(openOrdersQuery);
+
+        // Process open orders
+        let ordersData = openOrdersSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        // Fetch client data for each order
+        const clientIds = [
+          ...new Set(ordersData.map((order) => order.clientId)),
+        ];
+        const clientPromises = clientIds.map((id) =>
+          getDoc(doc(db, "clientes", id))
+        );
+        const clientsDocs = await Promise.all(clientPromises);
+
+        const clientsMap = {};
+        clientsDocs.forEach((doc) => {
+          if (doc.exists()) {
+            clientsMap[doc.id] = { id: doc.id, ...doc.data() };
+          }
+        });
+
+        // Combine orders with client data
+        ordersData = ordersData.map((order) => ({
+          ...order,
+          client: clientsMap[order.clientId],
+        }));
+
+        // Sort orders by priority and then by date
+        const sortedOrders = ordersData.sort((a, b) => {
+          const priorityOrder = { high: 0, normal: 1, low: 2 };
+          if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+            return priorityOrder[a.priority] - priorityOrder[b.priority];
+          }
+          return new Date(b.date) - new Date(a.date);
+        });
+
+        setTotalOpenOrders(sortedOrders.length);
+        setOpenOrders(sortedOrders.slice(0, 5)); // Show only first 5 orders
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
@@ -167,13 +162,6 @@ const DashboardPage = () => {
 
     fetchDashboardData();
   }, []);
-
-  const periodLabels = {
-    daily: "Diária",
-    weekly: "Semanal",
-    monthly: "Mensal",
-    yearly: "Anual",
-  };
 
   if (isLoading) {
     return (
@@ -185,27 +173,11 @@ const DashboardPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with Period Selector */}
+      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
           <p className="text-zinc-400">Visão geral do seu negócio</p>
-        </div>
-        <div className="flex gap-2">
-          {Object.keys(periodLabels).map((period) => (
-            <Button
-              key={period}
-              variant={selectedPeriod === period ? "default" : "outline"}
-              onClick={() => setSelectedPeriod(period)}
-              className={`${
-                selectedPeriod === period
-                  ? "bg-green-600 hover:bg-green-700"
-                  : "border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-              }`}
-            >
-              {periodLabels[period]}
-            </Button>
-          ))}
         </div>
       </div>
 
@@ -276,70 +248,101 @@ const DashboardPage = () => {
         </Card>
       </div>
 
-      {/* Daily Activities Section */}
-      {selectedPeriod === "daily" && <DailyActivities />}
+      {/* Open Orders Section */}
+      <Card className="bg-zinc-800 border-zinc-700">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-white">Ordens em Aberto</CardTitle>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/app/manage-orders")}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-green-600"
+          >
+            Ver Todas
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {openOrders.length > 0 ? (
+            <div className="space-y-4">
+              {openOrders.map((order) => {
+                const PriorityIcon = priorityIcons[order.priority];
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Orders Trend */}
-        <Card className="bg-zinc-800 border-zinc-700">
-          <CardHeader>
-            <CardTitle className="text-white">Tendência de Ordens</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={periodData[selectedPeriod].orders}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="time" stroke="#9CA3AF" />
-                  <YAxis stroke="#9CA3AF" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#1F2937",
-                      border: "none",
-                    }}
-                    labelStyle={{ color: "#F9FAFB" }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke="#10B981"
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+                const clientName =
+                  order.client?.name || "Cliente não encontrado";
+                const clientPhoto = order.client?.profilePic || "";
 
-        {/* Revenue Chart */}
-        <Card className="bg-zinc-800 border-zinc-700">
-          <CardHeader>
-            <CardTitle className="text-white">
-              Receita {periodLabels[selectedPeriod]}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={periodData[selectedPeriod].revenue}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="time" stroke="#9CA3AF" />
-                  <YAxis stroke="#9CA3AF" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#1F2937",
-                      border: "none",
-                    }}
-                    labelStyle={{ color: "#F9FAFB" }}
-                  />
-                  <Bar dataKey="value" fill="#10B981" />
-                </BarChart>
-              </ResponsiveContainer>
+                return (
+                  <div
+                    key={order.id}
+                    onClick={() => navigate(`/app/order-detail/${order.id}`)}
+                    className="p-4 bg-zinc-700/50 hover:bg-zinc-700 rounded-lg cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div
+                          className={`h-8 w-8 rounded-full ${
+                            priorityColors[order.priority]
+                          } flex items-center justify-center`}
+                        >
+                          <PriorityIcon className="h-4 w-4" />
+                        </div>
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={clientPhoto} alt={clientName} />
+                          <AvatarFallback>
+                            {clientName.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-white">{clientName}</p>
+                          <p className="text-sm text-zinc-400">
+                            {order.serviceType}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            priorityColors[order.priority]
+                          }`}
+                        >
+                          {priorityLabels[order.priority]}
+                        </div>
+                        <p className="text-sm text-zinc-400">
+                          {new Date(order.date).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {totalOpenOrders > 5 && (
+                <div className="text-center pt-4 border-t border-zinc-700">
+                  <p className="text-zinc-400">
+                    {totalOpenOrders - 5} outras ordens abertas
+                  </p>
+                  <Button
+                    variant="link"
+                    onClick={() => navigate("/app/manage-orders")}
+                    className="text-green-500 hover:text-green-400 mt-2"
+                  >
+                    Ver todas as ordens de serviço
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          ) : (
+            <div className="text-center py-8">
+              <ClipboardList className="w-12 h-12 text-zinc-600 mx-auto mb-3" />
+              <p className="text-zinc-400">Nenhuma ordem em aberto</p>
+              <p className="text-sm text-zinc-500">
+                Todas as ordens estão fechadas
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Additional Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

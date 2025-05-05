@@ -29,6 +29,8 @@ import {
   Settings,
   User,
   UserCog,
+  ShoppingBag, // Novo ícone para Loja
+  Store,
 } from "lucide-react";
 
 // Componentes
@@ -80,6 +82,9 @@ import AddSubcategory from "./features/parts/components/AddSubcategory";
 import EditCategory from "./features/parts/components/EditCategory";
 import ManageCategories from "./features/parts/ManageCategories";
 import ImportParts from "./features/parts/ImportParts";
+
+import { NotificationProvider } from "./context/NotificationContext.jsx";
+import NotificationsDropdown from "./components/ui/NotificationsDropdown";
 
 //Loja
 import PublicShop from "./features/publicShop/PublicShop";
@@ -160,6 +165,22 @@ const NAVIGATION_ITEMS = [
         path: "/app/manage-inspection",
         icon: ClipboardCheck,
         label: "Inspeções",
+      },
+    ],
+  },
+  {
+    title: "Loja Online",
+    items: [
+      {
+        path: "/loja",
+        icon: ShoppingBag,
+        label: "Visitar Loja",
+        external: true, // Marca como link externo
+      },
+      {
+        path: "/app/orcamento-online",
+        icon: Store,
+        label: "Gestão de Orçamentos Online",
       },
     ],
   },
@@ -324,14 +345,17 @@ const DashboardShell = ({ children }) => {
                     activeSection === section.title
                       ? "bg-green-700 hover:bg-green-70 text-white"
                       : section.title === "Cadastro" ||
-                        section.title === "Gestão"
+                        section.title === "Gestão" ||
+                        section.title === "Loja Online"
                       ? "text-white font-bold bg-green-700/25 hover:bg-green-700/70 hover:border-green-700/70"
                       : "text-zinc-400 hover:text-white"
                   } transition-colors`}
                 >
                   <span
                     className={`${
-                      section.title === "Cadastro" || section.title === "Gestão"
+                      section.title === "Cadastro" ||
+                      section.title === "Gestão" ||
+                      section.title === "Loja Online"
                         ? "text-base"
                         : "text-sm"
                     } font-semibold`}
@@ -350,20 +374,39 @@ const DashboardShell = ({ children }) => {
                     activeSection === section.title ? "block" : "hidden"
                   }`}
                 >
-                  {section.items.map((item, itemIdx) => (
-                    <Link
-                      key={itemIdx}
-                      to={item.path}
-                      className={`flex items-center gap-x-3 px-3 py-2 text-sm rounded-lg ${
-                        isActiveLink(item.path)
-                          ? "bg-zinc-800 text-white"
-                          : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
-                      } transition-colors`}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      {item.label}
-                    </Link>
-                  ))}
+                  {section.items.map((item, itemIdx) => {
+                    // Renderizar links externos de forma diferente
+                    if (item.external) {
+                      return (
+                        <a
+                          key={itemIdx}
+                          href={item.path}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`flex items-center gap-x-3 px-3 py-2 text-sm rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors`}
+                        >
+                          <item.icon className="w-4 h-4" />
+                          {item.label}
+                        </a>
+                      );
+                    }
+
+                    // Renderizar links internos normalmente
+                    return (
+                      <Link
+                        key={itemIdx}
+                        to={item.path}
+                        className={`flex items-center gap-x-3 px-3 py-2 text-sm rounded-lg ${
+                          isActiveLink(item.path)
+                            ? "bg-zinc-800 text-white"
+                            : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                        } transition-colors`}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        {item.label}
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -411,57 +454,6 @@ const DashboardShell = ({ children }) => {
   );
 };
 
-// Componente separado para as notificações
-const NotificationsDropdown = () => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative text-zinc-400 hover:text-white hover:bg-zinc-700/50"
-        >
-          <Bell className="h-5 w-5 hover:text-white" />
-          <Badge className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 p-0 flex items-center justify-center">
-            <span className="text-[10px]">3</span>
-          </Badge>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className="w-80 bg-zinc-800 border-zinc-700"
-      >
-        <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-700">
-          <span className="text-sm font-medium text-white">Notificações</span>
-          <Badge variant="secondary" className="bg-zinc-700 text-zinc-400">
-            3 novas
-          </Badge>
-        </div>
-        <div className="py-2">
-          {/* Example notifications */}
-          <DropdownMenuItem className="px-4 py-2 focus:bg-zinc-700/50">
-            <div className="flex flex-col gap-1">
-              <p className="text-sm text-white">Nova ordem de serviço</p>
-              <span className="text-xs text-zinc-400">Há 5 minutos</span>
-            </div>
-          </DropdownMenuItem>
-          {/* Add more notifications here */}
-        </div>
-        <div className="p-2 border-t border-zinc-700">
-          <Button
-            variant="ghost"
-            className="w-full justify-center text-zinc-400 hover:text-white hover:bg-zinc-700/50"
-          >
-            Ver todas
-          </Button>
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-};
-
 // Main App Component
 const App = () => {
   const { user, loading } = useAuth(); // Substitui o useState e useEffect anterior
@@ -486,156 +478,164 @@ const App = () => {
   }
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Navigate to="/app" />} />
-        <Route path="/app" element={<Navigate to="/app/dashboard" />} />
-        <Route path="/start" element={<InitialPage />} />
-        <Route path="/login" element={<LoginPage />} />
+    <NotificationProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Navigate to="/app" />} />
+          <Route path="/app" element={<Navigate to="/app/dashboard" />} />
+          <Route path="/start" element={<InitialPage />} />
+          <Route path="/login" element={<LoginPage />} />
 
-        <Route path="/loja" element={<PublicShop />} />
-        <Route path="/loja/categoria/:categoryId" element={<PublicShop />} />
-        <Route path="/loja/busca" element={<PublicShop />} />
+          <Route path="/loja" element={<PublicShop />} />
+          <Route path="/loja/categoria/:categoryId" element={<PublicShop />} />
+          <Route path="/loja/busca" element={<PublicShop />} />
 
-        <Route
-          path="/app/*"
-          element={
-            <ProtectedRoute>
-              <DashboardShell>
-                <Routes>
-                  <Route
-                    path="/orcamento-online"
-                    element={<ManageOnlineQuotes />}
-                  />
-                  <Route path="/dashboard" element={<DashboardPage />} />
-                  <Route path="add-client" element={<AddClient />} />
-                  <Route path="add-equipment" element={<AddEquipment />} />
-                  <Route path="add-order" element={<AddOrder />} />
-                  <Route path="manage-orders" element={<ManageOrders />} />
-                  <Route path="manage-services" element={<ManageServices />} />
-                  <Route path="add-service" element={<AddService />} />
-                  <Route path="profile" element={<UserProfile />} />
-                  <Route path="settings" element={<UserSettings />} />
-                  {/* Rotas protegidas por role */}
-                  <Route
-                    path="manage-users"
-                    element={
-                      <RoleRoute allowedRoles={["admin"]}>
-                        <ManageUsers />
-                      </RoleRoute>
-                    }
-                  />
-                  <Route
-                    path="edit-service/:serviceId"
-                    element={<EditService />}
-                  />
-                  <Route path="manage-clients" element={<ManageClients />} />
-                  <Route path="client/:clientId" element={<ClientDetail />} />
-                  <Route
-                    path="equipment/:equipmentId"
-                    element={<EquipmentDetail />}
-                  />
-                  <Route
-                    path="edit-client/:clientId"
-                    element={<EditClient />}
-                  />
-                  <Route
-                    path="edit-equipment/:equipmentId"
-                    element={<EditEquipment />}
-                  />
-                  <Route
-                    path="client/:clientId/add-equipment"
-                    element={<AddEquipment />}
-                  />
-                  <Route
-                    path="order-detail/:orderId"
-                    element={<OrderDetail />}
-                  />
-                  <Route
-                    path="order/:orderId/add-workday"
-                    element={<AddWorkday />}
-                  />
-                  <Route
-                    path="edit-service-order/:orderId"
-                    element={<EditOrder />}
-                  />
-                  <Route
-                    path="edit-workday/:workdayId"
-                    element={<EditWorkday />}
-                  />
-                  <Route path="manage-agenda" element={<ManageAgenda />} />
-                  <Route path="add-agendamento" element={<AddAgendamento />} />
-                  <Route
-                    path="edit-agendamento/:agendamentoId"
-                    element={<EditAgendamento />}
-                  />
-                  <Route path="manage-budgets" element={<ManageBudgets />} />
-                  <Route path="add-budget" element={<AddBudget />} />
-                  <Route
-                    path="add-simple-budget"
-                    element={<AddSimpleBudget />}
-                  />
-                  <Route
-                    path="edit-budget/:budgetId"
-                    element={<EditBudget />}
-                  />
-                  <Route
-                    path="edit-simple-budget/:budgetId"
-                    element={<EditSimpleBudget />}
-                  />
-                  <Route
-                    path="manage-checklist"
-                    element={<ManageChecklist />}
-                  />
-                  <Route
-                    path="add-checklist-type"
-                    element={<AddChecklistType />}
-                  />
-                  <Route
-                    path="edit-checklist-type/:typeId"
-                    element={<EditChecklistType />}
-                  />
-                  <Route
-                    path="manage-inspection"
-                    element={<ManageInspection />}
-                  />
-                  <Route path="add-inspection" element={<AddInspection />} />
-                  <Route
-                    path="edit-inspection/:inspectionId"
-                    element={<EditInspection />}
-                  />
-                  <Route
-                    path="inspection-detail/:inspectionId"
-                    element={<InspectionDetail />}
-                  />
-                  <Route
-                    path="parts-library"
-                    element={<ManagePartsLibrary />}
-                  />
-                  <Route path="add-part" element={<AddPart />} />
-                  <Route path="edit-part/:partId" element={<EditPart />} />
-                  <Route path="part/:partId" element={<PartDetail />} />
-                  <Route path="add-category" element={<AddCategory />} />
-                  <Route
-                    path="add-subcategory/:categoryId"
-                    element={<AddSubcategory />}
-                  />
-                  <Route
-                    path="edit-category/:categoryId"
-                    element={<EditCategory />}
-                  />
-                  <Route
-                    path="manage-categories"
-                    element={<ManageCategories />}
-                  />
-                  <Route path="import-parts" element={<ImportParts />} />
-                </Routes>
-              </DashboardShell>
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </Router>
+          <Route
+            path="/app/*"
+            element={
+              <ProtectedRoute>
+                <DashboardShell>
+                  <Routes>
+                    <Route
+                      path="/orcamento-online"
+                      element={<ManageOnlineQuotes />}
+                    />
+                    <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route path="add-client" element={<AddClient />} />
+                    <Route path="add-equipment" element={<AddEquipment />} />
+                    <Route path="add-order" element={<AddOrder />} />
+                    <Route path="manage-orders" element={<ManageOrders />} />
+                    <Route
+                      path="manage-services"
+                      element={<ManageServices />}
+                    />
+                    <Route path="add-service" element={<AddService />} />
+                    <Route path="profile" element={<UserProfile />} />
+                    <Route path="settings" element={<UserSettings />} />
+                    {/* Rotas protegidas por role */}
+                    <Route
+                      path="manage-users"
+                      element={
+                        <RoleRoute allowedRoles={["admin"]}>
+                          <ManageUsers />
+                        </RoleRoute>
+                      }
+                    />
+                    <Route
+                      path="edit-service/:serviceId"
+                      element={<EditService />}
+                    />
+                    <Route path="manage-clients" element={<ManageClients />} />
+                    <Route path="client/:clientId" element={<ClientDetail />} />
+                    <Route
+                      path="equipment/:equipmentId"
+                      element={<EquipmentDetail />}
+                    />
+                    <Route
+                      path="edit-client/:clientId"
+                      element={<EditClient />}
+                    />
+                    <Route
+                      path="edit-equipment/:equipmentId"
+                      element={<EditEquipment />}
+                    />
+                    <Route
+                      path="client/:clientId/add-equipment"
+                      element={<AddEquipment />}
+                    />
+                    <Route
+                      path="order-detail/:orderId"
+                      element={<OrderDetail />}
+                    />
+                    <Route
+                      path="order/:orderId/add-workday"
+                      element={<AddWorkday />}
+                    />
+                    <Route
+                      path="edit-service-order/:orderId"
+                      element={<EditOrder />}
+                    />
+                    <Route
+                      path="edit-workday/:workdayId"
+                      element={<EditWorkday />}
+                    />
+                    <Route path="manage-agenda" element={<ManageAgenda />} />
+                    <Route
+                      path="add-agendamento"
+                      element={<AddAgendamento />}
+                    />
+                    <Route
+                      path="edit-agendamento/:agendamentoId"
+                      element={<EditAgendamento />}
+                    />
+                    <Route path="manage-budgets" element={<ManageBudgets />} />
+                    <Route path="add-budget" element={<AddBudget />} />
+                    <Route
+                      path="add-simple-budget"
+                      element={<AddSimpleBudget />}
+                    />
+                    <Route
+                      path="edit-budget/:budgetId"
+                      element={<EditBudget />}
+                    />
+                    <Route
+                      path="edit-simple-budget/:budgetId"
+                      element={<EditSimpleBudget />}
+                    />
+                    <Route
+                      path="manage-checklist"
+                      element={<ManageChecklist />}
+                    />
+                    <Route
+                      path="add-checklist-type"
+                      element={<AddChecklistType />}
+                    />
+                    <Route
+                      path="edit-checklist-type/:typeId"
+                      element={<EditChecklistType />}
+                    />
+                    <Route
+                      path="manage-inspection"
+                      element={<ManageInspection />}
+                    />
+                    <Route path="add-inspection" element={<AddInspection />} />
+                    <Route
+                      path="edit-inspection/:inspectionId"
+                      element={<EditInspection />}
+                    />
+                    <Route
+                      path="inspection-detail/:inspectionId"
+                      element={<InspectionDetail />}
+                    />
+                    <Route
+                      path="parts-library"
+                      element={<ManagePartsLibrary />}
+                    />
+                    <Route path="add-part" element={<AddPart />} />
+                    <Route path="edit-part/:partId" element={<EditPart />} />
+                    <Route path="part/:partId" element={<PartDetail />} />
+                    <Route path="add-category" element={<AddCategory />} />
+                    <Route
+                      path="add-subcategory/:categoryId"
+                      element={<AddSubcategory />}
+                    />
+                    <Route
+                      path="edit-category/:categoryId"
+                      element={<EditCategory />}
+                    />
+                    <Route
+                      path="manage-categories"
+                      element={<ManageCategories />}
+                    />
+                    <Route path="import-parts" element={<ImportParts />} />
+                  </Routes>
+                </DashboardShell>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </Router>
+    </NotificationProvider>
   );
 };
 
