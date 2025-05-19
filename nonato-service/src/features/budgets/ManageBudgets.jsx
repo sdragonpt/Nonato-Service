@@ -28,6 +28,8 @@ import {
   Receipt,
   FileCheck,
   AlertTriangle,
+  Edit,
+  Edit2,
 } from "lucide-react";
 
 // UI Components
@@ -42,8 +44,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const BudgetCard = ({ budget, onDelete, onViewPDF, clientName }) => {
-  // Determina qual ícone usar baseado no tipo do documento
+import {
+  calculateTotalsWithIVA,
+  formatCurrency,
+} from "@/utils/formatters/budgetCalculations";
+
+const BudgetCard = ({ budget, onDelete, onViewPDF, clientName, navigate }) => {
   const Icon =
     budget.type === "simple"
       ? budget.isExpense
@@ -89,11 +95,32 @@ const BudgetCard = ({ budget, onDelete, onViewPDF, clientName }) => {
               className="bg-zinc-800 border-zinc-700"
             >
               <DropdownMenuItem
-                onClick={() => onViewPDF(budget)}
+
+                onClick={() =>
+                  navigate(
+                    `/app/edit-${
+                      budget.type === "simple" ? "simple-" : ""
+                    }budget/${budget.id}`
+                  )
+                }
+                className="text-white hover:bg-zinc-700 cursor-pointer"
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onViewPDF(budget, true)}
                 className="text-white hover:bg-zinc-700 cursor-pointer"
               >
                 <Eye className="w-4 h-4 mr-2" />
-                Ver PDF
+                Ver PDF com IVA
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onViewPDF(budget, false)}
+                className="text-white hover:bg-zinc-700 cursor-pointer"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Ver PDF sem IVA
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
@@ -599,6 +626,7 @@ const ManageBudgets = () => {
                   clientName={budget.clientData.name}
                   onDelete={handleDelete}
                   onViewPDF={handleViewPDF}
+                  navigate={navigate}
                 />
               ))
             ) : (
@@ -636,6 +664,7 @@ const ManageBudgets = () => {
                   clientName={clientNames[budget.clientId]}
                   onDelete={handleDelete}
                   onViewPDF={handleViewPDF}
+                  navigate={navigate}
                 />
               ))
             ) : (

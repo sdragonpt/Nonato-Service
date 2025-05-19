@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../../firebase";
 import generateServiceOrderPDF from "./pdf/generateServiceOrderPDF";
+import generateQuotePDF from "./pdf/generateQuotePDF";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { FileOpener } from "@capacitor-community/file-opener";
 import {
@@ -142,46 +143,52 @@ const OrderDetail = () => {
       setIsGeneratingPDF(true);
       setError(null);
 
-      // Format data for PDF
-      const formattedData = {
-        orderId,
-        orderNumber: order.orderNumber || orderId,
-        clientData: {
-          name: client?.name || "",
-          phone: client?.phone || "",
-          address: client?.address || "",
-        },
-        equipmentData: {
-          brand: equipment?.brand || "",
-          model: equipment?.model || "",
-          serialNumber: equipment?.serialNumber || "",
-        },
-        date: order.date,
-        serviceType: order.serviceType || "",
-        status: order.status || "",
-        priority: order.priority || "",
-        resultDescription: order.resultDescription || "",
-        pontosEmAberto: order.pontosEmAberto || "",
-        checklist: order.checklist || {},
-        workdays: workdays.map((workday) => ({
-          ...workday,
-          workDate: new Date(workday.workDate).toLocaleDateString(),
-        })),
-      };
-
-      const fileName = `OrdemServico_${
+      const fileName = `${order.isQuote ? "Orcamento" : "OrdemServico"}_${
         client?.name || "Cliente"
       }_${orderId}.pdf`;
 
-      // Generate PDF using your existing function
-      const pdfResult = await generateServiceOrderPDF(
-        orderId,
-        formattedData,
-        client,
-        equipment,
-        workdays,
-        fileName
-      );
+      let pdfResult;
+
+      if (order.isQuote) {
+        // Gerar PDF específico para orçamento
+        pdfResult = await generateQuotePDF(orderId, order, client, fileName);
+      } else {
+        // Gerar PDF padrão para ordem de serviço
+        const formattedData = {
+          orderId,
+          orderNumber: order.orderNumber || orderId,
+          clientData: {
+            name: client?.name || "",
+            phone: client?.phone || "",
+            address: client?.address || "",
+          },
+          equipmentData: {
+            brand: equipment?.brand || "",
+            model: equipment?.model || "",
+            serialNumber: equipment?.serialNumber || "",
+          },
+          date: order.date,
+          serviceType: order.serviceType || "",
+          status: order.status || "",
+          priority: order.priority || "",
+          resultDescription: order.resultDescription || "",
+          pontosEmAberto: order.pontosEmAberto || "",
+          checklist: order.checklist || {},
+          workdays: workdays.map((workday) => ({
+            ...workday,
+            workDate: new Date(workday.workDate).toLocaleDateString(),
+          })),
+        };
+
+        pdfResult = await generateServiceOrderPDF(
+          orderId,
+          formattedData,
+          client,
+          equipment,
+          workdays,
+          fileName
+        );
+      }
 
       // Handle mobile or web download
       if (window?.Capacitor?.isNative) {
@@ -296,16 +303,24 @@ const OrderDetail = () => {
     Fechado: "bg-green-500/10 text-green-400",
   };
 
+  const orderType = order.isQuote ? "Orçamento Online" : "Ordem de Serviço";
+
+  const formatPrice = (price) => {
+    return `€ ${parseFloat(price).toFixed(2)}`;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">
-            Ordem de Serviço #{orderId}
+            {orderType} #{orderId}
           </h1>
           <p className="text-sm text-zinc-400">
-            Visualize e gerencie os detalhes da ordem de serviço
+            {order.isQuote
+              ? "Visualize e gerencie os detalhes do orçamento online"
+              : "Visualize e gerencie os detalhes da ordem de serviço"}
           </p>
         </div>
         <Button
@@ -317,6 +332,49 @@ const OrderDetail = () => {
           <ArrowLeft className="h-4 w-4 text-white" />
         </Button>
       </div>
+
+      {order.isQuote && order.items && (
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white">
+              Itens do Orçamento
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {order.items.map((item, index) => (
+                <div
+                  key={index}
+                  className="flex justify-between items-center border-b border-zinc-700 pb-2"
+                >
+                  <div>
+                    <p className="text-white font-medium">{item.name}</p>
+                    <p className="text-sm text-zinc-400">Código: {item.code}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-white">Qtd: {item.quantity}</p>
+                    <p className="text-green-400">
+                      {item.quantity} x {formatPrice(item.price)} ={" "}
+                      {formatPrice(item.quantity * item.price)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              <div className="text-right pt-2">
+                <p className="text-lg font-bold text-green-400">
+                  Total:{" "}
+                  {formatPrice(
+                    order.items.reduce(
+                      (sum, item) => sum + item.quantity * item.price,
+                      0
+                    )
+                  )}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {error && (
         <Alert variant="destructive" className="border-red-500 bg-red-500/10">
@@ -331,6 +389,11 @@ const OrderDetail = () => {
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Status Badges */}
             <div className="flex flex-wrap gap-2">
+              {order.isQuote && (
+                <Badge className="bg-orange-500/10 text-orange-400">
+                  Orçamento Online
+                </Badge>
+              )}
               <Badge className={statusColors[order.status]}>
                 {order.status}
               </Badge>
@@ -491,13 +554,15 @@ const OrderDetail = () => {
       <Card className="bg-zinc-800 border-zinc-700">
         <CardHeader className="flex flex-row justify-between items-center">
           <CardTitle className="text-lg text-white">Dias de Trabalho</CardTitle>
-          <Button
-            onClick={() => navigate(`/app/order/${orderId}/add-workday`)}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Dia
-          </Button>
+          {!order.isQuote && (
+            <Button
+              onClick={() => navigate(`/app/order/${orderId}/add-workday`)}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Dia
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {workdays.length > 0 ? (

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -11,17 +11,18 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 
 const IVASelector = ({ value, onChange }) => {
-  const [isCustomRate, setIsCustomRate] = useState(false);
-  const ivaRates = [
-    { value: 0, label: "0%" },
-    { value: 6, label: "6%" },
-    { value: 13, label: "13%" },
-    { value: 23, label: "23%" },
-  ];
+  const ivaRates = [0, 6, 13, 23];
+
+  // Inicializa o estado baseado no valor recebido
+  const [isCustomRate, setIsCustomRate] = useState(!ivaRates.includes(value));
+
+  useEffect(() => {
+    // Atualiza isCustomRate se o value mudar
+    setIsCustomRate(!ivaRates.includes(value));
+  }, [value]);
 
   const handleCustomRateChange = (e) => {
     const newValue = e.target.value;
-    // Permite apenas números e ponto/vírgula
     if (/^\d*\.?\d*$/.test(newValue)) {
       onChange(Number(newValue));
     }
@@ -35,7 +36,12 @@ const IVASelector = ({ value, onChange }) => {
           <Label className="text-sm text-zinc-400">Taxa personalizada</Label>
           <Switch
             checked={isCustomRate}
-            onCheckedChange={setIsCustomRate}
+            onCheckedChange={(checked) => {
+              setIsCustomRate(checked);
+              if (!checked) {
+                onChange(23); // Define um valor padrão caso desative a taxa personalizada
+              }
+            }}
             className="bg-zinc-700 data-[state=checked]:bg-green-600"
           />
         </div>
@@ -65,11 +71,11 @@ const IVASelector = ({ value, onChange }) => {
           <SelectContent className="bg-zinc-800 border-zinc-700">
             {ivaRates.map((rate) => (
               <SelectItem
-                key={rate.value}
-                value={rate.value.toString()}
+                key={rate}
+                value={rate.toString()}
                 className="text-white hover:bg-zinc-700"
               >
-                {rate.label}
+                {rate}%
               </SelectItem>
             ))}
           </SelectContent>
