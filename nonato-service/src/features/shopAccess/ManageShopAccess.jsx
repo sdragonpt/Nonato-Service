@@ -1,5 +1,4 @@
 // features/shopAccess/ManageShopAccess.jsx
-
 import { useState, useEffect } from "react";
 import {
   collection,
@@ -31,7 +30,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
+  Share2,
+  ExternalLink,
 } from "lucide-react";
+import QRCode from "react-qr-code";
 
 // UI Components
 import { Card, CardContent } from "@/components/ui/card.jsx";
@@ -71,6 +73,11 @@ const ManageShopAccess = () => {
   const [copiedToken, setCopiedToken] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Novos estados para compartilhamento
+  const [tokenToShare, setTokenToShare] = useState(null);
+  const [shareUrl, setShareUrl] = useState("");
+  const [showShareDialog, setShowShareDialog] = useState(false);
 
   useEffect(() => {
     isMounted = true;
@@ -271,6 +278,30 @@ const ManageShopAccess = () => {
     });
   };
 
+  // Nova função para compartilhar token
+  const handleShareToken = (token) => {
+    // Criar um link de acesso direto com o token usando o caminho correto
+    const shopUrl = `${window.location.origin}/loja?token=${token.token}`;
+
+    // Verificar se a API de compartilhamento está disponível (dispositivos móveis)
+    if (navigator.share) {
+      navigator
+        .share({
+          title: "Acesso à Loja Nonato Service",
+          text: `Olá ${token.name}, aqui está seu link de acesso à loja Nonato Service. Basta clicar no link abaixo:`,
+          url: shopUrl,
+        })
+        .then(() => console.log("Token compartilhado com sucesso"))
+        .catch((error) => console.error("Erro ao compartilhar:", error));
+    } else {
+      // Fallback para dispositivos que não suportam a API de compartilhamento
+      // Mostrar diálogo com QR Code e outras opções
+      setTokenToShare(token);
+      setShareUrl(shopUrl);
+      setShowShareDialog(true);
+    }
+  };
+
   const filteredTokens = accessTokens.filter((token) => {
     return (
       token.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -465,6 +496,15 @@ const ManageShopAccess = () => {
                         ) : (
                           <Copy className="h-4 w-4" />
                         )}
+                      </Button>
+                      {/* Novo botão de compartilhamento */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-zinc-400 hover:text-white"
+                        onClick={() => handleShareToken(token)}
+                      >
+                        <Share2 className="h-4 w-4" />
                       </Button>
                     </div>
                     <p className="text-xs text-zinc-500">
@@ -678,7 +718,7 @@ const ManageShopAccess = () => {
             <Button
               variant="outline"
               onClick={() => setShowAddDialog(false)}
-              className="border-zinc-600 text-white hover:bg-zinc-700 bg-zin"
+              className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-800"
             >
               Cancelar
             </Button>
@@ -695,6 +735,140 @@ const ManageShopAccess = () => {
               ) : (
                 "Gerar Token"
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Share Token Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="bg-zinc-800 border-zinc-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Compartilhar Acesso à Loja</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Compartilhe o link de acesso direto através de diferentes métodos
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* QR Code do link */}
+            <div className="flex flex-col items-center justify-center">
+              <div className="bg-white p-3 rounded-md mb-2">
+                <QRCode value={shareUrl} size={200} />
+              </div>
+              <p className="text-sm text-zinc-300">
+                Escaneie com a câmera do celular
+              </p>
+            </div>
+
+            {/* Link de acesso direto */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-300">
+                Link de acesso direto
+              </label>
+              <div className="flex">
+                <Input
+                  value={shareUrl}
+                  readOnly
+                  className="bg-zinc-700 border-zinc-600 text-white"
+                />
+                <Button
+                  variant="outline"
+                  className="ml-2 border-zinc-600"
+                  onClick={() => {
+                    navigator.clipboard.writeText(shareUrl);
+                    alert("Link copiado!");
+                  }}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Botões de compartilhamento para apps específicos */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-300">
+                Compartilhar via
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <Button
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => {
+                    window.open(
+                      `https://wa.me/?text=${encodeURIComponent(
+                        `Olá ${
+                          tokenToShare?.name || ""
+                        }, aqui está seu link de acesso à loja Nonato Service: ${shareUrl}`
+                      )}`,
+                      "_blank"
+                    );
+                  }}
+                >
+                  <span className="mr-2">WhatsApp</span>
+                </Button>
+
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700"
+                  onClick={() => {
+                    window.open(
+                      `sms:${
+                        tokenToShare?.phone || ""
+                      }?body=${encodeURIComponent(
+                        `Olá ${
+                          tokenToShare?.name || ""
+                        }, aqui está seu link de acesso à loja Nonato Service: ${shareUrl}`
+                      )}`,
+                      "_blank"
+                    );
+                  }}
+                >
+                  <span className="mr-2">SMS</span>
+                </Button>
+
+                <Button
+                  className="bg-purple-600 hover:bg-purple-700"
+                  onClick={() => {
+                    window.open(
+                      `mailto:${
+                        tokenToShare?.email || ""
+                      }?subject=${encodeURIComponent(
+                        "Acesso à Loja Nonato Service"
+                      )}&body=${encodeURIComponent(
+                        `Olá ${
+                          tokenToShare?.name || ""
+                        },\n\nAqui está seu link de acesso à loja Nonato Service:\n${shareUrl}\n\nAtenciosamente,\nEquipe Nonato Service`
+                      )}`,
+                      "_blank"
+                    );
+                  }}
+                >
+                  <span className="mr-2">Email</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Abrir diretamente */}
+            <div className="pt-2 border-t border-zinc-700">
+              <Button
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                onClick={() => {
+                  window.open(shareUrl, "_blank");
+                  setShowShareDialog(false);
+                }}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Abrir Link no Navegador
+              </Button>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowShareDialog(false)}
+              className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-800"
+            >
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>

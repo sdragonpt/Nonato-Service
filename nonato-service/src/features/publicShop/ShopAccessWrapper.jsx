@@ -23,6 +23,41 @@ const ShopAccessWrapper = ({ children }) => {
     const checkAccess = async () => {
       setIsCheckingAccess(true);
 
+      // Verificar se há um token na URL
+      const params = new URLSearchParams(window.location.search);
+      const tokenFromUrl = params.get("token");
+
+      if (tokenFromUrl) {
+        try {
+          // Verificar se o token é válido
+          const tokenQuery = query(
+            collection(db, "shop_access_tokens"),
+            where("token", "==", tokenFromUrl),
+            where("status", "==", "active"),
+            limit(1)
+          );
+
+          const tokenSnapshot = await getDocs(tokenQuery);
+
+          if (!tokenSnapshot.empty) {
+            // Token válido encontrado na URL, salvá-lo e permitir acesso
+            localStorage.setItem("shop_access_token", tokenFromUrl);
+
+            // Limpar URL para não manter o token visível na barra de endereço
+            window.history.replaceState(
+              {},
+              document.title,
+              window.location.pathname
+            );
+
+            setIsCheckingAccess(false);
+            return;
+          }
+        } catch (err) {
+          console.error("Erro ao verificar token da URL:", err);
+        }
+      }
+
       // Verificar primeiro se há um usuário logado no sistema principal
       const unsubscribe = onAuthStateChanged(auth, async (user) => {
         if (user && !user.isAnonymous) {
