@@ -1,4 +1,5 @@
-// features/shopAccess/ManageShopAccess.jsx
+// ManageShopAccess.jsx - Atualizado com recursos de aprovação
+
 import { useState, useEffect } from "react";
 import {
   collection,
@@ -32,6 +33,13 @@ import {
   Check,
   Share2,
   ExternalLink,
+  Clock,
+  Calendar,
+  User,
+  Info,
+  XCircle,
+  CheckCircle2,
+  Clock8,
 } from "lucide-react";
 import QRCode from "react-qr-code";
 
@@ -49,6 +57,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible.jsx";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs.jsx";
 
 const generateToken = () => {
   // Gerar token de 8 caracteres alfanuméricos
@@ -72,12 +91,23 @@ const ManageShopAccess = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedToken, setCopiedToken] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState("all");
   const itemsPerPage = 10;
 
   // Novos estados para compartilhamento
   const [tokenToShare, setTokenToShare] = useState(null);
   const [shareUrl, setShareUrl] = useState("");
   const [showShareDialog, setShowShareDialog] = useState(false);
+
+  // Estados para modais de aprovação/rejeição
+  const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [tokenToApprove, setTokenToApprove] = useState(null);
+  const [tokenToReject, setTokenToReject] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+
+  // Estado para exibição de detalhes do token
+  const [expandedTokens, setExpandedTokens] = useState({});
 
   useEffect(() => {
     isMounted = true;
@@ -87,13 +117,9 @@ const ManageShopAccess = () => {
     };
   }, []);
 
-  // Form state for new token
+  // Form state for new token - Agora simplificado com apenas nome
   const [formData, setFormData] = useState({
     name: "",
-    company: "",
-    email: "",
-    phone: "",
-    notes: "",
   });
 
   const { user, loading } = useAuth();
@@ -173,6 +199,8 @@ const ManageShopAccess = () => {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     }).format(date);
   };
 
@@ -186,8 +214,8 @@ const ManageShopAccess = () => {
 
   const handleAddToken = async () => {
     // Validação básica
-    if (!formData.name || !formData.email) {
-      setError("Nome e e-mail são obrigatórios.");
+    if (!formData.name) {
+      setError("Nome é obrigatório.");
       return;
     }
 
@@ -202,23 +230,21 @@ const ManageShopAccess = () => {
       await addDoc(collection(db, "shop_access_tokens"), {
         token,
         name: formData.name,
-        company: formData.company || "",
-        email: formData.email,
-        phone: formData.phone || "",
-        notes: formData.notes || "",
+        company: "",
+        email: "",
+        phone: "",
+        notes: "",
         createdBy: user.uid,
         createdByName: user.displayName || "Usuário do sistema",
         createdAt: serverTimestamp(),
         status: "active", // active, revoked
+        isComplete: false, // Indica se o usuário já preencheu suas informações
+        accessStatus: null, // null, pending, approved, rejected
       });
 
       // Limpar formulário e fechar diálogo
       setFormData({
         name: "",
-        company: "",
-        email: "",
-        phone: "",
-        notes: "",
       });
       setShowAddDialog(false);
 
@@ -254,6 +280,62 @@ const ManageShopAccess = () => {
     }
   };
 
+  const approveAccess = async () => {
+    if (!tokenToApprove) return;
+
+    try {
+      setIsSubmitting(true);
+      await updateDoc(doc(db, "shop_access_tokens", tokenToApprove.id), {
+        accessStatus: "approved",
+        approvedAt: serverTimestamp(),
+        approvedBy: user.uid,
+        approvedByName: user.displayName || "Administrador",
+        updatedAt: serverTimestamp(),
+      });
+
+      setShowApproveDialog(false);
+      setTokenToApprove(null);
+      fetchAccessTokens();
+
+      // Opcional: Enviar notificação para o usuário
+      // await sendApprovalNotification(tokenToApprove.email);
+    } catch (error) {
+      console.error("Erro ao aprovar acesso:", error);
+      setError("Erro ao aprovar acesso. Por favor, tente novamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const rejectAccess = async () => {
+    if (!tokenToReject) return;
+
+    try {
+      setIsSubmitting(true);
+      await updateDoc(doc(db, "shop_access_tokens", tokenToReject.id), {
+        accessStatus: "rejected",
+        rejectedAt: serverTimestamp(),
+        rejectedBy: user.uid,
+        rejectedByName: user.displayName || "Administrador",
+        rejectionReason: rejectionReason,
+        updatedAt: serverTimestamp(),
+      });
+
+      setShowRejectDialog(false);
+      setTokenToReject(null);
+      setRejectionReason("");
+      fetchAccessTokens();
+
+      // Opcional: Enviar notificação para o usuário
+      // await sendRejectionNotification(tokenToReject.email, rejectionReason);
+    } catch (error) {
+      console.error("Erro ao rejeitar acesso:", error);
+      setError("Erro ao rejeitar acesso. Por favor, tente novamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const deleteToken = async (tokenId) => {
     if (
       !confirm(
@@ -280,7 +362,7 @@ const ManageShopAccess = () => {
 
   // Nova função para compartilhar token
   const handleShareToken = (token) => {
-    // Criar um link de acesso direto com o token usando o caminho correto
+    // Criar um link de acesso direto com o token
     const shopUrl = `${window.location.origin}/loja?token=${token.token}`;
 
     // Verificar se a API de compartilhamento está disponível (dispositivos móveis)
@@ -302,7 +384,43 @@ const ManageShopAccess = () => {
     }
   };
 
+  // Toggle para expandir/contrair detalhes do token
+  const toggleExpandToken = (tokenId) => {
+    setExpandedTokens((prev) => ({
+      ...prev,
+      [tokenId]: !prev[tokenId],
+    }));
+  };
+
+  // Obter contagens para as abas
+  const getPendingCount = () => {
+    return accessTokens.filter((t) => t.accessStatus === "pending").length;
+  };
+
+  const getApprovedCount = () => {
+    return accessTokens.filter((t) => t.accessStatus === "approved").length;
+  };
+
+  const getRejectedCount = () => {
+    return accessTokens.filter((t) => t.accessStatus === "rejected").length;
+  };
+
+  const getUncompletedCount = () => {
+    return accessTokens.filter((t) => !t.isComplete).length;
+  };
+
+  // Filtragem por abas e termo de busca
   const filteredTokens = accessTokens.filter((token) => {
+    // Filtrar por aba selecionada
+    if (activeTab === "pending" && token.accessStatus !== "pending")
+      return false;
+    if (activeTab === "approved" && token.accessStatus !== "approved")
+      return false;
+    if (activeTab === "rejected" && token.accessStatus !== "rejected")
+      return false;
+    if (activeTab === "uncompleted" && token.isComplete) return false;
+
+    // Filtrar por termo de busca
     return (
       token.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       token.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -323,6 +441,44 @@ const ManageShopAccess = () => {
   const paginate = (pageNumber) => {
     setCurrentPage(pageNumber);
     window.scrollTo(0, 0);
+  };
+
+  // Renderizar badge de status de acesso
+  const renderAccessStatusBadge = (token) => {
+    if (!token.isComplete) {
+      return (
+        <Badge className="bg-zinc-500/10 text-zinc-400">Não Preenchido</Badge>
+      );
+    }
+
+    if (token.accessStatus === "pending") {
+      return (
+        <Badge className="bg-amber-500/10 text-amber-500 flex items-center gap-1">
+          <Clock8 className="h-3 w-3" />
+          Pendente
+        </Badge>
+      );
+    }
+
+    if (token.accessStatus === "approved") {
+      return (
+        <Badge className="bg-emerald-500/10 text-emerald-500 flex items-center gap-1">
+          <CheckCircle2 className="h-3 w-3" />
+          Aprovado
+        </Badge>
+      );
+    }
+
+    if (token.accessStatus === "rejected") {
+      return (
+        <Badge className="bg-red-500/10 text-red-500 flex items-center gap-1">
+          <XCircle className="h-3 w-3" />
+          Rejeitado
+        </Badge>
+      );
+    }
+
+    return null;
   };
 
   if (loading || isLoading) {
@@ -355,7 +511,7 @@ const ManageShopAccess = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="bg-zinc-800 border-zinc-700">
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
@@ -373,29 +529,55 @@ const ManageShopAccess = () => {
         <Card className="bg-zinc-800 border-zinc-700">
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Ativos</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-green-500 mt-1 sm:mt-2">
-                {accessTokens.filter((t) => t.status === "active").length}
+              <p className="text-sm font-medium text-zinc-400">Pendentes</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-amber-500 mt-1 sm:mt-2">
+                {getPendingCount()}
               </h3>
             </div>
-            <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
+            <Clock8 className="h-6 w-6 sm:h-8 sm:w-8 text-amber-500" />
           </CardContent>
         </Card>
 
         <Card className="bg-zinc-800 border-zinc-700">
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Revogados</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-red-500 mt-1 sm:mt-2">
-                {accessTokens.filter((t) => t.status === "revoked").length}
+              <p className="text-sm font-medium text-zinc-400">Aprovados</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-emerald-500 mt-1 sm:mt-2">
+                {getApprovedCount()}
               </h3>
             </div>
-            <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-red-500" />
+            <CheckCircle2 className="h-6 w-6 sm:h-8 sm:w-8 text-emerald-500" />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardContent className="flex items-center justify-between p-4 sm:p-6">
+            <div>
+              <p className="text-sm font-medium text-zinc-400">Rejeitados</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-red-500 mt-1 sm:mt-2">
+                {getRejectedCount()}
+              </h3>
+            </div>
+            <XCircle className="h-6 w-6 sm:h-8 sm:w-8 text-red-500" />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardContent className="flex items-center justify-between p-4 sm:p-6">
+            <div>
+              <p className="text-sm font-medium text-zinc-400">
+                Não Preenchidos
+              </p>
+              <h3 className="text-xl sm:text-2xl font-bold text-zinc-400 mt-1 sm:mt-2">
+                {getUncompletedCount()}
+              </h3>
+            </div>
+            <User className="h-6 w-6 sm:h-8 sm:w-8 text-zinc-400" />
           </CardContent>
         </Card>
       </div>
 
-      {/* Search */}
+      {/* Search and Tabs */}
       <Card className="bg-zinc-800 border-zinc-700">
         <CardContent className="space-y-4 p-4 sm:p-6">
           <div className="flex flex-wrap gap-4">
@@ -430,6 +612,45 @@ const ManageShopAccess = () => {
               </AlertDescription>
             </Alert>
           )}
+
+          <Tabs
+            defaultValue="all"
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            <TabsList className="w-full grid grid-cols-5 bg-zinc-900 border border-zinc-700">
+              <TabsTrigger
+                value="all"
+                className="data-[state=active]:bg-zinc-700"
+              >
+                Todos
+              </TabsTrigger>
+              <TabsTrigger
+                value="pending"
+                className="data-[state=active]:bg-zinc-700"
+              >
+                Pendentes ({getPendingCount()})
+              </TabsTrigger>
+              <TabsTrigger
+                value="approved"
+                className="data-[state=active]:bg-zinc-700"
+              >
+                Aprovados ({getApprovedCount()})
+              </TabsTrigger>
+              <TabsTrigger
+                value="rejected"
+                className="data-[state=active]:bg-zinc-700"
+              >
+                Rejeitados ({getRejectedCount()})
+              </TabsTrigger>
+              <TabsTrigger
+                value="uncompleted"
+                className="data-[state=active]:bg-zinc-700"
+              >
+                Não Preenchidos ({getUncompletedCount()})
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </CardContent>
       </Card>
 
@@ -442,18 +663,25 @@ const ManageShopAccess = () => {
               Nenhum token de acesso encontrado
             </p>
             <p className="text-zinc-400">
-              Adicione um novo token para permitir acesso à loja online
+              {searchTerm
+                ? "Tente ajustar os filtros ou buscar por outro termo."
+                : "Adicione um novo token para permitir acesso à loja online."}
             </p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
           {currentTokens.map((token) => (
-            <Card key={token.id} className="bg-zinc-800 border-zinc-700">
-              <CardContent className="p-4">
+            <Collapsible
+              key={token.id}
+              open={expandedTokens[token.id]}
+              onOpenChange={() => toggleExpandToken(token.id)}
+              className="bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden transition-all duration-200"
+            >
+              <div className="p-4">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold text-white">{token.name}</h3>
                       <Badge
                         className={`${
@@ -464,32 +692,39 @@ const ManageShopAccess = () => {
                       >
                         {token.status === "active" ? "Ativo" : "Revogado"}
                       </Badge>
+
+                      {renderAccessStatusBadge(token)}
                     </div>
-                    {token.company && (
+                    {token.isComplete && token.company && (
                       <p className="text-sm text-zinc-400 flex items-center gap-2">
                         <Building2 className="h-4 w-4" />
                         {token.company}
                       </p>
                     )}
-                    <p className="text-sm text-zinc-400 flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      {token.email}
-                    </p>
-                    {token.phone && (
+                    {token.isComplete && token.email && (
+                      <p className="text-sm text-zinc-400 flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        {token.email}
+                      </p>
+                    )}
+                    {token.isComplete && token.phone && (
                       <p className="text-sm text-zinc-400 flex items-center gap-2">
                         <Phone className="h-4 w-4" />
                         {token.phone}
                       </p>
                     )}
-                    <div className="flex items-center mt-2">
+                    <div className="flex flex-wrap items-center mt-2 gap-2">
                       <p className="text-sm font-medium text-white">
                         Token: <span className="font-mono">{token.token}</span>
                       </p>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="ml-2 h-6 px-2 text-zinc-400 hover:text-white"
-                        onClick={() => copyToClipboard(token.token)}
+                        className="h-6 px-2 text-zinc-400 hover:text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copyToClipboard(token.token);
+                        }}
                       >
                         {copiedToken === token.token ? (
                           <Check className="h-4 w-4 text-green-500" />
@@ -497,23 +732,83 @@ const ManageShopAccess = () => {
                           <Copy className="h-4 w-4" />
                         )}
                       </Button>
-                      {/* Novo botão de compartilhamento */}
+
+                      {/* Botão de compartilhamento */}
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-6 px-2 text-zinc-400 hover:text-white"
-                        onClick={() => handleShareToken(token)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleShareToken(token);
+                        }}
                       >
                         <Share2 className="h-4 w-4" />
                       </Button>
                     </div>
-                    <p className="text-xs text-zinc-500">
-                      Criado por: {token.createdByName} em{" "}
-                      {formatDate(token.createdAt)}
-                    </p>
+
+                    <div className="flex items-center gap-4 mt-1 text-xs text-zinc-500">
+                      <span className="flex items-center">
+                        <Calendar className="h-3.5 w-3.5 mr-1" />
+                        Criado: {formatDate(token.createdAt)}
+                      </span>
+
+                      {token.requestedAt && (
+                        <span className="flex items-center">
+                          <Clock className="h-3.5 w-3.5 mr-1" />
+                          Solicitado: {formatDate(token.requestedAt)}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
+                    <CollapsibleTrigger
+                      asChild
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-700"
+                      >
+                        <Info className="h-4 w-4 mr-1" />
+                        {expandedTokens[token.id] ? "Ocultar" : "Detalhes"}
+                      </Button>
+                    </CollapsibleTrigger>
+
+                    {/* Botões de aprovação/rejeição para solicitações pendentes */}
+                    {token.accessStatus === "pending" && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-emerald-600 text-white bg-emerald-600 hover:bg-emerald-500"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTokenToApprove(token);
+                            setShowApproveDialog(true);
+                          }}
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          Aprovar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-red-600 text-white bg-red-600 hover:bg-red-500"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTokenToReject(token);
+                            setShowRejectDialog(true);
+                          }}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Rejeitar
+                        </Button>
+                      </>
+                    )}
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -522,7 +817,10 @@ const ManageShopAccess = () => {
                           ? "border-red-600 text-white hover:bg-red-500/20 bg-red-600"
                           : "border-green-600 text-white hover:bg-green-500/20 bg-green-600"
                       }`}
-                      onClick={() => toggleTokenStatus(token.id, token.status)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleTokenStatus(token.id, token.status);
+                      }}
                     >
                       {token.status === "active" ? "Revogar" : "Ativar"}
                     </Button>
@@ -531,15 +829,198 @@ const ManageShopAccess = () => {
                       variant="ghost"
                       size="sm"
                       className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
-                      onClick={() => deleteToken(token.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteToken(token.id);
+                      }}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Excluir
                     </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+
+              {/* Conteúdo expandido com detalhes do token */}
+              <CollapsibleContent>
+                <div className="px-4 pb-4 pt-2 border-t border-zinc-700 bg-zinc-800/50">
+                  <div className="space-y-4">
+                    {token.isComplete ? (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium text-zinc-400">
+                              Informações do Contato
+                            </p>
+                            <div className="bg-zinc-900/50 rounded-lg p-3 space-y-2">
+                              <div>
+                                <p className="text-xs text-zinc-500">Nome</p>
+                                <p className="text-sm text-white">
+                                  {token.name || "Não informado"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-zinc-500">Email</p>
+                                <p className="text-sm text-white">
+                                  {token.email || "Não informado"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-zinc-500">
+                                  Telemóvel
+                                </p>
+                                <p className="text-sm text-white">
+                                  {token.phone || "Não informado"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-zinc-500">Empresa</p>
+                                <p className="text-sm text-white">
+                                  {token.company || "Não informado"}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium text-zinc-400">
+                              Observações
+                            </p>
+                            <div className="bg-zinc-900/50 rounded-lg p-3 min-h-[100px]">
+                              <p className="text-sm text-white whitespace-pre-line">
+                                {token.notes || "Nenhuma observação fornecida."}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-zinc-400">
+                            Histórico de Acesso
+                          </p>
+                          <div className="bg-zinc-900/50 rounded-lg p-3">
+                            <div className="flex flex-wrap gap-x-6 gap-y-3 text-xs">
+                              <div>
+                                <p className="text-zinc-500">Criado por:</p>
+                                <p className="text-white">
+                                  {token.createdByName || "Sistema"}
+                                </p>
+                                <p className="text-white">
+                                  {formatDate(token.createdAt)}
+                                </p>
+                              </div>
+
+                              {token.requestedAt && (
+                                <div>
+                                  <p className="text-zinc-500">
+                                    Acesso solicitado em:
+                                  </p>
+                                  <p className="text-white">
+                                    {formatDate(token.requestedAt)}
+                                  </p>
+                                </div>
+                              )}
+
+                              {token.accessStatus === "approved" &&
+                                token.approvedAt && (
+                                  <div>
+                                    <p className="text-zinc-500">
+                                      Aprovado por:
+                                    </p>
+                                    <p className="text-white">
+                                      {token.approvedByName || "Administrador"}
+                                    </p>
+                                    <p className="text-white">
+                                      {formatDate(token.approvedAt)}
+                                    </p>
+                                  </div>
+                                )}
+
+                              {token.accessStatus === "rejected" &&
+                                token.rejectedAt && (
+                                  <div>
+                                    <p className="text-zinc-500">
+                                      Rejeitado por:
+                                    </p>
+                                    <p className="text-white">
+                                      {token.rejectedByName || "Administrador"}
+                                    </p>
+                                    <p className="text-white">
+                                      {formatDate(token.rejectedAt)}
+                                    </p>
+                                  </div>
+                                )}
+
+                              {token.updatedAt && (
+                                <div>
+                                  <p className="text-zinc-500">
+                                    Última atualização:
+                                  </p>
+                                  <p className="text-white">
+                                    {formatDate(token.updatedAt)}
+                                  </p>
+                                </div>
+                              )}
+
+                              {token.lastAccess && (
+                                <div>
+                                  <p className="text-zinc-500">
+                                    Último acesso:
+                                  </p>
+                                  <p className="text-white">
+                                    {formatDate(token.lastAccess)}
+                                  </p>
+                                </div>
+                              )}
+
+                              {token.revokedAt && (
+                                <div>
+                                  <p className="text-zinc-500">Revogado em:</p>
+                                  <p className="text-white">
+                                    {formatDate(token.revokedAt)}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {token.accessStatus === "rejected" &&
+                          token.rejectionReason && (
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-zinc-400">
+                                Motivo da Rejeição
+                              </p>
+                              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                                <p className="text-sm text-white whitespace-pre-line">
+                                  {token.rejectionReason}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                      </>
+                    ) : (
+                      <div className="bg-yellow-500/10 rounded-lg p-4 border border-yellow-500/30">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-yellow-400 mb-1">
+                              Aguardando preenchimento
+                            </p>
+                            <p className="text-sm text-zinc-400">
+                              Este token ainda não foi usado. Quando o usuário
+                              acessar a loja pela primeira vez, ele preencherá
+                              suas informações completas que serão exibidas
+                              aqui.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           ))}
         </div>
       )}
@@ -637,80 +1118,26 @@ const ManageShopAccess = () => {
           <DialogHeader>
             <DialogTitle>Adicionar Novo Token de Acesso</DialogTitle>
             <DialogDescription className="text-zinc-400">
-              Preencha os dados para criar um novo token de acesso à loja online
+              Preencha o nome para criar um novo token de acesso à loja online
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-300">
-                  Nome*
-                </label>
-                <Input
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="bg-zinc-700 border-zinc-600 text-white"
-                  placeholder="Nome do responsável"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-300">
-                  Empresa
-                </label>
-                <Input
-                  name="company"
-                  value={formData.company}
-                  onChange={handleInputChange}
-                  className="bg-zinc-700 border-zinc-600 text-white"
-                  placeholder="Nome da empresa (opcional)"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-300">
-                  Email*
-                </label>
-                <Input
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="bg-zinc-700 border-zinc-600 text-white"
-                  placeholder="email@exemplo.com"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-300">
-                  Telefone
-                </label>
-                <Input
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  className="bg-zinc-700 border-zinc-600 text-white"
-                  placeholder="Telefone (opcional)"
-                />
-              </div>
-            </div>
-
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-300">
-                Observações
+                Nome da Pessoa*
               </label>
-              <textarea
-                name="notes"
-                value={formData.notes}
+              <Input
+                name="name"
+                value={formData.name}
                 onChange={handleInputChange}
-                className="w-full p-3 rounded-md border border-zinc-600 bg-zinc-700 text-white"
-                placeholder="Observações (opcional)"
-                rows="3"
+                className="bg-zinc-700 border-zinc-600 text-white"
+                placeholder="Nome do responsável"
               />
+              <p className="text-xs text-zinc-400">
+                Ao primeiro acesso, o usuário será solicitado a completar seu
+                cadastro com suas informações.
+              </p>
             </div>
           </div>
 
@@ -724,7 +1151,7 @@ const ManageShopAccess = () => {
             </Button>
             <Button
               onClick={handleAddToken}
-              disabled={isSubmitting || !formData.name || !formData.email}
+              disabled={isSubmitting || !formData.name}
               className="bg-green-600 hover:bg-green-700"
             >
               {isSubmitting ? (
@@ -869,6 +1296,200 @@ const ManageShopAccess = () => {
               className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-800"
             >
               Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Approve Access Dialog */}
+      <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+        <DialogContent className="bg-zinc-800 border-zinc-700 text-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <CheckCircle2 className="h-5 w-5 mr-2 text-emerald-500" />
+              Aprovar Acesso
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Confirmar aprovação de acesso à loja para {tokenToApprove?.name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <div className="p-4 border border-zinc-700 rounded-md bg-zinc-900/50">
+              <div className="space-y-2 text-sm">
+                <div className="flex">
+                  <span className="font-medium w-28 text-zinc-400">Nome:</span>
+                  <span className="text-white">{tokenToApprove?.name}</span>
+                </div>
+                {tokenToApprove?.email && (
+                  <div className="flex">
+                    <span className="font-medium w-28 text-zinc-400">
+                      Email:
+                    </span>
+                    <span className="text-white">{tokenToApprove?.email}</span>
+                  </div>
+                )}
+                {tokenToApprove?.company && (
+                  <div className="flex">
+                    <span className="font-medium w-28 text-zinc-400">
+                      Empresa:
+                    </span>
+                    <span className="text-white">
+                      {tokenToApprove?.company}
+                    </span>
+                  </div>
+                )}
+                {tokenToApprove?.phone && (
+                  <div className="flex">
+                    <span className="font-medium w-28 text-zinc-400">
+                      Telemóvel:
+                    </span>
+                    <span className="text-white">{tokenToApprove?.phone}</span>
+                  </div>
+                )}
+                <div className="flex">
+                  <span className="font-medium w-28 text-zinc-400">
+                    Solicitado em:
+                  </span>
+                  <span className="text-white">
+                    {tokenToApprove?.requestedAt
+                      ? formatDate(tokenToApprove.requestedAt)
+                      : "N/A"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 bg-emerald-500/10 p-4 rounded-md border border-emerald-500/30">
+              <p className="text-sm text-emerald-400">
+                Ao aprovar este pedido, o usuário terá acesso imediato à loja
+                online. O sistema enviará uma notificação informando que o
+                acesso foi aprovado.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowApproveDialog(false);
+                setTokenToApprove(null);
+              }}
+              className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-800"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={approveAccess}
+              disabled={isSubmitting}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Aprovando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Confirmar Aprovação
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Access Dialog */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent className="bg-zinc-800 border-zinc-700 text-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <XCircle className="h-5 w-5 mr-2 text-red-500" />
+              Rejeitar Acesso
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Informe o motivo da rejeição de acesso para {tokenToReject?.name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <div className="p-4 border border-zinc-700 rounded-md bg-zinc-900/50 mb-4">
+              <div className="space-y-2 text-sm">
+                <div className="flex">
+                  <span className="font-medium w-28 text-zinc-400">Nome:</span>
+                  <span className="text-white">{tokenToReject?.name}</span>
+                </div>
+                {tokenToReject?.email && (
+                  <div className="flex">
+                    <span className="font-medium w-28 text-zinc-400">
+                      Email:
+                    </span>
+                    <span className="text-white">{tokenToReject?.email}</span>
+                  </div>
+                )}
+                {tokenToReject?.company && (
+                  <div className="flex">
+                    <span className="font-medium w-28 text-zinc-400">
+                      Empresa:
+                    </span>
+                    <span className="text-white">{tokenToReject?.company}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-300">
+                Motivo da Rejeição *
+              </label>
+              <textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="w-full rounded-md border border-zinc-600 bg-zinc-700 px-3 py-2 text-white"
+                rows="4"
+                placeholder="Informe o motivo pelo qual este pedido está sendo rejeitado..."
+              />
+            </div>
+
+            <div className="mt-4 bg-red-500/10 p-4 rounded-md border border-red-500/30">
+              <p className="text-sm text-red-400">
+                Ao rejeitar este pedido, o usuário não poderá acessar a loja
+                online. O sistema notificará o usuário sobre a rejeição e o
+                motivo informado acima.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowRejectDialog(false);
+                setTokenToReject(null);
+                setRejectionReason("");
+              }}
+              className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-800"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={rejectAccess}
+              disabled={isSubmitting || !rejectionReason.trim()}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Rejeitando...
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Confirmar Rejeição
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
