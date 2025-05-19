@@ -54,13 +54,8 @@ const BudgetCard = ({ budget, onDelete, onViewPDF, clientName, navigate }) => {
     budget.type === "simple"
       ? budget.isExpense
         ? Receipt
-        : FileCheck
-      : FileText;
-
-  const totalsData = calculateTotalsWithIVA(
-    budget.services,
-    budget.ivaRate || 0
-  );
+        : FileCheck // Para documentos sem cadastro
+      : FileText; // Para documentos com cadastro
 
   return (
     <Card className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors">
@@ -80,18 +75,9 @@ const BudgetCard = ({ budget, onDelete, onViewPDF, clientName, navigate }) => {
             <p className="text-zinc-400 text-sm">
               {budget.createdAt?.toDate().toLocaleDateString()}
             </p>
-            <div className="text-zinc-400 text-sm mt-1">
-              <p>Subtotal: {formatCurrency(totalsData.subtotal)}€</p>
-              {budget.ivaRate > 0 && (
-                <p>
-                  IVA ({budget.ivaRate}%):{" "}
-                  {formatCurrency(totalsData.ivaAmount)}€
-                </p>
-              )}
-              <p className="font-medium text-white">
-                Total: {formatCurrency(totalsData.total)}€
-              </p>
-            </div>
+            <p className="text-zinc-400 text-sm mt-1">
+              Total: {budget.total.toFixed(2)}€
+            </p>
           </div>
 
           <DropdownMenu>
@@ -109,6 +95,7 @@ const BudgetCard = ({ budget, onDelete, onViewPDF, clientName, navigate }) => {
               className="bg-zinc-800 border-zinc-700"
             >
               <DropdownMenuItem
+
                 onClick={() =>
                   navigate(
                     `/app/edit-${
@@ -247,7 +234,7 @@ const ManageBudgets = () => {
     }
   };
 
-  const handleViewPDF = async (budget, showIVA) => {
+  const handleViewPDF = async (budget) => {
     try {
       setIsGeneratingPDF(true);
 
@@ -273,13 +260,9 @@ const ManageBudgets = () => {
         };
 
         pdfBlob = await generateBudgetPDF(
-          {
-            ...budget,
-            showIVA: showIVA, // Adicione esta linha
-            ivaRate: budget.ivaRate || 0, // Adicione esta linha
-          },
+          budget,
           clientData,
-          budget.services,
+          formattedServices,
           budget.orderNumber
         );
 
@@ -312,8 +295,6 @@ const ManageBudgets = () => {
           ),
           createdAt: budget.createdAt || new Date(),
           isExpense: budget.isExpense || false,
-          showIVA: showIVA, // Adicione esta linha
-          ivaRate: budget.ivaRate || 0, // Adicione esta linha
         };
 
         pdfBlob = await generateSimpleBudgetPDF(formattedBudget);
