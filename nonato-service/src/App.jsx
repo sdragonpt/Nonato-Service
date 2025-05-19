@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { collection, getDocs, query, where, limit } from "firebase/firestore";
 import {
   BrowserRouter as Router,
   Routes,
@@ -31,6 +32,7 @@ import {
   UserCog,
   ShoppingBag, // Novo ícone para Loja
   Store,
+  Shield,
 } from "lucide-react";
 
 // Componentes
@@ -89,6 +91,8 @@ import NotificationsDropdown from "./components/ui/NotificationsDropdown";
 //Loja
 import PublicShop from "./features/publicShop/PublicShop";
 import ManageOnlineQuotes from "./features/onlineQuotes/ManageOnlineQuotes";
+import ManageShopAccess from "./features/shopAccess/ManageShopAccess";
+import ShopAccessWrapper from "./features/publicShop/ShopAccessWrapper";
 
 import { useAuth } from "./hooks/useAuth";
 import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
@@ -181,6 +185,11 @@ const NAVIGATION_ITEMS = [
         path: "/app/orcamento-online",
         icon: Store,
         label: "Gestão de Orçamentos Online",
+      },
+      {
+        path: "/app/manage-shop-access",
+        icon: Shield,
+        label: "Gerenciar Acessos",
       },
     ],
   },
@@ -486,9 +495,30 @@ const App = () => {
           <Route path="/start" element={<InitialPage />} />
           <Route path="/login" element={<LoginPage />} />
 
-          <Route path="/loja" element={<PublicShop />} />
-          <Route path="/loja/categoria/:categoryId" element={<PublicShop />} />
-          <Route path="/loja/busca" element={<PublicShop />} />
+          <Route
+            path="/loja"
+            element={
+              <ShopAccessWrapper>
+                <PublicShop />
+              </ShopAccessWrapper>
+            }
+          />
+          <Route
+            path="/loja/categoria/:categoryId"
+            element={
+              <ShopAccessWrapper>
+                <PublicShop />
+              </ShopAccessWrapper>
+            }
+          />
+          <Route
+            path="/loja/busca"
+            element={
+              <ShopAccessWrapper>
+                <PublicShop />
+              </ShopAccessWrapper>
+            }
+          />
 
           <Route
             path="/app/*"
@@ -628,6 +658,10 @@ const App = () => {
                       element={<ManageCategories />}
                     />
                     <Route path="import-parts" element={<ImportParts />} />
+                    <Route
+                      path="manage-shop-access"
+                      element={<ManageShopAccess />}
+                    />
                   </Routes>
                 </DashboardShell>
               </ProtectedRoute>

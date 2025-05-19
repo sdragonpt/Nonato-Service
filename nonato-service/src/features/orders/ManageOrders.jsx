@@ -15,6 +15,8 @@ import {
   Clock,
   CheckCircle2,
   ClipboardList,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 // UI Components
@@ -180,6 +182,11 @@ const ManageOrders = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState(null);
 
+  // Estados para paginação
+  const [currentOpenPage, setCurrentOpenPage] = useState(1);
+  const [currentClosedPage, setCurrentClosedPage] = useState(1);
+  const itemsPerPage = 5; // Ajuste conforme necessário para cards maiores
+
   const fetchOrders = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -245,6 +252,49 @@ const ManageOrders = () => {
       order.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
+
+  // Filtrar ordens abertas e fechadas
+  const openOrders = filteredOrders.filter(
+    (order) => order.status !== "Fechado"
+  );
+  const closedOrders = filteredOrders.filter(
+    (order) => order.status === "Fechado"
+  );
+
+  // Calcular paginação para ordens abertas
+  const indexOfLastOpenOrder = currentOpenPage * itemsPerPage;
+  const indexOfFirstOpenOrder = indexOfLastOpenOrder - itemsPerPage;
+  const currentOpenOrders = openOrders.slice(
+    indexOfFirstOpenOrder,
+    indexOfLastOpenOrder
+  );
+  const totalOpenPages = Math.ceil(openOrders.length / itemsPerPage);
+
+  // Calcular paginação para ordens fechadas
+  const indexOfLastClosedOrder = currentClosedPage * itemsPerPage;
+  const indexOfFirstClosedOrder = indexOfLastClosedOrder - itemsPerPage;
+  const currentClosedOrders = closedOrders.slice(
+    indexOfFirstClosedOrder,
+    indexOfLastClosedOrder
+  );
+  const totalClosedPages = Math.ceil(closedOrders.length / itemsPerPage);
+
+  // Funções de paginação
+  const paginateOpen = (pageNumber) => {
+    setCurrentOpenPage(pageNumber);
+    window.scrollTo(0, 0);
+  };
+
+  const paginateClosed = (pageNumber) => {
+    setCurrentClosedPage(pageNumber);
+    window.scrollTo(0, 0);
+  };
+
+  // Resetar paginação quando o termo de busca mudar
+  useEffect(() => {
+    setCurrentOpenPage(1);
+    setCurrentClosedPage(1);
+  }, [searchTerm]);
 
   const stats = {
     total: orders.length,
@@ -366,19 +416,56 @@ const ManageOrders = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {filteredOrders
-              .filter((order) => order.status !== "Fechado")
-              .map((order) => (
-                <OrderCard
-                  key={order.id}
-                  order={order}
-                  client={clients[order.clientId]}
-                  equipment={equipments[order.equipmentId]}
-                  onDelete={confirmDelete}
-                  onEdit={(id) => navigate(`/app/edit-service-order/${id}`)}
-                  navigate={navigate}
-                />
-              ))}
+            {currentOpenOrders.map((order) => (
+              <OrderCard
+                key={order.id}
+                order={order}
+                client={clients[order.clientId]}
+                equipment={equipments[order.equipmentId]}
+                onDelete={confirmDelete}
+                onEdit={(id) => navigate(`/app/edit-service-order/${id}`)}
+                navigate={navigate}
+              />
+            ))}
+
+            {/* Controles de paginação para ordens abertas */}
+            {totalOpenPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => paginateOpen(currentOpenPage - 1)}
+                  disabled={currentOpenPage === 1}
+                  className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50 h-8 w-8 p-0"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+
+                <span className="text-sm text-zinc-400">
+                  {currentOpenPage} / {totalOpenPages}
+                </span>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => paginateOpen(currentOpenPage + 1)}
+                  disabled={currentOpenPage === totalOpenPages}
+                  className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50 h-8 w-8 p-0"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {openOrders.length === 0 && (
+              <Card className="bg-zinc-800 border-zinc-700">
+                <CardContent className="p-6 text-center">
+                  <p className="text-zinc-400">
+                    Nenhuma ordem aberta encontrada
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </CardContent>
         </Card>
 
@@ -397,19 +484,56 @@ const ManageOrders = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {filteredOrders
-              .filter((order) => order.status === "Fechado")
-              .map((order) => (
-                <OrderCard
-                  key={order.id}
-                  order={order}
-                  client={clients[order.clientId]}
-                  equipment={equipments[order.equipmentId]}
-                  onDelete={confirmDelete}
-                  onEdit={(id) => navigate(`/app/edit-service-order/${id}`)}
-                  navigate={navigate}
-                />
-              ))}
+            {currentClosedOrders.map((order) => (
+              <OrderCard
+                key={order.id}
+                order={order}
+                client={clients[order.clientId]}
+                equipment={equipments[order.equipmentId]}
+                onDelete={confirmDelete}
+                onEdit={(id) => navigate(`/app/edit-service-order/${id}`)}
+                navigate={navigate}
+              />
+            ))}
+
+            {/* Controles de paginação para ordens fechadas */}
+            {totalClosedPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => paginateClosed(currentClosedPage - 1)}
+                  disabled={currentClosedPage === 1}
+                  className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50 h-8 w-8 p-0"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+
+                <span className="text-sm text-zinc-400">
+                  {currentClosedPage} / {totalClosedPages}
+                </span>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => paginateClosed(currentClosedPage + 1)}
+                  disabled={currentClosedPage === totalClosedPages}
+                  className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50 h-8 w-8 p-0"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {closedOrders.length === 0 && (
+              <Card className="bg-zinc-800 border-zinc-700">
+                <CardContent className="p-6 text-center">
+                  <p className="text-zinc-400">
+                    Nenhuma ordem fechada encontrada
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </CardContent>
         </Card>
       </div>

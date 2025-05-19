@@ -6,8 +6,13 @@ import {
   orderBy,
   where,
   addDoc,
+  limit,
+  doc,
+  getDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
+import { getAuth, signInAnonymously } from "firebase/auth";
 import {
   Search,
   Loader2,
@@ -46,7 +51,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 
 import { notifyNewQuoteRequest } from "../../services/notificationService";
 
-const PublicShop = () => {
+const PublicShop = ({ auth }) => {
   const [parts, setParts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -77,6 +82,9 @@ const PublicShop = () => {
     message: "",
   });
 
+  // Controle para dados preenchidos
+  const [prefilledData, setPrefilledData] = useState(false);
+
   //Change Page Name
   useEffect(() => {
     // Salvar o título original
@@ -97,6 +105,8 @@ const PublicShop = () => {
       try {
         setIsLoading(true);
         setError(null);
+
+        const user = auth.currentUser;
 
         // Fetch parts
         const partsQuery = query(collection(db, "pecas"), orderBy("name"));
@@ -127,7 +137,7 @@ const PublicShop = () => {
     };
 
     fetchData();
-  }, []);
+  }, [auth]);
 
   // Load cart from localStorage
   useEffect(() => {
@@ -141,6 +151,65 @@ const PublicShop = () => {
   useEffect(() => {
     localStorage.setItem("shop-cart", JSON.stringify(cart));
   }, [cart]);
+
+  // Função para buscar e preencher dados do token
+  const prefillFormFromToken = async () => {
+    try {
+      // Verificar se tem token salvo
+      const savedToken = localStorage.getItem("shop_access_token");
+
+      if (savedToken) {
+        // Buscar os dados do token no Firestore
+        const tokenQuery = query(
+          collection(db, "shop_access_tokens"),
+          where("token", "==", savedToken),
+          where("status", "==", "active"),
+          limit(1)
+        );
+
+        const tokenSnapshot = await getDocs(tokenQuery);
+
+        if (!tokenSnapshot.empty) {
+          // Encontrou o token, preencher o formulário
+          const tokenData = tokenSnapshot.docs[0].data();
+
+          setQuoteFormData({
+            name: tokenData.name || "",
+            email: tokenData.email || "",
+            phone: tokenData.phone || "",
+            company: tokenData.company || "",
+            message: "",
+          });
+
+          setPrefilledData(true);
+        }
+      } else if (auth && auth.currentUser) {
+        // Se não tem token, mas tem um usuário logado, tentar pegar dados do usuário
+        const userRef = doc(db, "users", auth.currentUser.uid);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          setQuoteFormData({
+            name: userData.displayName || auth.currentUser.displayName || "",
+            email: userData.email || auth.currentUser.email || "",
+            phone: userData.phone || "",
+            company: userData.company || "",
+            message: "",
+          });
+          setPrefilledData(true);
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao preencher dados do formulário:", error);
+    }
+  };
+
+  // Função para abrir o modal de orçamento com os dados preenchidos
+  const handleOpenQuoteModal = () => {
+    prefillFormFromToken(); // Preencher dados antes de mostrar o modal
+    setShowQuoteModal(true);
+  };
 
   // Add to cart
   const addToCart = (part) => {
@@ -225,9 +294,25 @@ const PublicShop = () => {
   const handleSubmitQuote = async () => {
     if (!cart.length) return;
 
+    // Variável para rastrear se o orçamento foi enviado com sucesso
+    let quoteWasSubmitted = false;
+
     try {
       setIsSubmitting(true);
       setError(null);
+
+      // Realizar autenticação anônima se não houver usuário logado
+      /*if (!auth.currentUser) {
+        try {
+          await signInAnonymously(auth);
+          console.log("Autenticação anônima realizada com sucesso");
+        } catch (authError) {
+          console.error("Erro na autenticação anônima:", authError);
+          setError("Erro ao processar seu pedido. Por favor, tente novamente.");
+          setIsSubmitting(false);
+          return;
+        }
+      }*/
 
       const quoteData = {
         status: "pending",
@@ -239,7 +324,7 @@ const PublicShop = () => {
           price: item.price,
           quantity: item.quantity,
         })),
-        createdAt: new Date(),
+        createdAt: serverTimestamp(), // Use serverTimestamp em vez de new Date()
         type: "online-quote",
         source: "public-shop",
       };
@@ -249,22 +334,29 @@ const PublicShop = () => {
         quoteData
       );
 
+      // Marcar que o orçamento foi enviado com sucesso
+      quoteWasSubmitted = true;
+
       // Notificar admins sobre novo orçamento
-      // Buscar todos os admins
-      const usersQuery = query(
-        collection(db, "users"),
-        where("role", "==", "admin")
-      );
-      const usersSnapshot = await getDocs(usersQuery);
+      try {
+        const usersQuery = query(
+          collection(db, "users"),
+          where("role", "==", "admin")
+        );
+        const usersSnapshot = await getDocs(usersQuery);
 
-      usersSnapshot.docs.forEach(async (userDoc) => {
-        await notifyNewQuoteRequest(userDoc.id, {
-          id: docRef.id,
-          customerName: quoteFormData.name,
+        usersSnapshot.docs.forEach(async (userDoc) => {
+          await notifyNewQuoteRequest(userDoc.id, {
+            id: docRef.id,
+            customerName: quoteFormData.name,
+          });
         });
-      });
+      } catch (notifyError) {
+        // Ignorar erros na notificação, já que o orçamento foi salvo
+        console.warn("Erro ao notificar administradores:", notifyError);
+      }
 
-      // Clear cart and close modals
+      // Limpar carrinho e fechar modais
       setCart([]);
       setQuoteFormData({
         name: "",
@@ -275,8 +367,9 @@ const PublicShop = () => {
       });
       setShowQuoteModal(false);
       setIsCartOpen(false);
+      setPrefilledData(false);
 
-      // Show success message
+      // Mostrar mensagem de sucesso
       alert(
         "Pedido de orçamento enviado com sucesso! Entraremos em contacto em breve."
       );
@@ -285,6 +378,13 @@ const PublicShop = () => {
       setError("Erro ao enviar orçamento. Por favor, tente novamente.");
     } finally {
       setIsSubmitting(false);
+
+      // Se o orçamento foi enviado com sucesso, mas ocorreu algum erro depois
+      // (provavelmente no useAuth), ainda fechamos os modais
+      if (quoteWasSubmitted) {
+        setShowQuoteModal(false);
+        setIsCartOpen(false);
+      }
     }
   };
 
@@ -381,7 +481,7 @@ const PublicShop = () => {
                 <div className="flex-shrink-0 pt-4 border-t border-zinc-700 bg-zinc-800">
                   <Button
                     className="w-full bg-green-600 hover:bg-green-700"
-                    onClick={() => setShowQuoteModal(true)}
+                    onClick={handleOpenQuoteModal}
                     disabled={cart.length === 0}
                   >
                     Solicitar Orçamento
@@ -717,11 +817,23 @@ const PublicShop = () => {
           <DialogHeader>
             <DialogTitle>Solicitar Orçamento</DialogTitle>
             <DialogDescription className="text-zinc-400">
-              Preencha seus dados para receber um orçamento personalizado.
+              {prefilledData
+                ? "Seus dados já estão preenchidos com base no seu acesso."
+                : "Preencha seus dados para receber um orçamento personalizado."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {prefilledData && (
+              <div className="bg-green-500/10 border border-green-500 rounded-md p-4 mb-4">
+                <p className="text-green-400">
+                  Seus dados foram preenchidos automaticamente com base nas
+                  informações do seu acesso à loja. Verifique se estão corretos
+                  ou altere se necessário.
+                </p>
+              </div>
+            )}
+
             <div>
               <label className="text-sm font-medium text-zinc-300">
                 Nome *
