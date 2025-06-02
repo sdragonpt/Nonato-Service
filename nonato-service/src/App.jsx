@@ -83,7 +83,7 @@ import AddCategory from "./features/parts/components/AddCategory";
 import AddSubcategory from "./features/parts/components/AddSubcategory";
 import EditCategory from "./features/parts/components/EditCategory";
 import ManageCategories from "./features/parts/ManageCategories";
-import ImportParts from "./features/parts/ImportParts";
+import { CategoriesProvider } from "./context/CategoriesContext.jsx";
 
 import { NotificationProvider } from "./context/NotificationContext.jsx";
 import NotificationsDropdown from "./components/ui/NotificationsDropdown";
@@ -98,7 +98,7 @@ import { useAuth } from "./hooks/useAuth";
 import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
 import { Capacitor } from "@capacitor/core";
 
-// Components UI
+// Components UI (mantidos iguais)
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -110,7 +110,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
-// Configuração das rotas e navegação
+// Configuração das rotas e navegação (mantida igual)
 const NAVIGATION_ITEMS = [
   {
     title: "Cadastro",
@@ -179,7 +179,7 @@ const NAVIGATION_ITEMS = [
         path: "/loja",
         icon: ShoppingBag,
         label: "Visitar Loja",
-        external: true, // Marca como link externo
+        external: true,
       },
       {
         path: "/app/orcamento-online",
@@ -193,19 +193,9 @@ const NAVIGATION_ITEMS = [
       },
     ],
   },
-  // {
-  //   title: "Administração",
-  //   items: [
-  //     {
-  //       path: "/app/manage-users",
-  //       icon: UserCog,
-  //       label: "Gerenciar Usuários",
-  //     },
-  //   ],
-  // },
 ];
 
-// Componente de rota protegida por role
+// Componente de rota protegida por role (mantido igual)
 const RoleRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
 
@@ -224,6 +214,7 @@ const RoleRoute = ({ children, allowedRoles }) => {
   return children;
 };
 
+// UserNav component (mantido igual)
 const UserNav = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -273,7 +264,7 @@ const UserNav = () => {
   );
 };
 
-// DashboardShell component that wraps the main content
+// DashboardShell component (mantido igual)
 const DashboardShell = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
@@ -384,7 +375,6 @@ const DashboardShell = ({ children }) => {
                   }`}
                 >
                   {section.items.map((item, itemIdx) => {
-                    // Renderizar links externos de forma diferente
                     if (item.external) {
                       return (
                         <a
@@ -400,7 +390,6 @@ const DashboardShell = ({ children }) => {
                       );
                     }
 
-                    // Renderizar links internos normalmente
                     return (
                       <Link
                         key={itemIdx}
@@ -463,9 +452,9 @@ const DashboardShell = ({ children }) => {
   );
 };
 
-// Main App Component
+// Main App Component - ATUALIZADO
 const App = () => {
-  const { user, loading } = useAuth(); // Substitui o useState e useEffect anterior
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
@@ -488,187 +477,205 @@ const App = () => {
 
   return (
     <NotificationProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Navigate to="/app" />} />
-          <Route path="/app" element={<Navigate to="/app/dashboard" />} />
-          <Route path="/start" element={<InitialPage />} />
-          <Route path="/login" element={<LoginPage />} />
+      <CategoriesProvider>
+        {" "}
+        {/* NOVO: Provider para cache de categorias */}
+        <Router>
+          <Routes>
+            <Route path="/" element={<Navigate to="/app" />} />
+            <Route path="/app" element={<Navigate to="/app/dashboard" />} />
+            <Route path="/start" element={<InitialPage />} />
+            <Route path="/login" element={<LoginPage />} />
 
-          <Route
-            path="/loja"
-            element={
-              <ShopAccessWrapper>
-                <PublicShop />
-              </ShopAccessWrapper>
-            }
-          />
-          <Route
-            path="/loja/categoria/:categoryId"
-            element={
-              <ShopAccessWrapper>
-                <PublicShop />
-              </ShopAccessWrapper>
-            }
-          />
-          <Route
-            path="/loja/busca"
-            element={
-              <ShopAccessWrapper>
-                <PublicShop />
-              </ShopAccessWrapper>
-            }
-          />
+            <Route
+              path="/loja"
+              element={
+                <ShopAccessWrapper>
+                  <PublicShop />
+                </ShopAccessWrapper>
+              }
+            />
+            <Route
+              path="/loja/categoria/:categoryId"
+              element={
+                <ShopAccessWrapper>
+                  <PublicShop />
+                </ShopAccessWrapper>
+              }
+            />
+            <Route
+              path="/loja/busca"
+              element={
+                <ShopAccessWrapper>
+                  <PublicShop />
+                </ShopAccessWrapper>
+              }
+            />
 
-          <Route
-            path="/app/*"
-            element={
-              <ProtectedRoute>
-                <DashboardShell>
-                  <Routes>
-                    <Route
-                      path="/orcamento-online"
-                      element={<ManageOnlineQuotes />}
-                    />
-                    <Route path="/dashboard" element={<DashboardPage />} />
-                    <Route path="add-client" element={<AddClient />} />
-                    <Route path="add-equipment" element={<AddEquipment />} />
-                    <Route path="add-order" element={<AddOrder />} />
-                    <Route path="manage-orders" element={<ManageOrders />} />
-                    <Route
-                      path="manage-services"
-                      element={<ManageServices />}
-                    />
-                    <Route path="add-service" element={<AddService />} />
-                    <Route path="profile" element={<UserProfile />} />
-                    <Route path="settings" element={<UserSettings />} />
-                    {/* Rotas protegidas por role */}
-                    <Route
-                      path="manage-users"
-                      element={
-                        <RoleRoute allowedRoles={["admin"]}>
-                          <ManageUsers />
-                        </RoleRoute>
-                      }
-                    />
-                    <Route
-                      path="edit-service/:serviceId"
-                      element={<EditService />}
-                    />
-                    <Route path="manage-clients" element={<ManageClients />} />
-                    <Route path="client/:clientId" element={<ClientDetail />} />
-                    <Route
-                      path="equipment/:equipmentId"
-                      element={<EquipmentDetail />}
-                    />
-                    <Route
-                      path="edit-client/:clientId"
-                      element={<EditClient />}
-                    />
-                    <Route
-                      path="edit-equipment/:equipmentId"
-                      element={<EditEquipment />}
-                    />
-                    <Route
-                      path="client/:clientId/add-equipment"
-                      element={<AddEquipment />}
-                    />
-                    <Route
-                      path="order-detail/:orderId"
-                      element={<OrderDetail />}
-                    />
-                    <Route
-                      path="order/:orderId/add-workday"
-                      element={<AddWorkday />}
-                    />
-                    <Route
-                      path="edit-service-order/:orderId"
-                      element={<EditOrder />}
-                    />
-                    <Route
-                      path="edit-workday/:workdayId"
-                      element={<EditWorkday />}
-                    />
-                    <Route path="manage-agenda" element={<ManageAgenda />} />
-                    <Route
-                      path="add-agendamento"
-                      element={<AddAgendamento />}
-                    />
-                    <Route
-                      path="edit-agendamento/:agendamentoId"
-                      element={<EditAgendamento />}
-                    />
-                    <Route path="manage-budgets" element={<ManageBudgets />} />
-                    <Route path="add-budget" element={<AddBudget />} />
-                    <Route
-                      path="add-simple-budget"
-                      element={<AddSimpleBudget />}
-                    />
-                    <Route
-                      path="edit-budget/:budgetId"
-                      element={<EditBudget />}
-                    />
-                    <Route
-                      path="edit-simple-budget/:budgetId"
-                      element={<EditSimpleBudget />}
-                    />
-                    <Route
-                      path="manage-checklist"
-                      element={<ManageChecklist />}
-                    />
-                    <Route
-                      path="add-checklist-type"
-                      element={<AddChecklistType />}
-                    />
-                    <Route
-                      path="edit-checklist-type/:typeId"
-                      element={<EditChecklistType />}
-                    />
-                    <Route
-                      path="manage-inspection"
-                      element={<ManageInspection />}
-                    />
-                    <Route path="add-inspection" element={<AddInspection />} />
-                    <Route
-                      path="edit-inspection/:inspectionId"
-                      element={<EditInspection />}
-                    />
-                    <Route
-                      path="inspection-detail/:inspectionId"
-                      element={<InspectionDetail />}
-                    />
-                    <Route
-                      path="parts-library"
-                      element={<ManagePartsLibrary />}
-                    />
-                    <Route path="add-part" element={<AddPart />} />
-                    <Route path="edit-part/:partId" element={<EditPart />} />
-                    <Route path="part/:partId" element={<PartDetail />} />
-                    <Route path="add-category" element={<AddCategory />} />
-                    <Route
-                      path="add-subcategory/:categoryId"
-                      element={<AddSubcategory />}
-                    />
-                    <Route
-                      path="edit-category/:categoryId"
-                      element={<EditCategory />}
-                    />
-                    <Route
-                      path="manage-categories"
-                      element={<ManageCategories />}
-                    />
-                    <Route path="import-parts" element={<ImportParts />} />
-                    <Route
-                      path="manage-shop-access"
-                      element={<ManageShopAccess />}
-                    />
-                  </Routes>
-                </DashboardShell>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </Router>
+            <Route
+              path="/app/*"
+              element={
+                <ProtectedRoute>
+                  <DashboardShell>
+                    <Routes>
+                      <Route
+                        path="/orcamento-online"
+                        element={<ManageOnlineQuotes />}
+                      />
+                      <Route path="/dashboard" element={<DashboardPage />} />
+                      <Route path="add-client" element={<AddClient />} />
+                      <Route path="add-equipment" element={<AddEquipment />} />
+                      <Route path="add-order" element={<AddOrder />} />
+                      <Route path="manage-orders" element={<ManageOrders />} />
+                      <Route
+                        path="manage-services"
+                        element={<ManageServices />}
+                      />
+                      <Route path="add-service" element={<AddService />} />
+                      <Route path="profile" element={<UserProfile />} />
+                      <Route path="settings" element={<UserSettings />} />
+
+                      {/* Rotas protegidas por role */}
+                      <Route
+                        path="manage-users"
+                        element={
+                          <RoleRoute allowedRoles={["admin"]}>
+                            <ManageUsers />
+                          </RoleRoute>
+                        }
+                      />
+
+                      <Route
+                        path="edit-service/:serviceId"
+                        element={<EditService />}
+                      />
+                      <Route
+                        path="manage-clients"
+                        element={<ManageClients />}
+                      />
+                      <Route
+                        path="client/:clientId"
+                        element={<ClientDetail />}
+                      />
+                      <Route
+                        path="equipment/:equipmentId"
+                        element={<EquipmentDetail />}
+                      />
+                      <Route
+                        path="edit-client/:clientId"
+                        element={<EditClient />}
+                      />
+                      <Route
+                        path="edit-equipment/:equipmentId"
+                        element={<EditEquipment />}
+                      />
+                      <Route
+                        path="client/:clientId/add-equipment"
+                        element={<AddEquipment />}
+                      />
+                      <Route
+                        path="order-detail/:orderId"
+                        element={<OrderDetail />}
+                      />
+                      <Route
+                        path="order/:orderId/add-workday"
+                        element={<AddWorkday />}
+                      />
+                      <Route
+                        path="edit-service-order/:orderId"
+                        element={<EditOrder />}
+                      />
+                      <Route
+                        path="edit-workday/:workdayId"
+                        element={<EditWorkday />}
+                      />
+                      <Route path="manage-agenda" element={<ManageAgenda />} />
+                      <Route
+                        path="add-agendamento"
+                        element={<AddAgendamento />}
+                      />
+                      <Route
+                        path="edit-agendamento/:agendamentoId"
+                        element={<EditAgendamento />}
+                      />
+                      <Route
+                        path="manage-budgets"
+                        element={<ManageBudgets />}
+                      />
+                      <Route path="add-budget" element={<AddBudget />} />
+                      <Route
+                        path="add-simple-budget"
+                        element={<AddSimpleBudget />}
+                      />
+                      <Route
+                        path="edit-budget/:budgetId"
+                        element={<EditBudget />}
+                      />
+                      <Route
+                        path="edit-simple-budget/:budgetId"
+                        element={<EditSimpleBudget />}
+                      />
+                      <Route
+                        path="manage-checklist"
+                        element={<ManageChecklist />}
+                      />
+                      <Route
+                        path="add-checklist-type"
+                        element={<AddChecklistType />}
+                      />
+                      <Route
+                        path="edit-checklist-type/:typeId"
+                        element={<EditChecklistType />}
+                      />
+                      <Route
+                        path="manage-inspection"
+                        element={<ManageInspection />}
+                      />
+                      <Route
+                        path="add-inspection"
+                        element={<AddInspection />}
+                      />
+                      <Route
+                        path="edit-inspection/:inspectionId"
+                        element={<EditInspection />}
+                      />
+                      <Route
+                        path="inspection-detail/:inspectionId"
+                        element={<InspectionDetail />}
+                      />
+                      <Route
+                        path="parts-library"
+                        element={<ManagePartsLibrary />}
+                      />
+                      <Route path="add-part" element={<AddPart />} />
+                      <Route path="edit-part/:partId" element={<EditPart />} />
+                      <Route path="part/:partId" element={<PartDetail />} />
+                      <Route path="add-category" element={<AddCategory />} />
+                      <Route
+                        path="add-subcategory/:categoryId"
+                        element={<AddSubcategory />}
+                      />
+                      <Route
+                        path="edit-category/:categoryId"
+                        element={<EditCategory />}
+                      />
+                      <Route
+                        path="manage-categories"
+                        element={<ManageCategories />}
+                      />
+                      <Route
+                        path="manage-shop-access"
+                        element={<ManageShopAccess />}
+                      />
+                    </Routes>
+                  </DashboardShell>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </Router>
+      </CategoriesProvider>{" "}
+      {/* Fim do novo provider */}
     </NotificationProvider>
   );
 };

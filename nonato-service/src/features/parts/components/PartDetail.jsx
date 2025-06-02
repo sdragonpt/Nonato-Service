@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { doc, getDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useParams, useNavigate } from "react-router-dom";
+import { useCategories } from "../../../context/CategoriesContext.jsx"; // NOVO
 import {
   Loader2,
   ArrowLeft,
@@ -44,6 +45,14 @@ import {
 const PartDetail = () => {
   const { partId } = useParams();
   const navigate = useNavigate();
+
+  // USAR cache de categorias
+  const {
+    getCategoryById,
+    getSubcategoryById,
+    isLoading: categoriesLoading,
+  } = useCategories();
+
   const [part, setPart] = useState(null);
   const [category, setCategory] = useState(null);
   const [subcategory, setSubcategory] = useState(null);
@@ -75,21 +84,19 @@ const PartDetail = () => {
         setPart(partInfo);
         setNewPhotoURL(partInfo.image);
 
-        // Fetch category if exists
-        if (partInfo.categoryId) {
-          const categoryDoc = doc(db, "categorias", partInfo.categoryId);
-          const categoryData = await getDoc(categoryDoc);
-          if (categoryData.exists()) {
-            setCategory({ id: categoryData.id, ...categoryData.data() });
+        // USAR cache em vez de fetch direto para categorias
+        if (partInfo.categoryId && !categoriesLoading) {
+          const categoryData = getCategoryById(partInfo.categoryId);
+          if (categoryData) {
+            setCategory(categoryData);
           }
         }
 
-        // Fetch subcategory if exists
-        if (partInfo.subcategoryId) {
-          const subcategoryDoc = doc(db, "categorias", partInfo.subcategoryId);
-          const subcategoryData = await getDoc(subcategoryDoc);
-          if (subcategoryData.exists()) {
-            setSubcategory({ id: subcategoryData.id, ...subcategoryData.data() });
+        // USAR cache em vez de fetch direto para subcategorias
+        if (partInfo.subcategoryId && !categoriesLoading) {
+          const subcategoryData = getSubcategoryById(partInfo.subcategoryId);
+          if (subcategoryData) {
+            setSubcategory(subcategoryData);
           }
         }
       } catch (err) {
@@ -100,8 +107,11 @@ const PartDetail = () => {
       }
     };
 
-    fetchData();
-  }, [partId]);
+    // Só fetch quando as categorias não estiverem carregando
+    if (!categoriesLoading) {
+      fetchData();
+    }
+  }, [partId, categoriesLoading, getCategoryById, getSubcategoryById]);
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
@@ -135,7 +145,8 @@ const PartDetail = () => {
     }
   };
 
-  if (isLoading) {
+  // Loading state
+  if (isLoading || categoriesLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
@@ -202,21 +213,34 @@ const PartDetail = () => {
             </div>
             <div className="flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-xl font-semibold text-white">{part.name}</h3>
-                <Badge className="bg-blue-500/10 text-blue-500">{part.code}</Badge>
+                <h3 className="text-xl font-semibold text-white">
+                  {part.name}
+                </h3>
+                <Badge className="bg-blue-500/10 text-blue-500">
+                  {part.code}
+                </Badge>
               </div>
               <p className="text-xl font-bold text-green-500 mt-1">
-                {new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(part.price || 0)}
+                {new Intl.NumberFormat("pt-PT", {
+                  style: "currency",
+                  currency: "EUR",
+                }).format(part.price || 0)}
               </p>
               {category && (
                 <div className="flex items-center gap-1 mt-2">
-                  <Badge variant="outline" className="text-zinc-400 border-zinc-600">
+                  <Badge
+                    variant="outline"
+                    className="text-zinc-400 border-zinc-600"
+                  >
                     {category.name}
                   </Badge>
                   {subcategory && (
                     <>
                       <span className="text-zinc-500">&gt;</span>
-                      <Badge variant="outline" className="text-zinc-400 border-zinc-600">
+                      <Badge
+                        variant="outline"
+                        className="text-zinc-400 border-zinc-600"
+                      >
                         {subcategory.name}
                       </Badge>
                     </>
@@ -230,8 +254,12 @@ const PartDetail = () => {
           {/* Description */}
           {part.description && (
             <div className="bg-zinc-900/50 p-4 rounded-lg">
-              <h4 className="text-sm font-medium text-zinc-400 mb-2">Descrição</h4>
-              <p className="text-white whitespace-pre-line">{part.description}</p>
+              <h4 className="text-sm font-medium text-zinc-400 mb-2">
+                Descrição
+              </h4>
+              <p className="text-white whitespace-pre-line">
+                {part.description}
+              </p>
             </div>
           )}
 
@@ -246,7 +274,10 @@ const PartDetail = () => {
               <DollarSign className="h-4 w-4 shrink-0 text-zinc-500" />
               <span className="text-zinc-500">Preço:</span>
               <span className="text-white">
-                {new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(part.price || 0)}
+                {new Intl.NumberFormat("pt-PT", {
+                  style: "currency",
+                  currency: "EUR",
+                }).format(part.price || 0)}
               </span>
             </div>
             <div className="flex items-center gap-2 text-zinc-400">
@@ -257,14 +288,18 @@ const PartDetail = () => {
             <div className="flex items-center gap-2 text-zinc-400">
               <Tag className="h-4 w-4 shrink-0 text-zinc-500" />
               <span className="text-zinc-500">Subcategoria:</span>
-              <span className="text-white">{subcategory?.name || "Nenhuma"}</span>
+              <span className="text-white">
+                {subcategory?.name || "Nenhuma"}
+              </span>
             </div>
             {part.createdAt && (
               <div className="flex items-center gap-2 text-zinc-400">
                 <FileText className="h-4 w-4 shrink-0 text-zinc-500" />
                 <span className="text-zinc-500">Cadastrado em:</span>
                 <span className="text-white">
-                  {new Date(part.createdAt.toDate()).toLocaleDateString('pt-PT')}
+                  {new Date(part.createdAt.toDate()).toLocaleDateString(
+                    "pt-PT"
+                  )}
                 </span>
               </div>
             )}
@@ -273,7 +308,9 @@ const PartDetail = () => {
                 <FileText className="h-4 w-4 shrink-0 text-zinc-500" />
                 <span className="text-zinc-500">Última atualização:</span>
                 <span className="text-white">
-                  {new Date(part.lastUpdate.toDate()).toLocaleDateString('pt-PT')}
+                  {new Date(part.lastUpdate.toDate()).toLocaleDateString(
+                    "pt-PT"
+                  )}
                 </span>
               </div>
             )}

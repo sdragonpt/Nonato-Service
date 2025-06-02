@@ -1,16 +1,8 @@
 import { useState, useEffect } from "react";
-import {
-  doc,
-  setDoc,
-  getDoc,
-  increment,
-  collection,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
+import { doc, setDoc, getDoc, increment } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useNavigate } from "react-router-dom";
+import { useCategories } from "../../../context/CategoriesContext.jsx"; // NOVO
 import {
   ArrowLeft,
   Camera,
@@ -49,6 +41,15 @@ import {
 const AddPart = () => {
   const navigate = useNavigate();
 
+  // USAR cache de categorias em vez de state local
+  const {
+    categories,
+    getSubcategoriesByParent,
+    addCategoryToCache,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+  } = useCategories();
+
   // Initialize formData with "none" for select fields
   const [formData, setFormData] = useState({
     name: "",
@@ -59,8 +60,16 @@ const AddPart = () => {
     subcategoryId: "none",
   });
 
-  const [categories, setCategories] = useState([]);
-  const [subcategories, setSubcategories] = useState([]);
+  // REMOVER: states de categories e subcategories locais
+  // const [categories, setCategories] = useState([]);
+  // const [subcategories, setSubcategories] = useState([]);
+
+  // Buscar subcategorias usando o cache
+  const subcategories =
+    formData.categoryId && formData.categoryId !== "none"
+      ? getSubcategoriesByParent(formData.categoryId)
+      : [];
+
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -71,66 +80,30 @@ const AddPart = () => {
   const [newSubcategoryDialogOpen, setNewSubcategoryDialogOpen] =
     useState(false);
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [isCreatingSubcategory, setIsCreatingSubcategory] = useState(false);
 
-  // Fetch categories
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setIsLoadingCategories(true);
-        const q = query(
-          collection(db, "categorias"),
-          where("parentId", "==", null)
-        );
-        const snapshot = await getDocs(q);
-        const categoriesData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setCategories(categoriesData);
-        setError(null);
-      } catch (err) {
-        console.error("Erro ao buscar categorias:", err);
-        setError("Erro ao carregar categorias. Por favor, tente novamente.");
-      } finally {
-        setIsLoadingCategories(false);
-      }
-    };
+  // Função para gerar IDs únicos
+  const generateUniqueId = () => {
+    return `${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}-${Math.floor(Math.random() * 10000)}`;
+  };
 
-    fetchCategories();
-  }, []);
+  // REMOVER: useEffect que buscava categorias
+  // useEffect(() => {
+  //   const fetchCategories = async () => { ... }
+  //   fetchCategories();
+  // }, []);
 
-  // Fetch subcategories when category changes
-  useEffect(() => {
-    const fetchSubcategories = async () => {
-      if (!formData.categoryId || formData.categoryId === "none") {
-        setSubcategories([]);
-        return;
-      }
-
-      try {
-        const q = query(
-          collection(db, "categorias"),
-          where("parentId", "==", formData.categoryId)
-        );
-        const snapshot = await getDocs(q);
-        const subcategoriesData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setSubcategories(subcategoriesData);
-      } catch (err) {
-        console.error("Erro ao buscar subcategorias:", err);
-      }
-    };
-
-    fetchSubcategories();
-  }, [formData.categoryId]);
+  // REMOVER: useEffect que buscava subcategorias (agora vem do cache)
+  // useEffect(() => {
+  //   const fetchSubcategories = async () => { ... }
+  //   fetchSubcategories();
+  // }, [formData.categoryId]);
 
   // Reset subcategoryId when categoryId changes to none
   useEffect(() => {
-    // Esta função é chamada sempre que formData.categoryId mudar
-    // para verificar se precisamos atualizar o valor de subcategoryId
     if (formData.categoryId === "none" && formData.subcategoryId !== "none") {
       setFormData((prev) => ({
         ...prev,
@@ -206,55 +179,40 @@ const AddPart = () => {
   };
 
   const handleAddCategory = async () => {
-    if (!newCategoryName.trim()) {
-      return;
-    }
+    if (!newCategoryName.trim() || isCreatingCategory) return;
 
     try {
-      const counterRef = doc(db, "counters", "categoriesCounter");
-      const counterSnapshot = await getDoc(counterRef);
+      setIsCreatingCategory(true);
+      setError(null);
 
-      let newCategoryId;
-      if (counterSnapshot.exists()) {
-        const currentCounter = counterSnapshot.data().count;
-        newCategoryId = currentCounter + 1;
-        await setDoc(counterRef, { count: increment(1) }, { merge: true });
-      } else {
-        newCategoryId = 1;
-        await setDoc(counterRef, { count: 1 });
-      }
+      // Gerar ID único mais robusto
+      const newCategoryId = generateUniqueId();
 
-      await setDoc(doc(db, "categorias", newCategoryId.toString()), {
+      const newCategory = {
+        id: newCategoryId,
         name: newCategoryName,
         createdAt: new Date(),
         parentId: null,
-      });
+      };
 
-      // Refresh categories
-      const q = query(
-        collection(db, "categorias"),
-        where("parentId", "==", null)
-      );
-      const snapshot = await getDocs(q);
-      const categoriesData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setCategories(categoriesData);
+      await setDoc(doc(db, "categorias", newCategoryId), newCategory);
 
-      // Reset and close dialog
+      // USAR cache em vez de refetch
+      addCategoryToCache(newCategory);
+
       setNewCategoryName("");
       setNewCategoryDialogOpen(false);
 
-      // Set the newly created category as selected
       setFormData((prev) => ({
         ...prev,
-        categoryId: newCategoryId.toString(),
-        subcategoryId: "none", // Reset subcategory to "none"
+        categoryId: newCategoryId,
+        subcategoryId: "none",
       }));
     } catch (err) {
       console.error("Erro ao adicionar categoria:", err);
       setError("Erro ao adicionar categoria. Por favor, tente novamente.");
+    } finally {
+      setIsCreatingCategory(false);
     }
   };
 
@@ -262,55 +220,39 @@ const AddPart = () => {
     if (
       !newSubcategoryName.trim() ||
       !formData.categoryId ||
-      formData.categoryId === "none"
+      formData.categoryId === "none" ||
+      isCreatingSubcategory
     ) {
       return;
     }
 
     try {
-      const counterRef = doc(db, "counters", "categoriesCounter");
-      const counterSnapshot = await getDoc(counterRef);
+      setIsCreatingSubcategory(true);
+      setError(null);
 
-      let newSubcategoryId;
-      if (counterSnapshot.exists()) {
-        const currentCounter = counterSnapshot.data().count;
-        newSubcategoryId = currentCounter + 1;
-        await setDoc(counterRef, { count: increment(1) }, { merge: true });
-      } else {
-        newSubcategoryId = 1;
-        await setDoc(counterRef, { count: 1 });
-      }
+      const newSubcategoryId = generateUniqueId();
 
-      await setDoc(doc(db, "categorias", newSubcategoryId.toString()), {
+      const newSubcategory = {
+        id: newSubcategoryId,
         name: newSubcategoryName,
         createdAt: new Date(),
         parentId: formData.categoryId,
-      });
+      };
 
-      // Refresh subcategories
-      const q = query(
-        collection(db, "categorias"),
-        where("parentId", "==", formData.categoryId)
-      );
-      const snapshot = await getDocs(q);
-      const subcategoriesData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setSubcategories(subcategoriesData);
+      await setDoc(doc(db, "categorias", newSubcategoryId), newSubcategory);
+      addCategoryToCache(newSubcategory);
 
-      // Reset and close dialog
       setNewSubcategoryName("");
       setNewSubcategoryDialogOpen(false);
-
-      // Set the newly created subcategory as selected
       setFormData((prev) => ({
         ...prev,
-        subcategoryId: newSubcategoryId.toString(),
+        subcategoryId: newSubcategoryId,
       }));
     } catch (err) {
       console.error("Erro ao adicionar subcategoria:", err);
       setError("Erro ao adicionar subcategoria. Por favor, tente novamente.");
+    } finally {
+      setIsCreatingSubcategory(false);
     }
   };
 
@@ -333,7 +275,7 @@ const AddPart = () => {
 
       const newPartId = await getNextPartId();
 
-      // Find category and subcategory names
+      // Find category and subcategory names USANDO CACHE
       let categoryName = "";
       let subcategoryName = "";
       let formDataToSave = { ...formData };
@@ -383,6 +325,20 @@ const AddPart = () => {
       setIsSubmitting(false);
     }
   };
+
+  // Loading state para categorias
+  if (categoriesLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-white" />
+      </div>
+    );
+  }
+
+  // Mostrar erro das categorias se houver
+  if (categoriesError && !error) {
+    setError(categoriesError);
+  }
 
   return (
     <div className="space-y-6">
@@ -549,7 +505,7 @@ const AddPart = () => {
               </div>
             </div>
 
-            {/* Category Selection */}
+            {/* Category Selection - USANDO CACHE */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-zinc-400">
@@ -589,7 +545,7 @@ const AddPart = () => {
               </select>
             </div>
 
-            {/* Subcategory Selection (only if category is selected) */}
+            {/* Subcategory Selection - USANDO CACHE */}
             {formData.categoryId && formData.categoryId !== "none" && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

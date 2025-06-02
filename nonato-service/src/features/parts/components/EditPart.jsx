@@ -1,15 +1,8 @@
 import { useState, useEffect } from "react";
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  collection,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../../../firebase.jsx";
+import { useCategories } from "../../../context/CategoriesContext.jsx"; // NOVO
 import {
   ArrowLeft,
   Camera,
@@ -50,6 +43,15 @@ const EditPart = () => {
   const { partId } = useParams();
   const navigate = useNavigate();
 
+  // USAR cache de categorias em vez de state local
+  const {
+    categories,
+    getSubcategoriesByParent,
+    addCategoryToCache,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+  } = useCategories();
+
   const [formData, setFormData] = useState({
     name: "",
     code: "",
@@ -59,8 +61,10 @@ const EditPart = () => {
     subcategoryId: "none",
   });
 
-  const [categories, setCategories] = useState([]);
-  const [subcategories, setSubcategories] = useState([]);
+  // REMOVER: states de categories e subcategories
+  // const [categories, setCategories] = useState([]);
+  // const [subcategories, setSubcategories] = useState([]);
+
   const [imagePreview, setImagePreview] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -72,6 +76,21 @@ const EditPart = () => {
   const [newSubcategoryDialogOpen, setNewSubcategoryDialogOpen] =
     useState(false);
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [isCreatingSubcategory, setIsCreatingSubcategory] = useState(false);
+
+  // Função para gerar IDs únicos
+  const generateUniqueId = () => {
+    return `${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}-${Math.floor(Math.random() * 10000)}`;
+  };
+
+  // Buscar subcategorias usando o cache
+  const subcategories =
+    formData.categoryId && formData.categoryId !== "none"
+      ? getSubcategoriesByParent(formData.categoryId)
+      : [];
 
   // Fetch part data
   useEffect(() => {
@@ -109,54 +128,11 @@ const EditPart = () => {
     fetchPart();
   }, [partId]);
 
-  // Fetch categories
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const q = query(
-          collection(db, "categorias"),
-          where("parentId", "==", null)
-        );
-        const snapshot = await getDocs(q);
-        const categoriesData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setCategories(categoriesData);
-      } catch (err) {
-        console.error("Erro ao buscar categorias:", err);
-      }
-    };
-
-    fetchCategories();
-  }, []);
-
-  // Fetch subcategories when category changes
-  useEffect(() => {
-    const fetchSubcategories = async () => {
-      if (!formData.categoryId || formData.categoryId === "none") {
-        setSubcategories([]);
-        return;
-      }
-
-      try {
-        const q = query(
-          collection(db, "categorias"),
-          where("parentId", "==", formData.categoryId)
-        );
-        const snapshot = await getDocs(q);
-        const subcategoriesData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setSubcategories(subcategoriesData);
-      } catch (err) {
-        console.error("Erro ao buscar subcategorias:", err);
-      }
-    };
-
-    fetchSubcategories();
-  }, [formData.categoryId]);
+  // REMOVER: useEffect que buscava categorias
+  // useEffect(() => {
+  //   const fetchCategories = async () => { ... }
+  //   fetchCategories();
+  // }, []);
 
   // Reset subcategoryId when categoryId changes to none
   useEffect(() => {
@@ -173,9 +149,7 @@ const EditPart = () => {
 
     // Handle price formatting
     if (name === "price") {
-      // Allow only numbers and decimal point
       const formattedValue = value.replace(/[^\d.]/g, "");
-      // Ensure only one decimal point
       const parts = formattedValue.split(".");
       const formattedPrice =
         parts.length > 1
@@ -214,39 +188,30 @@ const EditPart = () => {
   };
 
   const handleAddCategory = async () => {
-    if (!newCategoryName.trim()) {
-      return;
-    }
+    if (!newCategoryName.trim() || isCreatingCategory) return;
 
     try {
-      // Generate new ID
-      const q = query(collection(db, "categorias"));
-      const snapshot = await getDocs(q);
-      const newCategoryId = (snapshot.size + 1).toString();
+      setIsCreatingCategory(true);
+      setError(null);
 
-      await setDoc(doc(db, "categorias", newCategoryId), {
+      // Gerar ID único mais robusto
+      const newCategoryId = generateUniqueId();
+
+      const newCategory = {
+        id: newCategoryId,
         name: newCategoryName,
         createdAt: new Date(),
         parentId: null,
-      });
+      };
 
-      // Refresh categories
-      const categoriesQuery = query(
-        collection(db, "categorias"),
-        where("parentId", "==", null)
-      );
-      const categoriesSnapshot = await getDocs(categoriesQuery);
-      const categoriesData = categoriesSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setCategories(categoriesData);
+      await setDoc(doc(db, "categorias", newCategoryId), newCategory);
 
-      // Reset and close dialog
+      // USAR cache em vez de refetch
+      addCategoryToCache(newCategory);
+
       setNewCategoryName("");
       setNewCategoryDialogOpen(false);
 
-      // Set the newly created category as selected
       setFormData((prev) => ({
         ...prev,
         categoryId: newCategoryId,
@@ -255,6 +220,8 @@ const EditPart = () => {
     } catch (err) {
       console.error("Erro ao adicionar categoria:", err);
       setError("Erro ao adicionar categoria. Por favor, tente novamente.");
+    } finally {
+      setIsCreatingCategory(false);
     }
   };
 
@@ -262,59 +229,49 @@ const EditPart = () => {
     if (
       !newSubcategoryName.trim() ||
       !formData.categoryId ||
-      formData.categoryId === "none"
+      formData.categoryId === "none" ||
+      isCreatingSubcategory
     ) {
       return;
     }
 
     try {
-      // Generate new ID
-      const q = query(collection(db, "categorias"));
-      const snapshot = await getDocs(q);
-      const newSubcategoryId = (snapshot.size + 1).toString();
+      setIsCreatingSubcategory(true);
+      setError(null);
 
-      await setDoc(doc(db, "categorias", newSubcategoryId), {
+      const newSubcategoryId = generateUniqueId();
+
+      const newSubcategory = {
+        id: newSubcategoryId,
         name: newSubcategoryName,
         createdAt: new Date(),
         parentId: formData.categoryId,
-      });
+      };
 
-      // Refresh subcategories
-      const subcategoriesQuery = query(
-        collection(db, "categorias"),
-        where("parentId", "==", formData.categoryId)
-      );
-      const subcategoriesSnapshot = await getDocs(subcategoriesQuery);
-      const subcategoriesData = subcategoriesSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setSubcategories(subcategoriesData);
+      await setDoc(doc(db, "categorias", newSubcategoryId), newSubcategory);
+      addCategoryToCache(newSubcategory);
 
-      // Reset and close dialog
       setNewSubcategoryName("");
       setNewSubcategoryDialogOpen(false);
-
-      // Set the newly created subcategory as selected
-      setFormData((prev) => ({ ...prev, subcategoryId: newSubcategoryId }));
+      setFormData((prev) => ({
+        ...prev,
+        subcategoryId: newSubcategoryId,
+      }));
     } catch (err) {
       console.error("Erro ao adicionar subcategoria:", err);
       setError("Erro ao adicionar subcategoria. Por favor, tente novamente.");
+    } finally {
+      setIsCreatingSubcategory(false);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Set all fields as touched for validation
     const allFields = { name: true, code: true, price: true };
     setTouched((prev) => ({ ...prev, ...allFields }));
 
-    // Validate required fields
-    if (
-      !formData.name.trim() ||
-      !formData.code.trim()
-    ) {
+    if (!formData.name.trim() || !formData.code.trim()) {
       setError("Os campos Nome e Código são obrigatórios");
       return;
     }
@@ -323,12 +280,11 @@ const EditPart = () => {
       setIsSubmitting(true);
       setError(null);
 
-      // Find category and subcategory names
+      // Find category and subcategory names USANDO CACHE
       let categoryName = "";
       let subcategoryName = "";
       let formDataToSave = { ...formData };
 
-      // Convert "none" values to empty strings
       if (formDataToSave.categoryId === "none") {
         formDataToSave.categoryId = "";
       }
@@ -386,12 +342,18 @@ const EditPart = () => {
         formData.subcategoryId !== originalData.subcategoryId) ||
       imagePreview !== originalData.image);
 
-  if (isLoading) {
+  // Loading state para categorias ou peça
+  if (isLoading || categoriesLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
+  }
+
+  // Mostrar erro das categorias se houver
+  if (categoriesError && !error) {
+    setError(categoriesError);
   }
 
   return (
@@ -537,9 +499,6 @@ const EditPart = () => {
                   }`}
                 />
               </div>
-              {touched.price && !formData.price && (
-                <p className="text-sm text-red-500">Preço é obrigatório</p>
-              )}
             </div>
 
             {/* Description Field */}
@@ -559,7 +518,7 @@ const EditPart = () => {
               </div>
             </div>
 
-            {/* Category Selection */}
+            {/* Category Selection - USANDO CACHE */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-zinc-400">
@@ -599,7 +558,7 @@ const EditPart = () => {
               </select>
             </div>
 
-            {/* Subcategory Selection (only if category is selected) */}
+            {/* Subcategory Selection - USANDO CACHE */}
             {formData.categoryId && formData.categoryId !== "none" && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

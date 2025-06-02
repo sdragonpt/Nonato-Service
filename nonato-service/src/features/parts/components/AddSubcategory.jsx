@@ -1,16 +1,8 @@
 import { useState, useEffect } from "react";
-import {
-  doc,
-  setDoc,
-  getDoc,
-  increment,
-  collection,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
+import { doc, setDoc, getDoc, increment } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useNavigate, useParams } from "react-router-dom";
+import { useCategories } from "../../../context/CategoriesContext.jsx"; // NOVO
 import { ArrowLeft, Loader2, Plus, AlertTriangle, Tag } from "lucide-react";
 
 // UI Components
@@ -28,43 +20,43 @@ import { Textarea } from "@/components/ui/textarea.jsx";
 const AddSubcategory = () => {
   const { categoryId } = useParams();
   const navigate = useNavigate();
+
+  // USAR cache de categorias
+  const {
+    getCategoryById,
+    addCategoryToCache,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+  } = useCategories();
+
   const [parentCategory, setParentCategory] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [touched, setTouched] = useState({});
 
+  // USAR cache em vez de fetch direto
   useEffect(() => {
-    const fetchParentCategory = async () => {
-      try {
-        setIsLoading(true);
-        const categoryDoc = doc(db, "categorias", categoryId);
-        const categorySnapshot = await getDoc(categoryDoc);
-
-        if (!categorySnapshot.exists()) {
-          setError("Categoria pai não encontrada");
-          return;
-        }
-
-        setParentCategory({
-          id: categorySnapshot.id,
-          ...categorySnapshot.data(),
-        });
+    if (!categoriesLoading) {
+      const category = getCategoryById(categoryId);
+      if (category) {
+        setParentCategory(category);
         setError(null);
-      } catch (err) {
-        console.error("Erro ao carregar categoria pai:", err);
-        setError("Erro ao carregar categoria pai. Por favor, tente novamente.");
-      } finally {
-        setIsLoading(false);
+      } else {
+        setError("Categoria pai não encontrada");
       }
-    };
+    }
+  }, [categoryId, getCategoryById, categoriesLoading]);
 
-    fetchParentCategory();
-  }, [categoryId]);
+  // Mostrar erro das categorias se houver
+  useEffect(() => {
+    if (categoriesError) {
+      setError(categoriesError);
+    }
+  }, [categoriesError]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -108,11 +100,22 @@ const AddSubcategory = () => {
       setError(null);
 
       const newSubcategoryId = await getNextCategoryId();
-      await setDoc(doc(db, "categorias", newSubcategoryId.toString()), {
+
+      const newSubcategory = {
+        id: newSubcategoryId.toString(),
         ...formData,
         createdAt: new Date(),
         parentId: categoryId, // Referência à categoria pai
+      };
+
+      await setDoc(doc(db, "categorias", newSubcategoryId.toString()), {
+        ...formData,
+        createdAt: new Date(),
+        parentId: categoryId,
       });
+
+      // NOVO: Adicionar subcategoria ao cache para evitar nova leitura
+      addCategoryToCache(newSubcategory);
 
       navigate("/app/parts-library?tab=categories");
     } catch (err) {
@@ -123,7 +126,8 @@ const AddSubcategory = () => {
     }
   };
 
-  if (isLoading) {
+  // Loading state
+  if (categoriesLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
@@ -160,19 +164,21 @@ const AddSubcategory = () => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Parent Category Info */}
-        <Card className="bg-zinc-800 border-zinc-700">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <Tag className="h-5 w-5 text-blue-500" />
-              <div>
-                <p className="text-sm text-zinc-400">Categoria Principal:</p>
-                <p className="text-base font-medium text-white">
-                  {parentCategory?.name}
-                </p>
+        {parentCategory && (
+          <Card className="bg-zinc-800 border-zinc-700">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <Tag className="h-5 w-5 text-blue-500" />
+                <div>
+                  <p className="text-sm text-zinc-400">Categoria Principal:</p>
+                  <p className="text-base font-medium text-white">
+                    {parentCategory.name}
+                  </p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Subcategory Information Card */}
         <Card className="bg-zinc-800 border-zinc-700">
@@ -225,7 +231,7 @@ const AddSubcategory = () => {
         {/* Submit Button */}
         <Button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || !parentCategory}
           className="w-full bg-green-600 hover:bg-green-700"
         >
           {isSubmitting ? (
