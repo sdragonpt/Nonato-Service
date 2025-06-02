@@ -1,4 +1,4 @@
-// PublicShop.jsx - OTIMIZADO com paginação real Firestore
+// PublicShop.jsx - OTIMIZADO com sistema de busca inteligente e paginação real
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
@@ -72,13 +72,13 @@ const PublicShop = ({
   requestCartAccess,
   userToken,
 }) => {
-  // ✅ NOVA ESTRUTURA - Paginação Real
+  // ✅ NOVA ESTRUTURA - Paginação Real Otimizada
   const [parts, setParts] = useState([]);
   const [lastVisible, setLastVisible] = useState(null);
   const [hasMore, setHasMore] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [totalLoadedCount, setTotalLoadedCount] = useState(0);
 
-  // Cache de categorias
+  // USAR cache de categorias
   const {
     categories,
     getSubcategoriesByParent,
@@ -89,9 +89,11 @@ const PublicShop = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Filters
+  // ✅ BUSCA OTIMIZADA - Debounce para evitar muitas consultas
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
+  // Filters
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedSubcategory, setSelectedSubcategory] = useState("all");
   const [sortBy, setSortBy] = useState("name");
@@ -102,8 +104,8 @@ const PublicShop = ({
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
-  // ✅ PAGINAÇÃO REAL
-  const itemsPerPage = 12;
+  // ✅ PAGINAÇÃO REAL - Substituindo paginação client-side
+  const itemsPerPage = 12; // Menor para mobile, melhor UX
 
   // Cart
   const [cart, setCart] = useState([]);
@@ -135,6 +137,15 @@ const PublicShop = ({
     };
   }, []);
 
+  // ✅ DEBOUNCE OTIMIZADO - Evita consultas desnecessárias
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // 500ms de delay
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   // Scroll to top button
   useEffect(() => {
     const handleScroll = () => {
@@ -165,47 +176,71 @@ const PublicShop = ({
     return () => window.removeEventListener("resize", checkDeviceType);
   }, []);
 
-  // ✅ DEBOUNCE para busca - evita consultas excessivas
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
-  // ✅ FUNÇÃO OTIMIZADA - só busca uma página por vez
+  // ✅ FUNÇÃO OTIMIZADA DE BUSCA - Similar ao ManagePartsLibrary
   const fetchParts = useCallback(
     async (reset = false) => {
       try {
-        if (reset) {
-          setIsLoading(true);
-        } else {
-          setIsLoadingMore(true);
-        }
+        setIsLoading(true);
         setError(null);
 
         // Construir query base
         let q = query(collection(db, "pecas"));
 
-        // Aplicar filtros de categoria
+        // Aplicar filtros de categoria/subcategoria
         if (selectedCategory !== "all") {
           q = query(q, where("categoryId", "==", selectedCategory));
         }
-
         if (selectedSubcategory !== "all") {
           q = query(q, where("subcategoryId", "==", selectedSubcategory));
         }
 
-        // ⚠️ NOTA: Para busca por texto, idealmente usar Algolia ou similar
-        // Por enquanto, busca será feita localmente nos dados já carregados
+        // ✅ LÓGICA DE BUSCA OTIMIZADA
         if (debouncedSearchTerm) {
-          console.log("Busca ativa:", debouncedSearchTerm);
-          // Aqui não filtramos na query, faremos localmente
+          console.log("🔍 Busca ativa:", debouncedSearchTerm);
+
+          // Quando há busca, buscar TODOS os documentos que correspondem aos filtros
+          // Isso é mais eficiente que fazer múltiplas queries pequenas
+          const searchQuery = query(q, orderBy(sortBy, "asc"));
+          const searchSnapshot = await getDocs(searchQuery);
+
+          // Filtrar localmente pelos termos de busca
+          const allParts = searchSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+
+          const filteredParts = allParts.filter(
+            (part) =>
+              part.name
+                ?.toLowerCase()
+                .includes(debouncedSearchTerm.toLowerCase()) ||
+              part.code
+                ?.toLowerCase()
+                .includes(debouncedSearchTerm.toLowerCase()) ||
+              part.description
+                ?.toLowerCase()
+                .includes(debouncedSearchTerm.toLowerCase())
+          );
+
+          setParts(filteredParts);
+          setHasMore(false); // Não há paginação durante busca
+          setLastVisible(null);
+          setTotalLoadedCount(filteredParts.length);
+
+          console.log(
+            `📊 Busca concluída: ${filteredParts.length} peças encontradas de ${allParts.length} total`
+          );
+          setIsLoading(false);
+          return;
         }
 
+        // ✅ PAGINAÇÃO REAL QUANDO NÃO HÁ BUSCA
+        console.log(
+          `📄 Carregando página ${reset ? "inicial" : "seguinte"}...`
+        );
+
         // Aplicar ordenação
-        q = query(q, orderBy(sortBy));
+        q = query(q, orderBy(sortBy, "asc"));
 
         // Aplicar paginação
         if (lastVisible && !reset) {
@@ -220,10 +255,14 @@ const PublicShop = ({
           ...doc.data(),
         }));
 
+        console.log(`📦 ${partsData.length} peças carregadas`);
+
         if (reset) {
           setParts(partsData);
+          setTotalLoadedCount(partsData.length);
         } else {
           setParts((prev) => [...prev, ...partsData]);
+          setTotalLoadedCount((prev) => prev + partsData.length);
         }
 
         // Atualizar cursor para próxima página
@@ -234,15 +273,16 @@ const PublicShop = ({
         // Verificar se há mais páginas
         setHasMore(snapshot.docs.length === itemsPerPage);
       } catch (err) {
-        console.error("Erro ao carregar dados:", err);
+        console.error("❌ Erro ao buscar peças:", err);
         setError("Erro ao carregar peças. Por favor, tente novamente.");
 
-        // Fallback sem ordenação se houver erro de índice
+        // ✅ FALLBACK SEM ORDENAÇÃO
         if (
           err.code === "failed-precondition" ||
           err.message.includes("index")
         ) {
           try {
+            console.log("🔄 Tentando fallback sem ordenação...");
             let fallbackQuery = query(collection(db, "pecas"));
 
             if (selectedCategory !== "all") {
@@ -251,7 +291,6 @@ const PublicShop = ({
                 where("categoryId", "==", selectedCategory)
               );
             }
-
             if (selectedSubcategory !== "all") {
               fallbackQuery = query(
                 fallbackQuery,
@@ -259,72 +298,98 @@ const PublicShop = ({
               );
             }
 
-            if (lastVisible && !reset) {
-              fallbackQuery = query(fallbackQuery, startAfter(lastVisible));
-            }
+            if (debouncedSearchTerm) {
+              const fallbackSnapshot = await getDocs(fallbackQuery);
+              const allParts = fallbackSnapshot.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+              }));
 
-            fallbackQuery = query(fallbackQuery, limit(itemsPerPage));
-
-            const fallbackSnapshot = await getDocs(fallbackQuery);
-            const fallbackData = fallbackSnapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-            }));
-
-            if (reset) {
-              setParts(fallbackData);
-            } else {
-              setParts((prev) => [...prev, ...fallbackData]);
-            }
-
-            if (fallbackSnapshot.docs.length > 0) {
-              setLastVisible(
-                fallbackSnapshot.docs[fallbackSnapshot.docs.length - 1]
+              const filteredParts = allParts.filter(
+                (part) =>
+                  part.name
+                    ?.toLowerCase()
+                    .includes(debouncedSearchTerm.toLowerCase()) ||
+                  part.code
+                    ?.toLowerCase()
+                    .includes(debouncedSearchTerm.toLowerCase()) ||
+                  part.description
+                    ?.toLowerCase()
+                    .includes(debouncedSearchTerm.toLowerCase())
               );
-            }
 
-            setHasMore(fallbackSnapshot.docs.length === itemsPerPage);
+              setParts(filteredParts);
+              setHasMore(false);
+              setLastVisible(null);
+              setTotalLoadedCount(filteredParts.length);
+            } else {
+              if (lastVisible && !reset) {
+                fallbackQuery = query(
+                  fallbackQuery,
+                  startAfter(lastVisible),
+                  limit(itemsPerPage)
+                );
+              } else {
+                fallbackQuery = query(fallbackQuery, limit(itemsPerPage));
+              }
+
+              const fallbackSnapshot = await getDocs(fallbackQuery);
+              const fallbackData = fallbackSnapshot.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+              }));
+
+              if (reset) {
+                setParts(fallbackData);
+                setTotalLoadedCount(fallbackData.length);
+              } else {
+                setParts((prev) => [...prev, ...fallbackData]);
+                setTotalLoadedCount((prev) => prev + fallbackData.length);
+              }
+
+              if (fallbackSnapshot.docs.length > 0) {
+                setLastVisible(
+                  fallbackSnapshot.docs[fallbackSnapshot.docs.length - 1]
+                );
+              }
+
+              setHasMore(fallbackSnapshot.docs.length === itemsPerPage);
+            }
 
             setError(
-              "Ordenação temporariamente indisponível. Os dados estão sendo exibidos sem ordenação."
+              "⚠️ Ordenação temporariamente indisponível. Dados exibidos sem ordenação."
             );
           } catch (fallbackErr) {
-            console.error("Erro na consulta de fallback:", fallbackErr);
+            console.error("❌ Erro no fallback:", fallbackErr);
           }
         }
       } finally {
         setIsLoading(false);
-        setIsLoadingMore(false);
       }
     },
     [
+      sortBy,
       selectedCategory,
       selectedSubcategory,
-      sortBy,
       debouncedSearchTerm,
       lastVisible,
     ]
   );
 
-  // ✅ EFFECT OTIMIZADO - só recarrega quando necessário
+  // ✅ EFFECT OTIMIZADO - Só recarrega quando necessário
   useEffect(() => {
-    if (!categoriesLoading) {
-      setParts([]);
-      setLastVisible(null);
-      setHasMore(true);
-      fetchParts(true);
-    }
-  }, [
-    categoriesLoading,
-    selectedCategory,
-    selectedSubcategory,
-    sortBy,
-    debouncedSearchTerm,
-  ]);
+    console.log("🔄 Resetando dados e carregando...");
+    setParts([]);
+    setLastVisible(null);
+    setHasMore(true);
+    setTotalLoadedCount(0);
+    fetchParts(true);
+  }, [sortBy, selectedCategory, selectedSubcategory, debouncedSearchTerm]);
 
   // ✅ FUNÇÃO PARA CARREGAR MAIS
   const loadMore = () => {
-    if (hasMore && !isLoadingMore && !isLoading) {
+    if (hasMore && !isLoading && !debouncedSearchTerm) {
+      console.log("📄 Carregando mais peças...");
       fetchParts(false);
     }
   };
@@ -366,8 +431,9 @@ const PublicShop = ({
     }
   }, [canUseCart, userToken]);
 
-  // Add to cart
+  // Add to cart - NOVA LÓGICA
   const addToCart = (part) => {
+    // Se não pode usar carrinho, solicita acesso
     if (!canUseCart) {
       requestCartAccess();
       return;
@@ -430,30 +496,40 @@ const PublicShop = ({
     );
   };
 
-  // ✅ FILTROS LOCAIS APLICADOS APENAS AOS DADOS JÁ CARREGADOS
-  const getFilteredParts = () => {
-    let filtered = parts;
+  // ✅ FILTROS DE CATEGORIA SIMPLIFICADOS - Os filtros principais agora são server-side
+  const getDisplayParts = () => {
+    // Agora os parts já vêm filtrados do servidor
+    // Apenas aplicamos ordenação local se necessário
+    let filtered = [...parts];
 
-    // Filtro de busca local (nos dados já carregados)
-    if (searchTerm && searchTerm !== debouncedSearchTerm) {
-      // Busca local temporária enquanto aguarda debounce
-      filtered = filtered.filter(
-        (part) =>
-          part.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          part.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          part.description?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
+    // Ordenação local para melhor UX (já que os dados estão carregados)
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+        default:
+          return a.name?.localeCompare(b.name) || 0;
+        case "price":
+          return (a.price || 0) - (b.price || 0);
+        case "code":
+          return a.code?.localeCompare(b.code) || 0;
+      }
+    });
 
     return filtered;
   };
 
-  const displayParts = getFilteredParts();
+  const displayParts = getDisplayParts();
 
   // Reset subcategory when category changes
   const handleCategoryChange = (categoryId) => {
     setSelectedCategory(categoryId);
     setSelectedSubcategory("all");
+  };
+
+  // ✅ FUNÇÃO PARA LIMPAR BUSCA
+  const clearSearch = () => {
+    setSearchTerm("");
+    setDebouncedSearchTerm("");
   };
 
   // Handle quote form changes
@@ -543,18 +619,7 @@ const PublicShop = ({
     });
   };
 
-  // Get category count (dos dados já carregados)
-  const getCategoryCount = (categoryId) => {
-    if (categoryId === "all") return parts.length;
-    return parts.filter((part) => part.categoryId === categoryId).length;
-  };
-
-  // Get subcategory count (dos dados já carregados)
-  const getSubcategoryCount = (subcategoryId) => {
-    return parts.filter((part) => part.subcategoryId === subcategoryId).length;
-  };
-
-  // Mobile Category Menu
+  // Mobile Category Menu - ATUALIZADO
   const MobileCategoryMenu = () => (
     <Sheet open={isCategoriesOpen} onOpenChange={setIsCategoriesOpen}>
       <SheetContent
@@ -579,7 +644,6 @@ const PublicShop = ({
                 <Home className="h-4 w-4 mr-2" />
                 Todas as Categorias
               </span>
-              <span className="text-sm">({getCategoryCount("all")})</span>
             </button>
           </SheetClose>
 
@@ -599,9 +663,6 @@ const PublicShop = ({
                     }`}
                   >
                     <span className="font-medium">{category.name}</span>
-                    <span className="text-sm">
-                      ({getCategoryCount(category.id)})
-                    </span>
                   </button>
                 </SheetClose>
 
@@ -619,9 +680,6 @@ const PublicShop = ({
                           }`}
                         >
                           <span>• {subcategory.name}</span>
-                          <span className="text-xs">
-                            ({getSubcategoryCount(subcategory.id)})
-                          </span>
                         </button>
                       </SheetClose>
                     ))}
@@ -636,10 +694,13 @@ const PublicShop = ({
   );
 
   // Loading state
-  if (isLoading || categoriesLoading) {
+  if (isLoading && !parts.length) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-zinc-900">
-        <Loader2 className="h-8 w-8 animate-spin text-green-500" />
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-green-500 mx-auto mb-4" />
+          <p className="text-white">Carregando peças...</p>
+        </div>
       </div>
     );
   }
@@ -936,7 +997,6 @@ const PublicShop = ({
               }`}
             >
               <span>Todas as Categorias</span>
-              <span className="text-sm">({getCategoryCount("all")})</span>
             </button>
 
             {categories.map((category) => {
@@ -954,9 +1014,6 @@ const PublicShop = ({
                     }`}
                   >
                     <span className="font-medium">{category.name}</span>
-                    <span className="text-sm">
-                      ({getCategoryCount(category.id)})
-                    </span>
                   </button>
 
                   {/* Subcategorias */}
@@ -973,9 +1030,6 @@ const PublicShop = ({
                           }`}
                         >
                           <span>• {subcategory.name}</span>
-                          <span className="text-xs">
-                            ({getSubcategoryCount(subcategory.id)})
-                          </span>
                         </button>
                       ))}
                     </div>
@@ -1013,33 +1067,50 @@ const PublicShop = ({
             </div>
           )}
 
-          {/* Search and Filters */}
+          {/* ✅ SEARCH E FILTROS OTIMIZADOS */}
           <div className="mb-6 space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
               <Input
-                placeholder="Buscar peças..."
+                placeholder="Buscar peças por nome, código ou descrição..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                className="pl-10 pr-10 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
               />
               {searchTerm !== debouncedSearchTerm && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <div className="absolute right-10 top-1/2 -translate-y-1/2">
                   <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
                 </div>
+              )}
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearSearch}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-zinc-700"
+                >
+                  <X className="h-4 w-4 text-zinc-400" />
+                </Button>
               )}
             </div>
 
             {/* Desktop Filters */}
             <div className="hidden sm:flex justify-between items-center">
               <div className="text-sm text-zinc-400">
-                {displayParts.length > 0 && (
+                {debouncedSearchTerm ? (
+                  <span>
+                    <span className="font-medium text-white">
+                      {displayParts.length}
+                    </span>{" "}
+                    peças encontradas para "{debouncedSearchTerm}"
+                  </span>
+                ) : (
                   <span>
                     Mostrando{" "}
                     <span className="font-medium text-white">
                       {displayParts.length}
                     </span>{" "}
-                    peças carregadas
+                    peças
                     {hasMore && (
                       <span className="text-zinc-500">
                         {" "}
@@ -1057,7 +1128,13 @@ const PublicShop = ({
                       variant="outline"
                       className="border-zinc-700 text-white bg-zinc-800"
                     >
-                      <span className="mr-1">Ordenar</span>
+                      <span className="mr-1">
+                        {sortBy === "name"
+                          ? "Nome"
+                          : sortBy === "price"
+                          ? "Preço"
+                          : "Código"}
+                      </span>
                       <ChevronDown className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -1111,71 +1188,147 @@ const PublicShop = ({
             </div>
           </div>
 
-          {/* Products Grid/List */}
-          {error ? (
+          {/* ✅ INDICADOR DE BUSCA ATIVA */}
+          {debouncedSearchTerm && (
+            <div className="mb-4 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <Search className="h-4 w-4 text-blue-400" />
+                <span className="text-blue-400 text-sm">
+                  Resultados da busca por "{debouncedSearchTerm}" •{" "}
+                  {displayParts.length} peças encontradas
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearSearch}
+                  className="ml-auto h-6 px-2 text-blue-400 hover:text-white hover:bg-blue-600/20"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Limpar
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Error Alert */}
+          {error && (
             <Alert
               variant="destructive"
-              className="border-red-500 bg-red-500/10"
+              className="border-red-500 bg-red-500/10 mb-6"
             >
               <AlertDescription className="text-red-400">
                 {error}
               </AlertDescription>
             </Alert>
-          ) : (
-            <div
-              className={
-                viewMode === "grid"
-                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                  : "space-y-4"
-              }
-            >
-              {displayParts.map((part) => (
-                <Card
-                  key={part.id}
-                  className="bg-zinc-800 border-zinc-700 hover:border-zinc-600 transition-colors"
-                >
-                  <CardContent
-                    className={viewMode === "grid" ? "p-4" : "p-4 flex gap-4"}
-                  >
-                    {viewMode === "grid" ? (
-                      <>
-                        {part.image && (
-                          <div className="w-full h-48 mb-4 bg-zinc-700 rounded-lg overflow-hidden">
-                            <img
-                              src={part.image}
-                              alt={part.name}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                            />
-                          </div>
-                        )}
-                        <div className="space-y-2">
-                          <div>
-                            <h3 className="font-medium text-lg text-white">
-                              {part.name}
-                            </h3>
-                            <p className="text-sm text-zinc-400">
-                              Código: {part.code}
-                            </p>
-                          </div>
+          )}
 
+          {/* Products Grid/List */}
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                : "space-y-4"
+            }
+          >
+            {displayParts.map((part) => (
+              <Card
+                key={part.id}
+                className="bg-zinc-800 border-zinc-700 hover:border-zinc-600 transition-colors"
+              >
+                <CardContent
+                  className={viewMode === "grid" ? "p-4" : "p-4 flex gap-4"}
+                >
+                  {viewMode === "grid" ? (
+                    <>
+                      {part.image && (
+                        <div className="w-full h-48 mb-4 bg-zinc-700 rounded-lg overflow-hidden">
+                          <img
+                            src={part.image}
+                            alt={part.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        <div>
+                          <h3 className="font-medium text-lg text-white">
+                            {part.name}
+                          </h3>
+                          <p className="text-sm text-zinc-400">
+                            Código: {part.code}
+                          </p>
+                        </div>
+
+                        {part.categoryName && (
+                          <Badge
+                            variant="secondary"
+                            className="bg-zinc-700 text-zinc-300"
+                          >
+                            {part.categoryName}
+                          </Badge>
+                        )}
+
+                        {part.description && (
+                          <p className="text-sm text-zinc-400 line-clamp-2">
+                            {part.description}
+                          </p>
+                        )}
+
+                        <Button
+                          className={`w-full mt-4 ${
+                            canUseCart
+                              ? "bg-green-600 hover:bg-green-700"
+                              : "bg-amber-600 hover:bg-amber-700"
+                          }`}
+                          onClick={() => addToCart(part)}
+                        >
+                          {canUseCart ? (
+                            <>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Adicionar ao Carrinho
+                            </>
+                          ) : (
+                            <>
+                              <Shield className="h-4 w-4 mr-2" />
+                              Solicitar Acesso
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {part.image && (
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 bg-zinc-700 rounded-lg overflow-hidden">
+                          <img
+                            src={part.image}
+                            alt={part.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                        <div>
+                          <h3 className="font-medium text-lg text-white">
+                            {part.name}
+                          </h3>
+                          <p className="text-sm text-zinc-400">
+                            Código: {part.code}
+                          </p>
                           {part.categoryName && (
                             <Badge
                               variant="secondary"
-                              className="bg-zinc-700 text-zinc-300"
+                              className="bg-zinc-700 text-zinc-300 mt-1"
                             >
                               {part.categoryName}
                             </Badge>
                           )}
-
-                          {part.description && (
-                            <p className="text-sm text-zinc-400 line-clamp-2">
-                              {part.description}
-                            </p>
-                          )}
-
+                        </div>
+                        <div className="mt-2 sm:mt-0">
                           <Button
-                            className={`w-full mt-4 ${
+                            className={`w-full sm:w-auto ${
                               canUseCart
                                 ? "bg-green-600 hover:bg-green-700"
                                 : "bg-amber-600 hover:bg-amber-700"
@@ -1185,122 +1338,88 @@ const PublicShop = ({
                             {canUseCart ? (
                               <>
                                 <Plus className="h-4 w-4 mr-2" />
-                                Adicionar ao Carrinho
+                                {isMobile
+                                  ? "Adicionar"
+                                  : "Adicionar ao Carrinho"}
                               </>
                             ) : (
                               <>
                                 <Shield className="h-4 w-4 mr-2" />
-                                Solicitar Acesso
+                                {isMobile ? "Acesso" : "Solicitar Acesso"}
                               </>
                             )}
                           </Button>
                         </div>
-                      </>
-                    ) : (
-                      <>
-                        {part.image && (
-                          <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 bg-zinc-700 rounded-lg overflow-hidden">
-                            <img
-                              src={part.image}
-                              alt={part.name}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                            />
-                          </div>
-                        )}
-                        <div className="flex-1 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                          <div>
-                            <h3 className="font-medium text-lg text-white">
-                              {part.name}
-                            </h3>
-                            <p className="text-sm text-zinc-400">
-                              Código: {part.code}
-                            </p>
-                            {part.categoryName && (
-                              <Badge
-                                variant="secondary"
-                                className="bg-zinc-700 text-zinc-300 mt-1"
-                              >
-                                {part.categoryName}
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="mt-2 sm:mt-0">
-                            <Button
-                              className={`w-full sm:w-auto ${
-                                canUseCart
-                                  ? "bg-green-600 hover:bg-green-700"
-                                  : "bg-amber-600 hover:bg-amber-700"
-                              }`}
-                              onClick={() => addToCart(part)}
-                            >
-                              {canUseCart ? (
-                                <>
-                                  <Plus className="h-4 w-4 mr-2" />
-                                  {isMobile
-                                    ? "Adicionar"
-                                    : "Adicionar ao Carrinho"}
-                                </>
-                              ) : (
-                                <>
-                                  <Shield className="h-4 w-4 mr-2" />
-                                  {isMobile ? "Acesso" : "Solicitar Acesso"}
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
 
-              {displayParts.length === 0 && !isLoading && !isLoadingMore && (
-                <Card className="bg-zinc-800 border-zinc-700 col-span-full">
-                  <CardContent className="p-8 text-center">
-                    <Search className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-                    <p className="text-lg font-medium mb-2 text-white">
-                      Nenhuma peça encontrada
-                    </p>
-                    <p className="text-zinc-400">
-                      Tente ajustar seus filtros ou buscar por outros termos
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
+            {displayParts.length === 0 && !isLoading && (
+              <Card className="bg-zinc-800 border-zinc-700 col-span-full">
+                <CardContent className="p-8 text-center">
+                  <Search className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
+                  <p className="text-lg font-medium mb-2 text-white">
+                    Nenhuma peça encontrada
+                  </p>
+                  <p className="text-zinc-400">
+                    {debouncedSearchTerm
+                      ? `Tente buscar por outros termos ou limpe o filtro de busca`
+                      : `Tente ajustar seus filtros ou categorias`}
+                  </p>
+                  {debouncedSearchTerm && (
+                    <Button
+                      onClick={clearSearch}
+                      className="mt-4 bg-zinc-700 hover:bg-zinc-600"
+                    >
+                      Limpar Busca
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
 
-          {/* ✅ NOVA SEÇÃO "CARREGAR MAIS" */}
-          {hasMore && (
+          {/* ✅ NOVA PAGINAÇÃO COM "CARREGAR MAIS" - só aparece quando NÃO está pesquisando */}
+          {hasMore && !debouncedSearchTerm && (
             <div className="flex justify-center mt-8">
               <Button
                 onClick={loadMore}
-                disabled={isLoadingMore}
-                className="bg-green-600 hover:bg-green-700 px-8 py-3"
+                disabled={isLoading}
+                className="bg-green-600 hover:bg-green-700"
               >
-                {isLoadingMore ? (
+                {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Carregando mais...
+                    Carregando...
                   </>
                 ) : (
                   <>
                     <Plus className="w-4 h-4 mr-2" />
-                    Carregar Mais ({itemsPerPage} itens)
+                    Carregar Mais ({itemsPerPage} peças)
                   </>
                 )}
               </Button>
             </div>
           )}
 
-          {!hasMore && parts.length > 0 && (
+          {!hasMore && displayParts.length > 0 && !debouncedSearchTerm && (
             <div className="text-center mt-8">
               <p className="text-zinc-400">
-                Todas as peças disponíveis foram carregadas ({parts.length}{" "}
-                total)
+                ✅ Todas as peças foram carregadas ({totalLoadedCount} total)
               </p>
+            </div>
+          )}
+
+          {/* Loading indicator for more data */}
+          {isLoading && displayParts.length > 0 && (
+            <div className="flex justify-center mt-8">
+              <div className="flex items-center gap-2 text-zinc-400">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Carregando mais peças...</span>
+              </div>
             </div>
           )}
         </main>
@@ -1446,20 +1565,6 @@ const PublicShop = ({
               <div className="space-y-4">
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-zinc-300 flex items-center">
-                    Nome <span className="text-red-400 ml-1">*</span>
-                  </label>
-                  <Input
-                    name="name"
-                    value={quoteFormData.name}
-                    onChange={handleQuoteFormChange}
-                    className="bg-zinc-700 border-zinc-600 text-white h-10"
-                    placeholder="Seu nome completo"
-                    readOnly={!!userToken?.name}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-zinc-300 flex items-center">
                     Email <span className="text-red-400 ml-1">*</span>
                   </label>
                   <Input
@@ -1574,6 +1679,13 @@ const PublicShop = ({
 
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
+        }
+
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
         }
       `}</style>
     </div>
