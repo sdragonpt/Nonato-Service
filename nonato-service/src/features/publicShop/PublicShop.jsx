@@ -1,6 +1,6 @@
-// PublicShop.jsx - OTIMIZADO para usar cache de categorias COM SUBCATEGORIAS
+// PublicShop.jsx - OTIMIZADO com paginação real Firestore
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   collection,
   getDocs,
@@ -9,10 +9,11 @@ import {
   where,
   addDoc,
   limit,
+  startAfter,
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
-import { useCategories } from "../../context/CategoriesContext.jsx"; // NOVO
+import { useCategories } from "../../context/CategoriesContext.jsx";
 import {
   Search,
   Loader2,
@@ -71,9 +72,13 @@ const PublicShop = ({
   requestCartAccess,
   userToken,
 }) => {
+  // ✅ NOVA ESTRUTURA - Paginação Real
   const [parts, setParts] = useState([]);
+  const [lastVisible, setLastVisible] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // USAR cache de categorias em vez de state local
+  // Cache de categorias
   const {
     categories,
     getSubcategoriesByParent,
@@ -81,14 +86,12 @@ const PublicShop = ({
     error: categoriesError,
   } = useCategories();
 
-  // REMOVER: state local de categories
-  // const [categories, setCategories] = useState([]);
-
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedSubcategory, setSelectedSubcategory] = useState("all");
   const [sortBy, setSortBy] = useState("name");
@@ -99,8 +102,7 @@ const PublicShop = ({
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
+  // ✅ PAGINAÇÃO REAL
   const itemsPerPage = 12;
 
   // Cart
@@ -163,36 +165,169 @@ const PublicShop = ({
     return () => window.removeEventListener("resize", checkDeviceType);
   }, []);
 
-  // Load parts - OTIMIZADO (só busca peças, categorias vêm do cache)
+  // ✅ DEBOUNCE para busca - evita consultas excessivas
   useEffect(() => {
-    const fetchData = async () => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // ✅ FUNÇÃO OTIMIZADA - só busca uma página por vez
+  const fetchParts = useCallback(
+    async (reset = false) => {
       try {
-        setIsLoading(true);
+        if (reset) {
+          setIsLoading(true);
+        } else {
+          setIsLoadingMore(true);
+        }
         setError(null);
 
-        // Fetch apenas peças - categorias vêm do cache
-        const partsSnapshot = await getDocs(
-          query(collection(db, "pecas"), orderBy("name"))
-        );
+        // Construir query base
+        let q = query(collection(db, "pecas"));
 
-        const partsData = partsSnapshot.docs.map((doc) => ({
+        // Aplicar filtros de categoria
+        if (selectedCategory !== "all") {
+          q = query(q, where("categoryId", "==", selectedCategory));
+        }
+
+        if (selectedSubcategory !== "all") {
+          q = query(q, where("subcategoryId", "==", selectedSubcategory));
+        }
+
+        // ⚠️ NOTA: Para busca por texto, idealmente usar Algolia ou similar
+        // Por enquanto, busca será feita localmente nos dados já carregados
+        if (debouncedSearchTerm) {
+          console.log("Busca ativa:", debouncedSearchTerm);
+          // Aqui não filtramos na query, faremos localmente
+        }
+
+        // Aplicar ordenação
+        q = query(q, orderBy(sortBy));
+
+        // Aplicar paginação
+        if (lastVisible && !reset) {
+          q = query(q, startAfter(lastVisible));
+        }
+
+        q = query(q, limit(itemsPerPage));
+
+        const snapshot = await getDocs(q);
+        const partsData = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-        setParts(partsData);
+
+        if (reset) {
+          setParts(partsData);
+        } else {
+          setParts((prev) => [...prev, ...partsData]);
+        }
+
+        // Atualizar cursor para próxima página
+        if (snapshot.docs.length > 0) {
+          setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+        }
+
+        // Verificar se há mais páginas
+        setHasMore(snapshot.docs.length === itemsPerPage);
       } catch (err) {
         console.error("Erro ao carregar dados:", err);
         setError("Erro ao carregar peças. Por favor, tente novamente.");
+
+        // Fallback sem ordenação se houver erro de índice
+        if (
+          err.code === "failed-precondition" ||
+          err.message.includes("index")
+        ) {
+          try {
+            let fallbackQuery = query(collection(db, "pecas"));
+
+            if (selectedCategory !== "all") {
+              fallbackQuery = query(
+                fallbackQuery,
+                where("categoryId", "==", selectedCategory)
+              );
+            }
+
+            if (selectedSubcategory !== "all") {
+              fallbackQuery = query(
+                fallbackQuery,
+                where("subcategoryId", "==", selectedSubcategory)
+              );
+            }
+
+            if (lastVisible && !reset) {
+              fallbackQuery = query(fallbackQuery, startAfter(lastVisible));
+            }
+
+            fallbackQuery = query(fallbackQuery, limit(itemsPerPage));
+
+            const fallbackSnapshot = await getDocs(fallbackQuery);
+            const fallbackData = fallbackSnapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+
+            if (reset) {
+              setParts(fallbackData);
+            } else {
+              setParts((prev) => [...prev, ...fallbackData]);
+            }
+
+            if (fallbackSnapshot.docs.length > 0) {
+              setLastVisible(
+                fallbackSnapshot.docs[fallbackSnapshot.docs.length - 1]
+              );
+            }
+
+            setHasMore(fallbackSnapshot.docs.length === itemsPerPage);
+
+            setError(
+              "Ordenação temporariamente indisponível. Os dados estão sendo exibidos sem ordenação."
+            );
+          } catch (fallbackErr) {
+            console.error("Erro na consulta de fallback:", fallbackErr);
+          }
+        }
       } finally {
         setIsLoading(false);
+        setIsLoadingMore(false);
       }
-    };
+    },
+    [
+      selectedCategory,
+      selectedSubcategory,
+      sortBy,
+      debouncedSearchTerm,
+      lastVisible,
+    ]
+  );
 
-    // Só buscar peças quando categorias estiverem carregadas (ou não carregando)
+  // ✅ EFFECT OTIMIZADO - só recarrega quando necessário
+  useEffect(() => {
     if (!categoriesLoading) {
-      fetchData();
+      setParts([]);
+      setLastVisible(null);
+      setHasMore(true);
+      fetchParts(true);
     }
-  }, [categoriesLoading]);
+  }, [
+    categoriesLoading,
+    selectedCategory,
+    selectedSubcategory,
+    sortBy,
+    debouncedSearchTerm,
+  ]);
+
+  // ✅ FUNÇÃO PARA CARREGAR MAIS
+  const loadMore = () => {
+    if (hasMore && !isLoadingMore && !isLoading) {
+      fetchParts(false);
+    }
+  };
 
   // Mostrar erro das categorias se houver
   useEffect(() => {
@@ -231,9 +366,8 @@ const PublicShop = ({
     }
   }, [canUseCart, userToken]);
 
-  // Add to cart - NOVA LÓGICA
+  // Add to cart
   const addToCart = (part) => {
-    // Se não pode usar carrinho, solicita acesso
     if (!canUseCart) {
       requestCartAccess();
       return;
@@ -296,59 +430,30 @@ const PublicShop = ({
     );
   };
 
-  // Filter parts
-  const filteredParts = parts.filter((part) => {
-    const matchesSearch =
-      part.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      part.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      part.description?.toLowerCase().includes(searchTerm.toLowerCase());
+  // ✅ FILTROS LOCAIS APLICADOS APENAS AOS DADOS JÁ CARREGADOS
+  const getFilteredParts = () => {
+    let filtered = parts;
 
-    const matchesCategory =
-      selectedCategory === "all" || part.categoryId === selectedCategory;
-
-    const matchesSubcategory =
-      selectedSubcategory === "all" ||
-      part.subcategoryId === selectedSubcategory;
-
-    return matchesSearch && matchesCategory && matchesSubcategory;
-  });
-
-  // Sort parts
-  const sortedParts = [...filteredParts].sort((a, b) => {
-    switch (sortBy) {
-      case "name":
-      default:
-        return a.name.localeCompare(b.name);
+    // Filtro de busca local (nos dados já carregados)
+    if (searchTerm && searchTerm !== debouncedSearchTerm) {
+      // Busca local temporária enquanto aguarda debounce
+      filtered = filtered.filter(
+        (part) =>
+          part.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          part.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          part.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
-  });
 
-  // Pagination logic
-  const indexOfLastPart = currentPage * itemsPerPage;
-  const indexOfFirstPart = indexOfLastPart - itemsPerPage;
-  const currentParts = sortedParts.slice(indexOfFirstPart, indexOfLastPart);
-  const totalPages = Math.ceil(sortedParts.length / itemsPerPage);
-
-  const paginate = (pageNumber) => {
-    setCurrentPage(pageNumber);
-    window.scrollTo(0, 0);
+    return filtered;
   };
 
-  // Get category count
-  const getCategoryCount = (categoryId) => {
-    if (categoryId === "all") return parts.length;
-    return parts.filter((part) => part.categoryId === categoryId).length;
-  };
-
-  // Get subcategory count
-  const getSubcategoryCount = (subcategoryId) => {
-    return parts.filter((part) => part.subcategoryId === subcategoryId).length;
-  };
+  const displayParts = getFilteredParts();
 
   // Reset subcategory when category changes
   const handleCategoryChange = (categoryId) => {
     setSelectedCategory(categoryId);
     setSelectedSubcategory("all");
-    setCurrentPage(1);
   };
 
   // Handle quote form changes
@@ -436,6 +541,17 @@ const PublicShop = ({
       top: 0,
       behavior: "smooth",
     });
+  };
+
+  // Get category count (dos dados já carregados)
+  const getCategoryCount = (categoryId) => {
+    if (categoryId === "all") return parts.length;
+    return parts.filter((part) => part.categoryId === categoryId).length;
+  };
+
+  // Get subcategory count (dos dados já carregados)
+  const getSubcategoryCount = (subcategoryId) => {
+    return parts.filter((part) => part.subcategoryId === subcategoryId).length;
   };
 
   // Mobile Category Menu
@@ -907,18 +1023,29 @@ const PublicShop = ({
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
               />
+              {searchTerm !== debouncedSearchTerm && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
+                </div>
+              )}
             </div>
 
             {/* Desktop Filters */}
             <div className="hidden sm:flex justify-between items-center">
               <div className="text-sm text-zinc-400">
-                {sortedParts.length > 0 && (
+                {displayParts.length > 0 && (
                   <span>
                     Mostrando{" "}
                     <span className="font-medium text-white">
-                      {sortedParts.length}
+                      {displayParts.length}
                     </span>{" "}
-                    peças
+                    peças carregadas
+                    {hasMore && (
+                      <span className="text-zinc-500">
+                        {" "}
+                        (há mais disponíveis)
+                      </span>
+                    )}
                   </span>
                 )}
               </div>
@@ -1002,7 +1129,7 @@ const PublicShop = ({
                   : "space-y-4"
               }
             >
-              {currentParts.map((part) => (
+              {displayParts.map((part) => (
                 <Card
                   key={part.id}
                   className="bg-zinc-800 border-zinc-700 hover:border-zinc-600 transition-colors"
@@ -1129,7 +1256,7 @@ const PublicShop = ({
                 </Card>
               ))}
 
-              {sortedParts.length === 0 && (
+              {displayParts.length === 0 && !isLoading && !isLoadingMore && (
                 <Card className="bg-zinc-800 border-zinc-700 col-span-full">
                   <CardContent className="p-8 text-center">
                     <Search className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
@@ -1145,96 +1272,35 @@ const PublicShop = ({
             </div>
           )}
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-8">
+          {/* ✅ NOVA SEÇÃO "CARREGAR MAIS" */}
+          {hasMore && (
+            <div className="flex justify-center mt-8">
               <Button
-                variant="outline"
-                size="icon"
-                onClick={() => paginate(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+                onClick={loadMore}
+                disabled={isLoadingMore}
+                className="bg-green-600 hover:bg-green-700 px-8 py-3"
               >
-                <ChevronLeft className="h-4 w-4" />
+                {isLoadingMore ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Carregando mais...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Carregar Mais ({itemsPerPage} itens)
+                  </>
+                )}
               </Button>
+            </div>
+          )}
 
-              {!isMobile && currentPage > 3 && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => paginate(1)}
-                    className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-                  >
-                    1
-                  </Button>
-                  {currentPage > 4 && (
-                    <span className="text-zinc-400">...</span>
-                  )}
-                </>
-              )}
-
-              {Array.from({
-                length: Math.min(isMobile ? 3 : 5, totalPages),
-              }).map((_, i) => {
-                let pageNumber;
-                if (totalPages <= (isMobile ? 3 : 5)) {
-                  pageNumber = i + 1;
-                } else if (currentPage <= (isMobile ? 2 : 3)) {
-                  pageNumber = i + 1;
-                } else if (currentPage >= totalPages - (isMobile ? 1 : 2)) {
-                  pageNumber = totalPages - (isMobile ? 2 : 4) + i;
-                } else {
-                  pageNumber = currentPage - (isMobile ? 1 : 2) + i;
-                }
-
-                if (pageNumber >= 1 && pageNumber <= totalPages) {
-                  return (
-                    <Button
-                      key={pageNumber}
-                      variant={
-                        currentPage === pageNumber ? "secondary" : "outline"
-                      }
-                      size="icon"
-                      onClick={() => paginate(pageNumber)}
-                      className={`border-zinc-700 ${
-                        currentPage === pageNumber
-                          ? "bg-zinc-700 text-white hover:bg-zinc-600"
-                          : "text-white hover:bg-zinc-700 bg-zinc-800"
-                      }`}
-                    >
-                      {pageNumber}
-                    </Button>
-                  );
-                }
-                return null;
-              })}
-
-              {!isMobile && currentPage < totalPages - 2 && (
-                <>
-                  {currentPage < totalPages - 3 && (
-                    <span className="text-zinc-400">...</span>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => paginate(totalPages)}
-                    className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-                  >
-                    {totalPages}
-                  </Button>
-                </>
-              )}
-
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => paginate(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+          {!hasMore && parts.length > 0 && (
+            <div className="text-center mt-8">
+              <p className="text-zinc-400">
+                Todas as peças disponíveis foram carregadas ({parts.length}{" "}
+                total)
+              </p>
             </div>
           )}
         </main>

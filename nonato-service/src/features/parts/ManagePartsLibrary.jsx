@@ -1,4 +1,4 @@
-// ManagePartsLibrary.jsx - SIMPLIFICADO com paginação local
+// ManagePartsLibrary.jsx - OTIMIZADO com paginação real Firestore
 
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -8,6 +8,9 @@ import {
   deleteDoc,
   query,
   orderBy,
+  limit,
+  startAfter,
+  where,
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useNavigate } from "react-router-dom";
@@ -24,7 +27,6 @@ import {
   Tag,
   MoreVertical,
   RefreshCw,
-  Download,
   Book,
   ChevronRight,
   ArrowLeft,
@@ -66,13 +68,22 @@ import {
 } from "@/components/ui/tabs.jsx";
 
 const ManagePartsLibrary = () => {
+  // NOVA ESTRUTURA - Paginação Real
   const [parts, setParts] = useState([]);
+  const [lastVisible, setLastVisible] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+
+  // Estados de busca e filtros
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sortOrder, setSortOrder] = useState("asc");
   const [sortField, setSortField] = useState("name");
   const [filterCategory, setFilterCategory] = useState("all");
+
+  // Estados UI
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -80,13 +91,12 @@ const ManagePartsLibrary = () => {
   const [viewMode, setViewMode] = useState("grid");
   const [activeTab, setActiveTab] = useState("all");
 
-  // PAGINAÇÃO LOCAL SIMPLIFICADA
-  const [currentPage, setCurrentPage] = useState(1);
+  // PAGINAÇÃO REAL
   const itemsPerPage = 20;
 
   const navigate = useNavigate();
 
-  // Usar cache de categorias
+  // Cache de categorias
   const {
     categories,
     getSubcategoriesByParent,
@@ -94,63 +104,206 @@ const ManagePartsLibrary = () => {
     error: categoriesError,
   } = useCategories();
 
-  // Fetch parts SIMPLIFICADO - carrega todos
-  const fetchParts = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  // ✅ DEBOUNCE para busca - evita consultas excessivas
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
 
-      // Query simples - carrega todas as peças
-      const q = query(collection(db, "pecas"), orderBy(sortField, sortOrder));
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
-      const snapshot = await getDocs(q);
-      const partsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+  // ✅ FUNÇÃO OTIMIZADA - só busca uma página por vez
+  const fetchParts = useCallback(
+    async (reset = false) => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-      setParts(partsData);
-    } catch (err) {
-      console.error("Erro ao buscar peças:", err);
-      setError("Erro ao carregar peças. Por favor, tente novamente.");
+        // Construir query base
+        let q = query(collection(db, "pecas"));
 
-      // Fallback para queries sem índice
-      if (err.code === "failed-precondition" || err.message.includes("index")) {
-        try {
-          const fallbackQuery = query(collection(db, "pecas"));
-          const fallbackSnapshot = await getDocs(fallbackQuery);
-          const fallbackData = fallbackSnapshot.docs.map((doc) => ({
+        // Aplicar filtros se necessário
+        if (filterCategory !== "all") {
+          q = query(q, where("categoryId", "==", filterCategory));
+        }
+
+        // ✅ NOVA LÓGICA DE BUSCA - buscar em todos os documentos quando há termo de busca
+        if (debouncedSearchTerm) {
+          // Quando há busca, não aplicamos paginação para encontrar todos os resultados
+          console.log("Busca ativa:", debouncedSearchTerm);
+
+          // Buscar TODOS os documentos que correspondem aos filtros (sem limit)
+          const searchQuery = query(q, orderBy(sortField, sortOrder));
+          const searchSnapshot = await getDocs(searchQuery);
+
+          // Filtrar localmente pelos termos de busca
+          const allParts = searchSnapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
           }));
-          setParts(fallbackData);
 
-          setError(
-            "Ordenação temporariamente indisponível. Os dados estão sendo exibidos sem ordenação."
+          const filteredParts = allParts.filter(
+            (part) =>
+              part.name
+                ?.toLowerCase()
+                .includes(debouncedSearchTerm.toLowerCase()) ||
+              part.code
+                ?.toLowerCase()
+                .includes(debouncedSearchTerm.toLowerCase()) ||
+              part.description
+                ?.toLowerCase()
+                .includes(debouncedSearchTerm.toLowerCase())
           );
-        } catch (fallbackErr) {
-          console.error("Erro na consulta de fallback:", fallbackErr);
+
+          setParts(filteredParts);
+          setHasMore(false); // Não há mais para carregar quando está pesquisando
+          setLastVisible(null);
+
+          setIsLoading(false);
+          return;
         }
+
+        // Aplicar ordenação
+        q = query(q, orderBy(sortField, sortOrder));
+
+        // Aplicar paginação APENAS quando NÃO há busca
+        if (lastVisible && !reset) {
+          q = query(q, startAfter(lastVisible));
+        }
+
+        q = query(q, limit(itemsPerPage));
+
+        const snapshot = await getDocs(q);
+        const partsData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        if (reset) {
+          setParts(partsData);
+        } else {
+          setParts((prev) => [...prev, ...partsData]);
+        }
+
+        // Atualizar cursor para próxima página
+        if (snapshot.docs.length > 0) {
+          setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+        }
+
+        // Verificar se há mais páginas
+        setHasMore(snapshot.docs.length === itemsPerPage);
+      } catch (err) {
+        console.error("Erro ao buscar peças:", err);
+        setError("Erro ao carregar peças. Por favor, tente novamente.");
+
+        // Fallback sem ordenação
+        if (
+          err.code === "failed-precondition" ||
+          err.message.includes("index")
+        ) {
+          try {
+            let fallbackQuery = query(collection(db, "pecas"));
+
+            if (filterCategory !== "all") {
+              fallbackQuery = query(
+                fallbackQuery,
+                where("categoryId", "==", filterCategory)
+              );
+            }
+
+            // Se há busca, buscar todos os documentos
+            if (debouncedSearchTerm) {
+              const fallbackSnapshot = await getDocs(fallbackQuery);
+              const allParts = fallbackSnapshot.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+              }));
+
+              const filteredParts = allParts.filter(
+                (part) =>
+                  part.name
+                    ?.toLowerCase()
+                    .includes(debouncedSearchTerm.toLowerCase()) ||
+                  part.code
+                    ?.toLowerCase()
+                    .includes(debouncedSearchTerm.toLowerCase()) ||
+                  part.description
+                    ?.toLowerCase()
+                    .includes(debouncedSearchTerm.toLowerCase())
+              );
+
+              setParts(filteredParts);
+              setHasMore(false);
+              setLastVisible(null);
+            } else {
+              // Paginação normal para fallback
+              if (lastVisible && !reset) {
+                fallbackQuery = query(fallbackQuery, startAfter(lastVisible));
+              }
+
+              fallbackQuery = query(fallbackQuery, limit(itemsPerPage));
+
+              const fallbackSnapshot = await getDocs(fallbackQuery);
+              const fallbackData = fallbackSnapshot.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+              }));
+
+              if (reset) {
+                setParts(fallbackData);
+              } else {
+                setParts((prev) => [...prev, ...fallbackData]);
+              }
+
+              if (fallbackSnapshot.docs.length > 0) {
+                setLastVisible(
+                  fallbackSnapshot.docs[fallbackSnapshot.docs.length - 1]
+                );
+              }
+
+              setHasMore(fallbackSnapshot.docs.length === itemsPerPage);
+            }
+
+            setError(
+              "Ordenação temporariamente indisponível. Os dados estão sendo exibidos sem ordenação."
+            );
+          } catch (fallbackErr) {
+            console.error("Erro na consulta de fallback:", fallbackErr);
+          }
+        }
+      } finally {
+        setIsLoading(false);
       }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [sortField, sortOrder]);
+    },
+    [sortField, sortOrder, filterCategory, debouncedSearchTerm, lastVisible]
+  );
 
+  // ✅ EFFECT OTIMIZADO - só recarrega quando necessário
   useEffect(() => {
-    fetchParts();
-  }, [fetchParts]);
+    setParts([]);
+    setLastVisible(null);
+    setHasMore(true);
+    fetchParts(true);
+  }, [sortField, sortOrder, filterCategory, debouncedSearchTerm]);
 
-  const handleTabChange = (value) => {
-    setActiveTab(value);
-    setError(null);
-    setCurrentPage(1);
-    if (value === "all") {
-      setSelectedCategory(null);
-      setSelectedSubcategory(null);
+  // ✅ FUNÇÃO PARA CARREGAR MAIS (sem recarregar tudo)
+  const loadMore = () => {
+    if (hasMore && !isLoading) {
+      fetchParts(false);
     }
   };
 
+  // ✅ FUNÇÃO OTIMIZADA PARA REFRESH
+  const handleRefresh = () => {
+    setParts([]);
+    setLastVisible(null);
+    setHasMore(true);
+    setError(null);
+    fetchParts(true);
+  };
+
+  // Função de deletar mantida igual
   const handleDelete = async (part) => {
     try {
       await deleteDoc(doc(db, "pecas", part.id));
@@ -174,17 +327,25 @@ const ManagePartsLibrary = () => {
     setPartToDelete(null);
   };
 
+  // Handlers de mudança de filtros
+  const handleTabChange = (value) => {
+    setActiveTab(value);
+    setError(null);
+    if (value === "all") {
+      setSelectedCategory(null);
+      setSelectedSubcategory(null);
+    }
+  };
+
   const handleCategoryClick = (category) => {
     setError(null);
     setSelectedCategory(category);
     setSelectedSubcategory(null);
-    setCurrentPage(1);
   };
 
   const handleSubcategoryClick = (subcategory) => {
     setError(null);
     setSelectedSubcategory(subcategory);
-    setCurrentPage(1);
   };
 
   const handleBackToCategories = () => {
@@ -194,81 +355,9 @@ const ManagePartsLibrary = () => {
     } else {
       setSelectedCategory(null);
     }
-    setCurrentPage(1);
   };
 
-  // Filtros LOCAIS
-  const filteredParts = parts.filter((part) => {
-    // Filtro por busca
-    const matchesSearch =
-      !searchTerm ||
-      part.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      part.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      part.description?.toLowerCase().includes(searchTerm.toLowerCase());
-
-    // Filtro por categoria (tab "all")
-    const matchesCategory =
-      activeTab === "categories" || // Na tab categorias, não aplicar filtro
-      filterCategory === "all" ||
-      part.categoryId === filterCategory;
-
-    // Filtro por categoria/subcategoria selecionada (tab "categories")
-    const matchesSelection =
-      activeTab === "all" || // Na tab "all", não aplicar seleção
-      (!selectedCategory && !selectedSubcategory) || // Nenhuma seleção
-      (selectedSubcategory && part.subcategoryId === selectedSubcategory.id) ||
-      (selectedCategory &&
-        !selectedSubcategory &&
-        part.categoryId === selectedCategory.id);
-
-    return matchesSearch && matchesCategory && matchesSelection;
-  });
-
-  // Ordenação LOCAL
-  const sortedParts = [...filteredParts].sort((a, b) => {
-    let aValue = a[sortField];
-    let bValue = b[sortField];
-
-    // Tratamento especial para diferentes tipos de campos
-    if (sortField === "price") {
-      aValue = parseFloat(aValue) || 0;
-      bValue = parseFloat(bValue) || 0;
-    } else if (sortField === "createdAt") {
-      aValue = new Date(aValue || 0);
-      bValue = new Date(bValue || 0);
-    } else {
-      aValue = String(aValue || "").toLowerCase();
-      bValue = String(bValue || "").toLowerCase();
-    }
-
-    if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
-    if (aValue > bValue) return sortOrder === "asc" ? 1 : -1;
-    return 0;
-  });
-
-  // PAGINAÇÃO LOCAL
-  const indexOfLastPart = currentPage * itemsPerPage;
-  const indexOfFirstPart = indexOfLastPart - itemsPerPage;
-  const currentParts = sortedParts.slice(indexOfFirstPart, indexOfLastPart);
-  const totalPages = Math.ceil(sortedParts.length / itemsPerPage);
-
-  const paginate = (pageNumber) => {
-    setCurrentPage(pageNumber);
-    window.scrollTo(0, 0);
-  };
-
-  // Reset página quando filtros mudam
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [
-    searchTerm,
-    filterCategory,
-    sortField,
-    sortOrder,
-    selectedCategory,
-    selectedSubcategory,
-  ]);
-
+  // Funções de categoria mantidas iguais
   const getSubcategories = (categoryId) => {
     return getSubcategoriesByParent(categoryId);
   };
@@ -276,6 +365,37 @@ const ManagePartsLibrary = () => {
   const getMainCategories = () => {
     return categories;
   };
+
+  // ✅ FILTROS LOCAIS APLICADOS APENAS AOS DADOS JÁ CARREGADOS
+  const getFilteredParts = () => {
+    let filtered = parts;
+
+    // Filtro por categoria selecionada (tab categories)
+    if (activeTab === "categories") {
+      if (selectedSubcategory) {
+        filtered = filtered.filter(
+          (part) => part.subcategoryId === selectedSubcategory.id
+        );
+      } else if (selectedCategory) {
+        filtered = filtered.filter(
+          (part) => part.categoryId === selectedCategory.id
+        );
+      }
+    }
+
+    // ✅ REMOVIDO: Busca local temporária - agora a busca é feita no servidor
+    // A busca agora é feita diretamente na query do Firestore
+
+    return filtered;
+  };
+
+  // ✅ FUNÇÃO PARA LIMPAR BUSCA
+  const clearSearch = () => {
+    setSearchTerm("");
+    setDebouncedSearchTerm("");
+  };
+
+  const displayParts = getFilteredParts();
 
   // Loading state
   if ((isLoading && !parts.length) || categoriesLoading) {
@@ -320,10 +440,11 @@ const ManagePartsLibrary = () => {
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
               <p className="text-sm font-medium text-zinc-400">
-                Total de Peças
+                Peças Carregadas
               </p>
               <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
                 {parts.length}
+                {hasMore && <span className="text-sm text-zinc-400">+</span>}
               </h3>
             </div>
             <Package className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
@@ -390,8 +511,23 @@ const ManagePartsLibrary = () => {
                   placeholder="Buscar por nome, código ou descrição..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                  className="pl-10 pr-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
                 />
+                {searchTerm !== debouncedSearchTerm && (
+                  <div className="absolute right-10 top-1/2 -translate-y-1/2">
+                    <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
+                  </div>
+                )}
+                {searchTerm && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearSearch}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-zinc-700"
+                  >
+                    <X className="h-4 w-4 text-zinc-400" />
+                  </Button>
+                )}
               </div>
 
               {/* Filters Grid */}
@@ -492,9 +628,18 @@ const ManagePartsLibrary = () => {
                   </Button>
                 </div>
                 <span className="text-center sm:text-right text-sm text-zinc-400">
-                  {sortedParts.length} peça(s) encontrada(s) - Página{" "}
-                  {currentPage} de {totalPages || 1}
-                  {searchTerm && ` (filtrado por "${searchTerm}")`}
+                  {debouncedSearchTerm ? (
+                    <>
+                      {displayParts.length} peça(s) encontrada(s) para "
+                      {debouncedSearchTerm}"
+                    </>
+                  ) : (
+                    <>
+                      {displayParts.length} peça(s) carregada(s)
+                      {hasMore &&
+                        " (há mais disponíveis - clique em 'Carregar Mais')"}
+                    </>
+                  )}
                 </span>
               </div>
 
@@ -523,7 +668,7 @@ const ManagePartsLibrary = () => {
           {/* Parts Grid or List */}
           {viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-              {currentParts.map((part) => (
+              {displayParts.map((part) => (
                 <Card
                   key={part.id}
                   onClick={() => navigate(`/app/part/${part.id}`)}
@@ -605,7 +750,7 @@ const ManagePartsLibrary = () => {
                 </Card>
               ))}
 
-              {currentParts.length === 0 && (
+              {displayParts.length === 0 && !isLoading && (
                 <Card className="md:col-span-2 lg:col-span-3 bg-zinc-800 border-zinc-700">
                   <CardContent className="p-8 sm:p-12 text-center">
                     <Search className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
@@ -620,9 +765,9 @@ const ManagePartsLibrary = () => {
               )}
             </div>
           ) : (
-            // List view
+            // List view - usando displayParts
             <div className="mt-4 space-y-2">
-              {currentParts.map((part) => (
+              {displayParts.map((part) => (
                 <Card
                   key={part.id}
                   onClick={() => navigate(`/app/part/${part.id}`)}
@@ -698,7 +843,7 @@ const ManagePartsLibrary = () => {
                 </Card>
               ))}
 
-              {currentParts.length === 0 && (
+              {displayParts.length === 0 && !isLoading && (
                 <Card className="bg-zinc-800 border-zinc-700">
                   <CardContent className="p-8 sm:p-12 text-center">
                     <Search className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
@@ -714,99 +859,39 @@ const ManagePartsLibrary = () => {
             </div>
           )}
 
-          {/* PAGINAÇÃO IGUAL AO ManageClients */}
-          {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-8">
+          {/* ✅ NOVA PAGINAÇÃO COM "CARREGAR MAIS" - só aparece quando NÃO está pesquisando */}
+          {hasMore && !debouncedSearchTerm && (
+            <div className="flex justify-center mt-8">
               <Button
-                variant="outline"
-                size="icon"
-                onClick={() => paginate(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+                onClick={loadMore}
+                disabled={isLoading}
+                className="bg-green-600 hover:bg-green-700"
               >
-                <ChevronLeft className="h-4 w-4" />
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Carregando...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Carregar Mais ({itemsPerPage} itens)
+                  </>
+                )}
               </Button>
+            </div>
+          )}
 
-              {currentPage > 3 && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => paginate(1)}
-                    className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-                  >
-                    1
-                  </Button>
-                  {currentPage > 4 && (
-                    <span className="text-zinc-400">...</span>
-                  )}
-                </>
-              )}
-
-              {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
-                let pageNumber;
-                if (totalPages <= 5) {
-                  pageNumber = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNumber = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNumber = totalPages - 4 + i;
-                } else {
-                  pageNumber = currentPage - 2 + i;
-                }
-
-                if (pageNumber >= 1 && pageNumber <= totalPages) {
-                  return (
-                    <Button
-                      key={pageNumber}
-                      variant={
-                        currentPage === pageNumber ? "secondary" : "outline"
-                      }
-                      size="icon"
-                      onClick={() => paginate(pageNumber)}
-                      className={`border-zinc-700 ${
-                        currentPage === pageNumber
-                          ? "bg-zinc-700 text-white hover:bg-zinc-600"
-                          : "text-white hover:bg-zinc-700 bg-zinc-800"
-                      }`}
-                    >
-                      {pageNumber}
-                    </Button>
-                  );
-                }
-                return null;
-              })}
-
-              {currentPage < totalPages - 2 && (
-                <>
-                  {currentPage < totalPages - 3 && (
-                    <span className="text-zinc-400">...</span>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => paginate(totalPages)}
-                    className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-                  >
-                    {totalPages}
-                  </Button>
-                </>
-              )}
-
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => paginate(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+          {!hasMore && parts.length > 0 && !debouncedSearchTerm && (
+            <div className="text-center mt-8">
+              <p className="text-zinc-400">
+                Todas as peças foram carregadas ({parts.length} total)
+              </p>
             </div>
           )}
         </TabsContent>
 
-        {/* Categories Tab - mantido igual */}
+        {/* Categories Tab - MANTIDO IGUAL */}
         <TabsContent value="categories">
           <div className="space-y-4">
             {/* Breadcrumb */}
@@ -904,7 +989,7 @@ const ManagePartsLibrary = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {currentParts
+                  {displayParts
                     .filter(
                       (part) => part.subcategoryId === selectedSubcategory.id
                     )
@@ -1043,24 +1128,11 @@ const ManagePartsLibrary = () => {
       {/* FAB Menu for Mobile */}
       <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden">
         <Button
-          onClick={() => {
-            setError(null);
-            fetchParts();
-          }}
+          onClick={handleRefresh}
           size="icon"
           className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
         >
           <RefreshCw className="h-5 w-5" />
-        </Button>
-        <Button
-          onClick={() => {
-            const csvContent = convertToCSV(parts);
-            downloadCSV(csvContent, "pecas.csv");
-          }}
-          size="icon"
-          className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
-        >
-          <Download className="h-5 w-5" />
         </Button>
         <Button
           onClick={() => navigate("/app/add-part")}
@@ -1072,44 +1144,6 @@ const ManagePartsLibrary = () => {
       </div>
     </div>
   );
-};
-
-// Utility Functions
-const convertToCSV = (parts) => {
-  const headers = [
-    "Nome",
-    "Código",
-    "Preço",
-    "Descrição",
-    "Categoria",
-    "Subcategoria",
-  ];
-  const rows = parts.map((part) => [
-    part.name,
-    part.code,
-    part.price,
-    part.description,
-    part.categoryName || "",
-    part.subcategoryName || "",
-  ]);
-
-  return [headers, ...rows]
-    .map((row) => row.map((cell) => `"${cell || ""}"`).join(","))
-    .join("\n");
-};
-
-const downloadCSV = (content, filename) => {
-  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  if (link.download !== undefined) {
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", filename);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
 };
 
 export default ManagePartsLibrary;
