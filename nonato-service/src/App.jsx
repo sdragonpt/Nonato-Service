@@ -1,3 +1,5 @@
+// App.jsx - COM PARTSCACHE INTEGRADO
+
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { getAuth, signOut } from "firebase/auth";
 import {
@@ -175,6 +177,7 @@ const ShopAccessWrapper = React.lazy(() =>
 // ✅ COMPONENTES ESSENCIAIS - Não lazy load para evitar flash
 import ErrorBoundary from "./components/layout/ErrorBoundary";
 import { CategoriesProvider } from "./context/CategoriesContext.jsx";
+import { PartsCacheProvider } from "./context/PartsCache.jsx"; // ✅ NOVO: Cache de peças
 import { NotificationProvider } from "./context/NotificationContext.jsx";
 import NotificationsDropdown from "./components/ui/NotificationsDropdown";
 
@@ -560,223 +563,234 @@ const App = () => {
   return (
     <NotificationProvider>
       <CategoriesProvider>
-        <Router>
-          <React.Suspense
-            fallback={
-              <div className="flex justify-center items-center min-h-screen bg-zinc-900">
-                <Loader2 className="h-12 w-12 animate-spin text-white" />
-              </div>
-            }
-          >
-            <Routes>
-              <Route path="/" element={<Navigate to="/app" />} />
-              <Route path="/app" element={<Navigate to="/app/dashboard" />} />
-              <Route path="/start" element={<InitialPage />} />
-              <Route path="/login" element={<LoginPage />} />
+        <PartsCacheProvider>
+          {" "}
+          {/* ✅ NOVO: Cache inteligente para peças */}
+          <Router>
+            <React.Suspense
+              fallback={
+                <div className="flex justify-center items-center min-h-screen bg-zinc-900">
+                  <Loader2 className="h-12 w-12 animate-spin text-white" />
+                </div>
+              }
+            >
+              <Routes>
+                <Route path="/" element={<Navigate to="/app" />} />
+                <Route path="/app" element={<Navigate to="/app/dashboard" />} />
+                <Route path="/start" element={<InitialPage />} />
+                <Route path="/login" element={<LoginPage />} />
 
-              {/* ✅ LOJA PÚBLICA - Otimizada com lazy loading */}
-              <Route
-                path="/loja"
-                element={
-                  <ShopAccessWrapper>
-                    <PublicShop />
-                  </ShopAccessWrapper>
-                }
-              />
-              <Route
-                path="/loja/categoria/:categoryId"
-                element={
-                  <ShopAccessWrapper>
-                    <PublicShop />
-                  </ShopAccessWrapper>
-                }
-              />
-              <Route
-                path="/loja/busca"
-                element={
-                  <ShopAccessWrapper>
-                    <PublicShop />
-                  </ShopAccessWrapper>
-                }
-              />
+                {/* ✅ LOJA PÚBLICA - Otimizada com lazy loading */}
+                <Route
+                  path="/loja"
+                  element={
+                    <ShopAccessWrapper>
+                      <PublicShop />
+                    </ShopAccessWrapper>
+                  }
+                />
+                <Route
+                  path="/loja/categoria/:categoryId"
+                  element={
+                    <ShopAccessWrapper>
+                      <PublicShop />
+                    </ShopAccessWrapper>
+                  }
+                />
+                <Route
+                  path="/loja/busca"
+                  element={
+                    <ShopAccessWrapper>
+                      <PublicShop />
+                    </ShopAccessWrapper>
+                  }
+                />
 
-              {/* ✅ ROTAS PROTEGIDAS - Todas com lazy loading */}
-              <Route
-                path="/app/*"
-                element={
-                  <ProtectedRoute>
-                    <DashboardShell>
-                      <Routes>
-                        <Route
-                          path="/orcamento-online"
-                          element={<ManageOnlineQuotes />}
-                        />
-                        <Route path="/dashboard" element={<DashboardPage />} />
-                        <Route path="add-client" element={<AddClient />} />
-                        <Route
-                          path="add-equipment"
-                          element={<AddEquipment />}
-                        />
-                        <Route path="add-order" element={<AddOrder />} />
-                        <Route
-                          path="manage-orders"
-                          element={<ManageOrders />}
-                        />
-                        <Route
-                          path="manage-services"
-                          element={<ManageServices />}
-                        />
-                        <Route path="add-service" element={<AddService />} />
-                        <Route path="profile" element={<UserProfile />} />
-                        <Route path="settings" element={<UserSettings />} />
+                {/* ✅ ROTAS PROTEGIDAS - Todas com lazy loading */}
+                <Route
+                  path="/app/*"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardShell>
+                        <Routes>
+                          <Route
+                            path="/orcamento-online"
+                            element={<ManageOnlineQuotes />}
+                          />
+                          <Route
+                            path="/dashboard"
+                            element={<DashboardPage />}
+                          />
+                          <Route path="add-client" element={<AddClient />} />
+                          <Route
+                            path="add-equipment"
+                            element={<AddEquipment />}
+                          />
+                          <Route path="add-order" element={<AddOrder />} />
+                          <Route
+                            path="manage-orders"
+                            element={<ManageOrders />}
+                          />
+                          <Route
+                            path="manage-services"
+                            element={<ManageServices />}
+                          />
+                          <Route path="add-service" element={<AddService />} />
+                          <Route path="profile" element={<UserProfile />} />
+                          <Route path="settings" element={<UserSettings />} />
 
-                        {/* ✅ ROTAS PROTEGIDAS POR ROLE - Otimizadas */}
-                        <Route
-                          path="manage-users"
-                          element={
-                            <RoleRoute allowedRoles={["admin"]}>
-                              <ManageUsers />
-                            </RoleRoute>
-                          }
-                        />
+                          {/* ✅ ROTAS PROTEGIDAS POR ROLE - Otimizadas */}
+                          <Route
+                            path="manage-users"
+                            element={
+                              <RoleRoute allowedRoles={["admin"]}>
+                                <ManageUsers />
+                              </RoleRoute>
+                            }
+                          />
 
-                        {/* ✅ TODAS AS OUTRAS ROTAS COM LAZY LOADING */}
-                        <Route
-                          path="edit-service/:serviceId"
-                          element={<EditService />}
-                        />
-                        <Route
-                          path="manage-clients"
-                          element={<ManageClients />}
-                        />
-                        <Route
-                          path="client/:clientId"
-                          element={<ClientDetail />}
-                        />
-                        <Route
-                          path="equipment/:equipmentId"
-                          element={<EquipmentDetail />}
-                        />
-                        <Route
-                          path="edit-client/:clientId"
-                          element={<EditClient />}
-                        />
-                        <Route
-                          path="edit-equipment/:equipmentId"
-                          element={<EditEquipment />}
-                        />
-                        <Route
-                          path="client/:clientId/add-equipment"
-                          element={<AddEquipment />}
-                        />
-                        <Route
-                          path="order-detail/:orderId"
-                          element={<OrderDetail />}
-                        />
-                        <Route
-                          path="order/:orderId/add-workday"
-                          element={<AddWorkday />}
-                        />
-                        <Route
-                          path="edit-service-order/:orderId"
-                          element={<EditOrder />}
-                        />
-                        <Route
-                          path="edit-workday/:workdayId"
-                          element={<EditWorkday />}
-                        />
-                        <Route
-                          path="manage-agenda"
-                          element={<ManageAgenda />}
-                        />
-                        <Route
-                          path="add-agendamento"
-                          element={<AddAgendamento />}
-                        />
-                        <Route
-                          path="edit-agendamento/:agendamentoId"
-                          element={<EditAgendamento />}
-                        />
-                        <Route
-                          path="manage-budgets"
-                          element={<ManageBudgets />}
-                        />
-                        <Route path="add-budget" element={<AddBudget />} />
-                        <Route
-                          path="add-simple-budget"
-                          element={<AddSimpleBudget />}
-                        />
-                        <Route
-                          path="edit-budget/:budgetId"
-                          element={<EditBudget />}
-                        />
-                        <Route
-                          path="edit-simple-budget/:budgetId"
-                          element={<EditSimpleBudget />}
-                        />
-                        <Route
-                          path="manage-checklist"
-                          element={<ManageChecklist />}
-                        />
-                        <Route
-                          path="add-checklist-type"
-                          element={<AddChecklistType />}
-                        />
-                        <Route
-                          path="edit-checklist-type/:typeId"
-                          element={<EditChecklistType />}
-                        />
-                        <Route
-                          path="manage-inspection"
-                          element={<ManageInspection />}
-                        />
-                        <Route
-                          path="add-inspection"
-                          element={<AddInspection />}
-                        />
-                        <Route
-                          path="edit-inspection/:inspectionId"
-                          element={<EditInspection />}
-                        />
-                        <Route
-                          path="inspection-detail/:inspectionId"
-                          element={<InspectionDetail />}
-                        />
-                        <Route
-                          path="parts-library"
-                          element={<ManagePartsLibrary />}
-                        />
-                        <Route path="add-part" element={<AddPart />} />
-                        <Route
-                          path="edit-part/:partId"
-                          element={<EditPart />}
-                        />
-                        <Route path="part/:partId" element={<PartDetail />} />
-                        <Route path="add-category" element={<AddCategory />} />
-                        <Route
-                          path="add-subcategory/:categoryId"
-                          element={<AddSubcategory />}
-                        />
-                        <Route
-                          path="edit-category/:categoryId"
-                          element={<EditCategory />}
-                        />
-                        <Route
-                          path="manage-categories"
-                          element={<ManageCategories />}
-                        />
-                        <Route
-                          path="manage-shop-access"
-                          element={<ManageShopAccess />}
-                        />
-                      </Routes>
-                    </DashboardShell>
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </React.Suspense>
-        </Router>
+                          {/* ✅ TODAS AS OUTRAS ROTAS COM LAZY LOADING */}
+                          <Route
+                            path="edit-service/:serviceId"
+                            element={<EditService />}
+                          />
+                          <Route
+                            path="manage-clients"
+                            element={<ManageClients />}
+                          />
+                          <Route
+                            path="client/:clientId"
+                            element={<ClientDetail />}
+                          />
+                          <Route
+                            path="equipment/:equipmentId"
+                            element={<EquipmentDetail />}
+                          />
+                          <Route
+                            path="edit-client/:clientId"
+                            element={<EditClient />}
+                          />
+                          <Route
+                            path="edit-equipment/:equipmentId"
+                            element={<EditEquipment />}
+                          />
+                          <Route
+                            path="client/:clientId/add-equipment"
+                            element={<AddEquipment />}
+                          />
+                          <Route
+                            path="order-detail/:orderId"
+                            element={<OrderDetail />}
+                          />
+                          <Route
+                            path="order/:orderId/add-workday"
+                            element={<AddWorkday />}
+                          />
+                          <Route
+                            path="edit-service-order/:orderId"
+                            element={<EditOrder />}
+                          />
+                          <Route
+                            path="edit-workday/:workdayId"
+                            element={<EditWorkday />}
+                          />
+                          <Route
+                            path="manage-agenda"
+                            element={<ManageAgenda />}
+                          />
+                          <Route
+                            path="add-agendamento"
+                            element={<AddAgendamento />}
+                          />
+                          <Route
+                            path="edit-agendamento/:agendamentoId"
+                            element={<EditAgendamento />}
+                          />
+                          <Route
+                            path="manage-budgets"
+                            element={<ManageBudgets />}
+                          />
+                          <Route path="add-budget" element={<AddBudget />} />
+                          <Route
+                            path="add-simple-budget"
+                            element={<AddSimpleBudget />}
+                          />
+                          <Route
+                            path="edit-budget/:budgetId"
+                            element={<EditBudget />}
+                          />
+                          <Route
+                            path="edit-simple-budget/:budgetId"
+                            element={<EditSimpleBudget />}
+                          />
+                          <Route
+                            path="manage-checklist"
+                            element={<ManageChecklist />}
+                          />
+                          <Route
+                            path="add-checklist-type"
+                            element={<AddChecklistType />}
+                          />
+                          <Route
+                            path="edit-checklist-type/:typeId"
+                            element={<EditChecklistType />}
+                          />
+                          <Route
+                            path="manage-inspection"
+                            element={<ManageInspection />}
+                          />
+                          <Route
+                            path="add-inspection"
+                            element={<AddInspection />}
+                          />
+                          <Route
+                            path="edit-inspection/:inspectionId"
+                            element={<EditInspection />}
+                          />
+                          <Route
+                            path="inspection-detail/:inspectionId"
+                            element={<InspectionDetail />}
+                          />
+                          <Route
+                            path="parts-library"
+                            element={<ManagePartsLibrary />}
+                          />
+                          <Route path="add-part" element={<AddPart />} />
+                          <Route
+                            path="edit-part/:partId"
+                            element={<EditPart />}
+                          />
+                          <Route path="part/:partId" element={<PartDetail />} />
+                          <Route
+                            path="add-category"
+                            element={<AddCategory />}
+                          />
+                          <Route
+                            path="add-subcategory/:categoryId"
+                            element={<AddSubcategory />}
+                          />
+                          <Route
+                            path="edit-category/:categoryId"
+                            element={<EditCategory />}
+                          />
+                          <Route
+                            path="manage-categories"
+                            element={<ManageCategories />}
+                          />
+                          <Route
+                            path="manage-shop-access"
+                            element={<ManageShopAccess />}
+                          />
+                        </Routes>
+                      </DashboardShell>
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </React.Suspense>
+          </Router>
+        </PartsCacheProvider>{" "}
+        {/* ✅ Fim do novo provider */}
       </CategoriesProvider>
     </NotificationProvider>
   );

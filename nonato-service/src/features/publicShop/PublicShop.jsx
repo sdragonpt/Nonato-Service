@@ -1,19 +1,18 @@
-// PublicShop.jsx - OTIMIZADO com sistema de busca inteligente e paginação real
+// PublicShop.jsx - OTIMIZADO com cache centralizado (sem duplicação de lógica)
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
+  addDoc,
   collection,
+  serverTimestamp,
   getDocs,
   query,
-  orderBy,
   where,
-  addDoc,
-  limit,
-  startAfter,
-  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useCategories } from "../../context/CategoriesContext.jsx";
+import { usePartsCache } from "../../context/PartsCache.jsx"; // ✅ NOVO: Cache centralizado
+import PartImage from "../../components/ui/PartImage.jsx"; // ✅ Imagem com fallback
 import {
   Search,
   Loader2,
@@ -36,7 +35,6 @@ import {
 } from "lucide-react";
 
 // UI Components
-import PartImage from "../../components/ui/PartImage.jsx";
 import { Card, CardContent } from "@/components/ui/card.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
@@ -73,13 +71,20 @@ const PublicShop = ({
   requestCartAccess,
   userToken,
 }) => {
-  // ✅ NOVA ESTRUTURA - Paginação Real Otimizada
-  const [parts, setParts] = useState([]);
-  const [lastVisible, setLastVisible] = useState(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [totalLoadedCount, setTotalLoadedCount] = useState(0);
+  // ✅ CACHE CENTRALIZADO - Usa o mesmo sistema que ManagePartsLibrary
+  const {
+    fetchParts,
+    fetchSubcategoryCounts,
+    isLoading: isCacheLoading,
+    getCachedParts,
+  } = usePartsCache();
 
-  // USAR cache de categorias
+  // ✅ ESTADOS SIMPLIFICADOS - Cache gerencia as peças
+  const [displayParts, setDisplayParts] = useState([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [subcategoryCounts, setSubcategoryCounts] = useState({});
+
+  // Cache de categorias
   const {
     categories,
     getSubcategoriesByParent,
@@ -87,10 +92,9 @@ const PublicShop = ({
     error: categoriesError,
   } = useCategories();
 
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ✅ BUSCA OTIMIZADA - Debounce para evitar muitas consultas
+  // ✅ BUSCA OTIMIZADA - Debounce
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
@@ -104,9 +108,6 @@ const PublicShop = ({
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
-
-  // ✅ PAGINAÇÃO REAL - Substituindo paginação client-side
-  const itemsPerPage = 12; // Menor para mobile, melhor UX
 
   // Cart
   const [cart, setCart] = useState([]);
@@ -138,11 +139,11 @@ const PublicShop = ({
     };
   }, []);
 
-  // ✅ DEBOUNCE OTIMIZADO - Evita consultas desnecessárias
+  // ✅ DEBOUNCE OTIMIZADO
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
-    }, 500); // 500ms de delay
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [searchTerm]);
@@ -150,11 +151,7 @@ const PublicShop = ({
   // Scroll to top button
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 300) {
-        setShowScrollTop(true);
-      } else {
-        setShowScrollTop(false);
-      }
+      setShowScrollTop(window.scrollY > 300);
     };
 
     window.addEventListener("scroll", handleScroll);
@@ -177,221 +174,88 @@ const PublicShop = ({
     return () => window.removeEventListener("resize", checkDeviceType);
   }, []);
 
-  // ✅ FUNÇÃO OTIMIZADA DE BUSCA - Similar ao ManagePartsLibrary
-  const fetchParts = useCallback(
-    async (reset = false) => {
+  // ✅ FUNÇÃO UNIFICADA PARA CARREGAR PEÇAS - Usa cache centralizado
+  const loadParts = useCallback(
+    async (loadMore = false) => {
       try {
-        setIsLoading(true);
         setError(null);
 
-        // Construir query base
-        let q = query(collection(db, "pecas"));
+        const result = await fetchParts({
+          categoryId: selectedCategory !== "all" ? selectedCategory : null,
+          subcategoryId:
+            selectedSubcategory !== "all" ? selectedSubcategory : null,
+          searchTerm: debouncedSearchTerm,
+          sortField: sortBy,
+          sortOrder: "asc",
+          loadMore,
+        });
 
-        // Aplicar filtros de categoria/subcategoria
-        if (selectedCategory !== "all") {
-          q = query(q, where("categoryId", "==", selectedCategory));
-        }
-        if (selectedSubcategory !== "all") {
-          q = query(q, where("subcategoryId", "==", selectedSubcategory));
-        }
-
-        // ✅ LÓGICA DE BUSCA OTIMIZADA
-        if (debouncedSearchTerm) {
-          console.log("🔍 Busca ativa:", debouncedSearchTerm);
-
-          // Quando há busca, buscar TODOS os documentos que correspondem aos filtros
-          // Isso é mais eficiente que fazer múltiplas queries pequenas
-          const searchQuery = query(q, orderBy(sortBy, "asc"));
-          const searchSnapshot = await getDocs(searchQuery);
-
-          // Filtrar localmente pelos termos de busca
-          const allParts = searchSnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-
-          const filteredParts = allParts.filter(
-            (part) =>
-              part.name
-                ?.toLowerCase()
-                .includes(debouncedSearchTerm.toLowerCase()) ||
-              part.code
-                ?.toLowerCase()
-                .includes(debouncedSearchTerm.toLowerCase()) ||
-              part.description
-                ?.toLowerCase()
-                .includes(debouncedSearchTerm.toLowerCase())
-          );
-
-          setParts(filteredParts);
-          setHasMore(false); // Não há paginação durante busca
-          setLastVisible(null);
-          setTotalLoadedCount(filteredParts.length);
-
-          console.log(
-            `📊 Busca concluída: ${filteredParts.length} peças encontradas de ${allParts.length} total`
-          );
-          setIsLoading(false);
-          return;
+        if (result.error) {
+          setError(result.error);
         }
 
-        // ✅ PAGINAÇÃO REAL QUANDO NÃO HÁ BUSCA
-        console.log(
-          `📄 Carregando página ${reset ? "inicial" : "seguinte"}...`
-        );
-
-        // Aplicar ordenação
-        q = query(q, orderBy(sortBy, "asc"));
-
-        // Aplicar paginação
-        if (lastVisible && !reset) {
-          q = query(q, startAfter(lastVisible));
+        if (result.warning) {
+          setError(result.warning);
         }
 
-        q = query(q, limit(itemsPerPage));
+        setDisplayParts(result.parts);
+        setHasMore(result.hasMore);
 
-        const snapshot = await getDocs(q);
-        const partsData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        console.log(`📦 ${partsData.length} peças carregadas`);
-
-        if (reset) {
-          setParts(partsData);
-          setTotalLoadedCount(partsData.length);
-        } else {
-          setParts((prev) => [...prev, ...partsData]);
-          setTotalLoadedCount((prev) => prev + partsData.length);
+        if (result.fromCache) {
+          console.log("🏪 Loja: Dados carregados do cache!");
         }
-
-        // Atualizar cursor para próxima página
-        if (snapshot.docs.length > 0) {
-          setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
-        }
-
-        // Verificar se há mais páginas
-        setHasMore(snapshot.docs.length === itemsPerPage);
       } catch (err) {
-        console.error("❌ Erro ao buscar peças:", err);
+        console.error("❌ Erro ao carregar peças na loja:", err);
         setError("Erro ao carregar peças. Por favor, tente novamente.");
-
-        // ✅ FALLBACK SEM ORDENAÇÃO
-        if (
-          err.code === "failed-precondition" ||
-          err.message.includes("index")
-        ) {
-          try {
-            console.log("🔄 Tentando fallback sem ordenação...");
-            let fallbackQuery = query(collection(db, "pecas"));
-
-            if (selectedCategory !== "all") {
-              fallbackQuery = query(
-                fallbackQuery,
-                where("categoryId", "==", selectedCategory)
-              );
-            }
-            if (selectedSubcategory !== "all") {
-              fallbackQuery = query(
-                fallbackQuery,
-                where("subcategoryId", "==", selectedSubcategory)
-              );
-            }
-
-            if (debouncedSearchTerm) {
-              const fallbackSnapshot = await getDocs(fallbackQuery);
-              const allParts = fallbackSnapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-              }));
-
-              const filteredParts = allParts.filter(
-                (part) =>
-                  part.name
-                    ?.toLowerCase()
-                    .includes(debouncedSearchTerm.toLowerCase()) ||
-                  part.code
-                    ?.toLowerCase()
-                    .includes(debouncedSearchTerm.toLowerCase()) ||
-                  part.description
-                    ?.toLowerCase()
-                    .includes(debouncedSearchTerm.toLowerCase())
-              );
-
-              setParts(filteredParts);
-              setHasMore(false);
-              setLastVisible(null);
-              setTotalLoadedCount(filteredParts.length);
-            } else {
-              if (lastVisible && !reset) {
-                fallbackQuery = query(
-                  fallbackQuery,
-                  startAfter(lastVisible),
-                  limit(itemsPerPage)
-                );
-              } else {
-                fallbackQuery = query(fallbackQuery, limit(itemsPerPage));
-              }
-
-              const fallbackSnapshot = await getDocs(fallbackQuery);
-              const fallbackData = fallbackSnapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-              }));
-
-              if (reset) {
-                setParts(fallbackData);
-                setTotalLoadedCount(fallbackData.length);
-              } else {
-                setParts((prev) => [...prev, ...fallbackData]);
-                setTotalLoadedCount((prev) => prev + fallbackData.length);
-              }
-
-              if (fallbackSnapshot.docs.length > 0) {
-                setLastVisible(
-                  fallbackSnapshot.docs[fallbackSnapshot.docs.length - 1]
-                );
-              }
-
-              setHasMore(fallbackSnapshot.docs.length === itemsPerPage);
-            }
-
-            setError(
-              "⚠️ Ordenação temporariamente indisponível. Dados exibidos sem ordenação."
-            );
-          } catch (fallbackErr) {
-            console.error("❌ Erro no fallback:", fallbackErr);
-          }
-        }
-      } finally {
-        setIsLoading(false);
       }
     },
     [
-      sortBy,
+      fetchParts,
       selectedCategory,
       selectedSubcategory,
       debouncedSearchTerm,
-      lastVisible,
+      sortBy,
     ]
   );
 
-  // ✅ EFFECT OTIMIZADO - Só recarrega quando necessário
-  useEffect(() => {
-    console.log("🔄 Resetando dados e carregando...");
-    setParts([]);
-    setLastVisible(null);
-    setHasMore(true);
-    setTotalLoadedCount(0);
-    fetchParts(true);
-  }, [sortBy, selectedCategory, selectedSubcategory, debouncedSearchTerm]);
+  // ✅ CARREGAR CONTADORES - Usa cache centralizado
+  const loadSubcategoryCounts = useCallback(
+    async (categoryId) => {
+      if (!categoryId || categoryId === "all") return;
 
-  // ✅ FUNÇÃO PARA CARREGAR MAIS
-  const loadMore = () => {
-    if (hasMore && !isLoading && !debouncedSearchTerm) {
-      console.log("📄 Carregando mais peças...");
-      fetchParts(false);
+      try {
+        const counts = await fetchSubcategoryCounts(categoryId);
+        setSubcategoryCounts(counts);
+      } catch (err) {
+        console.error("❌ Erro ao carregar contadores na loja:", err);
+      }
+    },
+    [fetchSubcategoryCounts]
+  );
+
+  // ✅ EFFECT PRINCIPAL - Carrega peças
+  useEffect(() => {
+    loadParts(false);
+  }, [loadParts]);
+
+  // ✅ EFFECT - Carrega contadores quando categoria muda
+  useEffect(() => {
+    if (selectedCategory !== "all") {
+      loadSubcategoryCounts(selectedCategory);
+    }
+  }, [selectedCategory, loadSubcategoryCounts]);
+
+  // ✅ FUNÇÃO LOAD MORE
+  const loadMoreParts = () => {
+    if (
+      hasMore &&
+      !isCacheLoading(
+        selectedCategory !== "all" ? selectedCategory : null,
+        selectedSubcategory !== "all" ? selectedSubcategory : null,
+        debouncedSearchTerm
+      )
+    ) {
+      loadParts(true);
     }
   };
 
@@ -432,9 +296,8 @@ const PublicShop = ({
     }
   }, [canUseCart, userToken]);
 
-  // Add to cart - NOVA LÓGICA
+  // Add to cart
   const addToCart = (part) => {
-    // Se não pode usar carrinho, solicita acesso
     if (!canUseCart) {
       requestCartAccess();
       return;
@@ -450,7 +313,7 @@ const PublicShop = ({
       return [...currentCart, { ...part, quantity: 1 }];
     });
 
-    // Feedback visual
+    // Feedback visual para mobile
     if (isMobile || isTablet) {
       const notification = document.createElement("div");
       notification.className =
@@ -473,9 +336,7 @@ const PublicShop = ({
       }, 2000);
     } else if (!isCartOpen) {
       setIsCartOpen(true);
-      setTimeout(() => {
-        setIsCartOpen(false);
-      }, 3000);
+      setTimeout(() => setIsCartOpen(false), 3000);
     }
   };
 
@@ -496,30 +357,6 @@ const PublicShop = ({
       })
     );
   };
-
-  // ✅ FILTROS DE CATEGORIA SIMPLIFICADOS - Os filtros principais agora são server-side
-  const getDisplayParts = () => {
-    // Agora os parts já vêm filtrados do servidor
-    // Apenas aplicamos ordenação local se necessário
-    let filtered = [...parts];
-
-    // Ordenação local para melhor UX (já que os dados estão carregados)
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "name":
-        default:
-          return a.name?.localeCompare(b.name) || 0;
-        case "price":
-          return (a.price || 0) - (b.price || 0);
-        case "code":
-          return a.code?.localeCompare(b.code) || 0;
-      }
-    });
-
-    return filtered;
-  };
-
-  const displayParts = getDisplayParts();
 
   // Reset subcategory when category changes
   const handleCategoryChange = (categoryId) => {
@@ -620,7 +457,14 @@ const PublicShop = ({
     });
   };
 
-  // Mobile Category Menu - ATUALIZADO
+  // ✅ VERIFICAR LOADING STATE
+  const isLoadingParts = isCacheLoading(
+    selectedCategory !== "all" ? selectedCategory : null,
+    selectedSubcategory !== "all" ? selectedSubcategory : null,
+    debouncedSearchTerm
+  );
+
+  // Mobile Category Menu
   const MobileCategoryMenu = () => (
     <Sheet open={isCategoriesOpen} onOpenChange={setIsCategoriesOpen}>
       <SheetContent
@@ -681,6 +525,10 @@ const PublicShop = ({
                           }`}
                         >
                           <span>• {subcategory.name}</span>
+                          {/* ✅ CONTADOR REAL */}
+                          <Badge className="bg-purple-500/20 text-purple-400">
+                            {subcategoryCounts[subcategory.id] || 0}
+                          </Badge>
                         </button>
                       </SheetClose>
                     ))}
@@ -695,7 +543,7 @@ const PublicShop = ({
   );
 
   // Loading state
-  if (isLoading && !parts.length) {
+  if ((isLoadingParts && !displayParts.length) || categoriesLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-zinc-900">
         <div className="text-center">
@@ -782,6 +630,7 @@ const PublicShop = ({
                 </Button>
               </SheetTrigger>
 
+              {/* Cart Sheet Content - Mantido igual */}
               {canUseCart && (
                 <SheetContent className="bg-zinc-800 border-zinc-700 text-white flex flex-col h-full p-0">
                   <SheetHeader className="flex-shrink-0 px-4 pt-4 pb-2 border-b border-zinc-700">
@@ -953,7 +802,7 @@ const PublicShop = ({
                     {category.name}
                   </Button>
 
-                  {/* Mostrar subcategorias se categoria estiver selecionada */}
+                  {/* Subcategorias no topo */}
                   {isSelected &&
                     subcategories.map((subcategory) => (
                       <Button
@@ -972,6 +821,10 @@ const PublicShop = ({
                         onClick={() => setSelectedSubcategory(subcategory.id)}
                       >
                         • {subcategory.name}
+                        {/* ✅ CONTADOR */}
+                        <Badge className="ml-1 bg-purple-500/20 text-purple-400 text-xs">
+                          {subcategoryCounts[subcategory.id] || 0}
+                        </Badge>
                       </Button>
                     ))}
                 </React.Fragment>
@@ -1029,6 +882,10 @@ const PublicShop = ({
                           }`}
                         >
                           <span>• {subcategory.name}</span>
+                          {/* ✅ CONTADOR REAL */}
+                          <Badge className="bg-purple-500/20 text-purple-400">
+                            {subcategoryCounts[subcategory.id] || 0}
+                          </Badge>
                         </button>
                       ))}
                     </div>
@@ -1066,7 +923,7 @@ const PublicShop = ({
             </div>
           )}
 
-          {/* ✅ SEARCH E FILTROS OTIMIZADOS */}
+          {/* ✅ SEARCH E FILTROS */}
           <div className="mb-6 space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -1215,113 +1072,76 @@ const PublicShop = ({
               variant="destructive"
               className="border-red-500 bg-red-500/10 mb-6"
             >
+              <AlertTriangle className="h-4 w-4" />
               <AlertDescription className="text-red-400">
                 {error}
               </AlertDescription>
             </Alert>
           )}
 
+          {/* ✅ LOADING STATE */}
+          {isLoadingParts && displayParts.length === 0 && (
+            <Card className="bg-zinc-800 border-zinc-700">
+              <CardContent className="p-8 text-center">
+                <Loader2 className="w-8 h-8 animate-spin text-white mx-auto mb-4" />
+                <p className="text-white">Carregando peças...</p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Products Grid/List */}
-          <div
-            className={
-              viewMode === "grid"
-                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                : "space-y-4"
-            }
-          >
-            {displayParts.map((part) => (
-              <Card
-                key={part.id}
-                className="bg-zinc-800 border-zinc-700 hover:border-zinc-600 transition-colors"
-              >
-                <CardContent
-                  className={viewMode === "grid" ? "p-4" : "p-4 flex gap-4"}
+          {displayParts.length > 0 && (
+            <div
+              className={
+                viewMode === "grid"
+                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                  : "space-y-4"
+              }
+            >
+              {displayParts.map((part) => (
+                <Card
+                  key={part.id}
+                  className="bg-zinc-800 border-zinc-700 hover:border-zinc-600 transition-colors"
                 >
-                  {viewMode === "grid" ? (
-                    <>
-                      <div className="w-full h-48 mb-4 rounded-lg overflow-hidden">
-                        <PartImage
-                          src={part.image}
-                          alt={part.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <div>
-                          <h3 className="font-medium text-lg text-white">
-                            {part.name}
-                          </h3>
-                          <p className="text-sm text-zinc-400">
-                            Código: {part.code}
-                          </p>
+                  <CardContent
+                    className={viewMode === "grid" ? "p-4" : "p-4 flex gap-4"}
+                  >
+                    {viewMode === "grid" ? (
+                      <>
+                        <div className="w-full h-48 mb-4 rounded-lg overflow-hidden">
+                          <PartImage
+                            src={part.image}
+                            alt={part.name}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
+                        <div className="space-y-2">
+                          <div>
+                            <h3 className="font-medium text-lg text-white">
+                              {part.name}
+                            </h3>
+                            <p className="text-sm text-zinc-400">
+                              Código: {part.code}
+                            </p>
+                          </div>
 
-                        {part.categoryName && (
-                          <Badge
-                            variant="secondary"
-                            className="bg-zinc-700 text-zinc-300"
-                          >
-                            {part.categoryName}
-                          </Badge>
-                        )}
-
-                        {part.description && (
-                          <p className="text-sm text-zinc-400 line-clamp-2">
-                            {part.description}
-                          </p>
-                        )}
-
-                        <Button
-                          className={`w-full mt-4 ${
-                            canUseCart
-                              ? "bg-green-600 hover:bg-green-700"
-                              : "bg-amber-600 hover:bg-amber-700"
-                          }`}
-                          onClick={() => addToCart(part)}
-                        >
-                          {canUseCart ? (
-                            <>
-                              <Plus className="h-4 w-4 mr-2" />
-                              Adicionar ao Carrinho
-                            </>
-                          ) : (
-                            <>
-                              <Shield className="h-4 w-4 mr-2" />
-                              Solicitar Acesso
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden">
-                        <PartImage
-                          src={part.image}
-                          alt={part.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="flex-1 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                        <div>
-                          <h3 className="font-medium text-lg text-white">
-                            {part.name}
-                          </h3>
-                          <p className="text-sm text-zinc-400">
-                            Código: {part.code}
-                          </p>
                           {part.categoryName && (
                             <Badge
                               variant="secondary"
-                              className="bg-zinc-700 text-zinc-300 mt-1"
+                              className="bg-zinc-700 text-zinc-300"
                             >
                               {part.categoryName}
                             </Badge>
                           )}
-                        </div>
-                        <div className="mt-2 sm:mt-0">
+
+                          {part.description && (
+                            <p className="text-sm text-zinc-400 line-clamp-2">
+                              {part.description}
+                            </p>
+                          )}
+
                           <Button
-                            className={`w-full sm:w-auto ${
+                            className={`w-full mt-4 ${
                               canUseCart
                                 ? "bg-green-600 hover:bg-green-700"
                                 : "bg-amber-600 hover:bg-amber-700"
@@ -1331,59 +1151,110 @@ const PublicShop = ({
                             {canUseCart ? (
                               <>
                                 <Plus className="h-4 w-4 mr-2" />
-                                {isMobile
-                                  ? "Adicionar"
-                                  : "Adicionar ao Carrinho"}
+                                Adicionar ao Carrinho
                               </>
                             ) : (
                               <>
                                 <Shield className="h-4 w-4 mr-2" />
-                                {isMobile ? "Acesso" : "Solicitar Acesso"}
+                                Solicitar Acesso
                               </>
                             )}
                           </Button>
                         </div>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden">
+                          <PartImage
+                            src={part.image}
+                            alt={part.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                          <div>
+                            <h3 className="font-medium text-lg text-white">
+                              {part.name}
+                            </h3>
+                            <p className="text-sm text-zinc-400">
+                              Código: {part.code}
+                            </p>
+                            {part.categoryName && (
+                              <Badge
+                                variant="secondary"
+                                className="bg-zinc-700 text-zinc-300 mt-1"
+                              >
+                                {part.categoryName}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="mt-2 sm:mt-0">
+                            <Button
+                              className={`w-full sm:w-auto ${
+                                canUseCart
+                                  ? "bg-green-600 hover:bg-green-700"
+                                  : "bg-amber-600 hover:bg-amber-700"
+                              }`}
+                              onClick={() => addToCart(part)}
+                            >
+                              {canUseCart ? (
+                                <>
+                                  <Plus className="h-4 w-4 mr-2" />
+                                  {isMobile
+                                    ? "Adicionar"
+                                    : "Adicionar ao Carrinho"}
+                                </>
+                              ) : (
+                                <>
+                                  <Shield className="h-4 w-4 mr-2" />
+                                  {isMobile ? "Acesso" : "Solicitar Acesso"}
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
-            {displayParts.length === 0 && !isLoading && (
-              <Card className="bg-zinc-800 border-zinc-700 col-span-full">
-                <CardContent className="p-8 text-center">
-                  <Search className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-                  <p className="text-lg font-medium mb-2 text-white">
-                    Nenhuma peça encontrada
-                  </p>
-                  <p className="text-zinc-400">
-                    {debouncedSearchTerm
-                      ? `Tente buscar por outros termos ou limpe o filtro de busca`
-                      : `Tente ajustar seus filtros ou categorias`}
-                  </p>
-                  {debouncedSearchTerm && (
-                    <Button
-                      onClick={clearSearch}
-                      className="mt-4 bg-zinc-700 hover:bg-zinc-600"
-                    >
-                      Limpar Busca
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </div>
+          {/* Empty State */}
+          {displayParts.length === 0 && !isLoadingParts && (
+            <Card className="bg-zinc-800 border-zinc-700">
+              <CardContent className="p-8 text-center">
+                <Search className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
+                <p className="text-lg font-medium mb-2 text-white">
+                  Nenhuma peça encontrada
+                </p>
+                <p className="text-zinc-400">
+                  {debouncedSearchTerm
+                    ? `Tente buscar por outros termos ou limpe o filtro de busca`
+                    : `Tente ajustar seus filtros ou categorias`}
+                </p>
+                {debouncedSearchTerm && (
+                  <Button
+                    onClick={clearSearch}
+                    className="mt-4 bg-zinc-700 hover:bg-zinc-600"
+                  >
+                    Limpar Busca
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-          {/* ✅ NOVA PAGINAÇÃO COM "CARREGAR MAIS" - só aparece quando NÃO está pesquisando */}
-          {hasMore && !debouncedSearchTerm && (
+          {/* ✅ LOAD MORE - só aparece quando NÃO está pesquisando */}
+          {hasMore && !debouncedSearchTerm && displayParts.length > 0 && (
             <div className="flex justify-center mt-8">
               <Button
-                onClick={loadMore}
-                disabled={isLoading}
+                onClick={loadMoreParts}
+                disabled={isLoadingParts}
                 className="bg-green-600 hover:bg-green-700"
               >
-                {isLoading ? (
+                {isLoadingParts ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Carregando...
@@ -1391,7 +1262,7 @@ const PublicShop = ({
                 ) : (
                   <>
                     <Plus className="w-4 h-4 mr-2" />
-                    Carregar Mais ({itemsPerPage} peças)
+                    Carregar Mais (20 peças)
                   </>
                 )}
               </Button>
@@ -1401,18 +1272,8 @@ const PublicShop = ({
           {!hasMore && displayParts.length > 0 && !debouncedSearchTerm && (
             <div className="text-center mt-8">
               <p className="text-zinc-400">
-                ✅ Todas as peças foram carregadas ({totalLoadedCount} total)
+                ✅ Todas as peças foram carregadas ({displayParts.length} total)
               </p>
-            </div>
-          )}
-
-          {/* Loading indicator for more data */}
-          {isLoading && displayParts.length > 0 && (
-            <div className="flex justify-center mt-8">
-              <div className="flex items-center gap-2 text-zinc-400">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Carregando mais peças...</span>
-              </div>
             </div>
           )}
         </main>
@@ -1464,7 +1325,7 @@ const PublicShop = ({
       {/* Mobile Menus */}
       <MobileCategoryMenu />
 
-      {/* Access Info Modal */}
+      {/* Access Info Modal - Mantido igual */}
       <Dialog open={showAccessInfo} onOpenChange={setShowAccessInfo}>
         <DialogContent className="bg-zinc-800 border-zinc-700 text-white max-w-md">
           <DialogHeader>
@@ -1502,7 +1363,7 @@ const PublicShop = ({
         </DialogContent>
       </Dialog>
 
-      {/* Quote Modal - só aparece se tiver acesso ao carrinho */}
+      {/* Quote Modal - Mantido igual do original */}
       {canUseCart && (
         <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
           <DialogContent className="bg-zinc-800 border-zinc-700 text-white max-w-lg mx-auto p-0 overflow-hidden">
