@@ -11,7 +11,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useNavigate } from "react-router-dom";
-import { useCategories } from "../../context/CategoriesContext.jsx"; // NOVO
+import { useCategories } from "../../context/CategoriesContext.jsx";
 import {
   Search,
   Plus,
@@ -67,9 +67,6 @@ const ManageCategories = () => {
     error: categoriesError,
   } = useCategories();
 
-  // REMOVER: state local de categories
-  // const [categories, setCategories] = useState([]);
-
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState(null);
   const [expandedCategories, setExpandedCategories] = useState({});
@@ -82,18 +79,15 @@ const ManageCategories = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  // Organizar categorias com subcategorias usando o cache
+  // ✅ CORRIGIR: Organizar categorias com subcategorias usando o cache
   const organizedCategories = categories.map((category) => {
-    const subCategories = getSubcategoriesByParent(category.id);
+    const subcategories = getSubcategoriesByParent(category.id); // ✅ Usar nome consistente
     return {
       ...category,
-      subCategories,
+      subcategories, // ✅ Nome consistente
       isMainCategory: true,
     };
   });
-
-  // REMOVER: fetchCategories (agora usa o cache)
-  // const fetchCategories = useCallback(async () => { ... }, []);
 
   // Fetch stats for categories (manter esse pois é específico)
   const fetchCategoryStats = useCallback(async () => {
@@ -318,7 +312,7 @@ const ManageCategories = () => {
       .includes(searchTerm.toLowerCase());
 
     // Also check subcategories
-    const hasMatchingSubcategories = category.subCategories.some((sub) =>
+    const hasMatchingSubcategories = category.subcategories.some((sub) =>
       sub.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -428,7 +422,7 @@ const ManageCategories = () => {
           <Button
             variant="outline"
             onClick={() => {
-              refreshCategories(); // USAR cache para refresh
+              refreshCategories();
               fetchCategoryStats();
             }}
             className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
@@ -466,7 +460,7 @@ const ManageCategories = () => {
                   </div>
                   <div className="flex items-center">
                     <span className="text-sm text-zinc-400 mr-2">
-                      {category.subCategories.length} subcategorias
+                      {category.subcategories.length} subcategorias
                     </span>
                     <div className="flex items-center space-x-1">
                       <Button
@@ -494,11 +488,11 @@ const ManageCategories = () => {
                   </div>
                 </div>
 
-                {/* Subcategories */}
+                {/* ✅ CORRIGIR: Subcategorias */}
                 {expandedCategories[category.id] && (
                   <div className="border-t border-zinc-700 pl-4">
-                    {category.subCategories.length > 0 ? (
-                      category.subCategories.map((subcategory) => (
+                    {category.subcategories.length > 0 ? (
+                      category.subcategories.map((subcategory) => (
                         <div
                           key={subcategory.id}
                           className="flex items-center justify-between p-3 border-b border-zinc-700/50 last:border-b-0 hover:bg-zinc-700/30"

@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 
 // UI Components
+import PartImage from "../../components/ui/PartImage.jsx";
 import { Card, CardContent } from "@/components/ui/card.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
@@ -827,15 +828,13 @@ const PublicShop = ({
                             } transition-all duration-200 hover:bg-zinc-700/30`}
                           >
                             <div className="flex items-start gap-3">
-                              {item.image && (
-                                <div className="w-12 h-12 rounded-md overflow-hidden bg-zinc-700 flex-shrink-0">
-                                  <img
-                                    src={item.image}
-                                    alt={item.name}
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                              )}
+                              <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0">
+                                <PartImage
+                                  src={item.image}
+                                  alt={item.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
 
                               <div className="flex-1 min-w-0">
                                 <h3 className="font-medium text-white truncate">
@@ -1240,16 +1239,13 @@ const PublicShop = ({
                 >
                   {viewMode === "grid" ? (
                     <>
-                      {part.image && (
-                        <div className="w-full h-48 mb-4 bg-zinc-700 rounded-lg overflow-hidden">
-                          <img
-                            src={part.image}
-                            alt={part.name}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                        </div>
-                      )}
+                      <div className="w-full h-48 mb-4 rounded-lg overflow-hidden">
+                        <PartImage
+                          src={part.image}
+                          alt={part.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                       <div className="space-y-2">
                         <div>
                           <h3 className="font-medium text-lg text-white">
@@ -1299,16 +1295,13 @@ const PublicShop = ({
                     </>
                   ) : (
                     <>
-                      {part.image && (
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 bg-zinc-700 rounded-lg overflow-hidden">
-                          <img
-                            src={part.image}
-                            alt={part.name}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                        </div>
-                      )}
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden">
+                        <PartImage
+                          src={part.image}
+                          alt={part.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                       <div className="flex-1 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                         <div>
                           <h3 className="font-medium text-lg text-white">

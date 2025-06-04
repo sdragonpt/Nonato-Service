@@ -73,7 +73,29 @@ export const CategoriesProvider = ({ children }) => {
   // Buscar na primeira vez
   useEffect(() => {
     fetchAllCategories();
-  }, []);
+
+    // ✅ OTIMIZAÇÃO: Limpar cache quando a aba for fechada/minimizada
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Opcional: limpar cache quando não está visível há muito tempo
+        const timeSinceLastFetch = Date.now() - (lastFetch || 0);
+        if (timeSinceLastFetch > CACHE_DURATION * 2) {
+          console.log("🧹 Limpando cache de categorias por inatividade");
+          setCategories([]);
+          setSubcategories([]);
+          setCategoriesMap(new Map());
+          setSubcategoriesMap(new Map());
+          setLastFetch(null);
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [lastFetch]);
 
   // Função para buscar categoria por ID (do cache)
   const getCategoryById = (id) => {

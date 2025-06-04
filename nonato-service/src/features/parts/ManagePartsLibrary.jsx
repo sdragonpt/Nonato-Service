@@ -1,4 +1,4 @@
-// ManagePartsLibrary.jsx - OTIMIZADO com paginação real Firestore
+// ManagePartsLibrary.jsx - CORRIGIDO: Subcategorias agora aparecem na aba "Por Categorias"
 
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -15,6 +15,7 @@ import {
 import { db } from "../../firebase.jsx";
 import { useNavigate } from "react-router-dom";
 import { useCategories } from "../../context/CategoriesContext.jsx";
+import PartImage from "../../components/ui/PartImage.jsx"; // ✅ NOVO: Imagem com fallback
 import {
   Search,
   Plus,
@@ -54,11 +55,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import {
   Tabs,
@@ -383,9 +379,6 @@ const ManagePartsLibrary = () => {
       }
     }
 
-    // ✅ REMOVIDO: Busca local temporária - agora a busca é feita no servidor
-    // A busca agora é feita diretamente na query do Firestore
-
     return filtered;
   };
 
@@ -676,12 +669,13 @@ const ManagePartsLibrary = () => {
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-                        <AvatarImage src={part.image} alt={part.name} />
-                        <AvatarFallback className="bg-zinc-700 text-white text-sm">
-                          {part.name?.[0]?.toUpperCase() || "P"}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg overflow-hidden">
+                        <PartImage
+                          src={part.image}
+                          alt={part.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -765,7 +759,7 @@ const ManagePartsLibrary = () => {
               )}
             </div>
           ) : (
-            // List view - usando displayParts
+            // List view
             <div className="mt-4 space-y-2">
               {displayParts.map((part) => (
                 <Card
@@ -775,12 +769,13 @@ const ManagePartsLibrary = () => {
                 >
                   <CardContent className="p-3">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={part.image} alt={part.name} />
-                        <AvatarFallback className="bg-zinc-700 text-white text-sm">
-                          {part.name?.[0]?.toUpperCase() || "P"}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="h-10 w-10 rounded-lg overflow-hidden">
+                        <PartImage
+                          src={part.image}
+                          alt={part.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
 
                       <div className="flex-1 min-w-0 flex items-center">
                         <div>
@@ -891,7 +886,7 @@ const ManagePartsLibrary = () => {
           )}
         </TabsContent>
 
-        {/* Categories Tab - MANTIDO IGUAL */}
+        {/* ✅ CATEGORIES TAB - CORRIGIDA: Agora mostra subcategorias! */}
         <TabsContent value="categories">
           <div className="space-y-4">
             {/* Breadcrumb */}
@@ -909,25 +904,31 @@ const ManagePartsLibrary = () => {
                 <span className="text-zinc-400">
                   {selectedSubcategory
                     ? `${selectedCategory.name} > ${selectedSubcategory.name}`
-                    : selectedCategory.name}
+                    : selectedCategory
+                    ? selectedCategory.name
+                    : "Categorias"}
                 </span>
               </div>
             )}
 
             {/* Search for Categories Tab */}
-            {!selectedCategory && (
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <Input
-                  placeholder="Buscar categorias..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
-                />
-              </div>
-            )}
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <Input
+                placeholder={
+                  selectedCategory && !selectedSubcategory
+                    ? "Buscar subcategorias..."
+                    : selectedSubcategory
+                    ? "Buscar peças..."
+                    : "Buscar categorias..."
+                }
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+              />
+            </div>
 
-            {/* Display Main Categories */}
+            {/* ✅ 1. MOSTRAR CATEGORIAS PRINCIPAIS (quando nada selecionado) */}
             {!selectedCategory && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {getMainCategories()
@@ -975,72 +976,149 @@ const ManagePartsLibrary = () => {
               </div>
             )}
 
-            {/* Display Parts in Subcategory */}
-            {selectedSubcategory && (
-              <div className="space-y-4">
-                <div className="relative w-full">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <Input
-                    placeholder="Buscar peças..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {displayParts
-                    .filter(
-                      (part) => part.subcategoryId === selectedSubcategory.id
-                    )
-                    .map((part) => (
-                      <Card
-                        key={part.id}
-                        onClick={() => navigate(`/app/part/${part.id}`)}
-                        className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
-                      >
-                        <CardContent className="p-4">
+            {/* ✅ 2. MOSTRAR SUBCATEGORIAS (quando categoria selecionada) */}
+            {selectedCategory && !selectedSubcategory && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {getSubcategories(selectedCategory.id)
+                  .filter((sub) =>
+                    sub.name.toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                  .map((subcategory) => (
+                    <Card
+                      key={subcategory.id}
+                      onClick={() => handleSubcategoryClick(subcategory)}
+                      className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={part.image} alt={part.name} />
-                              <AvatarFallback className="bg-zinc-700 text-white text-sm">
-                                {part.name?.[0]?.toUpperCase() || "P"}
-                              </AvatarFallback>
-                            </Avatar>
-
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-semibold text-base text-white truncate">
-                                  {part.name}
-                                </h3>
-                                <Badge className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20">
-                                  {part.code}
-                                </Badge>
-                              </div>
-                              <p className="text-white text-sm">
-                                {new Intl.NumberFormat("pt-PT", {
-                                  style: "currency",
-                                  currency: "EUR",
-                                }).format(part.price || 0)}
-                              </p>
-                            </div>
+                            <Package className="h-5 w-5 text-purple-500" />
+                            <h3 className="font-semibold text-base text-white">
+                              {subcategory.name}
+                            </h3>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-
-                  {parts.filter(
-                    (part) => part.subcategoryId === selectedSubcategory.id
-                  ).length === 0 && (
-                    <Card className="md:col-span-2 lg:col-span-3 bg-zinc-800 border-zinc-700">
-                      <CardContent className="p-6 text-center">
-                        <p className="text-zinc-400">
-                          Nenhuma peça encontrada nesta subcategoria
+                          <ChevronRight className="h-4 w-4 text-zinc-400" />
+                        </div>
+                        <p className="text-zinc-400 text-sm mt-2">
+                          {
+                            parts.filter(
+                              (part) => part.subcategoryId === subcategory.id
+                            ).length
+                          }{" "}
+                          peças
                         </p>
                       </CardContent>
                     </Card>
-                  )}
-                </div>
+                  ))}
+
+                {getSubcategories(selectedCategory.id).filter((sub) =>
+                  sub.name.toLowerCase().includes(searchTerm.toLowerCase())
+                ).length === 0 && (
+                  <Card className="md:col-span-2 lg:col-span-3 bg-zinc-800 border-zinc-700">
+                    <CardContent className="p-8 text-center">
+                      <Package className="w-10 h-10 text-zinc-600 mx-auto mb-4" />
+                      <p className="text-lg font-medium mb-2 text-white">
+                        Nenhuma subcategoria encontrada
+                      </p>
+                      <p className="text-sm text-zinc-400">
+                        Esta categoria ainda não tem subcategorias ou sua busca
+                        não encontrou resultados
+                      </p>
+                      <Button
+                        onClick={() =>
+                          navigate(
+                            `/app/add-subcategory/${selectedCategory.id}`
+                          )
+                        }
+                        className="mt-4 bg-purple-600 hover:bg-purple-700"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Adicionar Subcategoria
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+
+            {/* ✅ 3. MOSTRAR PEÇAS DA SUBCATEGORIA (quando subcategoria selecionada) */}
+            {selectedSubcategory && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {displayParts
+                  .filter(
+                    (part) => part.subcategoryId === selectedSubcategory.id
+                  )
+                  .filter(
+                    (part) =>
+                      part.name
+                        ?.toLowerCase()
+                        .includes(searchTerm.toLowerCase()) ||
+                      part.code
+                        ?.toLowerCase()
+                        .includes(searchTerm.toLowerCase()) ||
+                      part.description
+                        ?.toLowerCase()
+                        .includes(searchTerm.toLowerCase())
+                  )
+                  .map((part) => (
+                    <Card
+                      key={part.id}
+                      onClick={() => navigate(`/app/part/${part.id}`)}
+                      className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg overflow-hidden">
+                            <PartImage
+                              src={part.image}
+                              alt={part.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold text-base text-white truncate">
+                                {part.name}
+                              </h3>
+                              <Badge className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20">
+                                {part.code}
+                              </Badge>
+                            </div>
+                            <p className="text-white text-sm">
+                              {new Intl.NumberFormat("pt-PT", {
+                                style: "currency",
+                                currency: "EUR",
+                              }).format(part.price || 0)}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                {parts.filter(
+                  (part) => part.subcategoryId === selectedSubcategory.id
+                ).length === 0 && (
+                  <Card className="md:col-span-2 lg:col-span-3 bg-zinc-800 border-zinc-700">
+                    <CardContent className="p-6 text-center">
+                      <Package className="w-10 h-10 text-zinc-600 mx-auto mb-4" />
+                      <p className="text-lg font-medium mb-2 text-white">
+                        Nenhuma peça encontrada
+                      </p>
+                      <p className="text-zinc-400 text-sm">
+                        Esta subcategoria ainda não tem peças cadastradas
+                      </p>
+                      <Button
+                        onClick={() => navigate("/app/add-part")}
+                        className="mt-4 bg-green-600 hover:bg-green-700"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Adicionar Peça
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             )}
 
