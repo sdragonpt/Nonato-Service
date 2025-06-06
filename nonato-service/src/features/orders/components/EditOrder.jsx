@@ -19,6 +19,8 @@ import {
   AlertCircle,
   Clock,
   Settings,
+  Calculator,
+  Euro,
 } from "lucide-react";
 
 // UI Components
@@ -40,6 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select.jsx";
 import { Checkbox } from "@/components/ui/checkbox.jsx";
+import { Badge } from "@/components/ui/badge.jsx";
 
 const EditOrder = () => {
   const { orderId } = useParams();
@@ -279,68 +282,249 @@ const EditOrder = () => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* ✅ SEÇÃO MELHORADA DE PREÇOS DOS ITENS */}
         {formData.isQuote && formData.items && formData.items.length > 0 && (
           <Card className="bg-zinc-800 border-zinc-700">
             <CardHeader>
-              <CardTitle className="text-lg text-white">
-                Definir Preços dos Itens
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {formData.items.map((item, index) => (
-                  <div
-                    key={index}
-                    className="grid grid-cols-12 gap-4 items-center bg-zinc-700/50 p-4 rounded-lg"
-                  >
-                    <div className="col-span-4">
-                      <label className="text-sm text-zinc-400">Item</label>
-                      <p className="text-white">{item.name}</p>
-                      <p className="text-sm text-zinc-400">
-                        Código: {item.code}
-                      </p>
-                    </div>
-                    <div className="col-span-2">
-                      <label className="text-sm text-zinc-400">
-                        Quantidade
-                      </label>
-                      <p className="text-white">{item.quantity}</p>
-                    </div>
-                    <div className="col-span-3">
-                      <label className="text-sm text-zinc-400">
-                        Preço Unitário (€)
-                      </label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={item.price}
-                        onChange={(e) =>
-                          handleItemPriceChange(index, e.target.value)
-                        }
-                        className="bg-zinc-900 border-zinc-700 text-white"
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div className="col-span-3">
-                      <label className="text-sm text-zinc-400">Subtotal</label>
-                      <p className="text-white font-medium">
-                        € {(item.quantity * item.price).toFixed(2)}
-                      </p>
-                    </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg text-white flex items-center">
+                    <Calculator className="h-5 w-5 mr-2 text-orange-400" />
+                    Definir Preços dos Itens do Orçamento
+                  </CardTitle>
+                  <p className="text-sm text-zinc-400 mt-1">
+                    Defina os preços para cada item solicitado no orçamento
+                    online
+                  </p>
+                </div>
+
+                {/* ✅ REFERÊNCIA AO ORÇAMENTO ORIGINAL */}
+                {originalData?.originalQuoteId && (
+                  <div className="text-right">
+                    <p className="text-xs text-zinc-500">Orçamento Original:</p>
+                    <p className="text-sm text-zinc-300 font-mono">
+                      {originalData.originalQuoteId.substring(0, 8)}...
+                    </p>
                   </div>
-                ))}
-                <div className="text-right pt-4 border-t border-zinc-700">
-                  <p className="text-lg font-bold text-green-400">
-                    Total do Orçamento: €{" "}
+                )}
+              </div>
+            </CardHeader>
+
+            <CardContent>
+              {/* ✅ RESUMO DOS PREÇOS */}
+              <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-zinc-700/30 rounded-lg">
+                <div className="text-center">
+                  <p className="text-sm text-zinc-400">Total de Itens</p>
+                  <p className="text-xl font-bold text-white">
+                    {formData.items.length}
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-sm text-zinc-400">Com Preço</p>
+                  <p className="text-xl font-bold text-green-400">
+                    {formData.items.filter((item) => item.price > 0).length}
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-sm text-zinc-400">Sem Preço</p>
+                  <p className="text-xl font-bold text-amber-400">
+                    {
+                      formData.items.filter(
+                        (item) => !item.price || item.price === 0
+                      ).length
+                    }
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-sm text-zinc-400">Valor Total</p>
+                  <p className="text-xl font-bold text-green-400">
+                    €{" "}
                     {formData.items
                       .reduce(
-                        (sum, item) => sum + item.quantity * item.price,
+                        (sum, item) => sum + item.quantity * (item.price || 0),
                         0
                       )
                       .toFixed(2)}
                   </p>
                 </div>
+              </div>
+
+              {/* ✅ LISTA DE ITENS MELHORADA */}
+              <div className="space-y-4">
+                {formData.items.map((item, index) => {
+                  const hasPrice = item.price && item.price > 0;
+                  const subtotal = item.quantity * (item.price || 0);
+
+                  return (
+                    <div
+                      key={index}
+                      className={`grid grid-cols-12 gap-4 items-center p-4 rounded-lg transition-all duration-200 ${
+                        hasPrice
+                          ? "bg-green-500/10 border border-green-500/30"
+                          : "bg-amber-500/10 border border-amber-500/30"
+                      }`}
+                    >
+                      {/* Informações do Item */}
+                      <div className="col-span-12 md:col-span-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <label className="text-sm font-medium text-white">
+                            {item.name}
+                          </label>
+                          {!hasPrice && (
+                            <Badge className="bg-amber-500/20 text-amber-400 text-xs">
+                              Pendente
+                            </Badge>
+                          )}
+                          {hasPrice && (
+                            <Badge className="bg-green-500/20 text-green-400 text-xs">
+                              ✓ Preço OK
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-zinc-400">
+                          Código: {item.code}
+                        </p>
+                      </div>
+
+                      {/* Quantidade (readonly) */}
+                      <div className="col-span-6 md:col-span-2">
+                        <label className="text-sm text-zinc-400 block mb-1">
+                          Quantidade
+                        </label>
+                        <div className="bg-zinc-700 rounded px-3 py-2 text-center">
+                          <span className="text-white font-medium">
+                            {item.quantity}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Preço Unitário */}
+                      <div className="col-span-6 md:col-span-3">
+                        <label className="text-sm text-zinc-400 block mb-1">
+                          Preço Unitário (€) *
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={item.price || ""}
+                          onChange={(e) =>
+                            handleItemPriceChange(index, e.target.value)
+                          }
+                          className={`bg-zinc-900 border-zinc-700 text-white text-center font-medium ${
+                            !hasPrice
+                              ? "border-amber-500/50 focus:border-amber-500"
+                              : "border-green-500/50"
+                          }`}
+                          placeholder="0.00"
+                        />
+                      </div>
+
+                      {/* Subtotal */}
+                      <div className="col-span-12 md:col-span-3">
+                        <label className="text-sm text-zinc-400 block mb-1">
+                          Subtotal
+                        </label>
+                        <div
+                          className={`rounded px-3 py-2 text-center border ${
+                            hasPrice
+                              ? "bg-green-500/10 border-green-500/30"
+                              : "bg-zinc-700/50 border-zinc-600"
+                          }`}
+                        >
+                          <span
+                            className={`font-bold ${
+                              hasPrice ? "text-green-400" : "text-zinc-500"
+                            }`}
+                          >
+                            {hasPrice
+                              ? `€ ${subtotal.toFixed(2)}`
+                              : "A definir"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ✅ TOTAL FINAL */}
+              <div className="mt-6 p-4 bg-zinc-700/50 rounded-lg border border-zinc-600">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg font-bold text-white">
+                      Total do Orçamento
+                    </h3>
+                    <p className="text-sm text-zinc-400">
+                      {formData.items.filter(
+                        (item) => !item.price || item.price === 0
+                      ).length > 0 &&
+                        "* Valor parcial - alguns itens sem preço definido"}
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-green-400">
+                      €{" "}
+                      {formData.items
+                        .reduce(
+                          (sum, item) =>
+                            sum + item.quantity * (item.price || 0),
+                          0
+                        )
+                        .toFixed(2)}
+                    </p>
+                    {formData.items.every((item) => item.price > 0) && (
+                      <p className="text-sm text-green-400">
+                        ✓ Orçamento completo
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* ✅ AÇÕES RÁPIDAS */}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Definir preço 0 para todos os itens sem preço
+                    setFormData((prev) => ({
+                      ...prev,
+                      items: prev.items.map((item) => ({
+                        ...item,
+                        price: item.price || 0,
+                      })),
+                    }));
+                  }}
+                  className="border-zinc-600 text-zinc-400 hover:bg-zinc-700"
+                >
+                  Zerar Preços Pendentes
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Exemplo: definir preço padrão de 10€ para itens sem preço
+                    setFormData((prev) => ({
+                      ...prev,
+                      items: prev.items.map((item) => ({
+                        ...item,
+                        price: item.price || 10.0,
+                      })),
+                    }));
+                  }}
+                  className="border-blue-600 text-blue-400 hover:bg-blue-500/20"
+                >
+                  Preço Padrão (€10)
+                </Button>
               </div>
             </CardContent>
           </Card>

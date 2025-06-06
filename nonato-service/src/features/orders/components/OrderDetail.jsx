@@ -30,6 +30,11 @@ import {
   Settings,
   AlertCircle,
   PackageOpen,
+  Edit,
+  Calculator,
+  Euro,
+  Package2,
+  CheckCircle,
 } from "lucide-react";
 
 // UI Components
@@ -63,7 +68,6 @@ const OrderDetail = () => {
   const [isClosing, setIsClosing] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [error, setError] = useState(null);
-  const [] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Keep original calculateHours, calculateHoursWithPause, and calculateOrderTotals functions
@@ -333,43 +337,162 @@ const OrderDetail = () => {
         </Button>
       </div>
 
+      {/* ✅ SEÇÃO MELHORADA DE ORÇAMENTOS ONLINE */}
       {order.isQuote && order.items && (
         <Card className="bg-zinc-800 border-zinc-700">
           <CardHeader>
-            <CardTitle className="text-lg text-white">
-              Itens do Orçamento
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg text-white flex items-center">
+                <Package2 className="h-5 w-5 mr-2 text-orange-400" />
+                Itens do Orçamento Online
+                <Badge className="ml-2 bg-orange-500/20 text-orange-400">
+                  {order.items.length} item(s)
+                </Badge>
+              </CardTitle>
+
+              {/* Botão para editar preços */}
+              <Button
+                onClick={() => navigate(`/app/edit-service-order/${orderId}`)}
+                variant="outline"
+                size="sm"
+                className="border-blue-600 text-blue-400 hover:bg-blue-500/20"
+              >
+                <Calculator className="h-4 w-4 mr-2" />
+                Definir Preços
+              </Button>
+            </div>
           </CardHeader>
+
           <CardContent>
             <div className="space-y-4">
-              {order.items.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex justify-between items-center border-b border-zinc-700 pb-2"
-                >
+              {/* Resumo do orçamento */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-zinc-700/30 rounded-lg border border-zinc-600/50">
+                <div className="text-center">
+                  <p className="text-sm text-zinc-400">Total de Itens</p>
+                  <p className="text-xl font-bold text-white">
+                    {order.items.reduce((sum, item) => sum + item.quantity, 0)}
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-sm text-zinc-400">Itens com Preço</p>
+                  <p className="text-xl font-bold text-green-400">
+                    {order.items.filter((item) => item.price > 0).length}
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-sm text-zinc-400">Valor Total</p>
+                  <p className="text-xl font-bold text-green-400">
+                    {formatPrice(
+                      order.items.reduce(
+                        (sum, item) => sum + item.quantity * (item.price || 0),
+                        0
+                      )
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              {/* Lista de itens */}
+              <div className="space-y-3">
+                {order.items.map((item, index) => {
+                  const hasPrice = item.price && item.price > 0;
+                  const subtotal = item.quantity * (item.price || 0);
+
+                  return (
+                    <div
+                      key={index}
+                      className={`flex justify-between items-center p-4 rounded-lg border transition-colors ${
+                        hasPrice
+                          ? "bg-green-500/10 border-green-500/30"
+                          : "bg-amber-500/10 border-amber-500/30"
+                      }`}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-white font-medium">{item.name}</p>
+                          {!hasPrice && (
+                            <Badge className="bg-amber-500/20 text-amber-400 text-xs">
+                              Sem preço
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-zinc-400">
+                          Código: {item.code}
+                        </p>
+                        <p className="text-sm text-zinc-400">
+                          Quantidade: {item.quantity}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        {hasPrice ? (
+                          <>
+                            <p className="text-white font-medium">
+                              {formatPrice(item.price)} / un.
+                            </p>
+                            <p className="text-lg font-bold text-green-400">
+                              {formatPrice(subtotal)}
+                            </p>
+                          </>
+                        ) : (
+                          <div className="flex flex-col items-end">
+                            <p className="text-amber-400 text-sm font-medium">
+                              Preço não definido
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                navigate(`/app/edit-service-order/${orderId}`)
+                              }
+                              className="mt-1 border-amber-600 text-amber-400 hover:bg-amber-500/20"
+                            >
+                              <Euro className="h-3 w-3 mr-1" />
+                              Definir
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Status do orçamento */}
+              <div className="mt-6 p-4 bg-zinc-700/50 rounded-lg">
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-white font-medium">{item.name}</p>
-                    <p className="text-sm text-zinc-400">Código: {item.code}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-white">Qtd: {item.quantity}</p>
-                    <p className="text-green-400">
-                      {item.quantity} x {formatPrice(item.price)} ={" "}
-                      {formatPrice(item.quantity * item.price)}
+                    <h4 className="text-sm font-medium text-zinc-300 mb-1">
+                      Status do Orçamento
+                    </h4>
+                    <p className="text-xs text-zinc-400">
+                      ID Original:{" "}
+                      {order.originalQuoteId
+                        ? `${order.originalQuoteId.substring(0, 8)}...`
+                        : "N/A"}
                     </p>
                   </div>
+
+                  <div className="text-right">
+                    {order.items.every((item) => item.price > 0) ? (
+                      <div className="flex items-center text-green-400">
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        <span className="text-sm font-medium">
+                          Orçamento Completo
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center text-amber-400">
+                        <AlertCircle className="h-4 w-4 mr-2" />
+                        <span className="text-sm font-medium">
+                          Preços Pendentes
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              ))}
-              <div className="text-right pt-2">
-                <p className="text-lg font-bold text-green-400">
-                  Total:{" "}
-                  {formatPrice(
-                    order.items.reduce(
-                      (sum, item) => sum + item.quantity * item.price,
-                      0
-                    )
-                  )}
-                </p>
               </div>
             </div>
           </CardContent>

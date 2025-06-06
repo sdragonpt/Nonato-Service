@@ -1,4 +1,4 @@
-// Novo arquivo: generateQuotePDF.jsx
+// generateQuotePDF.jsx - MODIFICADO: ID encurtado para orçamentos
 
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
@@ -12,6 +12,28 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
   const fontSize = 10;
   const margin = 50;
   let yPos = 0;
+
+  // ✅ FUNÇÃO PARA ENCURTAR ID DO ORÇAMENTO
+  const getShortQuoteId = (fullId) => {
+    if (!fullId) return "ORÇ-0001";
+
+    // Se o ID for muito longo (Firebase ID), criar um ID mais amigável
+    if (fullId.length > 10) {
+      // Pegar timestamp para criar um número sequencial baseado na data
+      const now = new Date();
+      const year = now.getFullYear().toString().slice(-2); // Últimos 2 dígitos do ano
+      const month = (now.getMonth() + 1).toString().padStart(2, "0");
+      const day = now.getDate().toString().padStart(2, "0");
+
+      // Usar os primeiros 4 caracteres do ID original para garantir unicidade
+      const uniquePart = fullId.substring(0, 4).toUpperCase();
+
+      return `ORÇ-${year}${month}${day}-${uniquePart}`;
+    }
+
+    // Se já for curto, usar como está
+    return `ORÇ-${fullId}`;
+  };
 
   // Carregar fontes
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -56,6 +78,9 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
   // Criar primeira página
   createNewPage();
 
+  // ✅ USAR ID ENCURTADO NO CABEÇALHO
+  const shortQuoteId = getShortQuoteId(orderId);
+
   // Cabeçalho do documento
   currentPage.drawText("ORÇAMENTO", {
     x: 250,
@@ -65,9 +90,9 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     font: boldFont,
   });
 
-  // Número do orçamento
-  currentPage.drawText(`Nº: ${orderId}`, {
-    x: 500,
+  // ✅ NÚMERO DO ORÇAMENTO ENCURTADO
+  currentPage.drawText(`Nº: ${shortQuoteId}`, {
+    x: 450, // Ajustado para caber melhor
     y: pageHeight - 50,
     size: 12,
     font: boldFont,
@@ -170,6 +195,18 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
 
   yPos -= 20;
 
+  // ✅ ADICIONAR REFERÊNCIA AO ID ORIGINAL (SE NECESSÁRIO)
+  if (orderId.length > 10) {
+    currentPage.drawText(`Ref. Sistema: ${orderId.substring(0, 12)}...`, {
+      x: margin,
+      y: yPos,
+      size: 8,
+      color: rgb(0.5, 0.5, 0.5),
+      font: font,
+    });
+    yPos -= 15;
+  }
+
   // Tabela de itens
   currentPage.drawText("ITENS DO ORÇAMENTO", {
     x: margin,
@@ -217,17 +254,23 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
 
   // Lista de itens
   order.items?.forEach((item, idx) => {
+    const price = item.price || 0;
+    const subtotal = item.quantity * price;
+
     const rowValues = [
       item.name,
       item.code,
       item.quantity.toString(),
-      formatPrice(item.price),
-      formatPrice(item.quantity * item.price),
+      price > 0 ? formatPrice(price) : "A definir",
+      price > 0 ? formatPrice(subtotal) : "A definir",
     ];
 
     xPos = margin;
 
     rowValues.forEach((value, index) => {
+      // ✅ DESTACAR LINHAS SEM PREÇO
+      const bgColor = price > 0 ? rgb(1, 1, 1) : rgb(1, 0.95, 0.9);
+
       currentPage.drawRectangle({
         x: xPos,
         y: yPos - 20,
@@ -235,14 +278,18 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
         height: 20,
         borderColor: rgb(0, 0, 0),
         borderWidth: 1,
+        color: bgColor,
       });
 
       const textWidth = font.widthOfTextAtSize(value, fontSize);
+      const textColor = price > 0 ? rgb(0, 0, 0) : rgb(0.8, 0.4, 0);
+
       currentPage.drawText(value, {
         x: xPos + (columnWidths[index] - textWidth) / 2,
         y: yPos - 15,
         size: fontSize,
         font: font,
+        color: textColor,
       });
 
       xPos += columnWidths[index];
@@ -256,6 +303,16 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
   const totalWidth = 200;
   const totalX = pageWidth - margin - totalWidth;
 
+  // ✅ CALCULAR TOTAL APENAS DOS ITENS COM PREÇO
+  const itemsWithPrice = order.items?.filter((item) => item.price > 0) || [];
+  const total = itemsWithPrice.reduce(
+    (sum, item) => sum + item.quantity * item.price,
+    0
+  );
+  const hasItemsWithoutPrice = order.items?.some(
+    (item) => !item.price || item.price === 0
+  );
+
   currentPage.drawRectangle({
     x: totalX,
     y: yPos - 30,
@@ -266,25 +323,46 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     color: rgb(0.9, 0.9, 0.9),
   });
 
-  currentPage.drawText("TOTAL:", {
-    x: totalX + 20,
+  currentPage.drawText("TOTAL PARCIAL:", {
+    x: totalX + 10,
     y: yPos - 20,
     size: fontSize,
     font: boldFont,
   });
 
-  // Calcular total
-  const total =
-    order.items?.reduce((sum, item) => sum + item.quantity * item.price, 0) ||
-    0;
-  const totalText = formatPrice(total);
-
+  const totalText = total > 0 ? formatPrice(total) : "A definir";
   currentPage.drawText(totalText, {
     x: totalX + totalWidth - 80,
     y: yPos - 20,
     size: fontSize,
     font: boldFont,
+    color: total > 0 ? rgb(0, 0, 0) : rgb(0.8, 0.4, 0),
   });
+
+  // ✅ NOTA SOBRE ITENS SEM PREÇO
+  if (hasItemsWithoutPrice) {
+    yPos -= 50;
+    currentPage.drawText("* Alguns itens ainda não possuem preço definido", {
+      x: margin,
+      y: yPos,
+      size: 8,
+      font: font,
+      color: rgb(0.8, 0.4, 0),
+    });
+
+    currentPage.drawText(
+      "* Valor total será atualizado após definição de todos os preços",
+      {
+        x: margin,
+        y: yPos - 12,
+        size: 8,
+        font: font,
+        color: rgb(0.8, 0.4, 0),
+      }
+    );
+  }
+
+  // ... (resto do código permanece igual: observações, assinaturas, rodapé)
 
   // Observações
   yPos -= 60;
@@ -361,9 +439,15 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     }
   );
 
+  // ✅ ATUALIZAR NOME DO ARQUIVO PARA USAR ID ENCURTADO
+  const shortFileName = fileName.replace(orderId, shortQuoteId);
+
   // Salvar PDF
   const pdfBytes = await pdfDoc.save();
-  return { blob: new Blob([pdfBytes], { type: "application/pdf" }), fileName };
+  return {
+    blob: new Blob([pdfBytes], { type: "application/pdf" }),
+    fileName: shortFileName,
+  };
 };
 
 export default generateQuotePDF;

@@ -79,15 +79,19 @@ const ManageCategories = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  // ✅ CORRIGIR: Organizar categorias com subcategorias usando o cache
-  const organizedCategories = categories.map((category) => {
-    const subcategories = getSubcategoriesByParent(category.id); // ✅ Usar nome consistente
-    return {
-      ...category,
-      subcategories, // ✅ Nome consistente
-      isMainCategory: true,
-    };
-  });
+  // ✅ ORGANIZAR categorias com subcategorias + ORDENAÇÃO ALFABÉTICA
+  const organizedCategories = categories
+    .sort((a, b) => a.name.localeCompare(b.name)) // ✅ ORDENAR categorias alfabeticamente
+    .map((category) => {
+      const subcategories = getSubcategoriesByParent(category.id).sort((a, b) =>
+        a.name.localeCompare(b.name)
+      ); // ✅ ORDENAR subcategorias alfabeticamente
+      return {
+        ...category,
+        subcategories,
+        isMainCategory: true,
+      };
+    });
 
   // Fetch stats for categories (manter esse pois é específico)
   const fetchCategoryStats = useCallback(async () => {
@@ -306,18 +310,21 @@ const ManageCategories = () => {
     }
   };
 
-  const filteredCategories = organizedCategories.filter((category) => {
-    const matchesSearch = category.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+  // ✅ FILTRAR e manter ORDEM ALFABÉTICA
+  const filteredCategories = organizedCategories
+    .filter((category) => {
+      const matchesSearch = category.name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
 
-    // Also check subcategories
-    const hasMatchingSubcategories = category.subcategories.some((sub) =>
-      sub.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+      // Also check subcategories
+      const hasMatchingSubcategories = category.subcategories.some((sub) =>
+        sub.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
 
-    return matchesSearch || hasMatchingSubcategories;
-  });
+      return matchesSearch || hasMatchingSubcategories;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name)); // ✅ MANTER ordem alfabética após filtro
 
   // Loading state
   if (categoriesLoading) {
