@@ -32,6 +32,7 @@ import {
   ChevronDown,
   Lock,
   Shield,
+  AlertTriangle,
 } from "lucide-react";
 
 // UI Components
@@ -679,9 +680,9 @@ const PublicShop = ({
                             <div className="flex items-start gap-3">
                               <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0">
                                 <PartImage
-                                  src={part.image}
-                                  imageHash={part.imageHash}
-                                  alt={part.name}
+                                  src={item.image}
+                                  imageHash={item.imageHash}
+                                  alt={item.name}
                                   className="w-full h-full object-cover"
                                   defaultImage="/default-part.png"
                                 />
