@@ -1,4 +1,4 @@
-// PublicShop.jsx - OTIMIZADO com cache centralizado (sem duplicação de lógica)
+// PublicShop.jsx - MODIFICADO para usuários logados
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
@@ -11,8 +11,8 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useCategories } from "../../context/CategoriesContext.jsx";
-import { usePartsCache } from "../../context/PartsCache.jsx"; // ✅ NOVO: Cache centralizado
-import PartImage from "../../components/ui/PartImage.jsx"; // ✅ Imagem com fallback
+import { usePartsCache } from "../../context/PartsCache.jsx";
+import PartImage from "../../components/ui/PartImage.jsx";
 import {
   Search,
   Loader2,
@@ -32,6 +32,7 @@ import {
   ChevronDown,
   Lock,
   Shield,
+  User, // ✅ NOVO: Ícone para usuário logado
 } from "lucide-react";
 
 // UI Components
@@ -70,6 +71,7 @@ const PublicShop = ({
   canUseCart = false,
   requestCartAccess,
   userToken,
+  isLoggedUser = false, // ✅ NOVO: Flag para usuário logado
 }) => {
   // ✅ CACHE CENTRALIZADO - Usa o mesmo sistema que ManagePartsLibrary
   const {
@@ -283,18 +285,30 @@ const PublicShop = ({
     }
   }, [cart, canUseCart]);
 
-  // Preencher dados do usuário se tiver token
+  // ✅ MODIFICADO: Preencher dados do usuário logado ou token
   useEffect(() => {
     if (canUseCart && userToken) {
-      setQuoteFormData({
-        name: userToken.name || "",
-        email: userToken.email || "",
-        phone: userToken.phone || "",
-        company: userToken.company || "",
-        message: "",
-      });
+      if (isLoggedUser) {
+        // Para usuários logados, usar dados do Firebase Auth
+        setQuoteFormData({
+          name: userToken.name || "",
+          email: userToken.email || "",
+          phone: userToken.phone || "",
+          company: userToken.company || "",
+          message: "",
+        });
+      } else {
+        // Para usuários com token, usar dados do token
+        setQuoteFormData({
+          name: userToken.name || "",
+          email: userToken.email || "",
+          phone: userToken.phone || "",
+          company: userToken.company || "",
+          message: "",
+        });
+      }
     }
-  }, [canUseCart, userToken]);
+  }, [canUseCart, userToken, isLoggedUser]);
 
   // Add to cart
   const addToCart = (part) => {
@@ -399,8 +413,9 @@ const PublicShop = ({
         })),
         createdAt: serverTimestamp(),
         type: "online-quote",
-        source: "public-shop",
+        source: isLoggedUser ? "logged-user-shop" : "public-shop", // ✅ NOVO: Diferentes sources
         userToken: userToken?.token || null,
+        isLoggedUser: isLoggedUser, // ✅ NOVO: Flag para identificar origem
       };
 
       const docRef = await addDoc(
@@ -525,7 +540,6 @@ const PublicShop = ({
                           }`}
                         >
                           <span>• {subcategory.name}</span>
-                          {/* ✅ CONTADOR REAL */}
                           <Badge className="bg-purple-500/20 text-purple-400">
                             {subcategoryCounts[subcategory.id] || 0}
                           </Badge>
@@ -582,16 +596,26 @@ const PublicShop = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {!canUseCart && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAccessInfo(true)}
-                className="text-amber-400 hover:bg-amber-400/10 hidden sm:flex"
-              >
-                <Shield className="h-4 w-4 mr-1" />
-                Solicitar Acesso
-              </Button>
+            {/* ✅ MODIFICADO: Mostrar diferente para usuários logados */}
+            {isLoggedUser ? (
+              <div className="hidden sm:flex items-center px-3 py-1 bg-green-600/20 border border-green-600/30 rounded-full">
+                <User className="h-4 w-4 mr-1 text-green-400" />
+                <span className="text-green-400 text-sm font-medium">
+                  Usuário Logado
+                </span>
+              </div>
+            ) : (
+              !canUseCart && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAccessInfo(true)}
+                  className="text-amber-400 hover:bg-amber-400/10 hidden sm:flex"
+                >
+                  <Shield className="h-4 w-4 mr-1" />
+                  Solicitar Acesso
+                </Button>
+              )
             )}
 
             {(isMobile || isTablet) && (
@@ -821,7 +845,6 @@ const PublicShop = ({
                         onClick={() => setSelectedSubcategory(subcategory.id)}
                       >
                         • {subcategory.name}
-                        {/* ✅ CONTADOR */}
                         <Badge className="ml-1 bg-purple-500/20 text-purple-400 text-xs">
                           {subcategoryCounts[subcategory.id] || 0}
                         </Badge>
@@ -882,7 +905,6 @@ const PublicShop = ({
                           }`}
                         >
                           <span>• {subcategory.name}</span>
-                          {/* ✅ CONTADOR REAL */}
                           <Badge className="bg-purple-500/20 text-purple-400">
                             {subcategoryCounts[subcategory.id] || 0}
                           </Badge>
@@ -898,8 +920,8 @@ const PublicShop = ({
 
         {/* Main Content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          {/* Access Status Banner */}
-          {!canUseCart && (
+          {/* ✅ MODIFICADO: Banner de acesso só para usuários não logados */}
+          {!canUseCart && !isLoggedUser && (
             <div className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
               <div className="flex items-start gap-3">
                 <Shield className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -918,6 +940,24 @@ const PublicShop = ({
                   >
                     Solicitar Acesso ao Carrinho
                   </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ✅ NOVO: Banner para usuários logados */}
+          {isLoggedUser && canUseCart && (
+            <div className="mb-6 bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <User className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="text-green-400 font-medium mb-1">
+                    Bem-vindo à Loja!
+                  </h3>
+                  <p className="text-zinc-300 text-sm">
+                    Como usuário logado, você tem acesso completo ao carrinho e
+                    pode solicitar orçamentos diretamente.
+                  </p>
                 </div>
               </div>
             </div>
@@ -1325,45 +1365,47 @@ const PublicShop = ({
       {/* Mobile Menus */}
       <MobileCategoryMenu />
 
-      {/* Access Info Modal - Mantido igual */}
-      <Dialog open={showAccessInfo} onOpenChange={setShowAccessInfo}>
-        <DialogContent className="bg-zinc-800 border-zinc-700 text-white max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center">
-              <Shield className="h-5 w-5 mr-2 text-amber-500" />
-              Como Solicitar Acesso
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
-              <h3 className="text-amber-400 font-medium mb-2">
-                Processo Simples:
-              </h3>
-              <ol className="list-decimal list-inside space-y-2 text-sm text-zinc-300">
-                <li>Tente adicionar qualquer produto ao carrinho</li>
-                <li>Preencha suas informações básicas</li>
-                <li>Aguarde aprovação da nossa equipe</li>
-                <li>Receba um link de acesso por email</li>
-                <li>Use o carrinho livremente após aprovação</li>
-              </ol>
+      {/* ✅ MODIFICADO: Modal de info só para usuários não logados */}
+      {!isLoggedUser && (
+        <Dialog open={showAccessInfo} onOpenChange={setShowAccessInfo}>
+          <DialogContent className="bg-zinc-800 border-zinc-700 text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <Shield className="h-5 w-5 mr-2 text-amber-500" />
+                Como Solicitar Acesso
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+                <h3 className="text-amber-400 font-medium mb-2">
+                  Processo Simples:
+                </h3>
+                <ol className="list-decimal list-inside space-y-2 text-sm text-zinc-300">
+                  <li>Tente adicionar qualquer produto ao carrinho</li>
+                  <li>Preencha suas informações básicas</li>
+                  <li>Aguarde aprovação da nossa equipe</li>
+                  <li>Receba um link de acesso por email</li>
+                  <li>Use o carrinho livremente após aprovação</li>
+                </ol>
+              </div>
+              <p className="text-sm text-zinc-400">
+                A aprovação geralmente leva até 24 horas úteis. Você continuará
+                podendo navegar na loja enquanto aguarda.
+              </p>
             </div>
-            <p className="text-sm text-zinc-400">
-              A aprovação geralmente leva até 24 horas úteis. Você continuará
-              podendo navegar na loja enquanto aguarda.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={() => setShowAccessInfo(false)}
-              className="bg-zinc-700 hover:bg-zinc-600"
-            >
-              Entendi
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button
+                onClick={() => setShowAccessInfo(false)}
+                className="bg-zinc-700 hover:bg-zinc-600"
+              >
+                Entendi
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
-      {/* Quote Modal - Mantido igual do original */}
+      {/* Quote Modal */}
       {canUseCart && (
         <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
           <DialogContent className="bg-zinc-800 border-zinc-700 text-white max-w-lg mx-auto p-0 overflow-hidden">
@@ -1383,7 +1425,10 @@ const PublicShop = ({
                 </Button>
               </div>
               <DialogDescription className="text-zinc-400 mt-1">
-                Seus dados já estão preenchidos. Verifique se estão corretos.
+                {/* ✅ MODIFICADO: Mensagem diferente para usuários logados */}
+                {isLoggedUser
+                  ? "Seus dados de usuário serão utilizados. Verifique se estão corretos."
+                  : "Seus dados já estão preenchidos. Verifique se estão corretos."}
               </DialogDescription>
             </DialogHeader>
 
@@ -1428,7 +1473,7 @@ const PublicShop = ({
                     onChange={handleQuoteFormChange}
                     className="bg-zinc-700 border-zinc-600 text-white h-10"
                     placeholder="seu@email.com"
-                    readOnly={!!userToken?.email}
+                    readOnly={isLoggedUser || !!userToken?.email}
                   />
                 </div>
 
@@ -1443,7 +1488,7 @@ const PublicShop = ({
                       onChange={handleQuoteFormChange}
                       className="bg-zinc-700 border-zinc-600 text-white h-10"
                       placeholder="Seu telefone"
-                      readOnly={!!userToken?.phone}
+                      readOnly={isLoggedUser || !!userToken?.phone}
                     />
                   </div>
 
@@ -1457,7 +1502,7 @@ const PublicShop = ({
                       onChange={handleQuoteFormChange}
                       className="bg-zinc-700 border-zinc-600 text-white h-10"
                       placeholder="Nome da empresa (opcional)"
-                      readOnly={!!userToken?.company}
+                      readOnly={isLoggedUser || !!userToken?.company}
                     />
                   </div>
                 </div>

@@ -1,4 +1,4 @@
-// ShopAccessWrapper.jsx - Nova lógica: Visualização livre, aprovação no carrinho
+// ShopAccessWrapper.jsx - Modificado: Usuários logados têm acesso direto
 
 import React, { useState, useEffect } from "react";
 import {
@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { useAuth } from "../../hooks/useAuth"; // ✅ NOVO: Importar hook de autenticação
 import { useNavigate } from "react-router-dom";
 import {
   Loader2,
@@ -27,6 +28,7 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
+  Shield,
 } from "lucide-react";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
@@ -281,6 +283,9 @@ const AccessRejectedScreen = ({ rejectionReason, onClose }) => {
 };
 
 const ShopAccessWrapper = ({ children }) => {
+  // ✅ NOVO: Hook de autenticação para verificar usuário logado
+  const { user, loading: authLoading } = useAuth();
+
   const [accessStatus, setAccessStatus] = useState("public"); // public, requesting, pending, approved, rejected
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showPendingScreen, setShowPendingScreen] = useState(false);
@@ -288,6 +293,7 @@ const ShopAccessWrapper = ({ children }) => {
   const [rejectionReason, setRejectionReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userToken, setUserToken] = useState(null);
+  const [isLoading, setIsLoading] = useState(true); // ✅ NOVO: Loading state geral
 
   const [formData, setFormData] = useState({
     name: "",
@@ -303,46 +309,89 @@ const ShopAccessWrapper = ({ children }) => {
   useEffect(() => {
     const checkExistingAccess = async () => {
       try {
-        // Verificar se há um token salvo
-        const savedToken = localStorage.getItem("shop_access_token");
+        setIsLoading(true);
 
-        if (savedToken) {
-          const tokenQuery = query(
-            collection(db, "shop_access_tokens"),
-            where("token", "==", savedToken),
-            where("status", "==", "active"),
-            limit(1)
+        // ✅ NOVO: Se o usuário está logado na plataforma, tem acesso direto
+        if (user && !authLoading) {
+          console.log(
+            "👤 Usuário logado detectado, concedendo acesso direto ao carrinho"
           );
 
-          const tokenSnapshot = await getDocs(tokenQuery);
+          // Criar um "userToken" virtual baseado nos dados do usuário logado
+          const loggedUserToken = {
+            name: user.displayName || "",
+            email: user.email || "",
+            phone: "", // Pode ser expandido para buscar do perfil do usuário
+            company: "", // Pode ser expandido para buscar do perfil do usuário
+            token: "logged_user", // Token especial para usuários logados
+            isLoggedUser: true, // Flag para identificar usuário logado
+          };
 
-          if (!tokenSnapshot.empty) {
-            const tokenData = tokenSnapshot.docs[0].data();
-            setUserToken(tokenData);
+          setUserToken(loggedUserToken);
+          setAccessStatus("approved");
+          setIsLoading(false);
+          return;
+        }
 
-            if (tokenData.accessStatus === "approved") {
-              setAccessStatus("approved");
-            } else if (tokenData.accessStatus === "pending") {
-              setAccessStatus("pending");
-              setFormData({ email: tokenData.email || "" });
-            } else if (tokenData.accessStatus === "rejected") {
-              setAccessStatus("rejected");
-              setRejectionReason(tokenData.rejectionReason || "");
+        // ✅ Lógica original para usuários não logados (verificar token salvo)
+        if (!authLoading) {
+          const savedToken = localStorage.getItem("shop_access_token");
+
+          if (savedToken) {
+            const tokenQuery = query(
+              collection(db, "shop_access_tokens"),
+              where("token", "==", savedToken),
+              where("status", "==", "active"),
+              limit(1)
+            );
+
+            const tokenSnapshot = await getDocs(tokenQuery);
+
+            if (!tokenSnapshot.empty) {
+              const tokenData = tokenSnapshot.docs[0].data();
+              setUserToken(tokenData);
+
+              if (tokenData.accessStatus === "approved") {
+                setAccessStatus("approved");
+              } else if (tokenData.accessStatus === "pending") {
+                setAccessStatus("pending");
+                setFormData({ email: tokenData.email || "" });
+              } else if (tokenData.accessStatus === "rejected") {
+                setAccessStatus("rejected");
+                setRejectionReason(tokenData.rejectionReason || "");
+              }
+            } else {
+              localStorage.removeItem("shop_access_token");
+              setAccessStatus("public");
             }
           } else {
-            localStorage.removeItem("shop_access_token");
+            setAccessStatus("public");
           }
         }
       } catch (error) {
         console.error("Erro ao verificar acesso:", error);
+        setAccessStatus("public");
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    checkExistingAccess();
-  }, []);
+    // Só executar quando a autenticação terminar de carregar
+    if (!authLoading) {
+      checkExistingAccess();
+    }
+  }, [user, authLoading]);
 
   // Função chamada quando tenta usar o carrinho
   const requestCartAccess = () => {
+    // ✅ NOVO: Se o usuário está logado, não precisa solicitar acesso
+    if (user) {
+      console.log(
+        "👤 Usuário já está logado, carrinho liberado automaticamente"
+      );
+      return;
+    }
+
     if (accessStatus === "public") {
       setShowRequestModal(true);
     } else if (accessStatus === "pending") {
@@ -434,40 +483,61 @@ const ShopAccessWrapper = ({ children }) => {
     }
   };
 
+  // ✅ NOVO: Loading screen enquanto verifica autenticação e acesso
+  if (authLoading || isLoading) {
+    return (
+      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-green-500 mx-auto mb-4" />
+          <p className="text-white">Verificando acesso...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ NOVO: Determinar se pode usar carrinho
+  const canUseCart = user || accessStatus === "approved";
+
   // Props para passar para o componente da loja
   const shopProps = {
     auth,
-    canUseCart: accessStatus === "approved",
+    canUseCart,
     requestCartAccess,
     userToken,
+    isLoggedUser: !!user, // ✅ NOVO: Flag para identificar usuário logado
   };
 
   return (
     <>
       {React.cloneElement(children, shopProps)}
 
-      <RequestAccessModal
-        isOpen={showRequestModal}
-        onClose={() => setShowRequestModal(false)}
-        onSubmit={submitAccessRequest}
-        isSubmitting={isSubmitting}
-        formData={formData}
-        setFormData={setFormData}
-        formErrors={formErrors}
-      />
+      {/* ✅ Modais só aparecem para usuários não logados */}
+      {!user && (
+        <>
+          <RequestAccessModal
+            isOpen={showRequestModal}
+            onClose={() => setShowRequestModal(false)}
+            onSubmit={submitAccessRequest}
+            isSubmitting={isSubmitting}
+            formData={formData}
+            setFormData={setFormData}
+            formErrors={formErrors}
+          />
 
-      {showPendingScreen && (
-        <AccessPendingScreen
-          email={formData.email}
-          onClose={() => setShowPendingScreen(false)}
-        />
-      )}
+          {showPendingScreen && (
+            <AccessPendingScreen
+              email={formData.email}
+              onClose={() => setShowPendingScreen(false)}
+            />
+          )}
 
-      {showRejectedScreen && (
-        <AccessRejectedScreen
-          rejectionReason={rejectionReason}
-          onClose={() => setShowRejectedScreen(false)}
-        />
+          {showRejectedScreen && (
+            <AccessRejectedScreen
+              rejectionReason={rejectionReason}
+              onClose={() => setShowRejectedScreen(false)}
+            />
+          )}
+        </>
       )}
     </>
   );
