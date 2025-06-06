@@ -1561,7 +1561,7 @@ const PublicShop = ({
       )}
 
       {/* CSS para animações */}
-      <style jsx global>{`
+      <style>{`
         @keyframes fade-up {
           from {
             opacity: 0;

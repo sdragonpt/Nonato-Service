@@ -13,6 +13,7 @@ const PartImage = ({
   fallbackClassName = "",
   showIcon = true,
   showLibraryIndicator = false, // ✅ NOVO: Controla se mostra ♻️
+  defaultImage = null, // ✅ NOVO: Imagem padrão
   ...props
 }) => {
   const [currentSrc, setCurrentSrc] = useState("");
@@ -20,12 +21,19 @@ const PartImage = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingFromLibrary, setIsLoadingFromLibrary] = useState(false);
 
+  // ✅ FILTRAR props customizadas para não irem para o DOM
+  const {
+    defaultImage: _,
+    showLibraryIndicator: __,
+    showIcon: ___,
+    fallbackClassName: ____,
+    ...domProps
+  } = props;
+
   // ✅ FUNÇÃO para carregar imagem da biblioteca
   const loadImageFromLibrary = async (hash) => {
     try {
       if (!hash) return null;
-
-      console.log("🖼️ Carregando da biblioteca:", hash.substring(0, 8) + "...");
 
       const imageRef = doc(db, "image_library", hash);
       const imageDoc = await getDoc(imageRef);
@@ -35,7 +43,6 @@ const PartImage = ({
       }
       return null;
     } catch (error) {
-      console.error("❌ Erro ao carregar imagem da biblioteca:", error);
       return null;
     }
   };
@@ -51,20 +58,18 @@ const PartImage = ({
         try {
           const libraryImage = await loadImageFromLibrary(imageHash);
           if (libraryImage) {
-            console.log("✅ Imagem carregada da biblioteca");
             setCurrentSrc(libraryImage);
             setIsLoadingFromLibrary(false);
             return;
           }
         } catch (error) {
-          console.error("❌ Erro ao carregar da biblioteca:", error);
+          // Falha silenciosa - tenta fallback
         }
         setIsLoadingFromLibrary(false);
       }
 
       // 2. FALLBACK: Sistema legacy (src/image)
       if (src) {
-        console.log("🖼️ Usando imagem legacy");
         setCurrentSrc(src);
         return;
       }
@@ -104,7 +109,7 @@ const PartImage = ({
     return (
       <div
         className={`flex items-center justify-center bg-gradient-to-br from-zinc-700 to-zinc-800 ${className} ${fallbackClassName}`}
-        {...props}
+        {...domProps}
       >
         {showIcon && (
           <div className="flex flex-col items-center">
@@ -120,10 +125,36 @@ const PartImage = ({
 
   // ✅ FALLBACK STATE (sem imagem ou erro)
   if (!currentSrc || hasError) {
+    // Se tem imagem padrão, usar ela
+    if (defaultImage) {
+      return (
+        <img
+          src={defaultImage}
+          alt={alt}
+          className={`${className} opacity-75`}
+          loading="lazy"
+          onError={(e) => {
+            e.target.style.display = "none";
+            // Mostrar ícone como fallback final
+            const parent = e.target.parentNode;
+            parent.innerHTML = `
+              <div class="flex items-center justify-center bg-gradient-to-br from-zinc-700 to-zinc-800 ${className} ${fallbackClassName}">
+                <svg class="h-6 w-6 text-zinc-500 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+              </div>
+            `;
+          }}
+          {...domProps}
+        />
+      );
+    }
+
+    // Senão, mostrar ícone como antes
     return (
       <div
         className={`flex items-center justify-center bg-gradient-to-br from-zinc-700 to-zinc-800 ${className} ${fallbackClassName}`}
-        {...props}
+        {...domProps}
       >
         {showIcon && (
           <Package className="h-1/2 w-1/2 text-zinc-500 opacity-60" />
@@ -155,7 +186,7 @@ const PartImage = ({
         onLoad={handleLoad}
         onLoadStart={handleLoadStart}
         loading="lazy"
-        {...props}
+        {...domProps}
       />
 
       {/* ✅ INDICADOR VISUAL para sistema usado (só se habilitado) */}
