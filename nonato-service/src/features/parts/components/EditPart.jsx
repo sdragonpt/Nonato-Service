@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, setDoc, increment } from "firebase/firestore";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../../../firebase.jsx";
-import { useCategories } from "../../../context/CategoriesContext.jsx"; // NOVO
+import { useCategories } from "../../../context/CategoriesContext.jsx";
 import {
   ArrowLeft,
   Camera,
@@ -43,7 +43,6 @@ const EditPart = () => {
   const { partId } = useParams();
   const navigate = useNavigate();
 
-  // USAR cache de categorias em vez de state local
   const {
     categories,
     getSubcategoriesByParent,
@@ -61,11 +60,8 @@ const EditPart = () => {
     subcategoryId: "none",
   });
 
-  // REMOVER: states de categories e subcategories
-  // const [categories, setCategories] = useState([]);
-  // const [subcategories, setSubcategories] = useState([]);
-
   const [imagePreview, setImagePreview] = useState("");
+  const [currentImageHash, setCurrentImageHash] = useState(null); // ✅ NOVO: Track da imagem atual
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -86,7 +82,87 @@ const EditPart = () => {
       .substr(2, 9)}-${Math.floor(Math.random() * 10000)}`;
   };
 
-  // Buscar subcategorias usando o cache
+  // ✅ NOVO: Função para gerar hash da imagem
+  const generateImageHash = (imageData) => {
+    const size = imageData.length;
+    const sample =
+      imageData.substring(0, 100) + imageData.substring(imageData.length - 100);
+    return `img_${size}_${btoa(sample).substring(0, 20).replace(/[/+=]/g, "")}`;
+  };
+
+  // ✅ NOVO: Buscar imagem da biblioteca
+  const loadImageFromLibrary = async (imageHash) => {
+    try {
+      if (!imageHash) return null;
+
+      const imageRef = doc(db, "image_library", imageHash);
+      const imageDoc = await getDoc(imageRef);
+
+      if (imageDoc.exists()) {
+        return imageDoc.data().data;
+      }
+      return null;
+    } catch (error) {
+      console.error("Erro ao carregar imagem da biblioteca:", error);
+      return null;
+    }
+  };
+
+  // ✅ NOVO: Salvar imagem na biblioteca
+  const saveImageToLibrary = async (imageData) => {
+    try {
+      const imageHash = generateImageHash(imageData);
+      const imageRef = doc(db, "image_library", imageHash);
+      const imageDoc = await getDoc(imageRef);
+
+      if (!imageDoc.exists()) {
+        await setDoc(imageRef, {
+          hash: imageHash,
+          data: imageData,
+          createdAt: new Date(),
+          usageCount: 1,
+        });
+        console.log("✅ Nova imagem salva na biblioteca:", imageHash);
+      } else {
+        await setDoc(
+          imageRef,
+          {
+            usageCount: increment(1),
+            lastUsed: new Date(),
+          },
+          { merge: true }
+        );
+        console.log("♻️ Imagem reutilizada da biblioteca:", imageHash);
+      }
+
+      return imageHash;
+    } catch (error) {
+      console.error("Erro ao salvar imagem na biblioteca:", error);
+      throw error;
+    }
+  };
+
+  // ✅ NOVO: Decrementar uso da imagem antiga
+  const decrementImageUsage = async (imageHash) => {
+    try {
+      if (!imageHash) return;
+
+      const imageRef = doc(db, "image_library", imageHash);
+      await setDoc(
+        imageRef,
+        {
+          usageCount: increment(-1),
+          lastUnused: new Date(),
+        },
+        { merge: true }
+      );
+
+      console.log("♻️ Uso de imagem decrementado:", imageHash);
+    } catch (error) {
+      console.error("Erro ao decrementar uso da imagem:", error);
+    }
+  };
+
   const subcategories =
     formData.categoryId && formData.categoryId !== "none"
       ? getSubcategoriesByParent(formData.categoryId)
@@ -114,7 +190,22 @@ const EditPart = () => {
           categoryId: data.categoryId || "none",
           subcategoryId: data.subcategoryId || "none",
         });
-        setImagePreview(data.image || "");
+
+        // ✅ NOVO: Carregar imagem da biblioteca ou usar legacy
+        if (data.imageHash) {
+          // Nova estrutura com hash
+          setCurrentImageHash(data.imageHash);
+          const imageData = await loadImageFromLibrary(data.imageHash);
+          setImagePreview(imageData || "");
+        } else if (data.image) {
+          // Legacy: imagem salva diretamente
+          setImagePreview(data.image);
+          setCurrentImageHash(null);
+        } else {
+          setImagePreview("");
+          setCurrentImageHash(null);
+        }
+
         setOriginalData(data);
         setError(null);
       } catch (err) {
@@ -127,12 +218,6 @@ const EditPart = () => {
 
     fetchPart();
   }, [partId]);
-
-  // REMOVER: useEffect que buscava categorias
-  // useEffect(() => {
-  //   const fetchCategories = async () => { ... }
-  //   fetchCategories();
-  // }, []);
 
   // Reset subcategoryId when categoryId changes to none
   useEffect(() => {
@@ -194,7 +279,6 @@ const EditPart = () => {
       setIsCreatingCategory(true);
       setError(null);
 
-      // Gerar ID único mais robusto
       const newCategoryId = generateUniqueId();
 
       const newCategory = {
@@ -205,8 +289,6 @@ const EditPart = () => {
       };
 
       await setDoc(doc(db, "categorias", newCategoryId), newCategory);
-
-      // USAR cache em vez de refetch
       addCategoryToCache(newCategory);
 
       setNewCategoryName("");
@@ -268,8 +350,9 @@ const EditPart = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const allFields = { name: true, code: true, price: true };
-    setTouched((prev) => ({ ...prev, ...allFields }));
+    // ✅ MODIFICADO: Só nome e código são obrigatórios
+    const requiredFields = { name: true, code: true };
+    setTouched((prev) => ({ ...prev, ...requiredFields }));
 
     if (!formData.name.trim() || !formData.code.trim()) {
       setError("Os campos Nome e Código são obrigatórios");
@@ -280,7 +363,7 @@ const EditPart = () => {
       setIsSubmitting(true);
       setError(null);
 
-      // Find category and subcategory names USANDO CACHE
+      // Find category and subcategory names
       let categoryName = "";
       let subcategoryName = "";
       let formDataToSave = { ...formData };
@@ -311,16 +394,40 @@ const EditPart = () => {
         }
       }
 
+      // ✅ NOVO: Gerenciar imagens na biblioteca
+      let newImageHash = currentImageHash;
+
+      // Se a imagem foi alterada
+      if (imagePreview !== (originalData?.image || "")) {
+        // Decrementar uso da imagem antiga (se houver)
+        if (currentImageHash) {
+          await decrementImageUsage(currentImageHash);
+        }
+
+        // Salvar nova imagem (se houver)
+        if (imagePreview) {
+          newImageHash = await saveImageToLibrary(imagePreview);
+        } else {
+          newImageHash = null;
+        }
+      }
+
       const partRef = doc(db, "pecas", partId);
-      await updateDoc(partRef, {
+      const updateData = {
         ...formDataToSave,
-        price: parseFloat(formDataToSave.price) || 0,
-        image: imagePreview,
+        price: parseFloat(formDataToSave.price) || 0, // ✅ Default para 0
+        imageHash: newImageHash,
         lastUpdate: new Date(),
         categoryName,
         subcategoryName,
-      });
+      };
 
+      // ✅ NOVO: Remover campo legacy 'image' se estiver usando imageHash
+      if (newImageHash) {
+        updateData.image = null; // Limpar campo legacy
+      }
+
+      await updateDoc(partRef, updateData);
       navigate(-1);
     } catch (err) {
       console.error("Erro ao atualizar peça:", err);
@@ -340,7 +447,7 @@ const EditPart = () => {
         formData.categoryId !== originalData.categoryId) ||
       (formData.subcategoryId !== "none" &&
         formData.subcategoryId !== originalData.subcategoryId) ||
-      imagePreview !== originalData.image);
+      imagePreview !== (originalData.image || ""));
 
   // Loading state para categorias ou peça
   if (isLoading || categoriesLoading) {
@@ -387,7 +494,12 @@ const EditPart = () => {
         {/* Part Image Card */}
         <Card className="bg-zinc-800 border-zinc-700">
           <CardHeader>
-            <CardTitle className="text-lg text-white">Imagem da Peça</CardTitle>
+            <CardTitle className="text-lg text-white">
+              Imagem da Peça
+              <span className="text-sm font-normal text-zinc-400 ml-2">
+                (Sistema inteligente - Evita duplicações)
+              </span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {imagePreview ? (
@@ -406,6 +518,11 @@ const EditPart = () => {
                 >
                   <X className="h-3 w-3" />
                 </Button>
+                {currentImageHash && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs px-1 py-0.5 rounded-b-lg">
+                    ♻️ Reutilizada
+                  </div>
+                )}
               </div>
             ) : (
               <label className="flex flex-col items-center p-6 bg-zinc-900 border-2 border-dashed border-zinc-700 rounded-lg cursor-pointer hover:bg-zinc-700/50 transition-colors">
@@ -480,10 +597,11 @@ const EditPart = () => {
               )}
             </div>
 
-            {/* Price Field */}
+            {/* ✅ MODIFICADO: Price Field - Não obrigatório */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-400">
                 Preço (€)
+                <span className="text-zinc-500 text-xs ml-1">(Opcional)</span>
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -494,9 +612,7 @@ const EditPart = () => {
                   onChange={handleChange}
                   onBlur={() => handleBlur("price")}
                   placeholder="Ex: 29.99"
-                  className={`pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 ${
-                    touched.price && !formData.price ? "border-red-500" : ""
-                  }`}
+                  className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
                 />
               </div>
             </div>
@@ -518,7 +634,7 @@ const EditPart = () => {
               </div>
             </div>
 
-            {/* Category Selection - USANDO CACHE */}
+            {/* Category Selection */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-zinc-400">
@@ -558,7 +674,7 @@ const EditPart = () => {
               </select>
             </div>
 
-            {/* Subcategory Selection - USANDO CACHE */}
+            {/* Subcategory Selection */}
             {formData.categoryId && formData.categoryId !== "none" && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -630,7 +746,7 @@ const EditPart = () => {
         </Button>
       </form>
 
-      {/* New Category Dialog */}
+      {/* Dialogs mantidos iguais... */}
       <Dialog
         open={newCategoryDialogOpen}
         onOpenChange={setNewCategoryDialogOpen}
@@ -675,7 +791,6 @@ const EditPart = () => {
         </DialogContent>
       </Dialog>
 
-      {/* New Subcategory Dialog */}
       <Dialog
         open={newSubcategoryDialogOpen}
         onOpenChange={setNewSubcategoryDialogOpen}

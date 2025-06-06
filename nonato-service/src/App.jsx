@@ -1,4 +1,4 @@
-// App.jsx - COM PARTSCACHE INTEGRADO
+// App.jsx - COM PARTSCACHE INTEGRADO + Ferramenta de Migração
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { getAuth, signOut } from "firebase/auth";
@@ -34,6 +34,8 @@ import {
   ShoppingBag,
   Store,
   Shield,
+  Database, // ✅ NOVO: Para migração de imagens
+  RotateCcw, // ✅ NOVO: Para rollback
 } from "lucide-react";
 
 // ✅ LAZY LOADING - Componentes principais importados sob demanda
@@ -174,6 +176,16 @@ const ShopAccessWrapper = React.lazy(() =>
   import("./features/publicShop/ShopAccessWrapper")
 );
 
+// ✅ NOVO: Ferramenta de migração de imagens
+const ImageMigrationTool = React.lazy(
+  () => import("./context/ImageMigrationTool") // Caminho para src/context/
+);
+
+// ✅ NOVO: Ferramenta de rollback
+const RollbackTool = React.lazy(
+  () => import("./context/RollbackTool") // Caminho para src/context/
+);
+
 // ✅ COMPONENTES ESSENCIAIS - Não lazy load para evitar flash
 import ErrorBoundary from "./components/layout/ErrorBoundary";
 import { CategoriesProvider } from "./context/CategoriesContext.jsx";
@@ -195,6 +207,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge"; // ✅ NOVO: Para badge admin
 
 // ✅ MEMOIZED NAVIGATION - Evita re-renders desnecessários
 const NAVIGATION_ITEMS = [
@@ -244,6 +257,24 @@ const NAVIGATION_ITEMS = [
         path: "/app/manage-shop-access",
         icon: Shield,
         label: "Gerenciar Acessos",
+      },
+    ],
+  },
+  // ✅ NOVA SEÇÃO: Administração
+  {
+    title: "Administração",
+    items: [
+      {
+        path: "/app/image-migration",
+        icon: Database,
+        label: "Migração de Imagens",
+        adminOnly: true,
+      },
+      {
+        path: "/app/rollback-tool",
+        icon: RotateCcw,
+        label: "Rollback de Migração",
+        adminOnly: true,
       },
     ],
   },
@@ -405,81 +436,104 @@ const DashboardShell = React.memo(({ children }) => {
           </div>
 
           <div className="flex-1 space-y-4 overflow-y-auto">
-            {NAVIGATION_ITEMS.map((section, idx) => (
-              <div key={idx} className="space-y-2">
-                <button
-                  onClick={() =>
-                    setActiveSection(
-                      activeSection === section.title ? "" : section.title
-                    )
-                  }
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg ${
-                    activeSection === section.title
-                      ? "bg-green-700 hover:bg-green-70 text-white"
-                      : section.title === "Cadastro" ||
-                        section.title === "Gestão" ||
-                        section.title === "Loja Online"
-                      ? "text-white font-bold bg-green-700/25 hover:bg-green-700/70 hover:border-green-700/70"
-                      : "text-zinc-400 hover:text-white"
-                  } transition-colors`}
-                >
-                  <span
-                    className={`${
-                      section.title === "Cadastro" ||
-                      section.title === "Gestão" ||
-                      section.title === "Loja Online"
-                        ? "text-base"
-                        : "text-sm"
-                    } font-semibold`}
-                  >
-                    {section.title}
-                  </span>
-                  <ChevronDown
-                    className={`w-4 h-4 transition-transform ${
-                      activeSection === section.title ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
+            {NAVIGATION_ITEMS.map((section, idx) => {
+              // ✅ NOVO: Filtrar seções admin para não-admins
+              if (section.title === "Administração" && user?.role !== "admin") {
+                return null;
+              }
 
-                <div
-                  className={`space-y-1 pl-2 ${
-                    activeSection === section.title ? "block" : "hidden"
-                  }`}
-                >
-                  {section.items.map((item, itemIdx) => {
-                    if (item.external) {
-                      return (
-                        <a
-                          key={itemIdx}
-                          href={item.path}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`flex items-center gap-x-3 px-3 py-2 text-sm rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors`}
-                        >
-                          <item.icon className="w-4 h-4" />
-                          {item.label}
-                        </a>
-                      );
+              return (
+                <div key={idx} className="space-y-2">
+                  <button
+                    onClick={() =>
+                      setActiveSection(
+                        activeSection === section.title ? "" : section.title
+                      )
                     }
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg ${
+                      activeSection === section.title
+                        ? "bg-green-700 hover:bg-green-70 text-white"
+                        : section.title === "Cadastro" ||
+                          section.title === "Gestão" ||
+                          section.title === "Loja Online" ||
+                          section.title === "Administração"
+                        ? "text-white font-bold bg-green-700/25 hover:bg-green-700/70 hover:border-green-700/70"
+                        : "text-zinc-400 hover:text-white"
+                    } transition-colors`}
+                  >
+                    <span
+                      className={`${
+                        section.title === "Cadastro" ||
+                        section.title === "Gestão" ||
+                        section.title === "Loja Online" ||
+                        section.title === "Administração"
+                          ? "text-base"
+                          : "text-sm"
+                      } font-semibold`}
+                    >
+                      {section.title}
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${
+                        activeSection === section.title ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
 
-                    return (
-                      <Link
-                        key={itemIdx}
-                        to={item.path}
-                        className={`flex items-center gap-x-3 px-3 py-2 text-sm rounded-lg ${
-                          isActiveLink(item.path)
-                            ? "bg-zinc-800 text-white"
-                            : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
-                        } transition-colors`}
-                      >
-                        <item.icon className="w-4 h-4" />
-                        {item.label}
-                      </Link>
-                    );
-                  })}
+                  <div
+                    className={`space-y-1 pl-2 ${
+                      activeSection === section.title ? "block" : "hidden"
+                    }`}
+                  >
+                    {section.items
+                      .filter((item) => {
+                        // ✅ NOVO: Filtrar itens admin-only
+                        if (item.adminOnly && user?.role !== "admin") {
+                          return false;
+                        }
+                        return true;
+                      })
+                      .map((item, itemIdx) => {
+                        if (item.external) {
+                          return (
+                            <a
+                              key={itemIdx}
+                              href={item.path}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`flex items-center gap-x-3 px-3 py-2 text-sm rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors`}
+                            >
+                              <item.icon className="w-4 h-4" />
+                              {item.label}
+                            </a>
+                          );
+                        }
+
+                        return (
+                          <Link
+                            key={itemIdx}
+                            to={item.path}
+                            className={`flex items-center gap-x-3 px-3 py-2 text-sm rounded-lg ${
+                              isActiveLink(item.path)
+                                ? "bg-zinc-800 text-white"
+                                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                            } transition-colors`}
+                          >
+                            <item.icon className="w-4 h-4" />
+                            {item.label}
+                            {/* ✅ NOVO: Badge admin */}
+                            {item.adminOnly && (
+                              <Badge className="ml-auto bg-red-500/20 text-red-400 text-xs">
+                                Admin
+                              </Badge>
+                            )}
+                          </Link>
+                        );
+                      })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="mt-auto pt-4 border-t border-zinc-800">
@@ -645,6 +699,26 @@ const App = () => {
                             element={
                               <RoleRoute allowedRoles={["admin"]}>
                                 <ManageUsers />
+                              </RoleRoute>
+                            }
+                          />
+
+                          {/* ✅ NOVA ROTA: Ferramenta de migração (só admin) */}
+                          <Route
+                            path="image-migration"
+                            element={
+                              <RoleRoute allowedRoles={["admin"]}>
+                                <ImageMigrationTool />
+                              </RoleRoute>
+                            }
+                          />
+
+                          {/* ✅ NOVA ROTA: Ferramenta de rollback (só admin) */}
+                          <Route
+                            path="rollback-tool"
+                            element={
+                              <RoleRoute allowedRoles={["admin"]}>
+                                <RollbackTool />
                               </RoleRoute>
                             }
                           />

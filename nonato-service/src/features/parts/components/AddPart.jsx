@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { doc, setDoc, getDoc, increment } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useNavigate } from "react-router-dom";
-import { useCategories } from "../../../context/CategoriesContext.jsx"; // NOVO
+import { useCategories } from "../../../context/CategoriesContext.jsx";
 import {
   ArrowLeft,
   Camera,
@@ -41,7 +41,6 @@ import {
 const AddPart = () => {
   const navigate = useNavigate();
 
-  // USAR cache de categorias em vez de state local
   const {
     categories,
     getSubcategoriesByParent,
@@ -50,7 +49,6 @@ const AddPart = () => {
     error: categoriesError,
   } = useCategories();
 
-  // Initialize formData with "none" for select fields
   const [formData, setFormData] = useState({
     name: "",
     code: "",
@@ -60,11 +58,6 @@ const AddPart = () => {
     subcategoryId: "none",
   });
 
-  // REMOVER: states de categories e subcategories locais
-  // const [categories, setCategories] = useState([]);
-  // const [subcategories, setSubcategories] = useState([]);
-
-  // Buscar subcategorias usando o cache
   const subcategories =
     formData.categoryId && formData.categoryId !== "none"
       ? getSubcategoriesByParent(formData.categoryId)
@@ -90,17 +83,50 @@ const AddPart = () => {
       .substr(2, 9)}-${Math.floor(Math.random() * 10000)}`;
   };
 
-  // REMOVER: useEffect que buscava categorias
-  // useEffect(() => {
-  //   const fetchCategories = async () => { ... }
-  //   fetchCategories();
-  // }, []);
+  // ✅ NOVO: Função para gerar hash da imagem (deduplicação simples)
+  const generateImageHash = (imageData) => {
+    // Simples hash baseado no tamanho e parte do conteúdo
+    const size = imageData.length;
+    const sample =
+      imageData.substring(0, 100) + imageData.substring(imageData.length - 100);
+    return `img_${size}_${btoa(sample).substring(0, 20).replace(/[/+=]/g, "")}`;
+  };
 
-  // REMOVER: useEffect que buscava subcategorias (agora vem do cache)
-  // useEffect(() => {
-  //   const fetchSubcategories = async () => { ... }
-  //   fetchSubcategories();
-  // }, [formData.categoryId]);
+  // ✅ NOVO: Salvar imagem na biblioteca (se não existir)
+  const saveImageToLibrary = async (imageData) => {
+    try {
+      const imageHash = generateImageHash(imageData);
+      const imageRef = doc(db, "image_library", imageHash);
+      const imageDoc = await getDoc(imageRef);
+
+      if (!imageDoc.exists()) {
+        // Imagem não existe, salvar na biblioteca
+        await setDoc(imageRef, {
+          hash: imageHash,
+          data: imageData,
+          createdAt: new Date(),
+          usageCount: 1,
+        });
+        console.log("✅ Nova imagem salva na biblioteca:", imageHash);
+      } else {
+        // Imagem já existe, incrementar contador
+        await setDoc(
+          imageRef,
+          {
+            usageCount: increment(1),
+            lastUsed: new Date(),
+          },
+          { merge: true }
+        );
+        console.log("♻️ Imagem reutilizada da biblioteca:", imageHash);
+      }
+
+      return imageHash;
+    } catch (error) {
+      console.error("Erro ao salvar imagem na biblioteca:", error);
+      throw error;
+    }
+  };
 
   // Reset subcategoryId when categoryId changes to none
   useEffect(() => {
@@ -185,7 +211,6 @@ const AddPart = () => {
       setIsCreatingCategory(true);
       setError(null);
 
-      // Gerar ID único mais robusto
       const newCategoryId = generateUniqueId();
 
       const newCategory = {
@@ -196,8 +221,6 @@ const AddPart = () => {
       };
 
       await setDoc(doc(db, "categorias", newCategoryId), newCategory);
-
-      // USAR cache em vez de refetch
       addCategoryToCache(newCategory);
 
       setNewCategoryName("");
@@ -259,9 +282,9 @@ const AddPart = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Set all fields as touched for validation
-    const allFields = { name: true, code: true, price: true };
-    setTouched((prev) => ({ ...prev, ...allFields }));
+    // ✅ MODIFICADO: Só nome e código são obrigatórios (preço não é mais)
+    const requiredFields = { name: true, code: true };
+    setTouched((prev) => ({ ...prev, ...requiredFields }));
 
     // Validate required fields
     if (!formData.name.trim() || !formData.code.trim()) {
@@ -275,7 +298,7 @@ const AddPart = () => {
 
       const newPartId = await getNextPartId();
 
-      // Find category and subcategory names USANDO CACHE
+      // Find category and subcategory names
       let categoryName = "";
       let subcategoryName = "";
       let formDataToSave = { ...formData };
@@ -307,10 +330,16 @@ const AddPart = () => {
         }
       }
 
+      // ✅ NOVO: Salvar imagem na biblioteca (se houver)
+      let imageHash = null;
+      if (imagePreview) {
+        imageHash = await saveImageToLibrary(imagePreview);
+      }
+
       await setDoc(doc(db, "pecas", newPartId.toString()), {
         ...formDataToSave,
-        price: parseFloat(formDataToSave.price) || 0,
-        image: imagePreview,
+        price: parseFloat(formDataToSave.price) || 0, // ✅ Default para 0 se vazio
+        imageHash, // ✅ NOVO: Referência para imagem na biblioteca
         createdAt: new Date(),
         lastUpdate: new Date(),
         categoryName,
@@ -371,7 +400,12 @@ const AddPart = () => {
         {/* Part Image Card */}
         <Card className="bg-zinc-800 border-zinc-700">
           <CardHeader>
-            <CardTitle className="text-lg text-white">Imagem da Peça</CardTitle>
+            <CardTitle className="text-lg text-white">
+              Imagem da Peça
+              <span className="text-sm font-normal text-zinc-400 ml-2">
+                (Opcional - Imagens são reutilizadas automaticamente)
+              </span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {imagePreview ? (
@@ -396,6 +430,9 @@ const AddPart = () => {
                 <Camera className="h-8 w-8 text-zinc-400 mb-2" />
                 <span className="text-sm text-zinc-400">
                   Clique para adicionar imagem
+                </span>
+                <span className="text-xs text-zinc-500 mt-1">
+                  ✅ Sistema inteligente evita duplicações
                 </span>
                 <input
                   type="file"
@@ -464,10 +501,11 @@ const AddPart = () => {
               )}
             </div>
 
-            {/* Price Field */}
+            {/* ✅ MODIFICADO: Price Field - Não é mais obrigatório */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-400">
                 Preço (€)
+                <span className="text-zinc-500 text-xs ml-1">(Opcional)</span>
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -478,14 +516,12 @@ const AddPart = () => {
                   onChange={handleChange}
                   onBlur={() => handleBlur("price")}
                   placeholder="Ex: 29.99"
-                  className={`pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 ${
-                    touched.price && !formData.price ? "border-red-500" : ""
-                  }`}
+                  className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
                 />
               </div>
-              {touched.price && !formData.price && (
-                <p className="text-sm text-red-500">Preço é obrigatório</p>
-              )}
+              <p className="text-xs text-zinc-500">
+                Deixe vazio se o preço não for definido
+              </p>
             </div>
 
             {/* Description Field */}
@@ -505,7 +541,7 @@ const AddPart = () => {
               </div>
             </div>
 
-            {/* Category Selection - USANDO CACHE */}
+            {/* Category Selection */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-zinc-400">
@@ -545,7 +581,7 @@ const AddPart = () => {
               </select>
             </div>
 
-            {/* Subcategory Selection - USANDO CACHE */}
+            {/* Subcategory Selection */}
             {formData.categoryId && formData.categoryId !== "none" && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

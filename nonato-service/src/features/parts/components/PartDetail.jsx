@@ -2,14 +2,12 @@ import { useState, useEffect } from "react";
 import { doc, getDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useParams, useNavigate } from "react-router-dom";
-import { useCategories } from "../../../context/CategoriesContext.jsx"; // NOVO
+import { useCategories } from "../../../context/CategoriesContext.jsx";
 import {
   Loader2,
   ArrowLeft,
-  Camera,
   Trash2,
   Edit2,
-  Plus,
   AlertTriangle,
   Package,
   Tag,
@@ -23,7 +21,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Button } from "@/components/ui/button.jsx";
@@ -36,17 +33,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar.jsx";
 
 const PartDetail = () => {
   const { partId } = useParams();
   const navigate = useNavigate();
 
-  // USAR cache de categorias
   const {
     getCategoryById,
     getSubcategoryById,
@@ -56,14 +47,29 @@ const PartDetail = () => {
   const [part, setPart] = useState(null);
   const [category, setCategory] = useState(null);
   const [subcategory, setSubcategory] = useState(null);
-  const [newPhotoURL, setNewPhotoURL] = useState("");
-  const [imageFile, setImageFile] = useState(null);
-  const [, setPhotoChanged] = useState(false);
+  const [imagePreview, setImagePreview] = useState(""); // ✅ NOVO: Para carregar imagem da biblioteca
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [, setPhotoLoading] = useState(false);
+
+  // ✅ NOVO: Carregar imagem da biblioteca
+  const loadImageFromLibrary = async (imageHash) => {
+    try {
+      if (!imageHash) return null;
+
+      const imageRef = doc(db, "image_library", imageHash);
+      const imageDoc = await getDoc(imageRef);
+
+      if (imageDoc.exists()) {
+        return imageDoc.data().data;
+      }
+      return null;
+    } catch (error) {
+      console.error("Erro ao carregar imagem da biblioteca:", error);
+      return null;
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -82,9 +88,20 @@ const PartDetail = () => {
 
         const partInfo = { id: partData.id, ...partData.data() };
         setPart(partInfo);
-        setNewPhotoURL(partInfo.image);
 
-        // USAR cache em vez de fetch direto para categorias
+        // ✅ NOVO: Carregar imagem da biblioteca ou usar legacy
+        if (partInfo.imageHash) {
+          // Nova estrutura com hash
+          const imageData = await loadImageFromLibrary(partInfo.imageHash);
+          setImagePreview(imageData || "");
+        } else if (partInfo.image) {
+          // Legacy: imagem salva diretamente
+          setImagePreview(partInfo.image);
+        } else {
+          setImagePreview("");
+        }
+
+        // Usar cache para categorias
         if (partInfo.categoryId && !categoriesLoading) {
           const categoryData = getCategoryById(partInfo.categoryId);
           if (categoryData) {
@@ -92,7 +109,7 @@ const PartDetail = () => {
           }
         }
 
-        // USAR cache em vez de fetch direto para subcategorias
+        // Usar cache para subcategorias
         if (partInfo.subcategoryId && !categoriesLoading) {
           const subcategoryData = getSubcategoryById(partInfo.subcategoryId);
           if (subcategoryData) {
@@ -112,24 +129,6 @@ const PartDetail = () => {
       fetchData();
     }
   }, [partId, categoriesLoading, getCategoryById, getSubcategoryById]);
-
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        setError("A imagem deve ter menos de 2MB");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewPhotoURL(reader.result);
-      };
-      reader.readAsDataURL(file);
-      setImageFile(file);
-      setPhotoChanged(true);
-    }
-  };
 
   const handleDeletePart = async () => {
     try {
@@ -187,11 +186,12 @@ const PartDetail = () => {
       <Card className="bg-zinc-800 border-zinc-700">
         <CardHeader className="pb-4">
           <div className="flex flex-col md:flex-row md:items-center gap-4">
-            <div className="relative group">
-              {part.image ? (
+            {/* ✅ MODIFICADO: Imagem só para visualização, sem edição */}
+            <div className="relative">
+              {imagePreview ? (
                 <div className="h-24 w-24 rounded-lg overflow-hidden bg-zinc-700">
                   <img
-                    src={part.image}
+                    src={imagePreview}
                     alt={part.name}
                     className="h-full w-full object-cover"
                   />
@@ -201,16 +201,14 @@ const PartDetail = () => {
                   <Package className="h-10 w-10 text-zinc-500" />
                 </div>
               )}
-              <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                <Camera className="w-6 h-6 text-white" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  className="hidden"
-                />
-              </label>
+              {/* ✅ NOVO: Indicador se é imagem da biblioteca */}
+              {part.imageHash && imagePreview && (
+                <div className="absolute bottom-0 left-0 right-0 bg-green-600/80 text-white text-xs px-1 py-0.5 rounded-b-lg text-center">
+                  ♻️ Biblioteca
+                </div>
+              )}
             </div>
+
             <div className="flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-xl font-semibold text-white">
@@ -221,10 +219,16 @@ const PartDetail = () => {
                 </Badge>
               </div>
               <p className="text-xl font-bold text-green-500 mt-1">
-                {new Intl.NumberFormat("pt-PT", {
-                  style: "currency",
-                  currency: "EUR",
-                }).format(part.price || 0)}
+                {part.price > 0 ? (
+                  new Intl.NumberFormat("pt-PT", {
+                    style: "currency",
+                    currency: "EUR",
+                  }).format(part.price)
+                ) : (
+                  <span className="text-zinc-400 text-base">
+                    Preço não definido
+                  </span>
+                )}
               </p>
               {category && (
                 <div className="flex items-center gap-1 mt-2">
@@ -274,10 +278,12 @@ const PartDetail = () => {
               <DollarSign className="h-4 w-4 shrink-0 text-zinc-500" />
               <span className="text-zinc-500">Preço:</span>
               <span className="text-white">
-                {new Intl.NumberFormat("pt-PT", {
-                  style: "currency",
-                  currency: "EUR",
-                }).format(part.price || 0)}
+                {part.price > 0
+                  ? new Intl.NumberFormat("pt-PT", {
+                      style: "currency",
+                      currency: "EUR",
+                    }).format(part.price)
+                  : "Não definido"}
               </span>
             </div>
             <div className="flex items-center gap-2 text-zinc-400">
@@ -315,6 +321,31 @@ const PartDetail = () => {
               </div>
             )}
           </div>
+
+          {/* ✅ NOVO: Informações sobre a imagem */}
+          {imagePreview && (
+            <div className="bg-zinc-900/50 p-4 rounded-lg">
+              <h4 className="text-sm font-medium text-zinc-400 mb-2">
+                Informações da Imagem
+              </h4>
+              <div className="flex items-center gap-2 text-sm">
+                {part.imageHash ? (
+                  <div className="flex items-center gap-2 text-green-400">
+                    <span>♻️</span>
+                    <span>Imagem da biblioteca (otimizada)</span>
+                    <Badge className="bg-green-500/10 text-green-500 text-xs">
+                      ID: {part.imageHash.substring(0, 8)}...
+                    </Badge>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-amber-400">
+                    <span>⚠️</span>
+                    <span>Imagem legacy (pode ser otimizada)</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-2 mt-6">

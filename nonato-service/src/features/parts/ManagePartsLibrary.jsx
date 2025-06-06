@@ -742,8 +742,10 @@ const ManagePartsLibrary = () => {
                           <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg overflow-hidden">
                             <PartImage
                               src={part.image}
+                              imageHash={part.imageHash}
                               alt={part.name}
                               className="w-full h-full object-cover"
+                              defaultImage="/default-part.png"
                             />
                           </div>
 
@@ -826,8 +828,10 @@ const ManagePartsLibrary = () => {
                           <div className="h-10 w-10 rounded-lg overflow-hidden">
                             <PartImage
                               src={part.image}
+                              imageHash={part.imageHash}
                               alt={part.name}
                               className="w-full h-full object-cover"
+                              defaultImage="/default-part.png"
                             />
                           </div>
 
@@ -1142,8 +1146,10 @@ const ManagePartsLibrary = () => {
                                 <div className="h-10 w-10 rounded-lg overflow-hidden">
                                   <PartImage
                                     src={part.image}
+                                    imageHash={part.imageHash}
                                     alt={part.name}
                                     className="w-full h-full object-cover"
+                                    defaultImage="/default-part.png"
                                   />
                                 </div>
 

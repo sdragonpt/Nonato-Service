@@ -703,9 +703,11 @@ const PublicShop = ({
                             <div className="flex items-start gap-3">
                               <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0">
                                 <PartImage
-                                  src={item.image}
-                                  alt={item.name}
+                                  src={part.image}
+                                  imageHash={part.imageHash}
+                                  alt={part.name}
                                   className="w-full h-full object-cover"
+                                  defaultImage="/default-part.png"
                                 />
                               </div>
 
@@ -1151,8 +1153,10 @@ const PublicShop = ({
                         <div className="w-full h-48 mb-4 rounded-lg overflow-hidden">
                           <PartImage
                             src={part.image}
+                            imageHash={part.imageHash}
                             alt={part.name}
                             className="w-full h-full object-cover"
+                            defaultImage="/default-part.png"
                           />
                         </div>
                         <div className="space-y-2">
@@ -1207,8 +1211,10 @@ const PublicShop = ({
                         <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden">
                           <PartImage
                             src={part.image}
+                            imageHash={part.imageHash}
                             alt={part.name}
                             className="w-full h-full object-cover"
+                            defaultImage="/default-part.png"
                           />
                         </div>
                         <div className="flex-1 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
