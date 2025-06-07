@@ -1,3 +1,5 @@
+// ✅ EDITORDER.JSX - VERSÃO COMPLETA COM CLIENTE NÃO REGISTRADO
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -21,6 +23,11 @@ import {
   Settings,
   Calculator,
   Euro,
+  Truck,
+  Receipt,
+  Percent,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 
 // UI Components
@@ -43,6 +50,12 @@ import {
 } from "@/components/ui/select.jsx";
 import { Checkbox } from "@/components/ui/checkbox.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs.jsx";
 
 const EditOrder = () => {
   const { orderId } = useParams();
@@ -58,8 +71,26 @@ const EditOrder = () => {
     status: "",
     resultDescription: "",
     pontosEmAberto: "",
-    items: [], // ✓ Adicionar items
-    isQuote: false, // ✓ Adicionar isQuote
+    items: [],
+    isQuote: false,
+    // ✅ NOVOS CAMPOS PARA ENVIO E IVA
+    shippingType: "",
+    shippingPrice: 0,
+    vatRate: 23,
+    includeVat: false,
+    // ✅ NOVOS CAMPOS PARA CLIENTE NÃO REGISTRADO
+    isUnregisteredClient: false,
+    unregisteredClient: {
+      name: "",
+      email: "",
+      phone: "",
+      company: "",
+    },
+    manualEquipment: {
+      brand: "",
+      model: "",
+      serialNumber: "",
+    },
   });
 
   const [checklist, setChecklist] = useState({
@@ -79,8 +110,23 @@ const EditOrder = () => {
   const [error, setError] = useState(null);
   const [, setTouched] = useState({});
   const [originalData, setOriginalData] = useState(null);
+  const [selectedEquipment, setSelectedEquipment] = useState(null);
 
   const isQuote = formData.isQuote || originalData?.isQuote;
+
+  // ✅ BUSCAR INFORMAÇÕES DO EQUIPAMENTO SELECIONADO
+  useEffect(() => {
+    if (
+      formData.equipmentId &&
+      equipments.length > 0 &&
+      !formData.isUnregisteredClient
+    ) {
+      const equipment = equipments.find((eq) => eq.id === formData.equipmentId);
+      setSelectedEquipment(equipment || null);
+    } else {
+      setSelectedEquipment(null);
+    }
+  }, [formData.equipmentId, equipments, formData.isUnregisteredClient]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -115,14 +161,32 @@ const EditOrder = () => {
           status: orderData.status || "Aberto",
           resultDescription: orderData.resultDescription || "",
           pontosEmAberto: orderData.pontosEmAberto || "",
-          isQuote: orderData.isQuote || false, // ✓ Adicionar isQuote
+          isQuote: orderData.isQuote || false,
           items:
             orderData.isQuote && orderData.items
               ? orderData.items.map((item) => ({
                   ...item,
                   price: item.price || 0,
                 }))
-              : [], // ✓ Inicializar items corretamente
+              : [],
+          // ✅ CARREGAR NOVOS CAMPOS
+          shippingType: orderData.shippingType || "",
+          shippingPrice: orderData.shippingPrice || 0,
+          vatRate: orderData.vatRate || 23,
+          includeVat: orderData.includeVat || false,
+          // ✅ CARREGAR DADOS DE CLIENTE NÃO REGISTRADO
+          isUnregisteredClient: orderData.isUnregisteredClient || false,
+          unregisteredClient: orderData.unregisteredClient || {
+            name: "",
+            email: "",
+            phone: "",
+            company: "",
+          },
+          manualEquipment: orderData.manualEquipment || {
+            brand: "",
+            model: "",
+            serialNumber: "",
+          },
         });
 
         // Set checklist
@@ -151,7 +215,7 @@ const EditOrder = () => {
         setEquipments(equipmentsData);
 
         // Filter equipments for selected client
-        if (orderData.clientId) {
+        if (orderData.clientId && !orderData.isUnregisteredClient) {
           const filtered = equipmentsData.filter(
             (equipment) => equipment.clientId === orderData.clientId
           );
@@ -175,7 +239,7 @@ const EditOrder = () => {
       [name]: value,
     }));
 
-    if (name === "clientId") {
+    if (name === "clientId" && !formData.isUnregisteredClient) {
       const filtered = equipments.filter(
         (equipment) => equipment.clientId === value
       );
@@ -184,6 +248,59 @@ const EditOrder = () => {
         ...prev,
         equipmentId: "",
       }));
+    }
+  };
+
+  // ✅ HANDLER PARA DADOS DE CLIENTE NÃO REGISTRADO
+  const handleUnregisteredClientChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      unregisteredClient: {
+        ...prev.unregisteredClient,
+        [field]: value,
+      },
+    }));
+  };
+
+  // ✅ HANDLER PARA DADOS DE EQUIPAMENTO MANUAL
+  const handleManualEquipmentChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      manualEquipment: {
+        ...prev.manualEquipment,
+        [field]: value,
+      },
+    }));
+  };
+
+  // ✅ TOGGLE ENTRE CLIENTE REGISTRADO E NÃO REGISTRADO
+  const handleClientTypeToggle = (isUnregistered) => {
+    setFormData((prev) => ({
+      ...prev,
+      isUnregisteredClient: isUnregistered,
+      // Limpar campos quando muda de tipo
+      ...(isUnregistered
+        ? {
+            clientId: "",
+            equipmentId: "",
+          }
+        : {
+            unregisteredClient: {
+              name: "",
+              email: "",
+              phone: "",
+              company: "",
+            },
+            manualEquipment: {
+              brand: "",
+              model: "",
+              serialNumber: "",
+            },
+          }),
+    }));
+
+    if (!isUnregistered) {
+      setFilteredEquipments([]);
     }
   };
 
@@ -238,6 +355,31 @@ const EditOrder = () => {
     }));
   };
 
+  // ✅ CALCULAR TOTAIS COM IVA
+  const calculateTotals = () => {
+    const subtotal = formData.items.reduce(
+      (sum, item) => sum + item.quantity * (item.price || 0),
+      0
+    );
+
+    const shipping = parseFloat(formData.shippingPrice) || 0;
+    const totalBeforeVat = subtotal + shipping;
+
+    const vatAmount = formData.includeVat
+      ? (totalBeforeVat * formData.vatRate) / 100
+      : 0;
+
+    const totalWithVat = totalBeforeVat + vatAmount;
+
+    return {
+      subtotal,
+      shipping,
+      totalBeforeVat,
+      vatAmount,
+      totalWithVat,
+    };
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
@@ -251,6 +393,8 @@ const EditOrder = () => {
     (JSON.stringify(formData) !== JSON.stringify(originalData) ||
       JSON.stringify(checklist) !==
         JSON.stringify(originalData.checklist || {}));
+
+  const totals = calculateTotals();
 
   return (
     <div className="space-y-6">
@@ -339,15 +483,9 @@ const EditOrder = () => {
                 </div>
 
                 <div className="text-center">
-                  <p className="text-sm text-zinc-400">Valor Total</p>
+                  <p className="text-sm text-zinc-400">Subtotal</p>
                   <p className="text-xl font-bold text-green-400">
-                    €{" "}
-                    {formData.items
-                      .reduce(
-                        (sum, item) => sum + item.quantity * (item.price || 0),
-                        0
-                      )
-                      .toFixed(2)}
+                    € {totals.subtotal.toFixed(2)}
                   </p>
                 </div>
               </div>
@@ -451,41 +589,6 @@ const EditOrder = () => {
                 })}
               </div>
 
-              {/* ✅ TOTAL FINAL */}
-              <div className="mt-6 p-4 bg-zinc-700/50 rounded-lg border border-zinc-600">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-lg font-bold text-white">
-                      Total do Orçamento
-                    </h3>
-                    <p className="text-sm text-zinc-400">
-                      {formData.items.filter(
-                        (item) => !item.price || item.price === 0
-                      ).length > 0 &&
-                        "* Valor parcial - alguns itens sem preço definido"}
-                    </p>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-green-400">
-                      €{" "}
-                      {formData.items
-                        .reduce(
-                          (sum, item) =>
-                            sum + item.quantity * (item.price || 0),
-                          0
-                        )
-                        .toFixed(2)}
-                    </p>
-                    {formData.items.every((item) => item.price > 0) && (
-                      <p className="text-sm text-green-400">
-                        ✓ Orçamento completo
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
               {/* ✅ AÇÕES RÁPIDAS */}
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button
@@ -530,191 +633,571 @@ const EditOrder = () => {
           </Card>
         )}
 
-        {/* Main Information Card */}
+        {/* ✅ NOVA SEÇÃO: ENVIO E IVA */}
+        {formData.isQuote && (
+          <Card className="bg-zinc-800 border-zinc-700">
+            <CardHeader>
+              <CardTitle className="text-lg text-white flex items-center">
+                <Truck className="h-5 w-5 mr-2 text-blue-400" />
+                Configurações de Envio e Impostos
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Tipo de Envio */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-400">
+                    Tipo de Envio (opcional)
+                  </label>
+                  <Input
+                    type="text"
+                    name="shippingType"
+                    value={formData.shippingType}
+                    onChange={handleChange}
+                    placeholder="Ex: Correios, Transportadora..."
+                    className="bg-zinc-900 border-zinc-700 text-white"
+                  />
+                </div>
+
+                {/* Preço do Envio */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-400">
+                    Preço do Envio (€)
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    name="shippingPrice"
+                    value={formData.shippingPrice}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                    className="bg-zinc-900 border-zinc-700 text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Configuração de IVA */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div className="flex items-center space-x-3">
+                  <Checkbox
+                    id="includeVat"
+                    checked={formData.includeVat}
+                    onCheckedChange={(checked) =>
+                      setFormData((prev) => ({ ...prev, includeVat: checked }))
+                    }
+                    className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                  />
+                  <label
+                    htmlFor="includeVat"
+                    className="text-sm font-medium text-white cursor-pointer"
+                  >
+                    Incluir IVA
+                  </label>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-400">
+                    Taxa de IVA (%)
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    name="vatRate"
+                    value={formData.vatRate}
+                    onChange={handleChange}
+                    disabled={!formData.includeVat}
+                    className="bg-zinc-900 border-zinc-700 text-white"
+                  />
+                </div>
+
+                <div className="text-right">
+                  <p className="text-sm text-zinc-400">IVA Calculado</p>
+                  <p className="text-lg font-bold text-blue-400">
+                    € {totals.vatAmount.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+
+              {/* ✅ RESUMO TOTAL ATUALIZADO */}
+              <div className="mt-6 p-4 bg-zinc-700/50 rounded-lg border border-zinc-600">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-zinc-400">Subtotal Itens:</span>
+                    <span className="text-white">
+                      € {totals.subtotal.toFixed(2)}
+                    </span>
+                  </div>
+
+                  {formData.shippingType && formData.shippingPrice > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-zinc-400">
+                        Envio ({formData.shippingType}):
+                      </span>
+                      <span className="text-white">
+                        € {totals.shipping.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+
+                  {formData.includeVat && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-zinc-400">Total s/ IVA:</span>
+                        <span className="text-white">
+                          € {totals.totalBeforeVat.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-zinc-400">
+                          IVA ({formData.vatRate}%):
+                        </span>
+                        <span className="text-blue-400">
+                          € {totals.vatAmount.toFixed(2)}
+                        </span>
+                      </div>
+                    </>
+                  )}
+
+                  <hr className="border-zinc-600" />
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-bold text-white">
+                      Total Final:
+                    </span>
+                    <span className="text-xl font-bold text-green-400">
+                      € {totals.totalWithVat.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ✅ NOVA SEÇÃO: CLIENTE E EQUIPAMENTO COM ABAS */}
         <Card className="bg-zinc-800 border-zinc-700">
           <CardHeader>
             <CardTitle className="text-lg text-white">
-              Informações Principais
+              Informações de Cliente e Equipamento
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Date Field */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Data</label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <input
-                  type="date"
-                  name="date"
-                  value={formData.date}
-                  onChange={handleChange}
-                  className="w-full pl-10 p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Client Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
-                Cliente
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <Select
-                  value={formData.clientId}
-                  onValueChange={(value) =>
-                    handleChange({ target: { name: "clientId", value } })
-                  }
+          <CardContent>
+            <Tabs
+              value={
+                formData.isUnregisteredClient ? "unregistered" : "registered"
+              }
+              onValueChange={(value) =>
+                handleClientTypeToggle(value === "unregistered")
+              }
+              className="space-y-4"
+            >
+              <TabsList className="grid w-full grid-cols-2 bg-zinc-700">
+                <TabsTrigger
+                  value="registered"
+                  className="flex items-center gap-2 data-[state=active]:bg-green-600"
                 >
-                  <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
-                    <SelectValue placeholder="Selecione um Cliente" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
-                    {clients.map((client) => (
+                  <UserCheck className="h-4 w-4" />
+                  Cliente Registrado
+                </TabsTrigger>
+                <TabsTrigger
+                  value="unregistered"
+                  className="flex items-center gap-2 data-[state=active]:bg-blue-600"
+                >
+                  <UserX className="h-4 w-4" />
+                  Cliente Não Registrado
+                </TabsTrigger>
+              </TabsList>
+
+              {/* ✅ ABA CLIENTE REGISTRADO */}
+              <TabsContent value="registered" className="space-y-4">
+                {/* Date Field */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-400">
+                    Data
+                  </label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <input
+                      type="date"
+                      name="date"
+                      value={formData.date}
+                      onChange={handleChange}
+                      className="w-full pl-10 p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Client Selection */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-400">
+                    Cliente
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <Select
+                      value={formData.clientId}
+                      onValueChange={(value) =>
+                        handleChange({ target: { name: "clientId", value } })
+                      }
+                    >
+                      <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                        <SelectValue placeholder="Selecione um Cliente" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-800 border-zinc-700">
+                        {clients.map((client) => (
+                          <SelectItem
+                            key={client.id}
+                            value={client.id}
+                            className="text-white hover:bg-zinc-700"
+                          >
+                            {client.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Equipment Selection */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-400">
+                    Equipamento
+                  </label>
+                  <div className="relative">
+                    <Printer className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <Select
+                      value={formData.equipmentId}
+                      onValueChange={(value) =>
+                        handleChange({ target: { name: "equipmentId", value } })
+                      }
+                      disabled={!formData.clientId}
+                    >
+                      <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                        <SelectValue placeholder="Selecione um Equipamento" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-800 border-zinc-700">
+                        {filteredEquipments.map((equipment) => (
+                          <SelectItem
+                            key={equipment.id}
+                            value={equipment.id}
+                            className="text-white hover:bg-zinc-700"
+                          >
+                            {`${equipment.brand} - ${equipment.model}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* ✅ INFORMAÇÕES DO EQUIPAMENTO SELECIONADO */}
+                {selectedEquipment && (
+                  <div className="mt-4 p-4 bg-zinc-700/30 rounded-lg border border-zinc-600/50">
+                    <h4 className="text-sm font-medium text-zinc-300 mb-3 flex items-center">
+                      <Printer className="h-4 w-4 mr-2 text-blue-400" />
+                      Informações do Equipamento
+                    </h4>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-xs text-zinc-400">Marca</label>
+                        <div className="mt-1 p-2 bg-zinc-800 rounded border border-zinc-600">
+                          <span className="text-white text-sm">
+                            {selectedEquipment.brand || "N/A"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-zinc-400">Modelo</label>
+                        <div className="mt-1 p-2 bg-zinc-800 rounded border border-zinc-600">
+                          <span className="text-white text-sm">
+                            {selectedEquipment.model || "N/A"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-zinc-400">
+                          Número de Série
+                        </label>
+                        <div className="mt-1 p-2 bg-zinc-800 rounded border border-zinc-600">
+                          <span className="text-white text-sm">
+                            {selectedEquipment.serialNumber || "N/A"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* ✅ ABA CLIENTE NÃO REGISTRADO */}
+              <TabsContent value="unregistered" className="space-y-4">
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle className="h-4 w-4 text-blue-400" />
+                    <span className="text-sm font-medium text-blue-400">
+                      Modo Cliente Não Registrado
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    Preencha manualmente os dados do cliente e equipamento que
+                    não estão cadastrados no sistema.
+                  </p>
+                </div>
+
+                {/* Data */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-400">
+                    Data
+                  </label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <input
+                      type="date"
+                      name="date"
+                      value={formData.date}
+                      onChange={handleChange}
+                      className="w-full pl-10 p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* ✅ DADOS DO CLIENTE NÃO REGISTRADO */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-400">
+                      Nome do Cliente *
+                    </label>
+                    <Input
+                      type="text"
+                      value={formData.unregisteredClient.name}
+                      onChange={(e) =>
+                        handleUnregisteredClientChange("name", e.target.value)
+                      }
+                      placeholder="Digite o nome completo"
+                      className="bg-zinc-900 border-zinc-700 text-white"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-400">
+                      Email
+                    </label>
+                    <Input
+                      type="email"
+                      value={formData.unregisteredClient.email}
+                      onChange={(e) =>
+                        handleUnregisteredClientChange("email", e.target.value)
+                      }
+                      placeholder="email@exemplo.com"
+                      className="bg-zinc-900 border-zinc-700 text-white"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-400">
+                      Telefone
+                    </label>
+                    <Input
+                      type="tel"
+                      value={formData.unregisteredClient.phone}
+                      onChange={(e) =>
+                        handleUnregisteredClientChange("phone", e.target.value)
+                      }
+                      placeholder="(XX) XXXXX-XXXX"
+                      className="bg-zinc-900 border-zinc-700 text-white"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-400">
+                      Empresa (opcional)
+                    </label>
+                    <Input
+                      type="text"
+                      value={formData.unregisteredClient.company}
+                      onChange={(e) =>
+                        handleUnregisteredClientChange(
+                          "company",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Nome da empresa"
+                      className="bg-zinc-900 border-zinc-700 text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* ✅ DADOS DO EQUIPAMENTO MANUAL */}
+                <div className="mt-6">
+                  <h4 className="text-sm font-medium text-zinc-300 mb-3 flex items-center">
+                    <Printer className="h-4 w-4 mr-2 text-orange-400" />
+                    Dados do Equipamento
+                  </h4>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">
+                        Marca *
+                      </label>
+                      <Input
+                        type="text"
+                        value={formData.manualEquipment.brand}
+                        onChange={(e) =>
+                          handleManualEquipmentChange("brand", e.target.value)
+                        }
+                        placeholder="Ex: HP, Canon, Epson..."
+                        className="bg-zinc-900 border-zinc-700 text-white"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">
+                        Modelo *
+                      </label>
+                      <Input
+                        type="text"
+                        value={formData.manualEquipment.model}
+                        onChange={(e) =>
+                          handleManualEquipmentChange("model", e.target.value)
+                        }
+                        placeholder="Ex: LaserJet 1020, MG3610..."
+                        className="bg-zinc-900 border-zinc-700 text-white"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">
+                        Número de Série
+                      </label>
+                      <Input
+                        type="text"
+                        value={formData.manualEquipment.serialNumber}
+                        onChange={(e) =>
+                          handleManualEquipmentChange(
+                            "serialNumber",
+                            e.target.value
+                          )
+                        }
+                        placeholder="Número de série do equipamento"
+                        className="bg-zinc-900 border-zinc-700 text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            {/* ✅ CAMPOS COMUNS (FORA DAS ABAS) */}
+            <div className="mt-6 space-y-4">
+              {/* Service Type */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  Tipo de Serviço
+                </label>
+                <div className="relative">
+                  <Settings className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <Input
+                    type="text"
+                    name="serviceType"
+                    value={formData.serviceType}
+                    onChange={handleChange}
+                    onBlur={() => handleBlur("serviceType")}
+                    placeholder="Descreva o tipo de serviço"
+                    className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                    required
+                    readOnly={isQuote}
+                  />
+                </div>
+              </div>
+
+              {/* Priority Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  Prioridade
+                </label>
+                <div className="relative">
+                  <AlertCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <Select
+                    value={formData.priority}
+                    onValueChange={(value) =>
+                      handleChange({ target: { name: "priority", value } })
+                    }
+                  >
+                    <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                      <SelectValue placeholder="Selecione a Prioridade" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zinc-800 border-zinc-700">
                       <SelectItem
-                        key={client.id}
-                        value={client.id}
+                        value="low"
                         className="text-white hover:bg-zinc-700"
                       >
-                        {client.name}
+                        Baixa
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Equipment Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
-                Equipamento
-              </label>
-              <div className="relative">
-                <Printer className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <Select
-                  value={formData.equipmentId}
-                  onValueChange={(value) =>
-                    handleChange({ target: { name: "equipmentId", value } })
-                  }
-                  disabled={!formData.clientId}
-                >
-                  <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
-                    <SelectValue placeholder="Selecione um Equipamento" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
-                    {filteredEquipments.map((equipment) => (
                       <SelectItem
-                        key={equipment.id}
-                        value={equipment.id}
+                        value="normal"
                         className="text-white hover:bg-zinc-700"
                       >
-                        {`${equipment.brand} - ${equipment.model}`}
+                        Normal
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      <SelectItem
+                        value="high"
+                        className="text-white hover:bg-zinc-700"
+                      >
+                        Alta
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
 
-            {/* Service Type */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
-                Tipo de Serviço
-              </label>
-              <div className="relative">
-                <Settings className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <Input
-                  type="text"
-                  name="serviceType"
-                  value={formData.serviceType}
-                  onChange={handleChange}
-                  onBlur={() => handleBlur("serviceType")}
-                  placeholder="Descreva o tipo de serviço"
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white"
-                  required
-                  readOnly={isQuote}
-                />
-              </div>
-            </div>
-
-            {/* Priority Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
-                Prioridade
-              </label>
-              <div className="relative">
-                <AlertCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <Select
-                  value={formData.priority}
-                  onValueChange={(value) =>
-                    handleChange({ target: { name: "priority", value } })
-                  }
-                >
-                  <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
-                    <SelectValue placeholder="Selecione a Prioridade" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
-                    <SelectItem
-                      value="low"
-                      className="text-white hover:bg-zinc-700"
-                    >
-                      Baixa
-                    </SelectItem>
-                    <SelectItem
-                      value="normal"
-                      className="text-white hover:bg-zinc-700"
-                    >
-                      Normal
-                    </SelectItem>
-                    <SelectItem
-                      value="high"
-                      className="text-white hover:bg-zinc-700"
-                    >
-                      Alta
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Status Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
-                Status
-              </label>
-              <div className="relative">
-                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <Select
-                  value={formData.status}
-                  onValueChange={(value) =>
-                    handleChange({ target: { name: "status", value } })
-                  }
-                >
-                  <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
-                    <SelectValue placeholder="Selecione o Status" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
-                    <SelectItem
-                      value="Aberto"
-                      className="text-white hover:bg-zinc-700"
-                    >
-                      Aberto
-                    </SelectItem>
-                    <SelectItem
-                      value="Em Andamento"
-                      className="text-white hover:bg-zinc-700"
-                    >
-                      Em Andamento
-                    </SelectItem>
-                    <SelectItem
-                      value="Fechado"
-                      className="text-white hover:bg-zinc-700"
-                    >
-                      Fechado
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+              {/* Status Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  Status
+                </label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value) =>
+                      handleChange({ target: { name: "status", value } })
+                    }
+                  >
+                    <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                      <SelectValue placeholder="Selecione o Status" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zinc-800 border-zinc-700">
+                      <SelectItem
+                        value="Aberto"
+                        className="text-white hover:bg-zinc-700"
+                      >
+                        Aberto
+                      </SelectItem>
+                      <SelectItem
+                        value="Em Andamento"
+                        className="text-white hover:bg-zinc-700"
+                      >
+                        Em Andamento
+                      </SelectItem>
+                      <SelectItem
+                        value="Fechado"
+                        className="text-white hover:bg-zinc-700"
+                      >
+                        Fechado
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -742,7 +1225,7 @@ const EditOrder = () => {
                     handleChecklistChange("concluido", checked)
                   }
                   className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                  disabled={isQuote} // Bloqueado se for orçamento
+                  disabled={isQuote}
                 />
                 <span className="text-sm">Serviço Concluído</span>
               </label>
@@ -755,7 +1238,7 @@ const EditOrder = () => {
                     handleChecklistChange("retorno", checked)
                   }
                   className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                  disabled={isQuote} // Bloqueado se for orçamento
+                  disabled={isQuote}
                 />
                 <span className="text-sm">Retorno Necessário</span>
               </label>
@@ -768,7 +1251,7 @@ const EditOrder = () => {
                     handleChecklistChange("funcionarios", checked)
                   }
                   className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                  disabled={isQuote} // Bloqueado se for orçamento
+                  disabled={isQuote}
                 />
                 <span className="text-sm">Instrução dos Funcionários</span>
               </label>
@@ -781,7 +1264,7 @@ const EditOrder = () => {
                     handleChecklistChange("documentacao", checked)
                   }
                   className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                  disabled={isQuote} // Bloqueado se for orçamento
+                  disabled={isQuote}
                 />
                 <span className="text-sm">Entrega da Documentação</span>
               </label>
@@ -794,7 +1277,7 @@ const EditOrder = () => {
                     handleChecklistChange("producao", checked)
                   }
                   className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                  disabled={isQuote} // Bloqueado se for orçamento
+                  disabled={isQuote}
                 />
                 <span className="text-sm">Liberação para Produção</span>
               </label>
@@ -807,7 +1290,7 @@ const EditOrder = () => {
                     handleChecklistChange("pecas", checked)
                   }
                   className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                  disabled={isQuote} // Bloqueado se for orçamento
+                  disabled={isQuote}
                 />
                 <span className="text-sm">Orçamento de Peças</span>
               </label>
@@ -823,7 +1306,7 @@ const EditOrder = () => {
                 onChange={handleChange}
                 placeholder="Adicione notas ou observações importantes"
                 className="min-h-[100px] bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 resize-none"
-                disabled={isQuote} // Bloqueado se for orçamento
+                disabled={isQuote}
               />
             </div>
 
@@ -837,7 +1320,7 @@ const EditOrder = () => {
                 onChange={handleChange}
                 placeholder="Descreva os pontos que ainda precisam ser resolvidos"
                 className="min-h-[100px] bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 resize-none"
-                disabled={isQuote} // Bloqueado se for orçamento
+                disabled={isQuote}
               />
             </div>
           </CardContent>

@@ -35,6 +35,8 @@ import {
   Euro,
   Package2,
   CheckCircle,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 
 // UI Components
@@ -70,9 +72,6 @@ const OrderDetail = () => {
   const [error, setError] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // Keep original calculateHours, calculateHoursWithPause, and calculateOrderTotals functions
-  // [Previous calculation functions remain unchanged]
-
   const fetchData = async () => {
     try {
       setIsLoading(true);
@@ -95,16 +94,16 @@ const OrderDetail = () => {
       const orderData = orderDoc.data();
       setOrder({ id: orderDoc.id, ...orderData });
 
-      // Process client data
-      if (orderData.clientId) {
+      // ✅ BUSCAR DADOS DO CLIENTE (REGISTRADO OU NÃO)
+      if (!orderData.isUnregisteredClient && orderData.clientId) {
         const clientDoc = await getDoc(doc(db, "clientes", orderData.clientId));
         if (clientDoc.exists()) {
           setClient({ id: clientDoc.id, ...clientDoc.data() });
         }
       }
 
-      // Process equipment data
-      if (orderData.equipmentId) {
+      // ✅ BUSCAR DADOS DO EQUIPAMENTO (REGISTRADO OU MANUAL)
+      if (!orderData.manualEquipment?.model && orderData.equipmentId) {
         const equipmentDoc = await getDoc(
           doc(db, "equipamentos", orderData.equipmentId)
         );
@@ -141,14 +140,15 @@ const OrderDetail = () => {
     fetchData();
   }, [orderId]);
 
-  // Keep original handleGeneratePDF function
   const handleGeneratePDF = async () => {
     try {
       setIsGeneratingPDF(true);
       setError(null);
 
       const fileName = `${order.isQuote ? "Orcamento" : "OrdemServico"}_${
-        client?.name || "Cliente"
+        order.isUnregisteredClient
+          ? order.unregisteredClient?.name || "Cliente"
+          : client?.name || "Cliente"
       }_${orderId}.pdf`;
 
       let pdfResult;
@@ -161,16 +161,28 @@ const OrderDetail = () => {
         const formattedData = {
           orderId,
           orderNumber: order.orderNumber || orderId,
-          clientData: {
-            name: client?.name || "",
-            phone: client?.phone || "",
-            address: client?.address || "",
-          },
-          equipmentData: {
-            brand: equipment?.brand || "",
-            model: equipment?.model || "",
-            serialNumber: equipment?.serialNumber || "",
-          },
+          clientData: order.isUnregisteredClient
+            ? {
+                name: order.unregisteredClient?.name || "",
+                phone: order.unregisteredClient?.phone || "",
+                address: order.unregisteredClient?.company || "",
+              }
+            : {
+                name: client?.name || "",
+                phone: client?.phone || "",
+                address: client?.address || "",
+              },
+          equipmentData: order.manualEquipment?.model
+            ? {
+                brand: order.manualEquipment.brand || "",
+                model: order.manualEquipment.model || "",
+                serialNumber: order.manualEquipment.serialNumber || "",
+              }
+            : {
+                brand: equipment?.brand || "",
+                model: equipment?.model || "",
+                serialNumber: equipment?.serialNumber || "",
+              },
           date: order.date,
           serviceType: order.serviceType || "",
           status: order.status || "",
@@ -187,8 +199,8 @@ const OrderDetail = () => {
         pdfResult = await generateServiceOrderPDF(
           orderId,
           formattedData,
-          client,
-          equipment,
+          order.isUnregisteredClient ? order.unregisteredClient : client,
+          order.manualEquipment?.model ? order.manualEquipment : equipment,
           workdays,
           fileName
         );
@@ -517,6 +529,11 @@ const OrderDetail = () => {
                   Orçamento Online
                 </Badge>
               )}
+              {order.isUnregisteredClient && (
+                <Badge className="bg-blue-500/10 text-blue-400">
+                  Cliente Não Registrado
+                </Badge>
+              )}
               <Badge className={statusColors[order.status]}>
                 {order.status}
               </Badge>
@@ -579,7 +596,7 @@ const OrderDetail = () => {
         </CardContent>
       </Card>
 
-      {/* Order Details Card */}
+      {/* ✅ ORDER DETAILS CARD MELHORADO */}
       <Card className="bg-zinc-800 border-zinc-700">
         <CardHeader>
           <CardTitle className="text-lg text-white">
@@ -587,48 +604,163 @@ const OrderDetail = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* ✅ COLUNA ESQUERDA - DADOS DO CLIENTE */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-zinc-400" />
-                <div>
-                  <p className="text-sm text-zinc-400">Data</p>
-                  <p className="text-white">
-                    {new Date(order.date).toLocaleDateString()}
-                  </p>
+              <div className="flex items-start gap-3 p-4 bg-zinc-700/30 rounded-lg">
+                <div className="flex-shrink-0">
+                  {order.isUnregisteredClient ? (
+                    <UserX className="h-5 w-5 text-blue-400 mt-1" />
+                  ) : (
+                    <UserCheck className="h-5 w-5 text-green-400 mt-1" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-sm font-medium text-zinc-300">Cliente</p>
+                    <Badge
+                      variant="outline"
+                      className={
+                        order.isUnregisteredClient
+                          ? "border-blue-500/50 text-blue-400"
+                          : "border-green-500/50 text-green-400"
+                      }
+                    >
+                      {order.isUnregisteredClient
+                        ? "Não Registrado"
+                        : "Registrado"}
+                    </Badge>
+                  </div>
+
+                  {/* ✅ MOSTRAR DADOS BASEADO NO TIPO DE CLIENTE */}
+                  {order.isUnregisteredClient ? (
+                    <div className="space-y-1">
+                      <p className="text-white font-medium">
+                        {order.unregisteredClient?.name || "N/A"}
+                      </p>
+                      {order.unregisteredClient?.email && (
+                        <p className="text-sm text-zinc-400">
+                          📧 {order.unregisteredClient.email}
+                        </p>
+                      )}
+                      {order.unregisteredClient?.phone && (
+                        <p className="text-sm text-zinc-400">
+                          📞 {order.unregisteredClient.phone}
+                        </p>
+                      )}
+                      {order.unregisteredClient?.company && (
+                        <p className="text-sm text-zinc-400">
+                          🏢 {order.unregisteredClient.company}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <p className="text-white font-medium">
+                        {order.clientInfo?.name || client?.name || "N/A"}
+                      </p>
+                      {(order.clientInfo?.email || client?.email) && (
+                        <p className="text-sm text-zinc-400">
+                          📧 {order.clientInfo?.email || client?.email}
+                        </p>
+                      )}
+                      {(order.clientInfo?.phone || client?.phone) && (
+                        <p className="text-sm text-zinc-400">
+                          📞 {order.clientInfo?.phone || client?.phone}
+                        </p>
+                      )}
+                      {(order.clientInfo?.company || client?.company) && (
+                        <p className="text-sm text-zinc-400">
+                          🏢 {order.clientInfo?.company || client?.company}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-zinc-400" />
-                <div>
-                  <p className="text-sm text-zinc-400">Cliente</p>
-                  <p className="text-white">{client?.name || "N/A"}</p>
+              {/* ✅ DATA E TIPO DE SERVIÇO */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-zinc-400" />
+                  <div>
+                    <p className="text-sm text-zinc-400">Data</p>
+                    <p className="text-white">
+                      {new Date(order.date).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <Printer className="h-4 w-4 text-zinc-400" />
-                <div>
-                  <p className="text-sm text-zinc-400">Equipamento</p>
-                  <p className="text-white">
-                    {equipment
-                      ? `${equipment.brand} - ${equipment.model}`
-                      : "N/A"}
-                  </p>
+                <div className="flex items-center gap-2">
+                  <Settings className="h-4 w-4 text-zinc-400" />
+                  <div>
+                    <p className="text-sm text-zinc-400">Tipo de Serviço</p>
+                    <p className="text-white">{order.serviceType}</p>
+                  </div>
                 </div>
               </div>
             </div>
 
+            {/* ✅ COLUNA DIREITA - DADOS DO EQUIPAMENTO */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Settings className="h-4 w-4 text-zinc-400" />
-                <div>
-                  <p className="text-sm text-zinc-400">Tipo de Serviço</p>
-                  <p className="text-white">{order.serviceType}</p>
+              <div className="flex items-start gap-3 p-4 bg-zinc-700/30 rounded-lg">
+                <div className="flex-shrink-0">
+                  <Printer className="h-5 w-5 text-orange-400 mt-1" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-sm font-medium text-zinc-300">
+                      Equipamento
+                    </p>
+                    <Badge
+                      variant="outline"
+                      className="border-orange-500/50 text-orange-400"
+                    >
+                      {order.manualEquipment?.model ? "Manual" : "Registrado"}
+                    </Badge>
+                  </div>
+
+                  {/* ✅ MOSTRAR DADOS DO EQUIPAMENTO */}
+                  {order.manualEquipment?.model ? (
+                    // Equipamento manual (cliente não registrado)
+                    <div className="space-y-1">
+                      <p className="text-white font-medium">
+                        {order.manualEquipment.brand} -{" "}
+                        {order.manualEquipment.model}
+                      </p>
+                      {order.manualEquipment.serialNumber && (
+                        <p className="text-sm text-zinc-400">
+                          🏷️ Nº Série: {order.manualEquipment.serialNumber}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    // Equipamento registrado
+                    <div className="space-y-1">
+                      <p className="text-white font-medium">
+                        {equipment
+                          ? `${equipment.brand} - ${equipment.model}`
+                          : "N/A"}
+                      </p>
+                      {equipment?.serialNumber && (
+                        <p className="text-sm text-zinc-400">
+                          🏷️ Nº Série: {equipment.serialNumber}
+                        </p>
+                      )}
+                      {equipment?.installationDate && (
+                        <p className="text-sm text-zinc-400">
+                          📅 Instalação:{" "}
+                          {new Date(
+                            equipment.installationDate
+                          ).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
+              {/* ✅ INFORMAÇÕES EXTRAS */}
               {order.description && (
                 <div className="flex items-start gap-2">
                   <FileText className="h-4 w-4 text-zinc-400 mt-1" />
