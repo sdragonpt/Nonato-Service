@@ -7,6 +7,7 @@ import {
   getDoc,
   updateDoc,
   deleteDoc,
+  addDoc,
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import {
@@ -29,10 +30,20 @@ import {
   ClipboardList,
   AlertCircle,
   X,
+  Zap,
+  ArrowRight,
+  User,
+  UserPlus,
+  Settings,
 } from "lucide-react";
 
 // UI Components
-import { Card, CardContent } from "@/components/ui/card.jsx";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
@@ -58,6 +69,121 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
+
+// ✅ COMPONENTE ATUALIZADO: Para pré-agendamentos
+const PreAgendamentoCard = ({ preAgendamento, onConvert, onDelete }) => {
+  const isUrgent = preAgendamento.priority === "alta";
+
+  return (
+    <Card className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border-yellow-500/30 hover:border-yellow-500/50 transition-colors">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className={`h-10 w-10 rounded-full ${
+                isUrgent ? "bg-red-600" : "bg-yellow-600"
+              } flex items-center justify-center`}
+            >
+              <Zap className="w-5 h-5 text-white" />
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-lg text-white truncate">
+                {preAgendamento.isRegisteredClient
+                  ? preAgendamento.cliente?.name || "Cliente não encontrado"
+                  : preAgendamento.newClientName}
+              </h3>
+
+              {/* ✅ ATUALIZADO: Mostrar informações do serviço e equipamento */}
+              <div className="flex items-center gap-2 text-sm text-zinc-400">
+                <span>{preAgendamento.machineType}</span>
+                <span>•</span>
+                <span>{preAgendamento.serviceType}</span>
+              </div>
+
+              {/* ✅ NOVO: Mostrar equipamento se selecionado */}
+              {preAgendamento.equipmentId && preAgendamento.equipment && (
+                <div className="text-sm text-zinc-300 mt-1">
+                  <span className="text-zinc-400">Equipamento:</span>{" "}
+                  {preAgendamento.equipment.brand}{" "}
+                  {preAgendamento.equipment.model}
+                  {preAgendamento.equipment.serialNumber && (
+                    <span className="text-zinc-500">
+                      {" "}
+                      - {preAgendamento.equipment.serialNumber}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <div className="flex gap-2 mt-1">
+                <Badge className="bg-yellow-500/20 text-yellow-400">
+                  Pré-agendamento
+                </Badge>
+                {!preAgendamento.isRegisteredClient && (
+                  <Badge className="bg-blue-500/20 text-blue-400">
+                    Cliente Novo
+                  </Badge>
+                )}
+                {isUrgent && (
+                  <Badge className="bg-red-500/20 text-red-400">Urgente</Badge>
+                )}
+              </div>
+
+              {preAgendamento.quickNotes && (
+                <p className="text-sm text-zinc-300 mt-1 truncate">
+                  {preAgendamento.quickNotes}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => onConvert(preAgendamento)}
+              className="bg-green-600 hover:bg-green-700"
+              size="sm"
+            >
+              <ArrowRight className="w-4 h-4 mr-1" />
+              Agendar
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full hover:bg-zinc-700 text-yellow-400"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="bg-zinc-800 border-zinc-700"
+              >
+                <DropdownMenuItem
+                  onClick={() => onConvert(preAgendamento)}
+                  className="text-white hover:bg-zinc-700 cursor-pointer"
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Converter em Agendamento
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
+                  onClick={() => onDelete(preAgendamento)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Excluir
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const AppointmentCard = ({
   appointment,
@@ -174,6 +300,7 @@ const AppointmentCard = ({
 const ManageAgenda = () => {
   const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
+  const [preAgendamentos, setPreAgendamentos] = useState([]); // ✅ NOVO
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -183,6 +310,12 @@ const ManageAgenda = () => {
   const [viewMode, setViewMode] = useState("calendar");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [appointmentToDelete, setAppointmentToDelete] = useState(null);
+  const [convertDialogOpen, setConvertDialogOpen] = useState(false); // ✅ NOVO
+  const [preAgendamentoToConvert, setPreAgendamentoToConvert] = useState(null); // ✅ NOVO
+  const [convertFormData, setConvertFormData] = useState({
+    date: "",
+    time: "",
+  }); // ✅ NOVO
 
   const months = [
     "Janeiro",
@@ -233,6 +366,51 @@ const ManageAgenda = () => {
     }
   };
 
+  // ✅ FUNÇÃO ATUALIZADA: Buscar pré-agendamentos com equipamentos
+  const fetchPreAgendamentos = useCallback(async () => {
+    try {
+      const preAgendamentosRef = collection(db, "pre_agendamentos");
+      const querySnapshot = await getDocs(preAgendamentosRef);
+      const preAgendamentosData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      // Buscar dados dos clientes registrados e equipamentos
+      const preAgendamentosWithDetails = await Promise.all(
+        preAgendamentosData.map(async (preAgendamento) => {
+          let updatedPreAgendamento = { ...preAgendamento };
+
+          // Buscar dados do cliente se registrado
+          if (preAgendamento.isRegisteredClient && preAgendamento.clientId) {
+            const clientDoc = await getDoc(
+              doc(db, "clientes", preAgendamento.clientId)
+            );
+            if (clientDoc.exists()) {
+              updatedPreAgendamento.cliente = clientDoc.data();
+            }
+          }
+
+          // ✅ NOVO: Buscar dados do equipamento se selecionado
+          if (preAgendamento.equipmentId) {
+            const equipmentDoc = await getDoc(
+              doc(db, "equipamentos", preAgendamento.equipmentId)
+            );
+            if (equipmentDoc.exists()) {
+              updatedPreAgendamento.equipment = equipmentDoc.data();
+            }
+          }
+
+          return updatedPreAgendamento;
+        })
+      );
+
+      setPreAgendamentos(preAgendamentosWithDetails);
+    } catch (err) {
+      console.error("Error fetching pre agendamentos:", err);
+    }
+  }, []);
+
   const fetchAppointments = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -265,17 +443,63 @@ const ManageAgenda = () => {
         appointmentsWithDetails
       );
       setAppointments(updatedAppointments);
+
+      // ✅ NOVO: Buscar pré-agendamentos também
+      await fetchPreAgendamentos();
     } catch (err) {
       console.error("Error fetching appointments:", err);
       setError("Erro ao carregar agendamentos");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [fetchPreAgendamentos]);
 
   useEffect(() => {
     fetchAppointments();
   }, [fetchAppointments]);
+
+  // ✅ NOVA FUNÇÃO: Converter pré-agendamento
+  const handleConvertPreAgendamento = async () => {
+    try {
+      const preAgendamento = preAgendamentoToConvert;
+
+      // Criar agendamento completo
+      const agendamentoData = {
+        data: convertFormData.date,
+        hora: convertFormData.time,
+        clientId: preAgendamento.isRegisteredClient
+          ? preAgendamento.clientId
+          : "",
+        tipoServico: `${preAgendamento.machineType} - ${preAgendamento.serviceType}`,
+        observacoes: preAgendamento.quickNotes || "",
+        status: "agendado",
+        prioridade: preAgendamento.priority,
+        // Se cliente novo, incluir dados
+        ...(preAgendamento.isRegisteredClient
+          ? {}
+          : {
+              newClientName: preAgendamento.newClientName,
+              newClientPhone: preAgendamento.newClientPhone,
+            }),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      await addDoc(collection(db, "agendamentos"), agendamentoData);
+
+      // Remover pré-agendamento
+      await deleteDoc(doc(db, "pre_agendamentos", preAgendamento.id));
+
+      // Atualizar listas
+      await fetchAppointments();
+      setConvertDialogOpen(false);
+      setPreAgendamentoToConvert(null);
+      setConvertFormData({ date: "", time: "" });
+    } catch (error) {
+      console.error("Erro ao converter pré-agendamento:", error);
+      setError("Erro ao converter pré-agendamento");
+    }
+  };
 
   const handleDelete = async (appointmentId) => {
     try {
@@ -286,6 +510,19 @@ const ManageAgenda = () => {
     } catch (error) {
       console.error("Error deleting appointment:", error);
       setError("Erro ao deletar agendamento");
+    }
+  };
+
+  // ✅ NOVA FUNÇÃO: Deletar pré-agendamento
+  const handleDeletePreAgendamento = async (preAgendamento) => {
+    try {
+      await deleteDoc(doc(db, "pre_agendamentos", preAgendamento.id));
+      setPreAgendamentos((prev) =>
+        prev.filter((p) => p.id !== preAgendamento.id)
+      );
+    } catch (error) {
+      console.error("Erro ao deletar pré-agendamento:", error);
+      setError("Erro ao deletar pré-agendamento");
     }
   };
 
@@ -395,6 +632,7 @@ const ManageAgenda = () => {
       .length,
     completed: filteredAppointments.filter((app) => app.status === "terminado")
       .length,
+    preAgendamentos: preAgendamentos.length, // ✅ NOVO
   };
 
   if (isLoading) {
@@ -417,17 +655,68 @@ const ManageAgenda = () => {
             Gerencie todos os seus agendamentos em um só lugar
           </p>
         </div>
-        <Button
-          onClick={() => navigate("/app/add-agendamento")}
-          className="hidden sm:flex bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Agendamento
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => navigate("/app/add-pre-agendamento")}
+            variant="outline"
+            className="hidden sm:flex border-yellow-600 text-white bg-yellow-600 hover:bg-yellow-500/20"
+          >
+            <Zap className="w-4 h-4 mr-2" />
+            Pré-Agendamento
+          </Button>
+          <Button
+            onClick={() => navigate("/app/add-agendamento")}
+            className="hidden sm:flex bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Agendamento
+          </Button>
+        </div>
       </div>
 
+      {/* ✅ NOVA SEÇÃO: Pré-Agendamentos Pendentes */}
+      {preAgendamentos.length > 0 && (
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg text-white flex items-center">
+                <Zap className="h-5 w-5 mr-2 text-yellow-400" />
+                Pré-Agendamentos Pendentes
+                <Badge className="ml-2 bg-yellow-500/20 text-yellow-400">
+                  {preAgendamentos.length}
+                </Badge>
+              </CardTitle>
+              <Button
+                onClick={() => navigate("/app/add-pre-agendamento")}
+                variant="outline"
+                size="sm"
+                className="border-yellow-600 text-yellow-400 hover:bg-yellow-500/20"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Novo
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-4">
+              {preAgendamentos.map((preAgendamento) => (
+                <PreAgendamentoCard
+                  key={preAgendamento.id}
+                  preAgendamento={preAgendamento}
+                  onConvert={(pre) => {
+                    setPreAgendamentoToConvert(pre);
+                    setConvertDialogOpen(true);
+                  }}
+                  onDelete={handleDeletePreAgendamento}
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="bg-zinc-800 border-zinc-700">
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
@@ -473,6 +762,21 @@ const ManageAgenda = () => {
               </h3>
             </div>
             <CheckCircle2 className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
+          </CardContent>
+        </Card>
+
+        {/* ✅ NOVO CARD: Pré-Agendamentos */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardContent className="flex items-center justify-between p-4 sm:p-6">
+            <div>
+              <p className="text-sm font-medium text-zinc-400">
+                Pré-Agendamentos
+              </p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+                {stats.preAgendamentos}
+              </h3>
+            </div>
+            <Zap className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500" />
           </CardContent>
         </Card>
       </div>
@@ -800,6 +1104,124 @@ const ManageAgenda = () => {
         )}
       </div>
 
+      {/* ✅ DIALOG ATUALIZADO: Para converter pré-agendamento */}
+      <Dialog open={convertDialogOpen} onOpenChange={setConvertDialogOpen}>
+        <DialogContent className="bg-zinc-800 border-zinc-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              Converter em Agendamento
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Defina a data e hora para finalizar o agendamento
+            </DialogDescription>
+          </DialogHeader>
+
+          {preAgendamentoToConvert && (
+            <div className="space-y-4">
+              <div className="p-3 bg-zinc-700/50 rounded-lg space-y-2">
+                <div>
+                  <p className="text-sm text-zinc-400">Cliente:</p>
+                  <p className="text-white font-medium">
+                    {preAgendamentoToConvert.isRegisteredClient
+                      ? preAgendamentoToConvert.cliente?.name
+                      : preAgendamentoToConvert.newClientName}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-zinc-400">Serviço:</p>
+                  <p className="text-sm text-zinc-300">
+                    {preAgendamentoToConvert.machineType} -{" "}
+                    {preAgendamentoToConvert.serviceType}
+                  </p>
+                </div>
+
+                {/* ✅ NOVO: Mostrar equipamento se selecionado */}
+                {preAgendamentoToConvert.equipment && (
+                  <div>
+                    <p className="text-sm text-zinc-400">Equipamento:</p>
+                    <p className="text-sm text-zinc-300">
+                      {preAgendamentoToConvert.equipment.brand}{" "}
+                      {preAgendamentoToConvert.equipment.model}
+                      {preAgendamentoToConvert.equipment.serialNumber && (
+                        <span className="text-zinc-500">
+                          {" "}
+                          - {preAgendamentoToConvert.equipment.serialNumber}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                )}
+
+                {preAgendamentoToConvert.quickNotes && (
+                  <div>
+                    <p className="text-sm text-zinc-400">Observações:</p>
+                    <p className="text-sm text-zinc-300">
+                      {preAgendamentoToConvert.quickNotes}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-400 mb-1">
+                    Data *
+                  </label>
+                  <Input
+                    type="date"
+                    value={convertFormData.date}
+                    onChange={(e) =>
+                      setConvertFormData((prev) => ({
+                        ...prev,
+                        date: e.target.value,
+                      }))
+                    }
+                    className="bg-zinc-900 border-zinc-700 text-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-400 mb-1">
+                    Hora *
+                  </label>
+                  <Input
+                    type="time"
+                    value={convertFormData.time}
+                    onChange={(e) =>
+                      setConvertFormData((prev) => ({
+                        ...prev,
+                        time: e.target.value,
+                      }))
+                    }
+                    className="bg-zinc-900 border-zinc-700 text-white"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setConvertDialogOpen(false)}
+              className="border-zinc-700 text-white hover:bg-zinc-700"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConvertPreAgendamento}
+              disabled={!convertFormData.date || !convertFormData.time}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              Agendar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="bg-zinc-800 border-zinc-700">
@@ -837,6 +1259,13 @@ const ManageAgenda = () => {
           className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
         >
           <RefreshCw className="h-5 w-5" />
+        </Button>
+        <Button
+          onClick={() => navigate("/app/add-pre-agendamento")}
+          size="icon"
+          className="rounded-full shadow-lg bg-yellow-600 hover:bg-yellow-700"
+        >
+          <Zap className="h-5 w-5" />
         </Button>
         <Button
           onClick={() => navigate("/app/add-agendamento")}

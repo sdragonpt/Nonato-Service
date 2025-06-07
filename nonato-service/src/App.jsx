@@ -1,4 +1,4 @@
-// App.jsx - COM PARTSCACHE INTEGRADO + Ferramenta de Migração
+// App.jsx - COM PARTSCACHE INTEGRADO + Ferramenta de Migração + Pré-Agendamento
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { getAuth, signOut } from "firebase/auth";
@@ -36,6 +36,7 @@ import {
   Shield,
   Database, // ✅ NOVO: Para migração de imagens
   RotateCcw, // ✅ NOVO: Para rollback
+  Zap, // ✅ NOVO: Para pré-agendamento
 } from "lucide-react";
 
 // ✅ LAZY LOADING - Componentes principais importados sob demanda
@@ -85,6 +86,10 @@ const ManageAgenda = React.lazy(() =>
 );
 const AddAgendamento = React.lazy(() =>
   import("./features/agendamentos/components/AddAgendamento")
+);
+// ✅ NOVO: Pré-agendamento
+const AddPreAgendamento = React.lazy(() =>
+  import("./features/agendamentos/components/AddPreAgendamento")
 );
 const EditAgendamento = React.lazy(() =>
   import("./features/agendamentos/components/EditAgendamento")
@@ -775,6 +780,11 @@ const App = () => {
                           <Route
                             path="add-agendamento"
                             element={<AddAgendamento />}
+                          />
+                          {/* ✅ NOVA ROTA: Pré-agendamento */}
+                          <Route
+                            path="add-pre-agendamento"
+                            element={<AddPreAgendamento />}
                           />
                           <Route
                             path="edit-agendamento/:agendamentoId"
