@@ -63,6 +63,25 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     return enrichedItems;
   };
 
+  // ✅ FUNÇÃO PARA BUSCAR DADOS DO EQUIPAMENTO
+  const fetchEquipmentData = async (equipmentId) => {
+    try {
+      if (!equipmentId) return null;
+
+      const equipmentRef = doc(db, "equipamentos", equipmentId);
+      const equipmentDoc = await getDoc(equipmentRef);
+
+      if (equipmentDoc.exists()) {
+        return { id: equipmentDoc.id, ...equipmentDoc.data() };
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error("Erro ao buscar dados do equipamento:", error);
+      return null;
+    }
+  };
+
   // ✅ FUNÇÃO PARA BUSCAR IMAGEM DA BIBLIOTECA
   const loadImageFromLibrary = async (imageHash) => {
     try {
