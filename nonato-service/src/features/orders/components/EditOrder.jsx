@@ -1,4 +1,4 @@
-// ✅ EDITORDER.JSX - VERSÃO COMPLETA COM CLIENTE NÃO REGISTRADO
+// ✅ EDITORDER.JSX - VERSÃO COMPLETA COM ORÇAMENTO DE PEÇAS
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -8,6 +8,8 @@ import {
   updateDoc,
   collection,
   getDocs,
+  query,
+  where,
 } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import {
@@ -28,6 +30,11 @@ import {
   Percent,
   UserCheck,
   UserX,
+  Package,
+  Search,
+  Plus,
+  X,
+  ShoppingCart,
 } from "lucide-react";
 
 // UI Components
@@ -91,6 +98,8 @@ const EditOrder = () => {
       model: "",
       serialNumber: "",
     },
+    // ✅ NOVO: Lista de peças do orçamento de peças
+    partsQuoteItems: [],
   });
 
   const [checklist, setChecklist] = useState({
@@ -101,6 +110,12 @@ const EditOrder = () => {
     producao: false,
     pecas: false,
   });
+
+  // ✅ NOVOS ESTADOS PARA ORÇAMENTO DE PEÇAS
+  const [partSearchTerm, setPartSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
 
   const [clients, setClients] = useState([]);
   const [equipments, setEquipments] = useState([]);
@@ -113,6 +128,116 @@ const EditOrder = () => {
   const [selectedEquipment, setSelectedEquipment] = useState(null);
 
   const isQuote = formData.isQuote || originalData?.isQuote;
+
+  // ✅ FUNÇÃO PARA PESQUISAR PEÇAS POR CÓDIGO
+  const searchPartsByCode = async (searchTerm) => {
+    if (!searchTerm.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      setIsSearching(true);
+      setSearchError("");
+
+      // Buscar peças que contenham o termo de busca no código ou nome
+      const partsSnapshot = await getDocs(collection(db, "pecas"));
+
+      const results = partsSnapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter(
+          (part) =>
+            part.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            part.name?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .slice(0, 10); // Limitar a 10 resultados
+
+      setSearchResults(results);
+
+      if (results.length === 0) {
+        setSearchError("Nenhuma peça encontrada com esse código/nome");
+      }
+    } catch (err) {
+      console.error("Erro ao pesquisar peças:", err);
+      setSearchError("Erro ao pesquisar peças");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // ✅ FUNÇÃO PARA ADICIONAR PEÇA AO ORÇAMENTO
+  const addPartToQuote = (part) => {
+    // Verificar se a peça já existe na lista
+    const existingIndex = formData.partsQuoteItems.findIndex(
+      (item) => item.id === part.id
+    );
+
+    if (existingIndex >= 0) {
+      // Se já existe, incrementar quantidade
+      const updatedItems = [...formData.partsQuoteItems];
+      updatedItems[existingIndex].quantity += 1;
+      setFormData((prev) => ({ ...prev, partsQuoteItems: updatedItems }));
+    } else {
+      // Se não existe, adicionar novo item
+      const newItem = {
+        id: part.id,
+        name: part.name,
+        code: part.code,
+        quantity: 1,
+        price: 0, // Preço inicial 0
+        imageHash: part.imageHash || null,
+        image: part.image || null,
+      };
+
+      setFormData((prev) => ({
+        ...prev,
+        partsQuoteItems: [...prev.partsQuoteItems, newItem],
+      }));
+    }
+
+    // Limpar pesquisa
+    setPartSearchTerm("");
+    setSearchResults([]);
+  };
+
+  // ✅ FUNÇÃO PARA REMOVER PEÇA DO ORÇAMENTO
+  const removePartFromQuote = (partId) => {
+    setFormData((prev) => ({
+      ...prev,
+      partsQuoteItems: prev.partsQuoteItems.filter(
+        (item) => item.id !== partId
+      ),
+    }));
+  };
+
+  // ✅ FUNÇÃO PARA ATUALIZAR QUANTIDADE
+  const updatePartQuantity = (partId, quantity) => {
+    const newQuantity = Math.max(1, parseInt(quantity) || 1);
+    setFormData((prev) => ({
+      ...prev,
+      partsQuoteItems: prev.partsQuoteItems.map((item) =>
+        item.id === partId ? { ...item, quantity: newQuantity } : item
+      ),
+    }));
+  };
+
+  // ✅ FUNÇÃO PARA ATUALIZAR PREÇO
+  const updatePartPrice = (partId, price) => {
+    const newPrice = Math.max(0, parseFloat(price) || 0);
+    setFormData((prev) => ({
+      ...prev,
+      partsQuoteItems: prev.partsQuoteItems.map((item) =>
+        item.id === partId ? { ...item, price: newPrice } : item
+      ),
+    }));
+  };
+
+  // ✅ CALCULAR TOTAL DO ORÇAMENTO DE PEÇAS
+  const calculatePartsQuoteTotal = () => {
+    return formData.partsQuoteItems.reduce((total, item) => {
+      return total + item.quantity * item.price;
+    }, 0);
+  };
 
   // ✅ BUSCAR INFORMAÇÕES DO EQUIPAMENTO SELECIONADO
   useEffect(() => {
@@ -187,6 +312,8 @@ const EditOrder = () => {
             model: "",
             serialNumber: "",
           },
+          // ✅ CARREGAR PEÇAS DO ORÇAMENTO DE PEÇAS
+          partsQuoteItems: orderData.partsQuoteItems || [],
         });
 
         // Set checklist
@@ -231,6 +358,20 @@ const EditOrder = () => {
 
     fetchData();
   }, [orderId]);
+
+  // ✅ DEBOUNCE PARA PESQUISA DE PEÇAS
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (partSearchTerm.trim()) {
+        searchPartsByCode(partSearchTerm);
+      } else {
+        setSearchResults([]);
+        setSearchError("");
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [partSearchTerm]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -331,6 +472,8 @@ const EditOrder = () => {
         lastUpdated: new Date(),
         // Incluir items atualizados se for orçamento
         ...(formData.isQuote && { items: formData.items }),
+        // ✅ INCLUIR PEÇAS DO ORÇAMENTO DE PEÇAS
+        partsQuoteItems: formData.partsQuoteItems,
       };
 
       await updateDoc(doc(db, "ordens", orderId), serviceData);
@@ -1325,6 +1468,202 @@ const EditOrder = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* ✅ NOVA SEÇÃO: ORÇAMENTO DE PEÇAS */}
+        {checklist.pecas && !isQuote && (
+          <Card className="bg-zinc-800 border-zinc-700">
+            <CardHeader>
+              <CardTitle className="text-lg text-white flex items-center">
+                <ShoppingCart className="h-5 w-5 mr-2 text-purple-400" />
+                Orçamento de Peças
+                <Badge className="ml-2 bg-purple-500/20 text-purple-400">
+                  {formData.partsQuoteItems.length} item(s)
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* ✅ PESQUISA DE PEÇAS */}
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <Input
+                    type="text"
+                    value={partSearchTerm}
+                    onChange={(e) => setPartSearchTerm(e.target.value)}
+                    placeholder="Pesquisar peças por código ou nome..."
+                    className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                  />
+                  {isSearching && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4 animate-spin" />
+                  )}
+                </div>
+
+                {searchError && (
+                  <Alert className="border-amber-500 bg-amber-500/10">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription className="text-amber-400">
+                      {searchError}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* ✅ RESULTADOS DA PESQUISA */}
+                {searchResults.length > 0 && (
+                  <div className="border border-zinc-600 rounded-lg max-h-60 overflow-y-auto">
+                    {searchResults.map((part) => (
+                      <div
+                        key={part.id}
+                        className="flex items-center justify-between p-3 border-b border-zinc-700 last:border-b-0 hover:bg-zinc-700/50 cursor-pointer"
+                        onClick={() => addPartToQuote(part)}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-white">
+                              {part.name}
+                            </span>
+                            <Badge className="bg-blue-500/20 text-blue-400 text-xs">
+                              {part.code}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-zinc-400 mt-1">
+                            {part.description || "Sem descrição"}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-green-600 text-green-400 hover:bg-green-500/20"
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Adicionar
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* ✅ LISTA DE PEÇAS ADICIONADAS */}
+              {formData.partsQuoteItems.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-lg font-medium text-white">
+                      Peças Selecionadas
+                    </h4>
+                    <div className="text-right">
+                      <p className="text-sm text-zinc-400">Total Estimado</p>
+                      <p className="text-xl font-bold text-green-400">
+                        € {calculatePartsQuoteTotal().toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {formData.partsQuoteItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="grid grid-cols-12 gap-4 items-center p-4 bg-zinc-700/30 rounded-lg border border-zinc-600"
+                      >
+                        {/* Nome da Peça */}
+                        <div className="col-span-12 md:col-span-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Package className="h-4 w-4 text-purple-400" />
+                            <span className="font-medium text-white">
+                              {item.name}
+                            </span>
+                          </div>
+                          <p className="text-sm text-zinc-400">
+                            Código: {item.code}
+                          </p>
+                        </div>
+
+                        {/* Quantidade */}
+                        <div className="col-span-6 md:col-span-2">
+                          <label className="text-sm text-zinc-400 block mb-1">
+                            Qtd
+                          </label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) =>
+                              updatePartQuantity(item.id, e.target.value)
+                            }
+                            className="bg-zinc-900 border-zinc-700 text-white text-center"
+                          />
+                        </div>
+
+                        {/* Preço Unitário */}
+                        <div className="col-span-6 md:col-span-3">
+                          <label className="text-sm text-zinc-400 block mb-1">
+                            Preço Unitário (€)
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={item.price}
+                            onChange={(e) =>
+                              updatePartPrice(item.id, e.target.value)
+                            }
+                            className="bg-zinc-900 border-zinc-700 text-white"
+                            placeholder="0.00"
+                          />
+                        </div>
+
+                        {/* Subtotal */}
+                        <div className="col-span-9 md:col-span-2">
+                          <label className="text-sm text-zinc-400 block mb-1">
+                            Subtotal
+                          </label>
+                          <div className="bg-zinc-800 rounded px-3 py-2 text-center border border-zinc-600">
+                            <span className="text-green-400 font-medium">
+                              € {(item.quantity * item.price).toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Remover */}
+                        <div className="col-span-3 md:col-span-1 flex justify-end">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => removePartFromQuote(item.id)}
+                            className="bg-red-600 hover:bg-red-700 h-8 w-8 p-0"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* ✅ RESUMO TOTAL */}
+                  <div className="mt-4 p-4 bg-zinc-700/50 rounded-lg border border-zinc-600">
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-bold text-white">
+                        Total do Orçamento de Peças:
+                      </span>
+                      <span className="text-xl font-bold text-green-400">
+                        € {calculatePartsQuoteTotal().toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {formData.partsQuoteItems.length === 0 && (
+                <div className="text-center py-8">
+                  <ShoppingCart className="h-12 w-12 text-zinc-600 mx-auto mb-3" />
+                  <p className="text-zinc-400">Nenhuma peça adicionada ainda</p>
+                  <p className="text-sm text-zinc-500">
+                    Use a pesquisa acima para encontrar e adicionar peças
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Submit Button */}
         <Button
