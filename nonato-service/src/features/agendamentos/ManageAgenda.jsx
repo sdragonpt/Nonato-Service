@@ -75,7 +75,7 @@ const PreAgendamentoCard = ({ preAgendamento, onConvert, onDelete }) => {
   const isUrgent = preAgendamento.priority === "alta";
 
   return (
-    <Card className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border-yellow-500/30 hover:border-yellow-500/50 transition-colors">
+    <Card className="bg-yellow-800/20 border-yellow-500/30 hover:border-yellow-500/50 transition-colors">
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -690,7 +690,7 @@ const ManageAgenda = () => {
                 onClick={() => navigate("/app/add-pre-agendamento")}
                 variant="outline"
                 size="sm"
-                className="border-yellow-600 text-yellow-400 hover:bg-yellow-500/20"
+                className="bg-yellow-800/20 border-yellow-500/30 border-yellow-600 text-yellow-400 hover:bg-yellow-500/20"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Novo

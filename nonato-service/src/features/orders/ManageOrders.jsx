@@ -245,13 +245,21 @@ const ManageOrders = () => {
     setDeleteDialogOpen(true);
   };
 
-  const filteredOrders = orders.filter((order) => {
-    const clientName = clients[order.clientId]?.name || order.clientName || "";
-    return (
-      clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
+  const filteredOrders = orders
+    .filter((order) => {
+      const clientName =
+        clients[order.clientId]?.name || order.clientName || "";
+      return (
+        clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    })
+    // Ordenar por data decrescente (mais recente primeiro)
+    .sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateB - dateA; // Ordem decrescente
+    });
 
   // Filtrar ordens abertas e fechadas
   const openOrders = filteredOrders.filter(
