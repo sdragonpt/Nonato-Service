@@ -1,4 +1,4 @@
-// PublicShop.jsx - OTIMIZADO com cache centralizado (sem duplicação de lógica)
+// PublicShop.jsx - CORRIGIDO: Funcionando sem crashes
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
@@ -11,8 +11,8 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useCategories } from "../../context/CategoriesContext.jsx";
-import { usePartsCache } from "../../context/PartsCache.jsx"; // ✅ NOVO: Cache centralizado
-import PartImage from "../../components/ui/PartImage.jsx"; // ✅ Imagem com fallback
+import { usePartsCache } from "../../context/PartsCache.jsx";
+import PartImage from "../../components/ui/PartImage.jsx";
 import {
   Search,
   Loader2,
@@ -23,8 +23,6 @@ import {
   X,
   Plus,
   Minus,
-  ChevronLeft,
-  ChevronRight,
   Filter,
   Menu,
   Home,
@@ -72,7 +70,21 @@ const PublicShop = ({
   requestCartAccess,
   userToken,
 }) => {
-  // ✅ CACHE CENTRALIZADO - Usa o mesmo sistema que ManagePartsLibrary
+  // ✅ REF para controlar se componente está montado - MAS sem verificações excessivas
+  const isMountedRef = useRef(true);
+  const debounceTimerRef = useRef(null);
+
+  // ✅ CLEANUP básico
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  // ✅ CACHE CENTRALIZADO
   const {
     fetchParts,
     fetchSubcategoryCounts,
@@ -80,7 +92,7 @@ const PublicShop = ({
     getCachedParts,
   } = usePartsCache();
 
-  // ✅ ESTADOS SIMPLIFICADOS - Cache gerencia as peças
+  // Estados das peças
   const [displayParts, setDisplayParts] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const [subcategoryCounts, setSubcategoryCounts] = useState({});
@@ -95,7 +107,7 @@ const PublicShop = ({
 
   const [error, setError] = useState(null);
 
-  // ✅ BUSCA OTIMIZADA - Debounce
+  // ✅ BUSCA - Sem verificações excessivas
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
@@ -140,13 +152,21 @@ const PublicShop = ({
     };
   }, []);
 
-  // ✅ DEBOUNCE OTIMIZADO
+  // ✅ DEBOUNCE SIMPLES - Sem verificações excessivas
   useEffect(() => {
-    const timer = setTimeout(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
     }, 500);
 
-    return () => clearTimeout(timer);
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
   }, [searchTerm]);
 
   // Scroll to top button
@@ -175,7 +195,7 @@ const PublicShop = ({
     return () => window.removeEventListener("resize", checkDeviceType);
   }, []);
 
-  // ✅ FUNÇÃO UNIFICADA PARA CARREGAR PEÇAS - Usa cache centralizado
+  // ✅ FUNÇÃO PARA CARREGAR PEÇAS - Sem verificações excessivas
   const loadParts = useCallback(
     async (loadMore = false) => {
       try {
@@ -219,7 +239,7 @@ const PublicShop = ({
     ]
   );
 
-  // ✅ CARREGAR CONTADORES - Usa cache centralizado
+  // ✅ CARREGAR CONTADORES
   const loadSubcategoryCounts = useCallback(
     async (categoryId) => {
       if (!categoryId || categoryId === "all") return;
@@ -272,7 +292,12 @@ const PublicShop = ({
     if (canUseCart) {
       const savedCart = localStorage.getItem("shop-cart");
       if (savedCart) {
-        setCart(JSON.parse(savedCart));
+        try {
+          const parsedCart = JSON.parse(savedCart);
+          setCart(parsedCart);
+        } catch (err) {
+          console.error("Erro ao carregar carrinho:", err);
+        }
       }
     }
   }, [canUseCart]);
@@ -280,7 +305,11 @@ const PublicShop = ({
   // Save cart to localStorage
   useEffect(() => {
     if (canUseCart) {
-      localStorage.setItem("shop-cart", JSON.stringify(cart));
+      try {
+        localStorage.setItem("shop-cart", JSON.stringify(cart));
+      } catch (err) {
+        console.error("Erro ao salvar carrinho:", err);
+      }
     }
   }, [cart, canUseCart]);
 
@@ -315,7 +344,7 @@ const PublicShop = ({
     });
 
     // Feedback visual para mobile
-    if (isMobile || isTablet) {
+    if ((isMobile || isTablet) && isMountedRef.current) {
       const notification = document.createElement("div");
       notification.className =
         "fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-3 rounded-xl z-50 animate-fade-up shadow-lg flex items-center";
@@ -365,8 +394,11 @@ const PublicShop = ({
     setSelectedSubcategory("all");
   };
 
-  // ✅ FUNÇÃO PARA LIMPAR BUSCA
+  // ✅ FUNÇÃO PARA LIMPAR BUSCA - Simples
   const clearSearch = () => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
     setSearchTerm("");
     setDebouncedSearchTerm("");
   };
@@ -465,6 +497,11 @@ const PublicShop = ({
     debouncedSearchTerm
   );
 
+  // ✅ HANDLER SIMPLES para mudança de search
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
   // Mobile Category Menu
   const MobileCategoryMenu = () => (
     <Sheet open={isCategoriesOpen} onOpenChange={setIsCategoriesOpen}>
@@ -526,7 +563,6 @@ const PublicShop = ({
                           }`}
                         >
                           <span>• {subcategory.name}</span>
-                          {/* ✅ CONTADOR REAL */}
                           <Badge className="bg-purple-500/20 text-purple-400">
                             {subcategoryCounts[subcategory.id] || 0}
                           </Badge>
@@ -631,7 +667,7 @@ const PublicShop = ({
                 </Button>
               </SheetTrigger>
 
-              {/* Cart Sheet Content - Mantido igual */}
+              {/* Cart Sheet Content */}
               {canUseCart && (
                 <SheetContent className="bg-zinc-800 border-zinc-700 text-white flex flex-col h-full p-0">
                   <SheetHeader className="flex-shrink-0 px-4 pt-4 pb-2 border-b border-zinc-700">
@@ -824,7 +860,6 @@ const PublicShop = ({
                         onClick={() => setSelectedSubcategory(subcategory.id)}
                       >
                         • {subcategory.name}
-                        {/* ✅ CONTADOR */}
                         <Badge className="ml-1 bg-purple-500/20 text-purple-400 text-xs">
                           {subcategoryCounts[subcategory.id] || 0}
                         </Badge>
@@ -885,7 +920,6 @@ const PublicShop = ({
                           }`}
                         >
                           <span>• {subcategory.name}</span>
-                          {/* ✅ CONTADOR REAL */}
                           <Badge className="bg-purple-500/20 text-purple-400">
                             {subcategoryCounts[subcategory.id] || 0}
                           </Badge>
@@ -926,14 +960,14 @@ const PublicShop = ({
             </div>
           )}
 
-          {/* ✅ SEARCH E FILTROS */}
+          {/* ✅ SEARCH E FILTROS - SIMPLES */}
           <div className="mb-6 space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
               <Input
                 placeholder="Buscar peças por nome, código ou descrição..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={handleSearchChange}
                 className="pl-10 pr-10 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
               />
               {searchTerm !== debouncedSearchTerm && (
@@ -1332,7 +1366,7 @@ const PublicShop = ({
       {/* Mobile Menus */}
       <MobileCategoryMenu />
 
-      {/* Access Info Modal - Mantido igual */}
+      {/* Access Info Modal */}
       <Dialog open={showAccessInfo} onOpenChange={setShowAccessInfo}>
         <DialogContent className="bg-zinc-800 border-zinc-700 text-white max-w-md">
           <DialogHeader>
@@ -1370,7 +1404,7 @@ const PublicShop = ({
         </DialogContent>
       </Dialog>
 
-      {/* Quote Modal - Mantido igual do original */}
+      {/* Quote Modal */}
       {canUseCart && (
         <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
           <DialogContent className="bg-zinc-800 border-zinc-700 text-white max-w-lg mx-auto p-0 overflow-hidden">
