@@ -82,12 +82,12 @@ const EditPart = () => {
       .substr(2, 9)}-${Math.floor(Math.random() * 10000)}`;
   };
 
-  // ✅ NOVO: Função para gerar hash da imagem
-  const generateImageHash = (imageData) => {
-    const size = imageData.length;
-    const sample =
-      imageData.substring(0, 100) + imageData.substring(imageData.length - 100);
-    return `img_${size}_${btoa(sample).substring(0, 20).replace(/[/+=]/g, "")}`;
+  // ✅ MODIFICADO: Função para gerar hash único da imagem (sempre único)
+  const generateImageHash = () => {
+    // Sempre gerar hash único usando timestamp + random
+    return `img_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}_${Math.floor(Math.random() * 10000)}`;
   };
 
   // ✅ NOVO: Buscar imagem da biblioteca
@@ -108,33 +108,21 @@ const EditPart = () => {
     }
   };
 
-  // ✅ NOVO: Salvar imagem na biblioteca
+  // ✅ MODIFICADO: Salvar imagem na biblioteca (sempre salva nova entrada)
   const saveImageToLibrary = async (imageData) => {
     try {
-      const imageHash = generateImageHash(imageData);
+      const imageHash = generateImageHash();
       const imageRef = doc(db, "image_library", imageHash);
-      const imageDoc = await getDoc(imageRef);
 
-      if (!imageDoc.exists()) {
-        await setDoc(imageRef, {
-          hash: imageHash,
-          data: imageData,
-          createdAt: new Date(),
-          usageCount: 1,
-        });
-        console.log("✅ Nova imagem salva na biblioteca:", imageHash);
-      } else {
-        await setDoc(
-          imageRef,
-          {
-            usageCount: increment(1),
-            lastUsed: new Date(),
-          },
-          { merge: true }
-        );
-        console.log("♻️ Imagem reutilizada da biblioteca:", imageHash);
-      }
+      // Sempre salvar como nova entrada (sem verificar duplicatas)
+      await setDoc(imageRef, {
+        hash: imageHash,
+        data: imageData,
+        createdAt: new Date(),
+        usageCount: 1,
+      });
 
+      console.log("✅ Nova imagem salva na biblioteca:", imageHash);
       return imageHash;
     } catch (error) {
       console.error("Erro ao salvar imagem na biblioteca:", error);
@@ -270,6 +258,8 @@ const EditPart = () => {
 
   const removeImage = () => {
     setImagePreview("");
+    // ✅ NOVO: Marcar que a imagem foi removida explicitamente
+    setCurrentImageHash("REMOVED");
   };
 
   const handleAddCategory = async () => {
@@ -394,21 +384,35 @@ const EditPart = () => {
         }
       }
 
-      // ✅ NOVO: Gerenciar imagens na biblioteca
+      // ✅ CORRIGIDO: Gerenciar imagens na biblioteca
       let newImageHash = currentImageHash;
 
-      // Se a imagem foi alterada
-      if (imagePreview !== (originalData?.image || "")) {
-        // Decrementar uso da imagem antiga (se houver)
-        if (currentImageHash) {
+      // Verificar se houve mudança na imagem
+      const originalImageData = originalData?.image || "";
+      const imageWasChanged =
+        imagePreview !== originalImageData || currentImageHash === "REMOVED";
+
+      if (imageWasChanged) {
+        console.log("🔄 Imagem foi alterada/removida");
+
+        // Decrementar uso da imagem antiga (se houver e não for "REMOVED")
+        if (currentImageHash && currentImageHash !== "REMOVED") {
           await decrementImageUsage(currentImageHash);
+          console.log(
+            "♻️ Uso da imagem antiga decrementado:",
+            currentImageHash
+          );
         }
 
-        // Salvar nova imagem (se houver)
-        if (imagePreview) {
-          newImageHash = await saveImageToLibrary(imagePreview);
-        } else {
+        // Verificar se foi removida explicitamente ou se há nova imagem
+        if (currentImageHash === "REMOVED" || !imagePreview) {
+          // Imagem foi removida
           newImageHash = null;
+          console.log("🗑️ Imagem removida - definindo imageHash como null");
+        } else if (imagePreview) {
+          // Nova imagem foi adicionada
+          newImageHash = await saveImageToLibrary(imagePreview);
+          console.log("📷 Nova imagem salva:", newImageHash);
         }
       }
 
@@ -416,15 +420,20 @@ const EditPart = () => {
       const updateData = {
         ...formDataToSave,
         price: parseFloat(formDataToSave.price) || 0, // ✅ Default para 0
-        imageHash: newImageHash,
         lastUpdate: new Date(),
         categoryName,
         subcategoryName,
       };
 
-      // ✅ NOVO: Remover campo legacy 'image' se estiver usando imageHash
+      // ✅ CORRIGIDO: Gerir campos de imagem corretamente
       if (newImageHash) {
+        // Há nova imagem
+        updateData.imageHash = newImageHash;
         updateData.image = null; // Limpar campo legacy
+      } else {
+        // Não há imagem (removida ou nunca teve)
+        updateData.imageHash = null;
+        updateData.image = null; // Garantir que legacy também é limpo
       }
 
       await updateDoc(partRef, updateData);
@@ -447,7 +456,8 @@ const EditPart = () => {
         formData.categoryId !== originalData.categoryId) ||
       (formData.subcategoryId !== "none" &&
         formData.subcategoryId !== originalData.subcategoryId) ||
-      imagePreview !== (originalData.image || ""));
+      imagePreview !== (originalData.image || "") ||
+      currentImageHash === "REMOVED"); // ✅ NOVO: Detectar remoção explícita
 
   // Loading state para categorias ou peça
   if (isLoading || categoriesLoading) {
@@ -497,7 +507,7 @@ const EditPart = () => {
             <CardTitle className="text-lg text-white">
               Imagem da Peça
               <span className="text-sm font-normal text-zinc-400 ml-2">
-                (Sistema inteligente - Evita duplicações)
+                (Cada imagem é salva individualmente)
               </span>
             </CardTitle>
           </CardHeader>
@@ -518,17 +528,15 @@ const EditPart = () => {
                 >
                   <X className="h-3 w-3" />
                 </Button>
-                {currentImageHash && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs px-1 py-0.5 rounded-b-lg">
-                    ♻️ Reutilizada
-                  </div>
-                )}
               </div>
             ) : (
               <label className="flex flex-col items-center p-6 bg-zinc-900 border-2 border-dashed border-zinc-700 rounded-lg cursor-pointer hover:bg-zinc-700/50 transition-colors">
                 <Camera className="h-8 w-8 text-zinc-400 mb-2" />
                 <span className="text-sm text-zinc-400">
                   Clique para adicionar imagem
+                </span>
+                <span className="text-xs text-zinc-500 mt-1">
+                  ✅ Todas as imagens são sempre salvas
                 </span>
                 <input
                   type="file"

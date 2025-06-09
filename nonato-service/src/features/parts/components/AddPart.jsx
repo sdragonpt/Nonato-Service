@@ -83,44 +83,29 @@ const AddPart = () => {
       .substr(2, 9)}-${Math.floor(Math.random() * 10000)}`;
   };
 
-  // ✅ NOVO: Função para gerar hash da imagem (deduplicação simples)
-  const generateImageHash = (imageData) => {
-    // Simples hash baseado no tamanho e parte do conteúdo
-    const size = imageData.length;
-    const sample =
-      imageData.substring(0, 100) + imageData.substring(imageData.length - 100);
-    return `img_${size}_${btoa(sample).substring(0, 20).replace(/[/+=]/g, "")}`;
+  // ✅ MODIFICADO: Função para gerar hash único da imagem (sempre único)
+  const generateImageHash = () => {
+    // Sempre gerar hash único usando timestamp + random
+    return `img_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}_${Math.floor(Math.random() * 10000)}`;
   };
 
-  // ✅ NOVO: Salvar imagem na biblioteca (se não existir)
+  // ✅ MODIFICADO: Salvar imagem na biblioteca (sempre salva nova entrada)
   const saveImageToLibrary = async (imageData) => {
     try {
-      const imageHash = generateImageHash(imageData);
+      const imageHash = generateImageHash();
       const imageRef = doc(db, "image_library", imageHash);
-      const imageDoc = await getDoc(imageRef);
 
-      if (!imageDoc.exists()) {
-        // Imagem não existe, salvar na biblioteca
-        await setDoc(imageRef, {
-          hash: imageHash,
-          data: imageData,
-          createdAt: new Date(),
-          usageCount: 1,
-        });
-        console.log("✅ Nova imagem salva na biblioteca:", imageHash);
-      } else {
-        // Imagem já existe, incrementar contador
-        await setDoc(
-          imageRef,
-          {
-            usageCount: increment(1),
-            lastUsed: new Date(),
-          },
-          { merge: true }
-        );
-        console.log("♻️ Imagem reutilizada da biblioteca:", imageHash);
-      }
+      // Sempre salvar como nova entrada (sem verificar duplicatas)
+      await setDoc(imageRef, {
+        hash: imageHash,
+        data: imageData,
+        createdAt: new Date(),
+        usageCount: 1,
+      });
 
+      console.log("✅ Nova imagem salva na biblioteca:", imageHash);
       return imageHash;
     } catch (error) {
       console.error("Erro ao salvar imagem na biblioteca:", error);
@@ -403,7 +388,7 @@ const AddPart = () => {
             <CardTitle className="text-lg text-white">
               Imagem da Peça
               <span className="text-sm font-normal text-zinc-400 ml-2">
-                (Opcional - Imagens são reutilizadas automaticamente)
+                (Cada imagem é salva individualmente)
               </span>
             </CardTitle>
           </CardHeader>
@@ -432,7 +417,7 @@ const AddPart = () => {
                   Clique para adicionar imagem
                 </span>
                 <span className="text-xs text-zinc-500 mt-1">
-                  ✅ Sistema inteligente evita duplicações
+                  ✅ Todas as imagens são sempre salvas
                 </span>
                 <input
                   type="file"
