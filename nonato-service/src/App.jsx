@@ -195,6 +195,7 @@ const RollbackTool = React.lazy(
 import ErrorBoundary from "./components/layout/ErrorBoundary";
 import { CategoriesProvider } from "./context/CategoriesContext.jsx";
 import { PartsCacheProvider } from "./context/PartsCache.jsx"; // ✅ NOVO: Cache de peças
+import CacheDebugTool from "./components/debug/CacheDebugTool.jsx";
 import { NotificationProvider } from "./context/NotificationContext.jsx";
 import NotificationsDropdown from "./components/ui/NotificationsDropdown";
 
@@ -872,6 +873,7 @@ const App = () => {
                 />
               </Routes>
             </React.Suspense>
+            <CacheDebugTool />
           </Router>
         </PartsCacheProvider>{" "}
         {/* ✅ Fim do novo provider */}
