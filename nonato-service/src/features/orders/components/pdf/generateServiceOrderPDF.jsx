@@ -1,4 +1,6 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../../../firebase.jsx";
 
 const generateServiceOrderPDF = async (
   orderIdForPDF,
@@ -16,9 +18,151 @@ const generateServiceOrderPDF = async (
   const pageHeight = 841.89;
   const fontSize = 10;
   const tableFontSize = 8;
+  const smallFontSize = 8;
   const margin = 50;
   let yPos = 0;
   const minBottomMargin = 50;
+
+  // ✅ FUNÇÃO PARA BUSCAR DADOS COMPLETOS DAS PEÇAS
+  const fetchCompletePartData = async (partId) => {
+    try {
+      const partRef = doc(db, "pecas", partId);
+      const partDoc = await getDoc(partRef);
+
+      if (partDoc.exists()) {
+        const partData = partDoc.data();
+        return { id: partId, ...partData };
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error(`Erro ao buscar peça ${partId}:`, error);
+      return null;
+    }
+  };
+
+  // ✅ ENRIQUECER PEÇAS COM DADOS COMPLETOS
+  const enrichPartsWithData = async (parts) => {
+    if (!parts || parts.length === 0) return [];
+
+    const enrichedParts = [];
+
+    for (const part of parts) {
+      if (part.id) {
+        const completePartData = await fetchCompletePartData(part.id);
+
+        if (completePartData) {
+          const enrichedPart = {
+            ...completePartData,
+            ...part,
+            name: completePartData.name || part.name,
+            code: completePartData.code || part.code,
+          };
+          enrichedParts.push(enrichedPart);
+        } else {
+          enrichedParts.push(part);
+        }
+      } else {
+        enrichedParts.push(part);
+      }
+    }
+
+    return enrichedParts;
+  };
+
+  // ✅ FUNÇÃO PARA BUSCAR IMAGEM DA BIBLIOTECA
+  const loadImageFromLibrary = async (imageHash) => {
+    try {
+      if (!imageHash) return null;
+
+      const imageRef = doc(db, "image_library", imageHash);
+      const imageDoc = await getDoc(imageRef);
+
+      if (imageDoc.exists()) {
+        const data = imageDoc.data();
+        return data.data;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error("Erro ao carregar imagem da biblioteca:", error);
+      return null;
+    }
+  };
+
+  // ✅ FUNÇÃO PARA CARREGAR IMAGEM (BASE64 OU URL)
+  const loadImageData = async (imageSrc) => {
+    try {
+      if (!imageSrc) return null;
+
+      // Se já é base64
+      if (imageSrc.startsWith("data:image/")) {
+        const base64Data = imageSrc.split(",")[1];
+        const isJpeg = imageSrc.includes("jpeg") || imageSrc.includes("jpg");
+        return {
+          data: Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0)),
+          isJpeg,
+        };
+      }
+
+      // Se é URL, fetch
+      const response = await fetch(imageSrc);
+      if (!response.ok) {
+        return null;
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const isJpeg =
+        imageSrc.toLowerCase().includes("jpg") ||
+        imageSrc.toLowerCase().includes("jpeg");
+
+      return {
+        data: new Uint8Array(arrayBuffer),
+        isJpeg,
+      };
+    } catch (error) {
+      console.error("Erro ao carregar dados da imagem:", error);
+      return null;
+    }
+  };
+
+  // ✅ FUNÇÃO PARA QUEBRAR TEXTO LONGO
+  const wrapText = (text, maxWidth, font, fontSize) => {
+    const words = text.split(" ");
+    const lines = [];
+    let currentLine = "";
+
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+
+      if (testWidth <= maxWidth) {
+        currentLine = testLine;
+      } else {
+        if (currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          // Palavra muito longa, truncar
+          lines.push(
+            word.substring(0, Math.floor(maxWidth / (fontSize * 0.6))) + "..."
+          );
+          currentLine = "";
+        }
+      }
+    }
+
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+
+    return lines;
+  };
+
+  // ✅ FUNÇÃO PARA FORMATAR PREÇO (€ depois do número)
+  const formatPrice = (price) => {
+    return `${parseFloat(price).toFixed(2)} €`;
+  };
 
   // Carregar fontes
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -545,6 +689,296 @@ const generateServiceOrderPDF = async (
     return yPos;
   };
 
+  // ✅ NOVA FUNÇÃO PARA DESENHAR ORÇAMENTO DE PEÇAS
+  const drawPartsQuote = async () => {
+    // Verificar se o checkbox de peças está marcado e se há peças
+    if (!order.checklist?.pecas || !order.partsQuoteItems?.length) {
+      return yPos;
+    }
+
+    // Verificar espaço para a seção
+    if (checkAndCreateNewPage(200)) {
+      drawPageHeader();
+    }
+
+    yPos -= 40;
+
+    // Título da seção
+    currentPage.drawText("Orçamento de Peças:", {
+      x: 50,
+      y: yPos,
+      size: fontSize + 1,
+      font: boldFont,
+      color: rgb(0, 0, 0),
+    });
+
+    yPos -= 15;
+
+    // ✅ ENRIQUECER PEÇAS COM DADOS COMPLETOS
+    const enrichedParts = await enrichPartsWithData(order.partsQuoteItems);
+
+    // ✅ CABEÇALHO DA TABELA DE PEÇAS
+    const tableHeaders = [
+      "Imagem",
+      "Item",
+      "Código",
+      "Qtd",
+      "Preço Un.",
+      "Subtotal",
+    ];
+    const columnWidths = [55, 170, 75, 35, 75, 85];
+    let xPos = margin;
+
+    // Desenhar cabeçalho
+    tableHeaders.forEach((header, index) => {
+      currentPage.drawRectangle({
+        x: xPos,
+        y: yPos - 25,
+        width: columnWidths[index],
+        height: 25,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+        color: rgb(0.9, 0.9, 0.9),
+      });
+
+      const textWidth = boldFont.widthOfTextAtSize(header, fontSize);
+      currentPage.drawText(header, {
+        x: xPos + (columnWidths[index] - textWidth) / 2,
+        y: yPos - 15,
+        size: fontSize,
+        font: boldFont,
+      });
+
+      xPos += columnWidths[index];
+    });
+
+    yPos -= 25;
+
+    // ✅ DESENHAR ITENS DAS PEÇAS
+    let partsTotal = 0;
+
+    for (let idx = 0; idx < enrichedParts.length; idx++) {
+      const part = enrichedParts[idx];
+      const price = part.price || 0;
+      const subtotal = part.quantity * price;
+      const hasPrice = price > 0;
+      partsTotal += subtotal;
+
+      // Verificar espaço para o item
+      const itemHeight = 40;
+      if (checkAndCreateNewPage(itemHeight + 10)) {
+        drawPageHeader();
+        // Redesenhar cabeçalho se mudou de página
+        xPos = margin;
+        tableHeaders.forEach((header, index) => {
+          currentPage.drawRectangle({
+            x: xPos,
+            y: yPos - 25,
+            width: columnWidths[index],
+            height: 25,
+            borderColor: rgb(0, 0, 0),
+            borderWidth: 1,
+            color: rgb(0.9, 0.9, 0.9),
+          });
+
+          const textWidth = boldFont.widthOfTextAtSize(header, fontSize);
+          currentPage.drawText(header, {
+            x: xPos + (columnWidths[index] - textWidth) / 2,
+            y: yPos - 15,
+            size: fontSize,
+            font: boldFont,
+          });
+
+          xPos += columnWidths[index];
+        });
+        yPos -= 25;
+      }
+
+      // ✅ CORES INTERCALADAS (cinzento/branco para com preço)
+      let bgColor;
+      if (hasPrice) {
+        bgColor = idx % 2 === 0 ? rgb(0.9, 0.9, 0.9) : rgb(1, 1, 1);
+      } else {
+        bgColor = idx % 2 === 0 ? rgb(1, 0.95, 0.8) : rgb(1, 1, 1);
+      }
+
+      // ✅ QUEBRAR NOME DA PEÇA SE FOR MUITO LONGO
+      const nameLines = wrapText(
+        part.name || "Nome não disponível",
+        columnWidths[1] - 10,
+        font,
+        fontSize
+      );
+      const maxLines = Math.min(nameLines.length, 3);
+      const actualItemHeight = Math.max(itemHeight, maxLines * 12 + 10);
+
+      xPos = margin;
+
+      // ✅ COLUNA 1: IMAGEM
+      currentPage.drawRectangle({
+        x: xPos,
+        y: yPos - actualItemHeight,
+        width: columnWidths[0],
+        height: actualItemHeight,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+        color: bgColor,
+      });
+
+      // Tentar carregar e mostrar imagem
+      try {
+        let imageData = null;
+
+        if (part.imageHash) {
+          const libraryImageData = await loadImageFromLibrary(part.imageHash);
+          if (libraryImageData) {
+            imageData = await loadImageData(libraryImageData);
+          }
+        } else if (part.image) {
+          imageData = await loadImageData(part.image);
+        }
+
+        if (imageData) {
+          const partImage = imageData.isJpeg
+            ? await pdfDoc.embedJpg(imageData.data)
+            : await pdfDoc.embedPng(imageData.data);
+
+          const maxImgWidth = columnWidths[0] - 6;
+          const maxImgHeight = actualItemHeight - 6;
+
+          let imgWidth = maxImgWidth;
+          let imgHeight = (imgWidth * partImage.height) / partImage.width;
+
+          if (imgHeight > maxImgHeight) {
+            imgHeight = maxImgHeight;
+            imgWidth = (imgHeight * partImage.width) / partImage.height;
+          }
+
+          currentPage.drawImage(partImage, {
+            x: xPos + (columnWidths[0] - imgWidth) / 2,
+            y: yPos - actualItemHeight + (actualItemHeight - imgHeight) / 2,
+            width: imgWidth,
+            height: imgHeight,
+          });
+        } else {
+          currentPage.drawText("N/A", {
+            x: xPos + columnWidths[0] / 2 - 8,
+            y: yPos - actualItemHeight / 2 - 4,
+            size: smallFontSize,
+            font: font,
+            color: rgb(0.6, 0.6, 0.6),
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao processar imagem:", error);
+        currentPage.drawText("N/A", {
+          x: xPos + columnWidths[0] / 2 - 8,
+          y: yPos - actualItemHeight / 2 - 4,
+          size: smallFontSize,
+          font: font,
+          color: rgb(0.6, 0.6, 0.6),
+        });
+      }
+
+      xPos += columnWidths[0];
+
+      // ✅ COLUNA 2: NOME DA PEÇA
+      currentPage.drawRectangle({
+        x: xPos,
+        y: yPos - actualItemHeight,
+        width: columnWidths[1],
+        height: actualItemHeight,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+        color: bgColor,
+      });
+
+      nameLines.slice(0, maxLines).forEach((line, lineIndex) => {
+        currentPage.drawText(line, {
+          x: xPos + 3,
+          y: yPos - 12 - lineIndex * 10,
+          size: fontSize,
+          font: font,
+          color: hasPrice ? rgb(0, 0, 0) : rgb(0.8, 0.4, 0),
+        });
+      });
+
+      xPos += columnWidths[1];
+
+      // ✅ COLUNAS RESTANTES
+      const remainingValues = [
+        part.code || "N/A",
+        part.quantity.toString(),
+        price > 0 ? formatPrice(price) : "A definir",
+        price > 0 ? formatPrice(subtotal) : "A definir",
+      ];
+
+      remainingValues.forEach((value, index) => {
+        currentPage.drawRectangle({
+          x: xPos,
+          y: yPos - actualItemHeight,
+          width: columnWidths[index + 2],
+          height: actualItemHeight,
+          borderColor: rgb(0, 0, 0),
+          borderWidth: 1,
+          color: bgColor,
+        });
+
+        const textWidth = font.widthOfTextAtSize(value, fontSize);
+        const textColor = hasPrice ? rgb(0, 0, 0) : rgb(0.8, 0.4, 0);
+
+        currentPage.drawText(value, {
+          x: xPos + (columnWidths[index + 2] - textWidth) / 2,
+          y: yPos - actualItemHeight / 2 - 4,
+          size: fontSize,
+          font: font,
+          color: textColor,
+        });
+
+        xPos += columnWidths[index + 2];
+      });
+
+      yPos -= actualItemHeight;
+    }
+
+    // ✅ TOTAL DO ORÇAMENTO DE PEÇAS (só mostra se > 0)
+    if (partsTotal > 0) {
+      yPos -= 15;
+
+      const totalWidth = 160;
+      const totalX = pageWidth - margin - totalWidth;
+
+      currentPage.drawRectangle({
+        x: totalX,
+        y: yPos - 25,
+        width: totalWidth,
+        height: 25,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+        color: rgb(0.9, 0.9, 0.9),
+      });
+
+      currentPage.drawText("TOTAL PEÇAS:", {
+        x: totalX + 10,
+        y: yPos - 15,
+        size: fontSize,
+        font: boldFont,
+      });
+
+      currentPage.drawText(formatPrice(partsTotal), {
+        x: totalX + totalWidth - 70,
+        y: yPos - 15,
+        size: fontSize,
+        font: boldFont,
+        color: rgb(0, 0, 0),
+      });
+
+      yPos -= 35;
+    }
+
+    return yPos;
+  };
+
   // Função para desenhar checkbox
   const drawCheckbox = (x, y, checked, label) => {
     // Desenhar caixa
@@ -917,6 +1351,8 @@ const generateServiceOrderPDF = async (
         minHeight: 10,
       }
     );
+
+    return yPos; // ✅ RETORNAR A POSIÇÃO Y ATUALIZADA
   };
 
   // Função para desenhar área de assinaturas
@@ -972,21 +1408,16 @@ const generateServiceOrderPDF = async (
     });
   };
 
-  // Desenhar todas as seções
+  // ✅ DESENHAR TODAS AS SEÇÕES NA ORDEM CORRETA
   yPos = drawDescriptions();
-  drawResults();
+  yPos = drawResults(); // ✅ USAR O yPos RETORNADO
+  yPos = await drawPartsQuote(); // ✅ ORÇAMENTO DE PEÇAS ANTES DAS ASSINATURAS
   drawSignatures();
   addPageNumbers();
 
   // Salvar e fazer download do PDF
   const pdfBytes = await pdfDoc.save();
   return { blob: new Blob([pdfBytes], { type: "application/pdf" }), fileName };
-  // const pdfBytes = await pdfDoc.save();
-  // const blob = new Blob([pdfBytes], { type: "application/pdf" });
-  // const link = document.createElement("a");
-  // link.href = URL.createObjectURL(blob);
-  // link.download = `Ordem_Servico_${client.name}_${orderIdForPDF}.pdf`;
-  // link.click();
 };
 
 // Funções auxiliares de cálculo
