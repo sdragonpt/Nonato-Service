@@ -689,7 +689,7 @@ const generateServiceOrderPDF = async (
     return yPos;
   };
 
-  // ✅ NOVA FUNÇÃO PARA DESENHAR ORÇAMENTO DE PEÇAS
+  // ✅ NOVA FUNÇÃO PARA DESENHAR ORÇAMENTO DE PEÇAS (SEM PREÇOS)
   const drawPartsQuote = async () => {
     // Verificar se o checkbox de peças está marcado e se há peças
     if (!order.checklist?.pecas || !order.partsQuoteItems?.length) {
@@ -717,16 +717,10 @@ const generateServiceOrderPDF = async (
     // ✅ ENRIQUECER PEÇAS COM DADOS COMPLETOS
     const enrichedParts = await enrichPartsWithData(order.partsQuoteItems);
 
-    // ✅ CABEÇALHO DA TABELA DE PEÇAS
-    const tableHeaders = [
-      "Imagem",
-      "Item",
-      "Código",
-      "Qtd",
-      "Preço Un.",
-      "Subtotal",
-    ];
-    const columnWidths = [55, 170, 75, 35, 75, 85];
+    // ✅ CABEÇALHO DA TABELA DE PEÇAS (SEM PREÇOS)
+    const tableHeaders = ["Imagem", "Item", "Código", "Qtd"];
+    // ✅ Redistribuir espaço das colunas (total: 495px)
+    const columnWidths = [55, 280, 100, 60];
     let xPos = margin;
 
     // Desenhar cabeçalho
@@ -754,15 +748,9 @@ const generateServiceOrderPDF = async (
 
     yPos -= 25;
 
-    // ✅ DESENHAR ITENS DAS PEÇAS
-    let partsTotal = 0;
-
+    // ✅ DESENHAR ITENS DAS PEÇAS (SEM PREÇOS)
     for (let idx = 0; idx < enrichedParts.length; idx++) {
       const part = enrichedParts[idx];
-      const price = part.price || 0;
-      const subtotal = part.quantity * price;
-      const hasPrice = price > 0;
-      partsTotal += subtotal;
 
       // Verificar espaço para o item
       const itemHeight = 40;
@@ -794,13 +782,8 @@ const generateServiceOrderPDF = async (
         yPos -= 25;
       }
 
-      // ✅ CORES INTERCALADAS (cinzento/branco para com preço)
-      let bgColor;
-      if (hasPrice) {
-        bgColor = idx % 2 === 0 ? rgb(0.9, 0.9, 0.9) : rgb(1, 1, 1);
-      } else {
-        bgColor = idx % 2 === 0 ? rgb(1, 0.95, 0.8) : rgb(1, 1, 1);
-      }
+      // ✅ CORES INTERCALADAS (simples: cinzento/branco)
+      const bgColor = idx % 2 === 0 ? rgb(0.9, 0.9, 0.9) : rgb(1, 1, 1);
 
       // ✅ QUEBRAR NOME DA PEÇA SE FOR MUITO LONGO
       const nameLines = wrapText(
@@ -899,82 +882,63 @@ const generateServiceOrderPDF = async (
           y: yPos - 12 - lineIndex * 10,
           size: fontSize,
           font: font,
-          color: hasPrice ? rgb(0, 0, 0) : rgb(0.8, 0.4, 0),
+          color: rgb(0, 0, 0),
         });
       });
 
       xPos += columnWidths[1];
 
-      // ✅ COLUNAS RESTANTES
-      const remainingValues = [
-        part.code || "N/A",
-        part.quantity.toString(),
-        price > 0 ? formatPrice(price) : "A definir",
-        price > 0 ? formatPrice(subtotal) : "A definir",
-      ];
+      // ✅ COLUNA 3: CÓDIGO
+      currentPage.drawRectangle({
+        x: xPos,
+        y: yPos - actualItemHeight,
+        width: columnWidths[2],
+        height: actualItemHeight,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+        color: bgColor,
+      });
 
-      remainingValues.forEach((value, index) => {
-        currentPage.drawRectangle({
-          x: xPos,
-          y: yPos - actualItemHeight,
-          width: columnWidths[index + 2],
-          height: actualItemHeight,
-          borderColor: rgb(0, 0, 0),
-          borderWidth: 1,
-          color: bgColor,
-        });
+      const codeText = part.code || "N/A";
+      const codeTextWidth = font.widthOfTextAtSize(codeText, fontSize);
 
-        const textWidth = font.widthOfTextAtSize(value, fontSize);
-        const textColor = hasPrice ? rgb(0, 0, 0) : rgb(0.8, 0.4, 0);
+      currentPage.drawText(codeText, {
+        x: xPos + (columnWidths[2] - codeTextWidth) / 2,
+        y: yPos - actualItemHeight / 2 - 4,
+        size: fontSize,
+        font: font,
+        color: rgb(0, 0, 0),
+      });
 
-        currentPage.drawText(value, {
-          x: xPos + (columnWidths[index + 2] - textWidth) / 2,
-          y: yPos - actualItemHeight / 2 - 4,
-          size: fontSize,
-          font: font,
-          color: textColor,
-        });
+      xPos += columnWidths[2];
 
-        xPos += columnWidths[index + 2];
+      // ✅ COLUNA 4: QUANTIDADE
+      currentPage.drawRectangle({
+        x: xPos,
+        y: yPos - actualItemHeight,
+        width: columnWidths[3],
+        height: actualItemHeight,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+        color: bgColor,
+      });
+
+      const qtyText = part.quantity.toString();
+      const qtyTextWidth = font.widthOfTextAtSize(qtyText, fontSize);
+
+      currentPage.drawText(qtyText, {
+        x: xPos + (columnWidths[3] - qtyTextWidth) / 2,
+        y: yPos - actualItemHeight / 2 - 4,
+        size: fontSize,
+        font: font,
+        color: rgb(0, 0, 0),
       });
 
       yPos -= actualItemHeight;
     }
 
-    // ✅ TOTAL DO ORÇAMENTO DE PEÇAS (só mostra se > 0)
-    if (partsTotal > 0) {
-      yPos -= 15;
-
-      const totalWidth = 160;
-      const totalX = pageWidth - margin - totalWidth;
-
-      currentPage.drawRectangle({
-        x: totalX,
-        y: yPos - 25,
-        width: totalWidth,
-        height: 25,
-        borderColor: rgb(0, 0, 0),
-        borderWidth: 1,
-        color: rgb(0.9, 0.9, 0.9),
-      });
-
-      currentPage.drawText("TOTAL PEÇAS:", {
-        x: totalX + 10,
-        y: yPos - 15,
-        size: fontSize,
-        font: boldFont,
-      });
-
-      currentPage.drawText(formatPrice(partsTotal), {
-        x: totalX + totalWidth - 70,
-        y: yPos - 15,
-        size: fontSize,
-        font: boldFont,
-        color: rgb(0, 0, 0),
-      });
-
-      yPos -= 35;
-    }
+    // ✅ NÃO MOSTRAR TOTAL (removido)
+    yPos -= 20; // Apenas espaço extra no final
 
     return yPos;
   };

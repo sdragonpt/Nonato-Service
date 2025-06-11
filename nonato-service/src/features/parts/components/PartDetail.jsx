@@ -201,7 +201,7 @@ const PartDetail = () => {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/app/parts-library")}
             className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
           >
             <ArrowLeft className="h-4 w-4 text-white" />
@@ -277,33 +277,53 @@ const PartDetail = () => {
                   </span>
                 )}
               </p>
-
-              {category && (
-                <div className="flex items-center gap-1 mt-2">
-                  <Badge
-                    variant="outline"
-                    className="text-zinc-400 border-zinc-600"
-                  >
-                    {category.name}
-                  </Badge>
-                  {subcategory && (
-                    <>
-                      <span className="text-zinc-500">&gt;</span>
-                      <Badge
-                        variant="outline"
-                        className="text-zinc-400 border-zinc-600"
-                      >
-                        {subcategory.name}
-                      </Badge>
-                    </>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </CardHeader>
 
         <CardContent className="space-y-4">
+          {/* ✅ SEÇÃO DEDICADA PARA CATEGORIA E SUBCATEGORIA */}
+          {(category || subcategory) && (
+            <div className="bg-zinc-900/50 p-4 rounded-lg">
+              <h4 className="text-sm font-medium text-zinc-400 mb-3">
+                Classificação
+              </h4>
+              <div className="space-y-2">
+                {category && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-zinc-400">Categoria:</span>
+                    <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                      {category.name}
+                    </Badge>
+                  </div>
+                )}
+                {subcategory && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-zinc-400">Subcategoria:</span>
+                    <Badge className="bg-green-500/20 text-green-400 border border-green-500/30">
+                      {subcategory.name}
+                    </Badge>
+                  </div>
+                )}
+                {/* ✅ Caminho completo da categoria */}
+                {category && subcategory && (
+                  <div className="flex items-center gap-2 pt-2 border-t border-zinc-700">
+                    <span className="text-xs text-zinc-500">Caminho:</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-blue-300">
+                        {category.name}
+                      </span>
+                      <span className="text-zinc-500 text-xs">→</span>
+                      <span className="text-xs text-green-300">
+                        {subcategory.name}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {part.description && (
             <div className="bg-zinc-900/50 p-4 rounded-lg">
               <h4 className="text-sm font-medium text-zinc-400 mb-2">

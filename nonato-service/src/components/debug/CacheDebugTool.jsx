@@ -1,4 +1,4 @@
-// CacheDebugTool.jsx - CORRIGIDO: Sem loop de re-render
+// CacheDebugTool.jsx - MELHORADO: Mostra TODAS as leituras do Firestore
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   getCacheStats,
@@ -15,48 +15,93 @@ import {
   TrendingUp,
   Monitor,
   X,
+  Filter,
+  Eye,
+  BarChart3,
+  Zap,
+  Search,
 } from "lucide-react";
 
 const CacheDebugTool = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [stats, setStats] = useState(() => getCacheStats()); // ✅ Lazy initial state
-  const [reads, setReads] = useState([]);
-  const [performance, setPerformance] = useState({
-    totalSaved: 0,
-    avgResponseTime: 0,
-    lastHour: 0,
+  const [stats, setStats] = useState(() => getCacheStats());
+  const [allReads, setAllReads] = useState([]); // ✅ TODAS as leituras
+  const [filteredReads, setFilteredReads] = useState([]);
+  const [selectedCollection, setSelectedCollection] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showCacheHitsOnly, setShowCacheHitsOnly] = useState(false);
+
+  // ✅ NOVO: Estatísticas detalhadas
+  const [detailedStats, setDetailedStats] = useState({
+    totalReads: 0,
+    cacheHits: 0,
+    firestoreReads: 0,
+    readsByCollection: {},
+    readsByType: { getDoc: 0, getDocs: 0, query: 0 },
+    recentActivity: [],
   });
 
-  // ✅ CORREÇÃO: useRef para evitar re-creates
   const statsIntervalRef = useRef(null);
-  const hourlyResetRef = useRef(null);
+  const maxReads = 1000; // ✅ Manter até 1000 leituras na memória
 
-  // ✅ CORREÇÃO: useCallback para estabilizar handler
+  // ✅ MELHORADO: Handler para capturar TODAS as leituras
   const handleFirestoreRead = useCallback((event) => {
     const { count, message, timestamp } = event.detail;
 
-    setReads((prev) => {
-      const newRead = {
-        id: Date.now(),
-        count,
-        message: message.slice(0, 100), // Truncar para evitar problemas
-        timestamp,
-        time: new Date(timestamp).toLocaleTimeString(),
-      };
+    // ✅ Parsear informações da mensagem
+    const isCacheHit = message.includes("Cache hit") || message.includes("⚡");
+    const isQuery = message.includes("QUERY") || message.includes("query");
+    const isGetDoc = message.includes("READ:") || message.includes("getDoc");
 
-      // Manter apenas últimas 20 leituras (reduzido para performance)
-      return [newRead, ...prev.slice(0, 19)];
+    // Extrair collection da mensagem
+    let collection = "unknown";
+    const matches = message.match(/(?:READ:|QUERY:)\s*(\w+)(?:\/|$)/i);
+    if (matches) {
+      collection = matches[1];
+    } else if (message.includes("/")) {
+      const pathMatch = message.match(/(\w+)\/\w+/);
+      if (pathMatch) collection = pathMatch[1];
+    }
+
+    const newRead = {
+      id: Date.now() + Math.random(),
+      count,
+      message: message.slice(0, 200), // ✅ Mais caracteres
+      timestamp,
+      time: new Date(timestamp).toLocaleTimeString(),
+      collection,
+      isCacheHit,
+      type: isQuery ? "query" : isGetDoc ? "getDoc" : "other",
+      source: isCacheHit ? "cache" : "firestore",
+    };
+
+    setAllReads((prev) => {
+      const updated = [newRead, ...prev];
+      // ✅ Manter apenas as últimas N leituras para não sobrecarregar memória
+      return updated.slice(0, maxReads);
     });
 
-    // ✅ CORREÇÃO: Debounce performance updates
-    setPerformance((prev) => ({
+    // ✅ Atualizar estatísticas detalhadas
+    setDetailedStats((prev) => ({
       ...prev,
-      totalSaved: prev.totalSaved + 1,
-      lastHour: prev.lastHour + 1,
+      totalReads: prev.totalReads + 1,
+      cacheHits: isCacheHit ? prev.cacheHits + 1 : prev.cacheHits,
+      firestoreReads: !isCacheHit
+        ? prev.firestoreReads + 1
+        : prev.firestoreReads,
+      readsByCollection: {
+        ...prev.readsByCollection,
+        [collection]: (prev.readsByCollection[collection] || 0) + 1,
+      },
+      readsByType: {
+        ...prev.readsByType,
+        [newRead.type]: prev.readsByType[newRead.type] + 1,
+      },
+      recentActivity: [newRead, ...prev.recentActivity.slice(0, 9)], // Últimas 10
     }));
   }, []);
 
-  // ✅ CORREÇÃO: Event listener sem dependências problemáticas
+  // ✅ Event listener
   useEffect(() => {
     window.addEventListener("firestore-read", handleFirestoreRead);
     return () => {
@@ -64,10 +109,38 @@ const CacheDebugTool = () => {
     };
   }, [handleFirestoreRead]);
 
-  // ✅ CORREÇÃO: Stats update apenas quando modal está aberto
+  // ✅ FILTROS: Aplicar filtros nas leituras
+  useEffect(() => {
+    let filtered = allReads;
+
+    // Filtro por collection
+    if (selectedCollection !== "all") {
+      filtered = filtered.filter(
+        (read) => read.collection === selectedCollection
+      );
+    }
+
+    // Filtro por termo de busca
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (read) =>
+          read.message.toLowerCase().includes(search) ||
+          read.collection.toLowerCase().includes(search)
+      );
+    }
+
+    // Filtro apenas cache hits
+    if (showCacheHitsOnly) {
+      filtered = filtered.filter((read) => read.isCacheHit);
+    }
+
+    setFilteredReads(filtered);
+  }, [allReads, selectedCollection, searchTerm, showCacheHitsOnly]);
+
+  // ✅ Stats update apenas quando modal está aberto
   useEffect(() => {
     if (!isOpen) {
-      // Limpar interval se modal fechado
       if (statsIntervalRef.current) {
         clearInterval(statsIntervalRef.current);
         statsIntervalRef.current = null;
@@ -75,7 +148,6 @@ const CacheDebugTool = () => {
       return;
     }
 
-    // Atualizar stats apenas quando modal aberto
     const updateStats = () => {
       try {
         const newStats = getCacheStats();
@@ -85,11 +157,8 @@ const CacheDebugTool = () => {
       }
     };
 
-    // Update inicial
     updateStats();
-
-    // Interval apenas quando necessário
-    statsIntervalRef.current = setInterval(updateStats, 3000); // Aumentado para 3s
+    statsIntervalRef.current = setInterval(updateStats, 2000);
 
     return () => {
       if (statsIntervalRef.current) {
@@ -97,62 +166,42 @@ const CacheDebugTool = () => {
         statsIntervalRef.current = null;
       }
     };
-  }, [isOpen]); // ✅ Apenas depende de isOpen
+  }, [isOpen]);
 
-  // ✅ CORREÇÃO: Hourly reset com ref
-  useEffect(() => {
-    hourlyResetRef.current = setInterval(() => {
-      setPerformance((prev) => ({
-        ...prev,
-        lastHour: 0,
-      }));
-    }, 60 * 60 * 1000); // 1 hora
+  // ✅ HELPER: Obter collections únicas
+  const getUniqueCollections = useCallback(() => {
+    const collections = new Set(allReads.map((read) => read.collection));
+    return ["all", ...Array.from(collections).sort()];
+  }, [allReads]);
 
-    return () => {
-      if (hourlyResetRef.current) {
-        clearInterval(hourlyResetRef.current);
-      }
-    };
-  }, []); // ✅ Sem dependências, executa uma vez
-
-  // ✅ CORREÇÃO: Memoizar funções helper
-  const formatMemory = useCallback((bytes) => {
-    if (!bytes) return "0 B";
-    const sizes = ["B", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
-  }, []);
-
-  const getHealthStatus = useCallback(() => {
-    const hitRate = parseInt(stats.hitRate) || 0;
-    if (hitRate >= 70)
-      return {
-        status: "excellent",
-        color: "text-green-400",
-        icon: CheckCircle,
-      };
-    if (hitRate >= 50)
-      return { status: "good", color: "text-yellow-400", icon: Clock };
-    return { status: "poor", color: "text-red-400", icon: AlertTriangle };
-  }, [stats.hitRate]); // ✅ Apenas depende de hitRate
-
-  const health = getHealthStatus();
-  const HealthIcon = health.icon;
-
-  // ✅ CORREÇÃO: Handlers estáveis
+  // ✅ HANDLERS
   const handleToggleOpen = useCallback(() => {
     setIsOpen((prev) => !prev);
   }, []);
 
   const handleClearLogs = useCallback(() => {
-    setReads([]);
-    setPerformance({ totalSaved: 0, avgResponseTime: 0, lastHour: 0 });
+    setAllReads([]);
+    setFilteredReads([]);
+    setDetailedStats({
+      totalReads: 0,
+      cacheHits: 0,
+      firestoreReads: 0,
+      readsByCollection: {},
+      readsByType: { getDoc: 0, getDocs: 0, query: 0 },
+      recentActivity: [],
+    });
   }, []);
 
   const handleRestoreConsole = useCallback(() => {
     restoreConsole();
-    setReads([]);
-  }, []);
+    handleClearLogs();
+  }, [handleClearLogs]);
+
+  // ✅ CALCULATORS
+  const hitRate =
+    detailedStats.totalReads > 0
+      ? Math.round((detailedStats.cacheHits / detailedStats.totalReads) * 100)
+      : 0;
 
   if (!isOpen) {
     return (
@@ -160,13 +209,15 @@ const CacheDebugTool = () => {
         <button
           onClick={handleToggleOpen}
           className="bg-purple-600 hover:bg-purple-700 text-white p-3 rounded-full shadow-lg transition-all duration-200 group"
-          title="Cache Debug Tool"
+          title={`Cache Monitor - ${detailedStats.totalReads} reads total`}
         >
           <div className="relative">
             <Database className="w-5 h-5" />
-            {stats.cacheHits > 0 && (
-              <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                {stats.cacheHits}
+            {detailedStats.totalReads > 0 && (
+              <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
+                {detailedStats.totalReads > 99
+                  ? "99+"
+                  : detailedStats.totalReads}
               </div>
             )}
           </div>
@@ -176,12 +227,15 @@ const CacheDebugTool = () => {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 bg-zinc-900 border border-zinc-700 rounded-lg shadow-2xl w-96 max-h-[80vh] overflow-hidden">
+    <div className="fixed bottom-4 right-4 z-50 bg-zinc-900 border border-zinc-700 rounded-lg shadow-2xl w-[500px] max-h-[85vh] overflow-hidden">
       {/* Header */}
       <div className="bg-purple-600 p-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Database className="w-5 h-5 text-white" />
-          <h3 className="text-white font-semibold">Cache Monitor</h3>
+          <h3 className="text-white font-semibold">Firestore Monitor</h3>
+          <span className="text-purple-200 text-sm">
+            ({detailedStats.totalReads} reads)
+          </span>
         </div>
         <button
           onClick={handleToggleOpen}
@@ -192,115 +246,195 @@ const CacheDebugTool = () => {
       </div>
 
       {/* Content */}
-      <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
-        {/* Health Status */}
-        <div className="bg-zinc-800 p-3 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-zinc-400">Cache Health</span>
-            <div className="flex items-center gap-1">
-              <HealthIcon className={`w-4 h-4 ${health.color}`} />
-              <span className={`text-sm font-medium ${health.color}`}>
-                {stats.hitRate}
+      <div className="max-h-[75vh] overflow-y-auto">
+        {/* ✅ OVERVIEW STATS */}
+        <div className="p-4 border-b border-zinc-700">
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="bg-zinc-800 p-3 rounded-lg text-center">
+              <div className="text-2xl font-bold text-green-400">
+                {detailedStats.cacheHits}
+              </div>
+              <div className="text-xs text-zinc-400">Cache Hits</div>
+            </div>
+            <div className="bg-zinc-800 p-3 rounded-lg text-center">
+              <div className="text-2xl font-bold text-red-400">
+                {detailedStats.firestoreReads}
+              </div>
+              <div className="text-xs text-zinc-400">Firestore Reads</div>
+            </div>
+            <div className="bg-zinc-800 p-3 rounded-lg text-center">
+              <div className="text-2xl font-bold text-blue-400">{hitRate}%</div>
+              <div className="text-xs text-zinc-400">Hit Rate</div>
+            </div>
+          </div>
+
+          {/* ✅ READS BY TYPE */}
+          <div className="grid grid-cols-3 gap-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-zinc-400">getDoc:</span>
+              <span className="text-white">
+                {detailedStats.readsByType.getDoc}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-400">getDocs:</span>
+              <span className="text-white">
+                {detailedStats.readsByType.getDocs}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-400">query:</span>
+              <span className="text-white">
+                {detailedStats.readsByType.query}
               </span>
             </div>
           </div>
-          <div className="w-full bg-zinc-700 rounded-full h-2">
-            <div
-              className={`h-2 rounded-full transition-all duration-500 ${
-                health.status === "excellent"
-                  ? "bg-green-500"
-                  : health.status === "good"
-                  ? "bg-yellow-500"
-                  : "bg-red-500"
-              }`}
-              style={{ width: stats.hitRate }}
+        </div>
+
+        {/* ✅ FILTROS */}
+        <div className="p-4 border-b border-zinc-700 space-y-3">
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-zinc-400" />
+            <span className="text-sm font-medium text-white">Filtros</span>
+          </div>
+
+          {/* Collection Filter */}
+          <select
+            value={selectedCollection}
+            onChange={(e) => setSelectedCollection(e.target.value)}
+            className="w-full bg-zinc-800 border border-zinc-600 rounded px-3 py-2 text-white text-sm"
+          >
+            {getUniqueCollections().map((collection) => (
+              <option key={collection} value={collection}>
+                {collection === "all" ? "Todas as Collections" : collection}
+              </option>
+            ))}
+          </select>
+
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar nas mensagens..."
+              className="w-full pl-10 pr-3 py-2 bg-zinc-800 border border-zinc-600 rounded text-white text-sm placeholder-zinc-400"
             />
           </div>
+
+          {/* Cache Hits Only */}
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showCacheHitsOnly}
+              onChange={(e) => setShowCacheHitsOnly(e.target.checked)}
+              className="rounded"
+            />
+            <span className="text-sm text-zinc-300">Apenas Cache Hits</span>
+            <Zap className="w-4 h-4 text-yellow-400" />
+          </label>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-zinc-800 p-3 rounded-lg">
-            <div className="flex items-center gap-2 mb-1">
-              <Activity className="w-4 h-4 text-blue-400" />
-              <span className="text-xs text-zinc-400">Cache Hits</span>
-            </div>
-            <span className="text-xl font-bold text-white">
-              {stats.cacheHits}
-            </span>
-          </div>
-
-          <div className="bg-zinc-800 p-3 rounded-lg">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-green-400" />
-              <span className="text-xs text-zinc-400">Total Reads</span>
-            </div>
-            <span className="text-xl font-bold text-white">
-              {stats.totalReads}
-            </span>
-          </div>
-        </div>
-
-        {/* Collection Stats */}
-        <div className="bg-zinc-800 p-3 rounded-lg">
-          <h4 className="text-sm font-medium text-white mb-2">
-            Collections Cached
+        {/* ✅ READS BY COLLECTION */}
+        <div className="p-4 border-b border-zinc-700">
+          <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Reads por Collection
           </h4>
           <div className="space-y-2 max-h-32 overflow-y-auto">
-            {Object.entries(stats.collections || {}).map(
-              ([collection, data]) => (
+            {Object.entries(detailedStats.readsByCollection)
+              .sort(([, a], [, b]) => b - a)
+              .map(([collection, count]) => (
                 <div
                   key={collection}
                   className="flex justify-between items-center"
                 >
                   <span className="text-sm text-zinc-300">{collection}</span>
-                  <div className="flex gap-2 text-xs">
-                    <span className="text-blue-400">{data.docs || 0}d</span>
-                    <span className="text-green-400">{data.queries || 0}q</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 bg-zinc-700 rounded-full h-2">
+                      <div
+                        className="bg-blue-500 h-2 rounded-full"
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            (count /
+                              Math.max(
+                                ...Object.values(
+                                  detailedStats.readsByCollection
+                                )
+                              )) *
+                              100
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="text-sm text-white font-medium w-8 text-right">
+                      {count}
+                    </span>
                   </div>
                 </div>
-              )
-            )}
+              ))}
           </div>
         </div>
 
-        {/* Performance */}
-        <div className="bg-zinc-800 p-3 rounded-lg">
-          <h4 className="text-sm font-medium text-white mb-2">Performance</h4>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-zinc-400">Reads Saved:</span>
-              <span className="text-green-400">{performance.totalSaved}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-400">Last Hour:</span>
-              <span className="text-blue-400">{performance.lastHour}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-400">Pending:</span>
-              <span className="text-yellow-400">
-                {stats.pendingRequests || 0}
-              </span>
-            </div>
+        {/* ✅ ALL READS LOG */}
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium text-white flex items-center gap-2">
+              <Eye className="w-4 h-4" />
+              Todas as Leituras
+              <span className="text-zinc-400">({filteredReads.length})</span>
+            </h4>
+            <button
+              onClick={handleClearLogs}
+              className="text-zinc-400 hover:text-white transition-colors"
+              title="Limpar logs"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
-        </div>
 
-        {/* Recent Reads */}
-        <div className="bg-zinc-800 p-3 rounded-lg">
-          <h4 className="text-sm font-medium text-white mb-2">Recent Reads</h4>
-          <div className="space-y-1 max-h-32 overflow-y-auto">
-            {reads.slice(0, 5).map((read) => (
-              <div key={read.id} className="text-xs">
-                <div className="flex justify-between items-center">
-                  <span className="text-zinc-400">#{read.count}</span>
+          <div className="space-y-1 max-h-80 overflow-y-auto">
+            {filteredReads.map((read) => (
+              <div
+                key={read.id}
+                className={`text-xs p-2 rounded border-l-2 ${
+                  read.isCacheHit
+                    ? "bg-green-900/20 border-green-500"
+                    : "bg-red-900/20 border-red-500"
+                }`}
+              >
+                <div className="flex justify-between items-center mb-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-zinc-400">#{read.count}</span>
+                    <span
+                      className={`px-1 rounded text-xs ${
+                        read.isCacheHit
+                          ? "bg-green-600 text-white"
+                          : "bg-red-600 text-white"
+                      }`}
+                    >
+                      {read.source}
+                    </span>
+                    <span className="bg-blue-600 text-white px-1 rounded text-xs">
+                      {read.collection}
+                    </span>
+                    <span className="bg-purple-600 text-white px-1 rounded text-xs">
+                      {read.type}
+                    </span>
+                  </div>
                   <span className="text-zinc-500">{read.time}</span>
                 </div>
-                <div className="text-zinc-300 truncate">{read.message}</div>
+                <div className="text-zinc-300 break-all">{read.message}</div>
               </div>
             ))}
-            {reads.length === 0 && (
-              <div className="text-xs text-zinc-500 text-center py-2">
-                Nenhuma leitura recente
+
+            {filteredReads.length === 0 && (
+              <div className="text-xs text-zinc-500 text-center py-4">
+                {allReads.length === 0
+                  ? "Nenhuma leitura registrada ainda"
+                  : "Nenhuma leitura encontrada com os filtros aplicados"}
               </div>
             )}
           </div>
@@ -308,7 +442,7 @@ const CacheDebugTool = () => {
 
         {/* Emergency Actions */}
         {process.env.NODE_ENV === "development" && (
-          <div className="bg-red-900/20 border border-red-700 p-3 rounded-lg">
+          <div className="p-4 border-t border-zinc-700 bg-red-900/20">
             <h4 className="text-sm font-medium text-red-400 mb-2">
               Emergency Actions
             </h4>
@@ -326,7 +460,7 @@ const CacheDebugTool = () => {
                 className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white text-xs py-2 px-3 rounded transition-colors"
               >
                 <Trash2 className="w-3 h-3 inline mr-1" />
-                Clear Logs
+                Clear All
               </button>
             </div>
           </div>
@@ -336,10 +470,10 @@ const CacheDebugTool = () => {
       {/* Footer */}
       <div className="bg-zinc-800 p-2 border-t border-zinc-700">
         <div className="flex justify-between items-center text-xs text-zinc-400">
-          <span>Universal Cache v2.1</span>
-          <div className="flex items-center gap-1">
+          <span>Firestore Monitor v3.0</span>
+          <div className="flex items-center gap-2">
             <Monitor className="w-3 h-3" />
-            <span>Stable</span>
+            <span>{detailedStats.totalReads} total reads tracked</span>
           </div>
         </div>
       </div>

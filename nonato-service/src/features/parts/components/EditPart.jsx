@@ -151,6 +151,23 @@ const EditPart = () => {
     }
   };
 
+  // ✅ NOVO: Função de navegação mais robusta para computadores antigos
+  const handleGoBack = () => {
+    try {
+      // Tentar usar navigate primeiro
+      navigate(-1);
+    } catch (error) {
+      console.warn("Erro no navigate, redirecionando para biblioteca:", error);
+      // Fallback: ir direto para a biblioteca de peças
+      window.location.href = "/app/parts-library";
+    }
+  };
+
+  // ✅ NOVO: Função para ir direto ao detalhe da peça (caso necessário)
+  const handleGoToPartDetail = () => {
+    window.location.href = `/app/part/${partId}`;
+  };
+
   const subcategories =
     formData.categoryId && formData.categoryId !== "none"
       ? getSubcategoriesByParent(formData.categoryId)
@@ -437,13 +454,28 @@ const EditPart = () => {
       }
 
       await updateDoc(partRef, updateData);
-      navigate(-1);
+
+      // ✅ NOVO: Redirecionar para o detalhe da peça para verificar alterações
+      console.log(
+        "✅ Peça atualizada com sucesso, redirecionando para o detalhe..."
+      );
+
+      // ✅ OTIMIZADO: Tentar navigate primeiro (mais rápido)
+      try {
+        navigate(`/app/part/${partId}`);
+      } catch (navError) {
+        console.warn("Fallback para redirecionamento:", navError);
+        // Fallback para computadores antigos
+        setTimeout(() => {
+          window.location.href = `/app/part/${partId}`;
+        }, 500);
+      }
     } catch (err) {
       console.error("Erro ao atualizar peça:", err);
       setError("Erro ao salvar alterações. Por favor, tente novamente.");
-    } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false); // ✅ Só resetar o loading se houver erro
     }
+    // ✅ REMOVIDO: Não resetar isSubmitting aqui para manter o loading durante o refresh
   };
 
   const hasChanges =
@@ -483,14 +515,18 @@ const EditPart = () => {
             Atualize as informações da peça
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
+        <div className="flex gap-2">
+          {/* ✅ Botão principal de voltar */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleGoBack}
+            className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+            title="Voltar"
+          >
+            <ArrowLeft className="h-4 w-4 text-white" />
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -743,7 +779,7 @@ const EditPart = () => {
           {isSubmitting ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Salvando...
+              Salvando e abrindo detalhe da peça...
             </>
           ) : (
             <>
@@ -752,9 +788,20 @@ const EditPart = () => {
             </>
           )}
         </Button>
+
+        {/* ✅ NOVO: Aviso sobre o redirecionamento */}
+        {isSubmitting && (
+          <Alert className="border-blue-500 bg-blue-500/10">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <AlertDescription className="text-blue-400">
+              Salvando alterações... Será redirecionado para o detalhe da peça
+              para verificar as mudanças.
+            </AlertDescription>
+          </Alert>
+        )}
       </form>
 
-      {/* Dialogs mantidos iguais... */}
+      {/* New Category Dialog */}
       <Dialog
         open={newCategoryDialogOpen}
         onOpenChange={setNewCategoryDialogOpen}
@@ -799,6 +846,7 @@ const EditPart = () => {
         </DialogContent>
       </Dialog>
 
+      {/* New Subcategory Dialog */}
       <Dialog
         open={newSubcategoryDialogOpen}
         onOpenChange={setNewSubcategoryDialogOpen}

@@ -1,4 +1,4 @@
-// UniversalFirestoreCache.js - Cache para TODAS as operações do Firestore (CORRIGIDO)
+// UniversalFirestoreCache.js - LIMPO: Cache sem logs chatos
 import { 
   doc, 
   getDoc, 
@@ -11,39 +11,40 @@ import { db } from "../firebase.jsx";
 
 class UniversalFirestoreCache {
   constructor() {
-    this.cache = new Map(); // Cache em memória
-    this.queryCache = new Map(); // Cache para queries
-    this.listeners = new Map(); // Cache para listeners
-    this.pendingRequests = new Map(); // Evita requests duplicados
-    this.readCount = 0; // Contador de leituras
-    this.cacheHits = 0; // Contador de cache hits
-    this.isLogging = false; // ✅ NOVO: Flag para evitar recursão
+    this.cache = new Map();
+    this.queryCache = new Map();
+    this.listeners = new Map();
+    this.pendingRequests = new Map();
+    this.readCount = 0;
+    this.cacheHits = 0;
+    this.isLogging = false;
+    this.debugMode = false; // ✅ Modo debug desativado por padrão
     
     // ✅ CONFIGURAÇÕES DE CACHE - 30 DIAS PARA TUDO
     this.cacheConfig = {
       // Cache longo - 30 dias para dados estáticos
-      users: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true }, // 30 dias
-      categorias: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true }, // 30 dias
-      image_library: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true }, // 30 dias
+      users: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true },
+      categorias: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true },
+      image_library: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true },
       
       // ⭐ FOCO: Cache 30 dias para peças e loja pública
-      pecas: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true }, // 30 dias
-      shop_access_tokens: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true }, // 30 dias
-      orcamentos_online: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true }, // 30 dias
+      pecas: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true },
+      shop_access_tokens: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true },
+      orcamentos_online: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true },
       
-      // Cache 30 dias para outros dados (para implementação futura)
-      services: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true }, // 30 dias
-      clients: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true }, // 30 dias
-      orders: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true }, // 30 dias
-      budgets: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true }, // 30 dias
-      agendamentos: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true }, // 30 dias
+      // Cache 30 dias para outros dados
+      services: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true },
+      clients: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true },
+      orders: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true },
+      budgets: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true },
+      agendamentos: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true },
       
-      // Sem cache apenas para dados críticos em tempo real
+      // Sem cache para dados críticos em tempo real
       notifications: { ttl: 0, persistent: false },
       logs: { ttl: 0, persistent: false },
       
       // Cache padrão - 30 dias
-      default: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true } // 30 dias
+      default: { ttl: 30 * 24 * 60 * 60 * 1000, persistent: true }
     };
 
     this.loadPersistentCache();
@@ -51,13 +52,28 @@ class UniversalFirestoreCache {
     this.setupInterception();
   }
 
-  // 🔗 Interceptar todas as funções do Firestore (CORRIGIDO)
+  // ✅ MODO DEBUG: Ativar/desativar logs
+  setDebugMode(enabled) {
+    this.debugMode = enabled;
+    if (enabled) {
+      console.log('🔧 UniversalCache: Debug mode ATIVADO');
+    }
+  }
+
+  // ✅ LOG CONDICIONAL: Só loga se debug mode estiver ativo
+  debugLog(message, ...args) {
+    if (this.debugMode && !this.isLogging) {
+      this.isLogging = true;
+      console.log(`🔧 [UniversalCache] ${message}`, ...args);
+      this.isLogging = false;
+    }
+  }
+
+  // 🔗 Interceptar console.log para monitorar reads
   setupInterception() {
-    // ✅ CORREÇÃO: Salvar referência original ANTES de interceptar
     this.originalLog = console.log;
     
     console.log = (...args) => {
-      // ✅ CORREÇÃO: Evitar recursão infinita
       if (this.isLogging) {
         this.originalLog.apply(console, args);
         return;
@@ -74,24 +90,19 @@ class UniversalFirestoreCache {
     };
   }
 
-  // 📝 Log detalhado de leituras (CORRIGIDO)
+  // 📝 Log de reads para o debug tool
   logRead(message) {
-    // ✅ CORREÇÃO: Usar flag para evitar recursão
     this.isLogging = true;
     
     const timestamp = new Date().toISOString();
     
-    // ✅ CORREÇÃO: Usar originalLog diretamente
-    this.originalLog(`📊 [${timestamp}] FIRESTORE READ #${this.readCount}: ${message}`);
-    
-    // Emitir evento para debug tool
+    // ✅ LIMPO: Não loga no console, apenas emite evento para o debug tool
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('firestore-read', {
         detail: { count: this.readCount, message, timestamp }
       }));
     }
     
-    // ✅ CORREÇÃO: Resetar flag
     this.isLogging = false;
   }
 
@@ -116,7 +127,7 @@ class UniversalFirestoreCache {
     if (!cacheEntry) return false;
     
     const config = this.getCacheConfig(collection);
-    if (config.ttl === 0) return false; // Sem cache
+    if (config.ttl === 0) return false;
     
     const now = Date.now();
     return (now - cacheEntry.timestamp) < config.ttl;
@@ -138,20 +149,17 @@ class UniversalFirestoreCache {
           }
         });
         
-        // ✅ CORREÇÃO: Usar originalLog ou flag para evitar interceptação
-        this.isLogging = true;
-        console.log(`🗄️ Cache persistente carregado: ${this.cache.size} entradas`);
-        this.isLogging = false;
+        // ✅ LIMPO: Só loga se debug mode ativo
+        this.debugLog(`Cache persistente carregado: ${this.cache.size} entradas`);
       }
     } catch (error) {
-      this.isLogging = true;
+      // ✅ LIMPO: Erro sempre é mostrado (importante)
       console.warn('⚠️ Erro ao carregar cache persistente:', error);
-      this.isLogging = false;
       localStorage.removeItem('universal_firestore_cache');
     }
   }
 
-  // 💾 Salvar cache persistente
+  // 💾 Salvar cache persistente (silencioso)
   savePersistentCache() {
     try {
       const persistentData = {};
@@ -167,22 +175,20 @@ class UniversalFirestoreCache {
       
       localStorage.setItem('universal_firestore_cache', JSON.stringify(persistentData));
     } catch (error) {
-      this.isLogging = true;
+      // ✅ LIMPO: Erro importante sempre é mostrado
       console.warn('⚠️ Erro ao salvar cache persistente:', error);
-      this.isLogging = false;
     }
   }
 
-  // 🧹 Limpeza automática
+  // 🧹 Limpeza automática (silenciosa)
   startCleanup() {
     setInterval(() => {
       this.cleanup();
-    }, 5 * 60 * 1000); // A cada 5 minutos
+    }, 5 * 60 * 1000);
   }
 
   cleanup() {
     let removed = 0;
-    const now = Date.now();
     
     for (const [key, data] of this.cache.entries()) {
       const collection = key.split('/')[0];
@@ -193,14 +199,12 @@ class UniversalFirestoreCache {
     }
     
     if (removed > 0) {
-      this.isLogging = true;
-      console.log(`🧹 Cache cleanup: ${removed} entradas removidas`);
-      this.isLogging = false;
+      this.debugLog(`Cache cleanup: ${removed} entradas removidas`);
       this.savePersistentCache();
     }
   }
 
-  // 📄 Cache para documento único (getDoc)
+  // 📄 Cache para documento único
   async cachedGetDoc(collectionName, documentId) {
     const cacheKey = this.getCacheKey(collectionName, documentId);
     
@@ -208,9 +212,7 @@ class UniversalFirestoreCache {
     const cached = this.cache.get(cacheKey);
     if (this.isCacheValid(cached, collectionName)) {
       this.cacheHits++;
-      this.isLogging = true;
-      console.log(`⚡ Cache hit: ${cacheKey}`);
-      this.isLogging = false;
+      this.debugLog(`Cache hit: ${cacheKey}`);
       return {
         exists: () => !!cached.data,
         data: () => cached.data,
@@ -221,9 +223,7 @@ class UniversalFirestoreCache {
 
     // Evitar requests duplicados
     if (this.pendingRequests.has(cacheKey)) {
-      this.isLogging = true;
-      console.log(`⏳ Aguardando request pendente: ${cacheKey}`);
-      this.isLogging = false;
+      this.debugLog(`Aguardando request pendente: ${cacheKey}`);
       return await this.pendingRequests.get(cacheKey);
     }
 
@@ -242,7 +242,7 @@ class UniversalFirestoreCache {
   // 🔥 Buscar documento do Firestore
   async fetchDocument(collectionName, documentId, cacheKey) {
     try {
-      // ✅ CORREÇÃO: Este log VAI ser interceptado, mas não causa recursão
+      // ✅ LIMPO: Log para debug tool (será interceptado silenciosamente)
       console.log(`🔥 UNIVERSAL CACHE READ: ${collectionName}/${documentId}`);
       
       const docRef = doc(db, collectionName, documentId);
@@ -257,15 +257,13 @@ class UniversalFirestoreCache {
       
       this.cache.set(cacheKey, cacheData);
       
-      // Salvar persistente se necessário
+      // Salvar persistente se necessário (silencioso)
       const config = this.getCacheConfig(collectionName);
       if (config.persistent) {
         setTimeout(() => this.savePersistentCache(), 100);
       }
       
-      this.isLogging = true;
-      console.log(`📥 Documento cached: ${cacheKey}`);
-      this.isLogging = false;
+      this.debugLog(`Documento cached: ${cacheKey}`);
       
       return {
         exists: () => docSnap.exists(),
@@ -275,14 +273,13 @@ class UniversalFirestoreCache {
       };
       
     } catch (error) {
-      this.isLogging = true;
+      // ✅ LIMPO: Erro importante sempre é mostrado
       console.error(`❌ Erro ao buscar ${collectionName}/${documentId}:`, error);
-      this.isLogging = false;
       throw error;
     }
   }
 
-  // 📋 Cache para queries (getDocs) - CORRIGIDO
+  // 📋 Cache para queries
   async cachedGetDocs(collectionName, queryConstraints = []) {
     const queryParams = this.serializeQuery(queryConstraints);
     const cacheKey = this.getCacheKey(collectionName, null, queryParams);
@@ -291,9 +288,7 @@ class UniversalFirestoreCache {
     const cached = this.queryCache.get(cacheKey);
     if (this.isCacheValid(cached, collectionName)) {
       this.cacheHits++;
-      this.isLogging = true;
-      console.log(`⚡ Query cache hit: ${cacheKey}`);
-      this.isLogging = false;
+      this.debugLog(`Query cache hit: ${cacheKey}`);
       return {
         docs: cached.docs.map(doc => ({
           id: doc.id,
@@ -307,9 +302,7 @@ class UniversalFirestoreCache {
 
     // Evitar requests duplicados
     if (this.pendingRequests.has(cacheKey)) {
-      this.isLogging = true;
-      console.log(`⏳ Aguardando query pendente: ${cacheKey}`);
-      this.isLogging = false;
+      this.debugLog(`Aguardando query pendente: ${cacheKey}`);
       return await this.pendingRequests.get(cacheKey);
     }
 
@@ -328,18 +321,17 @@ class UniversalFirestoreCache {
   // 🔥 Executar query no Firestore
   async fetchQuery(collectionName, queryConstraints, cacheKey) {
     try {
+      // ✅ LIMPO: Log para debug tool
       console.log(`🔥 UNIVERSAL CACHE QUERY: ${collectionName} (${queryConstraints.length} constraints)`);
       
       let q = collection(db, collectionName);
       
-      // Aplicar constraints
       if (queryConstraints.length > 0) {
         q = query(q, ...queryConstraints);
       }
       
       const querySnapshot = await getDocs(q);
       
-      // Processar resultados
       const docs = querySnapshot.docs.map(doc => ({
         id: doc.id,
         data: doc.data()
@@ -354,9 +346,7 @@ class UniversalFirestoreCache {
       
       this.queryCache.set(cacheKey, cacheData);
       
-      this.isLogging = true;
-      console.log(`📥 Query cached: ${cacheKey} (${docs.length} docs)`);
-      this.isLogging = false;
+      this.debugLog(`Query cached: ${cacheKey} (${docs.length} docs)`);
       
       return {
         docs: querySnapshot.docs,
@@ -365,9 +355,7 @@ class UniversalFirestoreCache {
       };
       
     } catch (error) {
-      this.isLogging = true;
       console.error(`❌ Erro na query ${collectionName}:`, error);
-      this.isLogging = false;
       throw error;
     }
   }
@@ -406,9 +394,7 @@ class UniversalFirestoreCache {
       }
     }
     
-    this.isLogging = true;
-    console.log(`🗑️ Cache invalidado para ${collectionName}: ${removed} entradas`);
-    this.isLogging = false;
+    this.debugLog(`Cache invalidado para ${collectionName}: ${removed} entradas`);
     this.savePersistentCache();
   }
 
@@ -418,9 +404,7 @@ class UniversalFirestoreCache {
     const removed = this.cache.delete(cacheKey);
     
     if (removed) {
-      this.isLogging = true;
-      console.log(`🗑️ Cache invalidado: ${cacheKey}`);
-      this.isLogging = false;
+      this.debugLog(`Cache invalidado: ${cacheKey}`);
       this.savePersistentCache();
     }
   }
@@ -429,7 +413,6 @@ class UniversalFirestoreCache {
   getStats() {
     const collections = {};
     
-    // Estatísticas por collection
     for (const key of this.cache.keys()) {
       const collection = key.split('/')[0];
       if (!collections[collection]) {
@@ -467,18 +450,14 @@ class UniversalFirestoreCache {
     this.listeners.clear();
     this.pendingRequests.clear();
     localStorage.removeItem('universal_firestore_cache');
-    this.isLogging = true;
     console.log('🧹 Cache universal completamente limpo');
-    this.isLogging = false;
   }
 
-  // ✅ NOVO: Método para restaurar console.log original
+  // ✅ Restaurar console.log original
   restoreOriginalConsole() {
     if (this.originalLog) {
       console.log = this.originalLog;
-      this.isLogging = true;
       console.log('🔧 Console.log original restaurado');
-      this.isLogging = false;
     }
   }
 }
@@ -486,7 +465,13 @@ class UniversalFirestoreCache {
 // 🌟 Instância singleton
 const universalCache = new UniversalFirestoreCache();
 
-// 🔧 Funções wrapper para substituir as originais do Firestore
+// ✅ EXPOSER DEBUG MODE GLOBALMENTE (para desenvolvimento)
+if (typeof window !== 'undefined') {
+  window.enableCacheDebug = () => universalCache.setDebugMode(true);
+  window.disableCacheDebug = () => universalCache.setDebugMode(false);
+}
+
+// 🔧 Funções wrapper
 export const cachedGetDoc = async (collectionName, documentId) => {
   return await universalCache.cachedGetDoc(collectionName, documentId);
 };
@@ -511,9 +496,17 @@ export const clearAllCache = () => {
   universalCache.clearAll();
 };
 
-// ✅ NOVO: Função para emergência - restaurar console original
 export const restoreConsole = () => {
   universalCache.restoreOriginalConsole();
+};
+
+// ✅ NOVO: Enable/disable debug mode
+export const enableDebugMode = () => {
+  universalCache.setDebugMode(true);
+};
+
+export const disableDebugMode = () => {
+  universalCache.setDebugMode(false);
 };
 
 export default universalCache;
