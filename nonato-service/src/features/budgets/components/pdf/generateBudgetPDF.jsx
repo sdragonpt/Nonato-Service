@@ -165,15 +165,6 @@ const generateBudgetPDF = async (
   y -= orderBoxHeight + 20;
   writeText(`Cliente: ${client.name}`, { useFont: boldFont });
 
-  // Informações básicas
-  // y -= 40;
-  // drawRect(initialX, y - 30, pageWidth, 30, rgb(0.95, 0.95, 0.95));
-  // writeText("Informações básicas", {
-  //   y: y - 20,
-  //   useFont: boldFont,
-  //   size: headerSize,
-  // });
-
   // Serviços
   y -= 14;
   drawRect(initialX, y - 30, pageWidth, 30, rgb(0.95, 0.95, 0.95));
@@ -280,8 +271,10 @@ const generateBudgetPDF = async (
   y -= 10;
   const totalsData = calculateTotalsWithIVA(
     selectedServices,
-    order.ivaRate || 0
+    order.ivaRate || 23
   );
+
+  // Sempre mostrar subtotal
   drawRect(295, y - 10, 250, 30, rgb(0.95, 0.95, 0.95));
   writeText("Subtotal", {
     x: 300,
@@ -297,8 +290,8 @@ const generateBudgetPDF = async (
     useFont: boldFont,
   });
 
-  // Add IVA if rate is greater than 0
-  if (order.ivaRate > 0 && order.showIVA) {
+  // Mostrar IVA apenas se showIVA for true e a taxa for maior que 0
+  if (order.showIVA && order.ivaRate > 0) {
     y -= 40;
     drawRect(295, y - 10, 250, 30, rgb(0.95, 0.95, 0.95));
     writeText(`IVA (${order.ivaRate}%)`, {
@@ -316,7 +309,7 @@ const generateBudgetPDF = async (
     });
   }
 
-  // Add final total
+  // Total final
   y -= 40;
   drawRect(295, y - 10, 250, 30, rgb(0, 0, 0));
   writeText("Total", {
@@ -327,7 +320,9 @@ const generateBudgetPDF = async (
   });
   writeText(
     `${formatEuroNumber(
-      order.showIVA ? totalsData.total : totalsData.subtotal
+      order.showIVA && order.ivaRate > 0
+        ? totalsData.total
+        : totalsData.subtotal
     )} €`,
     {
       x: 40,

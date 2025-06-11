@@ -28,8 +28,6 @@ const generateSimpleBudgetPDF = async (budget) => {
     return columns.reduce((total, col) => total + col.width, 0);
   }
 
-  // Função auxiliar para obter o rótulo da unidade
-
   // Configurações do logo
   const imgWidth = 100;
   const textStartX = margin + imgWidth + 20;
@@ -267,8 +265,10 @@ const generateSimpleBudgetPDF = async (budget) => {
   y -= 10;
   const totalsData = calculateTotalsWithIVA(
     budget.services,
-    budget.ivaRate || 0
+    budget.ivaRate || 23
   );
+
+  // Sempre mostrar subtotal
   drawRect(295, y - 10, 250, 30, rgb(0.95, 0.95, 0.95));
   writeText("Subtotal", {
     x: 300,
@@ -284,8 +284,8 @@ const generateSimpleBudgetPDF = async (budget) => {
     useFont: boldFont,
   });
 
-  // Add IVA if rate is greater than 0
-  if (budget.ivaRate > 0 && budget.showIVA) {
+  // Mostrar IVA apenas se showIVA for true e a taxa for maior que 0
+  if (budget.showIVA && budget.ivaRate > 0) {
     y -= 40;
     drawRect(295, y - 10, 250, 30, rgb(0.95, 0.95, 0.95));
     writeText(`IVA (${budget.ivaRate}%)`, {
@@ -303,7 +303,7 @@ const generateSimpleBudgetPDF = async (budget) => {
     });
   }
 
-  // Add final total
+  // Total final
   y -= 40;
   drawRect(295, y - 10, 250, 30, rgb(0, 0, 0));
   writeText("Total", {
@@ -314,7 +314,9 @@ const generateSimpleBudgetPDF = async (budget) => {
   });
   writeText(
     `${formatEuroNumber(
-      budget.showIVA ? totalsData.total : totalsData.subtotal
+      budget.showIVA && budget.ivaRate > 0
+        ? totalsData.total
+        : totalsData.subtotal
     )} €`,
     {
       x: 40,
@@ -434,17 +436,6 @@ const generateSimpleBudgetPDF = async (budget) => {
 
   const pdfBytes = await pdfDoc.save();
   return new Blob([pdfBytes], { type: "application/pdf" });
-
-  // Gerar e baixar o PDF
-  // const pdfBytes = await pdfDoc.save();
-  // const blob = new Blob([pdfBytes], { type: "application/pdf" });
-  // const link = document.createElement("a");
-  // link.href = URL.createObjectURL(blob);
-  // link.download = `${budget.isExpense ? "Despesa" : "Orcamento"}_${
-  //   budget.clientData.name
-  // }_${budget.budgetNumber}.pdf`;
-  // link.click();
-  // URL.revokeObjectURL(link.href);
 };
 
 export default generateSimpleBudgetPDF;

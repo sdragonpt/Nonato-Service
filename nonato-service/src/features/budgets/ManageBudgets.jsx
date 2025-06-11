@@ -257,7 +257,7 @@ const ManageBudgets = () => {
     }
   };
 
-  const handleViewPDF = async (budget) => {
+  const handleViewPDF = async (budget, showIVA = false) => {
     try {
       setIsGeneratingPDF(true);
 
@@ -282,8 +282,9 @@ const ManageBudgets = () => {
           name: clientNames[budget.clientId] || "Cliente não encontrado",
         };
 
+        // Passar showIVA e ivaRate para o generateBudgetPDF
         pdfBlob = await generateBudgetPDF(
-          budget,
+          { ...budget, showIVA, ivaRate: budget.ivaRate || 23 },
           clientData,
           formattedServices,
           budget.orderNumber
@@ -318,6 +319,8 @@ const ManageBudgets = () => {
           ),
           createdAt: budget.createdAt || new Date(),
           isExpense: budget.isExpense || false,
+          showIVA, // Adicionar showIVA
+          ivaRate: budget.ivaRate || 23, // Garantir que ivaRate está definido
         };
 
         pdfBlob = await generateSimpleBudgetPDF(formattedBudget);
@@ -336,10 +339,10 @@ const ManageBudgets = () => {
           const fileName = isRegularBudget
             ? `Fechamento_${clientNames[budget.clientId]}_${
                 budget.orderNumber
-              }.pdf`
+              }${showIVA ? "_com_IVA" : "_sem_IVA"}.pdf`
             : `${budget.isExpense ? "Despesa" : "Orçamento"}_${
                 budget.clientData?.name
-              }_${budget.budgetNumber}.pdf`;
+              }_${budget.budgetNumber}${showIVA ? "_com_IVA" : "_sem_IVA"}.pdf`;
 
           await Filesystem.writeFile({
             path: fileName,
@@ -367,12 +370,12 @@ const ManageBudgets = () => {
         const link = document.createElement("a");
         link.href = url;
         const fileName = isRegularBudget
-          ? `Fechamento_${clientNames[budget.clientId]}_${
-              budget.orderNumber
+          ? `Fechamento_${clientNames[budget.clientId]}_${budget.orderNumber}${
+              showIVA ? "_com_IVA" : "_sem_IVA"
             }.pdf`
           : `${budget.isExpense ? "Despesa" : "Orçamento"}_${
               budget.clientData?.name
-            }_${budget.budgetNumber}.pdf`;
+            }_${budget.budgetNumber}${showIVA ? "_com_IVA" : "_sem_IVA"}.pdf`;
         link.download = fileName;
         document.body.appendChild(link);
         link.click();
