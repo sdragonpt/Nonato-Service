@@ -185,7 +185,6 @@ const ManageOrders = () => {
   // Estados para paginação
   const [currentOpenPage, setCurrentOpenPage] = useState(1);
   const [currentClosedPage, setCurrentClosedPage] = useState(1);
-  const [currentQuotePage, setCurrentQuotePage] = useState(1);
   const itemsPerPage = 5; // Ajuste conforme necessário para cards maiores
 
   const fetchOrders = useCallback(async () => {
@@ -213,7 +212,10 @@ const ManageOrders = () => {
         return acc;
       }, {});
 
-      setOrders(ordersData);
+      // ✅ FILTRAR APENAS ORDENS DE SERVIÇO NORMAIS (sem orçamentos online)
+      const serviceOrders = ordersData.filter((order) => !order.isQuote);
+
+      setOrders(serviceOrders);
       setClients(clientsData);
       setEquipments(equipmentsData);
       setError(null);
@@ -262,14 +264,13 @@ const ManageOrders = () => {
       return dateB - dateA; // Ordem decrescente
     });
 
-  // Filtrar ordens abertas, fechadas e orçamentos
+  // ✅ FILTRAR APENAS ORDENS NORMAIS (sem orçamentos)
   const openOrders = filteredOrders.filter(
-    (order) => order.status !== "Fechado" && !order.isQuote
+    (order) => order.status !== "Fechado"
   );
   const closedOrders = filteredOrders.filter(
-    (order) => order.status === "Fechado" && !order.isQuote
+    (order) => order.status === "Fechado"
   );
-  const quoteOrders = filteredOrders.filter((order) => order.isQuote);
 
   // Calcular paginação para ordens abertas
   const indexOfLastOpenOrder = currentOpenPage * itemsPerPage;
@@ -289,15 +290,6 @@ const ManageOrders = () => {
   );
   const totalClosedPages = Math.ceil(closedOrders.length / itemsPerPage);
 
-  // Calcular paginação para orçamentos
-  const indexOfLastQuoteOrder = currentQuotePage * itemsPerPage;
-  const indexOfFirstQuoteOrder = indexOfLastQuoteOrder - itemsPerPage;
-  const currentQuoteOrders = quoteOrders.slice(
-    indexOfFirstQuoteOrder,
-    indexOfLastQuoteOrder
-  );
-  const totalQuotePages = Math.ceil(quoteOrders.length / itemsPerPage);
-
   // Funções de paginação
   const paginateOpen = (pageNumber) => {
     setCurrentOpenPage(pageNumber);
@@ -309,26 +301,17 @@ const ManageOrders = () => {
     window.scrollTo(0, 0);
   };
 
-  const paginateQuote = (pageNumber) => {
-    setCurrentQuotePage(pageNumber);
-    window.scrollTo(0, 0);
-  };
-
   // Resetar paginação quando o termo de busca mudar
   useEffect(() => {
     setCurrentOpenPage(1);
     setCurrentClosedPage(1);
-    setCurrentQuotePage(1);
   }, [searchTerm]);
 
+  // ✅ STATS ATUALIZADOS (sem orçamentos)
   const stats = {
     total: orders.length,
-    open: orders.filter((order) => order.status !== "Fechado" && !order.isQuote)
-      .length,
-    closed: orders.filter(
-      (order) => order.status === "Fechado" && !order.isQuote
-    ).length,
-    quotes: orders.filter((order) => order.isQuote).length,
+    open: orders.filter((order) => order.status !== "Fechado").length,
+    closed: orders.filter((order) => order.status === "Fechado").length,
   };
 
   if (isLoading) {
@@ -360,8 +343,8 @@ const ManageOrders = () => {
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* ✅ STATS CARDS ATUALIZADOS (removido orçamentos) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-zinc-800 border-zinc-700">
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
@@ -399,30 +382,6 @@ const ManageOrders = () => {
             <CheckCircle2 className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
           </CardContent>
         </Card>
-
-        <Card className="bg-zinc-800 border-zinc-700">
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-zinc-400">Orçamentos</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
-                {stats.quotes}
-              </h3>
-            </div>
-            <svg
-              className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-              />
-            </svg>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Search Card */}
@@ -452,7 +411,7 @@ const ManageOrders = () => {
         </CardContent>
       </Card>
 
-      {/* Orders Sections */}
+      {/* ✅ ORDERS SECTIONS ATUALIZADAS (removida seção de orçamentos) */}
       <div className="space-y-6">
         {/* Open and Closed Orders */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -586,85 +545,6 @@ const ManageOrders = () => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Quotes Section */}
-        <Card className="bg-zinc-800 border-zinc-700">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <svg
-                className="w-5 h-5 text-orange-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                />
-              </svg>
-              Orçamentos Online
-              <Badge className="ml-auto bg-orange-500/10 text-orange-400 hover:bg-orange-500/20">
-                {quoteOrders.length}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {quoteOrders.length > 0 ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {currentQuoteOrders.map((order) => (
-                    <OrderCard
-                      key={order.id}
-                      order={order}
-                      client={clients[order.clientId]}
-                      equipment={equipments[order.equipmentId]}
-                      onDelete={confirmDelete}
-                      onEdit={(id) => navigate(`/app/edit-service-order/${id}`)}
-                      navigate={navigate}
-                    />
-                  ))}
-                </div>
-
-                {/* Controles de paginação para orçamentos */}
-                {totalQuotePages > 1 && (
-                  <div className="flex justify-center items-center gap-2 mt-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => paginateQuote(currentQuotePage - 1)}
-                      disabled={currentQuotePage === 1}
-                      className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50 h-8 w-8 p-0"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-
-                    <span className="text-sm text-zinc-400">
-                      {currentQuotePage} / {totalQuotePages}
-                    </span>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => paginateQuote(currentQuotePage + 1)}
-                      disabled={currentQuotePage === totalQuotePages}
-                      className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50 h-8 w-8 p-0"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Card className="bg-zinc-800 border-zinc-700">
-                <CardContent className="p-6 text-center">
-                  <p className="text-zinc-400">Nenhum orçamento encontrado</p>
-                </CardContent>
-              </Card>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       {/* Delete Confirmation Dialog */}

@@ -1,5 +1,3 @@
-// ✅ EDITORDER.JSX - VERSÃO FOCADA EM ORDENS DE SERVIÇO
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -8,8 +6,6 @@ import {
   updateDoc,
   collection,
   getDocs,
-  query,
-  where,
 } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import {
@@ -20,9 +16,6 @@ import {
   Calendar,
   User,
   Printer,
-  AlertCircle,
-  Clock,
-  Settings,
   UserCheck,
   UserX,
   Package,
@@ -30,6 +23,10 @@ import {
   Plus,
   X,
   ShoppingCart,
+  Euro,
+  Mail,
+  Phone,
+  Building2,
 } from "lucide-react";
 
 // UI Components
@@ -50,7 +47,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
-import { Checkbox } from "@/components/ui/checkbox.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import {
   Tabs,
@@ -59,8 +55,8 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs.jsx";
 
-const EditOrder = () => {
-  const { orderId } = useParams();
+const EditPartBudget = () => {
+  const { quoteId } = useParams();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -68,12 +64,11 @@ const EditOrder = () => {
     clientId: "",
     equipmentId: "",
     serviceType: "",
-    priority: "normal",
-    description: "",
     status: "",
+    description: "",
     resultDescription: "",
     pontosEmAberto: "",
-    // ✅ CAMPOS PARA CLIENTE NÃO REGISTRADO
+    // Campos para cliente não registrado
     isUnregisteredClient: false,
     unregisteredClient: {
       name: "",
@@ -86,20 +81,16 @@ const EditOrder = () => {
       model: "",
       serialNumber: "",
     },
-    // ✅ NOVO: Lista de peças do orçamento de peças
+    // Lista de peças do orçamento
     partsQuoteItems: [],
+    // Configurações de envio e IVA
+    shippingType: "",
+    shippingPrice: 0,
+    includeVat: false,
+    vatRate: 23,
   });
 
-  const [checklist, setChecklist] = useState({
-    concluido: false,
-    retorno: false,
-    funcionarios: false,
-    documentacao: false,
-    producao: false,
-    pecas: false,
-  });
-
-  // ✅ NOVOS ESTADOS PARA ORÇAMENTO DE PEÇAS
+  // Estados para pesquisa de peças
   const [partSearchTerm, setPartSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -111,11 +102,10 @@ const EditOrder = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  const [, setTouched] = useState({});
   const [originalData, setOriginalData] = useState(null);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
 
-  // ✅ FUNÇÃO PARA PESQUISAR PEÇAS POR CÓDIGO
+  // Função para pesquisar peças por código
   const searchPartsByCode = async (searchTerm) => {
     if (!searchTerm.trim()) {
       setSearchResults([]);
@@ -126,7 +116,6 @@ const EditOrder = () => {
       setIsSearching(true);
       setSearchError("");
 
-      // Buscar peças que contenham o termo de busca no código ou nome
       const partsSnapshot = await getDocs(collection(db, "pecas"));
 
       const results = partsSnapshot.docs
@@ -136,7 +125,7 @@ const EditOrder = () => {
             part.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             part.name?.toLowerCase().includes(searchTerm.toLowerCase())
         )
-        .slice(0, 10); // Limitar a 10 resultados
+        .slice(0, 10);
 
       setSearchResults(results);
 
@@ -151,26 +140,23 @@ const EditOrder = () => {
     }
   };
 
-  // ✅ FUNÇÃO PARA ADICIONAR PEÇA AO ORÇAMENTO
+  // Função para adicionar peça ao orçamento
   const addPartToQuote = (part) => {
-    // Verificar se a peça já existe na lista
     const existingIndex = formData.partsQuoteItems.findIndex(
       (item) => item.id === part.id
     );
 
     if (existingIndex >= 0) {
-      // Se já existe, incrementar quantidade
       const updatedItems = [...formData.partsQuoteItems];
       updatedItems[existingIndex].quantity += 1;
       setFormData((prev) => ({ ...prev, partsQuoteItems: updatedItems }));
     } else {
-      // Se não existe, adicionar novo item
       const newItem = {
         id: part.id,
         name: part.name,
         code: part.code,
         quantity: 1,
-        price: 0, // Preço inicial 0
+        price: 0,
         imageHash: part.imageHash || null,
         image: part.image || null,
       };
@@ -181,12 +167,11 @@ const EditOrder = () => {
       }));
     }
 
-    // Limpar pesquisa
     setPartSearchTerm("");
     setSearchResults([]);
   };
 
-  // ✅ FUNÇÃO PARA REMOVER PEÇA DO ORÇAMENTO
+  // Função para remover peça do orçamento
   const removePartFromQuote = (partId) => {
     setFormData((prev) => ({
       ...prev,
@@ -196,7 +181,7 @@ const EditOrder = () => {
     }));
   };
 
-  // ✅ FUNÇÃO PARA ATUALIZAR QUANTIDADE
+  // Função para atualizar quantidade
   const updatePartQuantity = (partId, quantity) => {
     const newQuantity = Math.max(1, parseInt(quantity) || 1);
     setFormData((prev) => ({
@@ -207,7 +192,7 @@ const EditOrder = () => {
     }));
   };
 
-  // ✅ FUNÇÃO PARA ATUALIZAR PREÇO
+  // Função para atualizar preço
   const updatePartPrice = (partId, price) => {
     const newPrice = Math.max(0, parseFloat(price) || 0);
     setFormData((prev) => ({
@@ -218,14 +203,27 @@ const EditOrder = () => {
     }));
   };
 
-  // ✅ CALCULAR TOTAL DO ORÇAMENTO DE PEÇAS
-  const calculatePartsQuoteTotal = () => {
+  // Calcular total do orçamento
+  const calculateSubtotal = () => {
     return formData.partsQuoteItems.reduce((total, item) => {
-      return total + item.quantity * item.price;
+      return total + item.quantity * (item.price || 0);
     }, 0);
   };
 
-  // ✅ BUSCAR INFORMAÇÕES DO EQUIPAMENTO SELECIONADO
+  const calculateTotal = () => {
+    const subtotal = calculateSubtotal();
+    const shipping = parseFloat(formData.shippingPrice) || 0;
+    const totalBeforeVat = subtotal + shipping;
+
+    if (formData.includeVat) {
+      const vatAmount = (totalBeforeVat * formData.vatRate) / 100;
+      return totalBeforeVat + vatAmount;
+    }
+
+    return totalBeforeVat;
+  };
+
+  // Buscar informações do equipamento selecionado
   useEffect(() => {
     if (
       formData.equipmentId &&
@@ -245,61 +243,56 @@ const EditOrder = () => {
         setIsLoading(true);
         setError(null);
 
-        // Fetch order, clients, and equipments in parallel
-        const [orderSnapshot, clientsSnapshot, equipmentsSnapshot] =
+        const [quoteSnapshot, clientsSnapshot, equipmentsSnapshot] =
           await Promise.all([
-            getDoc(doc(db, "ordens", orderId)),
+            getDoc(doc(db, "ordens", quoteId)),
             getDocs(collection(db, "clientes")),
             getDocs(collection(db, "equipamentos")),
           ]);
 
-        if (!orderSnapshot.exists()) {
-          setError("Ordem de serviço não encontrada");
+        if (!quoteSnapshot.exists()) {
+          setError("Orçamento de peças não encontrado");
           return;
         }
 
-        const orderData = orderSnapshot.data();
-        setOriginalData(orderData);
+        const quoteData = quoteSnapshot.data();
+
+        // Verificar se é realmente um orçamento
+        if (!quoteData.isQuote) {
+          setError("Este documento não é um orçamento de peças");
+          return;
+        }
+
+        setOriginalData(quoteData);
 
         // Set form data
         setFormData({
-          date: orderData.date || "",
-          clientId: orderData.clientId || "",
-          equipmentId: orderData.equipmentId || "",
-          serviceType: orderData.serviceType || "",
-          priority: orderData.priority || "normal",
-          description: orderData.description || "",
-          status: orderData.status || "Aberto",
-          resultDescription: orderData.resultDescription || "",
-          pontosEmAberto: orderData.pontosEmAberto || "",
-          // ✅ CARREGAR DADOS DE CLIENTE NÃO REGISTRADO
-          isUnregisteredClient: orderData.isUnregisteredClient || false,
-          unregisteredClient: orderData.unregisteredClient || {
+          date: quoteData.date || "",
+          clientId: quoteData.clientId || "",
+          equipmentId: quoteData.equipmentId || "",
+          serviceType: quoteData.serviceType || "",
+          status: quoteData.status || "Aberto",
+          description: quoteData.description || "",
+          resultDescription: quoteData.resultDescription || "",
+          pontosEmAberto: quoteData.pontosEmAberto || "",
+          isUnregisteredClient: quoteData.isUnregisteredClient || false,
+          unregisteredClient: quoteData.unregisteredClient || {
             name: "",
             email: "",
             phone: "",
             company: "",
           },
-          manualEquipment: orderData.manualEquipment || {
+          manualEquipment: quoteData.manualEquipment || {
             brand: "",
             model: "",
             serialNumber: "",
           },
-          // ✅ CARREGAR PEÇAS DO ORÇAMENTO DE PEÇAS
-          partsQuoteItems: orderData.partsQuoteItems || [],
+          partsQuoteItems: quoteData.partsQuoteItems || quoteData.items || [],
+          shippingType: quoteData.shippingType || "",
+          shippingPrice: quoteData.shippingPrice || 0,
+          includeVat: quoteData.includeVat || false,
+          vatRate: quoteData.vatRate || 23,
         });
-
-        // Set checklist
-        setChecklist(
-          orderData.checklist || {
-            concluido: false,
-            retorno: false,
-            funcionarios: false,
-            documentacao: false,
-            producao: false,
-            pecas: false,
-          }
-        );
 
         // Process clients and equipments
         const clientsData = clientsSnapshot.docs.map((doc) => ({
@@ -315,9 +308,9 @@ const EditOrder = () => {
         setEquipments(equipmentsData);
 
         // Filter equipments for selected client
-        if (orderData.clientId && !orderData.isUnregisteredClient) {
+        if (quoteData.clientId && !quoteData.isUnregisteredClient) {
           const filtered = equipmentsData.filter(
-            (equipment) => equipment.clientId === orderData.clientId
+            (equipment) => equipment.clientId === quoteData.clientId
           );
           setFilteredEquipments(filtered);
         }
@@ -330,9 +323,9 @@ const EditOrder = () => {
     };
 
     fetchData();
-  }, [orderId]);
+  }, [quoteId]);
 
-  // ✅ DEBOUNCE PARA PESQUISA DE PEÇAS
+  // Debounce para pesquisa de peças
   useEffect(() => {
     const timer = setTimeout(() => {
       if (partSearchTerm.trim()) {
@@ -365,7 +358,7 @@ const EditOrder = () => {
     }
   };
 
-  // ✅ HANDLER PARA DADOS DE CLIENTE NÃO REGISTRADO
+  // Handler para dados de cliente não registrado
   const handleUnregisteredClientChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -376,7 +369,7 @@ const EditOrder = () => {
     }));
   };
 
-  // ✅ HANDLER PARA DADOS DE EQUIPAMENTO MANUAL
+  // Handler para dados de equipamento manual
   const handleManualEquipmentChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -387,12 +380,11 @@ const EditOrder = () => {
     }));
   };
 
-  // ✅ TOGGLE ENTRE CLIENTE REGISTRADO E NÃO REGISTRADO
+  // Toggle entre cliente registrado e não registrado
   const handleClientTypeToggle = (isUnregistered) => {
     setFormData((prev) => ({
       ...prev,
       isUnregisteredClient: isUnregistered,
-      // Limpar campos quando muda de tipo
       ...(isUnregistered
         ? {
             clientId: "",
@@ -418,20 +410,6 @@ const EditOrder = () => {
     }
   };
 
-  const handleBlur = (field) => {
-    setTouched((prev) => ({
-      ...prev,
-      [field]: true,
-    }));
-  };
-
-  const handleChecklistChange = (name, checked) => {
-    setChecklist((prev) => ({
-      ...prev,
-      [name]: checked,
-    }));
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -439,24 +417,26 @@ const EditOrder = () => {
       setIsSubmitting(true);
       setError(null);
 
-      const serviceData = {
+      const quoteData = {
         ...formData,
-        checklist,
         lastUpdated: new Date(),
-        // ✅ INCLUIR PEÇAS DO ORÇAMENTO DE PEÇAS
-        partsQuoteItems: formData.partsQuoteItems,
+        isQuote: true, // Manter flag de orçamento
       };
 
-      await updateDoc(doc(db, "ordens", orderId), serviceData);
-      navigate("/app/manage-orders");
+      await updateDoc(doc(db, "ordens", quoteId), quoteData);
+      navigate("/app/manage-parts-budgets");
     } catch (err) {
-      console.error("Erro ao atualizar serviço:", err);
+      console.error("Erro ao atualizar orçamento:", err);
       setError(
-        "Erro ao atualizar ordem de serviço. Por favor, tente novamente."
+        "Erro ao atualizar orçamento de peças. Por favor, tente novamente."
       );
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const formatPrice = (price) => {
+    return `€ ${parseFloat(price || 0).toFixed(2)}`;
   };
 
   if (isLoading) {
@@ -468,10 +448,7 @@ const EditOrder = () => {
   }
 
   const hasChanges =
-    originalData &&
-    (JSON.stringify(formData) !== JSON.stringify(originalData) ||
-      JSON.stringify(checklist) !==
-        JSON.stringify(originalData.checklist || {}));
+    originalData && JSON.stringify(formData) !== JSON.stringify(originalData);
 
   return (
     <div className="space-y-6">
@@ -479,16 +456,16 @@ const EditOrder = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">
-            Editar Ordem de Serviço
+            Editar Orçamento de Peças
           </h1>
           <p className="text-sm text-zinc-400">
-            Atualize as informações da ordem de serviço
+            Atualize as informações e preços do orçamento de peças
           </p>
         </div>
         <Button
           variant="outline"
           size="icon"
-          onClick={() => navigate(-1)}
+          onClick={() => navigate(`/app/part-budget-detail/${quoteId}`)}
           className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
         >
           <ArrowLeft className="h-4 w-4 text-white" />
@@ -503,7 +480,7 @@ const EditOrder = () => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* ✅ SEÇÃO: CLIENTE E EQUIPAMENTO COM ABAS */}
+        {/* Cliente e Equipamento */}
         <Card className="bg-zinc-800 border-zinc-700">
           <CardHeader>
             <CardTitle className="text-lg text-white">
@@ -537,9 +514,8 @@ const EditOrder = () => {
                 </TabsTrigger>
               </TabsList>
 
-              {/* ✅ ABA CLIENTE REGISTRADO */}
+              {/* Cliente Registrado */}
               <TabsContent value="registered" className="space-y-4">
-                {/* Date Field */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-zinc-400">
                     Data
@@ -557,7 +533,6 @@ const EditOrder = () => {
                   </div>
                 </div>
 
-                {/* Client Selection */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-zinc-400">
                     Cliente
@@ -588,7 +563,6 @@ const EditOrder = () => {
                   </div>
                 </div>
 
-                {/* Equipment Selection */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-zinc-400">
                     Equipamento
@@ -620,14 +594,12 @@ const EditOrder = () => {
                   </div>
                 </div>
 
-                {/* ✅ INFORMAÇÕES DO EQUIPAMENTO SELECIONADO */}
                 {selectedEquipment && (
                   <div className="mt-4 p-4 bg-zinc-700/30 rounded-lg border border-zinc-600/50">
                     <h4 className="text-sm font-medium text-zinc-300 mb-3 flex items-center">
                       <Printer className="h-4 w-4 mr-2 text-blue-400" />
                       Informações do Equipamento
                     </h4>
-
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label className="text-xs text-zinc-400">Marca</label>
@@ -637,7 +609,6 @@ const EditOrder = () => {
                           </span>
                         </div>
                       </div>
-
                       <div>
                         <label className="text-xs text-zinc-400">Modelo</label>
                         <div className="mt-1 p-2 bg-zinc-800 rounded border border-zinc-600">
@@ -646,7 +617,6 @@ const EditOrder = () => {
                           </span>
                         </div>
                       </div>
-
                       <div>
                         <label className="text-xs text-zinc-400">
                           Número de Série
@@ -662,22 +632,8 @@ const EditOrder = () => {
                 )}
               </TabsContent>
 
-              {/* ✅ ABA CLIENTE NÃO REGISTRADO */}
+              {/* Cliente Não Registrado */}
               <TabsContent value="unregistered" className="space-y-4">
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <AlertCircle className="h-4 w-4 text-blue-400" />
-                    <span className="text-sm font-medium text-blue-400">
-                      Modo Cliente Não Registrado
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-400">
-                    Preencha manualmente os dados do cliente e equipamento que
-                    não estão cadastrados no sistema.
-                  </p>
-                </div>
-
-                {/* Data */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-zinc-400">
                     Data
@@ -695,7 +651,6 @@ const EditOrder = () => {
                   </div>
                 </div>
 
-                {/* ✅ DADOS DO CLIENTE NÃO REGISTRADO */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-zinc-400">
@@ -762,7 +717,6 @@ const EditOrder = () => {
                   </div>
                 </div>
 
-                {/* ✅ DADOS DO EQUIPAMENTO MANUAL */}
                 <div className="mt-6">
                   <h4 className="text-sm font-medium text-zinc-300 mb-3 flex items-center">
                     <Printer className="h-4 w-4 mr-2 text-orange-400" />
@@ -824,192 +778,368 @@ const EditOrder = () => {
               </TabsContent>
             </Tabs>
 
-            {/* ✅ CAMPOS COMUNS (FORA DAS ABAS) */}
+            {/* Campos Comuns */}
             <div className="mt-6 space-y-4">
-              {/* Service Type */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-zinc-400">
                   Tipo de Serviço
                 </label>
-                <div className="relative">
-                  <Settings className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <Input
-                    type="text"
-                    name="serviceType"
-                    value={formData.serviceType}
-                    onChange={handleChange}
-                    onBlur={() => handleBlur("serviceType")}
-                    placeholder="Descreva o tipo de serviço"
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white"
-                    required
-                  />
-                </div>
+                <Input
+                  type="text"
+                  name="serviceType"
+                  value={formData.serviceType}
+                  onChange={handleChange}
+                  placeholder="Descreva o tipo de serviço"
+                  className="bg-zinc-900 border-zinc-700 text-white"
+                />
               </div>
 
-              {/* Priority Selection */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">
-                  Prioridade
-                </label>
-                <div className="relative">
-                  <AlertCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <Select
-                    value={formData.priority}
-                    onValueChange={(value) =>
-                      handleChange({ target: { name: "priority", value } })
-                    }
-                  >
-                    <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
-                      <SelectValue placeholder="Selecione a Prioridade" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-zinc-800 border-zinc-700">
-                      <SelectItem
-                        value="low"
-                        className="text-white hover:bg-zinc-700"
-                      >
-                        Baixa
-                      </SelectItem>
-                      <SelectItem
-                        value="normal"
-                        className="text-white hover:bg-zinc-700"
-                      >
-                        Normal
-                      </SelectItem>
-                      <SelectItem
-                        value="high"
-                        className="text-white hover:bg-zinc-700"
-                      >
-                        Alta
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Status Selection */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-zinc-400">
                   Status
                 </label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value) =>
-                      handleChange({ target: { name: "status", value } })
-                    }
-                  >
-                    <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
-                      <SelectValue placeholder="Selecione o Status" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-zinc-800 border-zinc-700">
-                      <SelectItem
-                        value="Aberto"
-                        className="text-white hover:bg-zinc-700"
-                      >
-                        Aberto
-                      </SelectItem>
-                      <SelectItem
-                        value="Em Andamento"
-                        className="text-white hover:bg-zinc-700"
-                      >
-                        Em Andamento
-                      </SelectItem>
-                      <SelectItem
-                        value="Fechado"
-                        className="text-white hover:bg-zinc-700"
-                      >
-                        Fechado
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) =>
+                    handleChange({ target: { name: "status", value } })
+                  }
+                >
+                  <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                    <SelectValue placeholder="Selecione o Status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-800 border-zinc-700">
+                    <SelectItem
+                      value="Aberto"
+                      className="text-white hover:bg-zinc-700"
+                    >
+                      Em Análise
+                    </SelectItem>
+                    <SelectItem
+                      value="Em Andamento"
+                      className="text-white hover:bg-zinc-700"
+                    >
+                      Em Andamento
+                    </SelectItem>
+                    <SelectItem
+                      value="Fechado"
+                      className="text-white hover:bg-zinc-700"
+                    >
+                      Concluído
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Checklist Card */}
+        {/* Orçamento de Peças */}
         <Card className="bg-zinc-800 border-zinc-700">
           <CardHeader>
-            <CardTitle className="text-lg text-white">Checklist</CardTitle>
+            <CardTitle className="text-lg text-white flex items-center">
+              <ShoppingCart className="h-5 w-5 mr-2 text-purple-400" />
+              Peças do Orçamento
+              <Badge className="ml-2 bg-purple-500/20 text-purple-400">
+                {formData.partsQuoteItems.length} item(s)
+              </Badge>
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <label className="flex items-center space-x-3 text-white cursor-pointer group">
-                <Checkbox
-                  name="concluido"
-                  checked={checklist.concluido}
-                  onCheckedChange={(checked) =>
-                    handleChecklistChange("concluido", checked)
-                  }
-                  className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+          <CardContent className="space-y-6">
+            {/* Pesquisa de Peças */}
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Input
+                  type="text"
+                  value={partSearchTerm}
+                  onChange={(e) => setPartSearchTerm(e.target.value)}
+                  placeholder="Pesquisar peças por código ou nome..."
+                  className="pl-10 bg-zinc-900 border-zinc-700 text-white"
                 />
-                <span className="text-sm">Serviço Concluído</span>
-              </label>
+                {isSearching && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4 animate-spin" />
+                )}
+              </div>
 
-              <label className="flex items-center space-x-3 text-white cursor-pointer group">
-                <Checkbox
-                  name="retorno"
-                  checked={checklist.retorno}
-                  onCheckedChange={(checked) =>
-                    handleChecklistChange("retorno", checked)
-                  }
-                  className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                />
-                <span className="text-sm">Retorno Necessário</span>
-              </label>
+              {searchError && (
+                <Alert className="border-amber-500 bg-amber-500/10">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription className="text-amber-400">
+                    {searchError}
+                  </AlertDescription>
+                </Alert>
+              )}
 
-              <label className="flex items-center space-x-3 text-white cursor-pointer group">
-                <Checkbox
-                  name="funcionarios"
-                  checked={checklist.funcionarios}
-                  onCheckedChange={(checked) =>
-                    handleChecklistChange("funcionarios", checked)
-                  }
-                  className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                />
-                <span className="text-sm">Instrução dos Funcionários</span>
-              </label>
-
-              <label className="flex items-center space-x-3 text-white cursor-pointer group">
-                <Checkbox
-                  name="documentacao"
-                  checked={checklist.documentacao}
-                  onCheckedChange={(checked) =>
-                    handleChecklistChange("documentacao", checked)
-                  }
-                  className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                />
-                <span className="text-sm">Entrega da Documentação</span>
-              </label>
-
-              <label className="flex items-center space-x-3 text-white cursor-pointer group">
-                <Checkbox
-                  name="producao"
-                  checked={checklist.producao}
-                  onCheckedChange={(checked) =>
-                    handleChecklistChange("producao", checked)
-                  }
-                  className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                />
-                <span className="text-sm">Liberação para Produção</span>
-              </label>
-
-              <label className="flex items-center space-x-3 text-white cursor-pointer group">
-                <Checkbox
-                  name="pecas"
-                  checked={checklist.pecas}
-                  onCheckedChange={(checked) =>
-                    handleChecklistChange("pecas", checked)
-                  }
-                  className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                />
-                <span className="text-sm">Orçamento de Peças</span>
-              </label>
+              {/* Resultados da pesquisa */}
+              {searchResults.length > 0 && (
+                <div className="border border-zinc-600 rounded-lg max-h-60 overflow-y-auto">
+                  {searchResults.map((part) => (
+                    <div
+                      key={part.id}
+                      className="flex items-center justify-between p-3 border-b border-zinc-700 last:border-b-0 hover:bg-zinc-700/50 cursor-pointer"
+                      onClick={() => addPartToQuote(part)}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-white">
+                            {part.name}
+                          </span>
+                          <Badge className="bg-blue-500/20 text-blue-400 text-xs">
+                            {part.code}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-zinc-400 mt-1">
+                          {part.description || "Sem descrição"}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-green-600 text-green-400 hover:bg-green-500/20"
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Adicionar
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div className="mt-6">
+            {/* Lista de Peças Adicionadas */}
+            {formData.partsQuoteItems.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-lg font-medium text-white">
+                    Peças Selecionadas
+                  </h4>
+                  <div className="text-right">
+                    <p className="text-sm text-zinc-400">Subtotal</p>
+                    <p className="text-xl font-bold text-green-400">
+                      {formatPrice(calculateSubtotal())}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {formData.partsQuoteItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="grid grid-cols-12 gap-4 items-center p-4 bg-zinc-700/30 rounded-lg border border-zinc-600"
+                    >
+                      <div className="col-span-12 md:col-span-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Package className="h-4 w-4 text-purple-400" />
+                          <span className="font-medium text-white">
+                            {item.name}
+                          </span>
+                        </div>
+                        <p className="text-sm text-zinc-400">
+                          Código: {item.code}
+                        </p>
+                      </div>
+
+                      <div className="col-span-6 md:col-span-2">
+                        <label className="text-sm text-zinc-400 block mb-1">
+                          Qtd
+                        </label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) =>
+                            updatePartQuantity(item.id, e.target.value)
+                          }
+                          className="bg-zinc-900 border-zinc-700 text-white text-center"
+                        />
+                      </div>
+
+                      <div className="col-span-6 md:col-span-3">
+                        <label className="text-sm text-zinc-400 block mb-1">
+                          Preço Unitário (€)
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={item.price}
+                          onChange={(e) =>
+                            updatePartPrice(item.id, e.target.value)
+                          }
+                          className="bg-zinc-900 border-zinc-700 text-white"
+                          placeholder="0.00"
+                        />
+                      </div>
+
+                      <div className="col-span-9 md:col-span-2">
+                        <label className="text-sm text-zinc-400 block mb-1">
+                          Subtotal
+                        </label>
+                        <div className="bg-zinc-800 rounded px-3 py-2 text-center border border-zinc-600">
+                          <span className="text-green-400 font-medium">
+                            {formatPrice(item.quantity * item.price)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="col-span-3 md:col-span-1 flex justify-end">
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => removePartFromQuote(item.id)}
+                          className="bg-red-600 hover:bg-red-700 h-8 w-8 p-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Configurações de Envio e IVA */}
+                <div className="mt-6 p-4 bg-zinc-700/50 rounded-lg border border-zinc-600">
+                  <h5 className="text-md font-medium text-white mb-4">
+                    Configurações do Orçamento
+                  </h5>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">
+                        Tipo de Envio
+                      </label>
+                      <Input
+                        type="text"
+                        name="shippingType"
+                        value={formData.shippingType}
+                        onChange={handleChange}
+                        placeholder="Ex: Correios, Transportadora..."
+                        className="bg-zinc-900 border-zinc-700 text-white"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">
+                        Preço do Envio (€)
+                      </label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        name="shippingPrice"
+                        value={formData.shippingPrice}
+                        onChange={handleChange}
+                        placeholder="0.00"
+                        className="bg-zinc-900 border-zinc-700 text-white"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">
+                        Taxa de IVA (%)
+                      </label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        name="vatRate"
+                        value={formData.vatRate}
+                        onChange={handleChange}
+                        className="bg-zinc-900 border-zinc-700 text-white"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="includeVat"
+                        checked={formData.includeVat}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            includeVat: e.target.checked,
+                          }))
+                        }
+                        className="rounded border-zinc-600"
+                      />
+                      <label
+                        htmlFor="includeVat"
+                        className="text-sm text-zinc-400"
+                      >
+                        Incluir IVA no orçamento
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Resumo Total */}
+                <div className="mt-4 p-4 bg-zinc-700/50 rounded-lg border border-zinc-600">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-white">Subtotal Peças:</span>
+                      <span className="text-white">
+                        {formatPrice(calculateSubtotal())}
+                      </span>
+                    </div>
+
+                    {formData.shippingPrice > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-white">Envio:</span>
+                        <span className="text-white">
+                          {formatPrice(formData.shippingPrice)}
+                        </span>
+                      </div>
+                    )}
+
+                    {formData.includeVat && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-white">
+                          IVA ({formData.vatRate}%):
+                        </span>
+                        <span className="text-white">
+                          {formatPrice(
+                            ((calculateSubtotal() +
+                              parseFloat(formData.shippingPrice || 0)) *
+                              formData.vatRate) /
+                              100
+                          )}
+                        </span>
+                      </div>
+                    )}
+
+                    <hr className="border-zinc-600" />
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-bold text-white">
+                        Total Final:
+                      </span>
+                      <span className="text-xl font-bold text-green-400">
+                        {formatPrice(calculateTotal())}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {formData.partsQuoteItems.length === 0 && (
+              <div className="text-center py-8">
+                <ShoppingCart className="h-12 w-12 text-zinc-600 mx-auto mb-3" />
+                <p className="text-zinc-400">Nenhuma peça adicionada ainda</p>
+                <p className="text-sm text-zinc-500">
+                  Use a pesquisa acima para encontrar e adicionar peças
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Observações */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white">Observações</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
               <label className="block text-sm font-medium text-zinc-400 mb-2">
                 Descrição / Observações
               </label>
@@ -1022,7 +1152,7 @@ const EditOrder = () => {
               />
             </div>
 
-            <div className="mt-6">
+            <div>
               <label className="block text-sm font-medium text-zinc-400 mb-2">
                 Pontos em Aberto
               </label>
@@ -1036,202 +1166,6 @@ const EditOrder = () => {
             </div>
           </CardContent>
         </Card>
-
-        {/* ✅ SEÇÃO: ORÇAMENTO DE PEÇAS */}
-        {checklist.pecas && (
-          <Card className="bg-zinc-800 border-zinc-700">
-            <CardHeader>
-              <CardTitle className="text-lg text-white flex items-center">
-                <ShoppingCart className="h-5 w-5 mr-2 text-purple-400" />
-                Orçamento de Peças
-                <Badge className="ml-2 bg-purple-500/20 text-purple-400">
-                  {formData.partsQuoteItems.length} item(s)
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* ✅ PESQUISA DE PEÇAS */}
-              <div className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <Input
-                    type="text"
-                    value={partSearchTerm}
-                    onChange={(e) => setPartSearchTerm(e.target.value)}
-                    placeholder="Pesquisar peças por código ou nome..."
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white"
-                  />
-                  {isSearching && (
-                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4 animate-spin" />
-                  )}
-                </div>
-
-                {searchError && (
-                  <Alert className="border-amber-500 bg-amber-500/10">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription className="text-amber-400">
-                      {searchError}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {/* ✅ RESULTADOS DA PESQUISA */}
-                {searchResults.length > 0 && (
-                  <div className="border border-zinc-600 rounded-lg max-h-60 overflow-y-auto">
-                    {searchResults.map((part) => (
-                      <div
-                        key={part.id}
-                        className="flex items-center justify-between p-3 border-b border-zinc-700 last:border-b-0 hover:bg-zinc-700/50 cursor-pointer"
-                        onClick={() => addPartToQuote(part)}
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-white">
-                              {part.name}
-                            </span>
-                            <Badge className="bg-blue-500/20 text-blue-400 text-xs">
-                              {part.code}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-zinc-400 mt-1">
-                            {part.description || "Sem descrição"}
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-green-600 text-green-400 hover:bg-green-500/20"
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          Adicionar
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* ✅ LISTA DE PEÇAS ADICIONADAS */}
-              {formData.partsQuoteItems.length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-lg font-medium text-white">
-                      Peças Selecionadas
-                    </h4>
-                    <div className="text-right">
-                      <p className="text-sm text-zinc-400">Total Estimado</p>
-                      <p className="text-xl font-bold text-green-400">
-                        € {calculatePartsQuoteTotal().toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {formData.partsQuoteItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="grid grid-cols-12 gap-4 items-center p-4 bg-zinc-700/30 rounded-lg border border-zinc-600"
-                      >
-                        {/* Nome da Peça */}
-                        <div className="col-span-12 md:col-span-4">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Package className="h-4 w-4 text-purple-400" />
-                            <span className="font-medium text-white">
-                              {item.name}
-                            </span>
-                          </div>
-                          <p className="text-sm text-zinc-400">
-                            Código: {item.code}
-                          </p>
-                        </div>
-
-                        {/* Quantidade */}
-                        <div className="col-span-6 md:col-span-2">
-                          <label className="text-sm text-zinc-400 block mb-1">
-                            Qtd
-                          </label>
-                          <Input
-                            type="number"
-                            min="1"
-                            value={item.quantity}
-                            onChange={(e) =>
-                              updatePartQuantity(item.id, e.target.value)
-                            }
-                            className="bg-zinc-900 border-zinc-700 text-white text-center"
-                          />
-                        </div>
-
-                        {/* Preço Unitário */}
-                        <div className="col-span-6 md:col-span-3">
-                          <label className="text-sm text-zinc-400 block mb-1">
-                            Preço Unitário (€)
-                          </label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={item.price}
-                            onChange={(e) =>
-                              updatePartPrice(item.id, e.target.value)
-                            }
-                            className="bg-zinc-900 border-zinc-700 text-white"
-                            placeholder="0.00"
-                          />
-                        </div>
-
-                        {/* Subtotal */}
-                        <div className="col-span-9 md:col-span-2">
-                          <label className="text-sm text-zinc-400 block mb-1">
-                            Subtotal
-                          </label>
-                          <div className="bg-zinc-800 rounded px-3 py-2 text-center border border-zinc-600">
-                            <span className="text-green-400 font-medium">
-                              € {(item.quantity * item.price).toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Remover */}
-                        <div className="col-span-3 md:col-span-1 flex justify-end">
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => removePartFromQuote(item.id)}
-                            className="bg-red-600 hover:bg-red-700 h-8 w-8 p-0"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* ✅ RESUMO TOTAL */}
-                  <div className="mt-4 p-4 bg-zinc-700/50 rounded-lg border border-zinc-600">
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-bold text-white">
-                        Total do Orçamento de Peças:
-                      </span>
-                      <span className="text-xl font-bold text-green-400">
-                        € {calculatePartsQuoteTotal().toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {formData.partsQuoteItems.length === 0 && (
-                <div className="text-center py-8">
-                  <ShoppingCart className="h-12 w-12 text-zinc-600 mx-auto mb-3" />
-                  <p className="text-zinc-400">Nenhuma peça adicionada ainda</p>
-                  <p className="text-sm text-zinc-500">
-                    Use a pesquisa acima para encontrar e adicionar peças
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
         {/* Submit Button */}
         <Button
@@ -1256,4 +1190,4 @@ const EditOrder = () => {
   );
 };
 
-export default EditOrder;
+export default EditPartBudget;

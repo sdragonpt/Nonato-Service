@@ -37,6 +37,7 @@ import {
   Database, // ✅ NOVO: Para migração de imagens
   RotateCcw, // ✅ NOVO: Para rollback
   Zap, // ✅ NOVO: Para pré-agendamento
+  Calculator, // ✅ NOVO: Para orçamento de peças
 } from "lucide-react";
 
 // ✅ LAZY LOADING - Componentes principais importados sob demanda
@@ -171,6 +172,11 @@ const ManageCategories = React.lazy(() =>
 
 // ✅ LAZY LOADING - Loja pública
 const PublicShop = React.lazy(() => import("./features/publicShop/PublicShop"));
+// ✅ NOVO: Orçamento de Peças (ordens convertidas com isQuote: true)
+const ManagePartsBudgets = React.lazy(() =>
+  import("./features/partsBudgets/ManagePartsBudgets")
+);
+// ✅ MANTER: Gestão de Orçamentos Online (conversões)
 const ManageOnlineQuotes = React.lazy(() =>
   import("./features/onlineQuotes/ManageOnlineQuotes")
 );
@@ -223,7 +229,12 @@ const NAVIGATION_ITEMS = [
       { path: "/app/manage-clients", icon: Users, label: "Clientes" },
       { path: "/app/manage-services", icon: Wrench, label: "Serviços" },
       { path: "/app/manage-budgets", icon: FileText, label: "Orçamentos" },
-      { path: "/app/manage-equipment", icon: Package, label: "Peças" },
+      // ✅ ALTERADO: Mudança de "Peças" para "Orçamento de Peças"
+      {
+        path: "/app/parts-budgets",
+        icon: Calculator,
+        label: "Orçamento de Peças",
+      },
       { path: "/app/parts-library", icon: Book, label: "Biblioteca de Peças" },
     ],
   },
@@ -673,6 +684,12 @@ const App = () => {
                     <ProtectedRoute>
                       <DashboardShell>
                         <Routes>
+                          {/* ✅ NOVA ROTA: Orçamento de Peças (ordens convertidas) */}
+                          <Route
+                            path="/parts-budgets"
+                            element={<ManagePartsBudgets />}
+                          />
+                          {/* ✅ MANTER: Gestão de Orçamentos Online (conversões) */}
                           <Route
                             path="/orcamento-online"
                             element={<ManageOnlineQuotes />}
