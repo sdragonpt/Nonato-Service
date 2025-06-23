@@ -179,8 +179,6 @@ const OrderDetail = () => {
         resultDescription: order.resultDescription || "",
         pontosEmAberto: order.pontosEmAberto || "",
         checklist: order.checklist || {},
-        // ✅ ADICIONAR: Incluir partsQuoteItems do orçamento de peças
-        partsQuoteItems: order.partsQuoteItems || [],
         workdays: workdays.map((workday) => ({
           ...workday,
           workDate: new Date(workday.workDate).toLocaleDateString(),

@@ -424,7 +424,7 @@ const EditPartBudget = () => {
       };
 
       await updateDoc(doc(db, "ordens", quoteId), quoteData);
-      navigate("/app/manage-parts-budgets");
+      navigate("/app/parts-budgets");
     } catch (err) {
       console.error("Erro ao atualizar orçamento:", err);
       setError(

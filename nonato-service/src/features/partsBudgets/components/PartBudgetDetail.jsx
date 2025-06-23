@@ -217,7 +217,7 @@ const PartBudgetDetail = () => {
       setError(null);
 
       await deleteDoc(doc(db, "ordens", quoteId));
-      navigate("/app/manage-parts-budgets");
+      navigate("/app/parts-budgets");
     } catch (err) {
       console.error("Erro ao deletar orçamento:", err);
       setError("Erro ao deletar orçamento. Por favor, tente novamente.");
@@ -281,7 +281,7 @@ const PartBudgetDetail = () => {
             Orçamento não encontrado
           </p>
           <Button
-            onClick={() => navigate("/app/manage-parts-budgets")}
+            onClick={() => navigate("/app/parts-budgets")}
             className="mt-4 bg-green-600 hover:bg-green-700"
           >
             Voltar à Lista
@@ -318,7 +318,7 @@ const PartBudgetDetail = () => {
         <Button
           variant="outline"
           size="icon"
-          onClick={() => navigate("/app/manage-parts-budgets")}
+          onClick={() => navigate("/app/parts-budgets")}
           className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
         >
           <ArrowLeft className="h-4 w-4 text-white" />
@@ -728,7 +728,7 @@ const PartBudgetDetail = () => {
       {/* Fixed Action Buttons */}
       <div className="fixed bottom-6 right-6 flex gap-2">
         <Button
-          onClick={() => navigate("/app/manage-parts-budgets")}
+          onClick={() => navigate("/app/parts-budgets")}
           variant="outline"
           size="icon"
           className="h-12 w-12 rounded-full border-zinc-700 bg-zinc-800 hover:bg-zinc-700"

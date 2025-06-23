@@ -1,10 +1,10 @@
-// generateQuotePDF.jsx - VERSÃO SIMPLIFICADA PARA PART BUDGETS
+// generateQuotePDF.jsx - VERSÃO COMPLETA: Imagens, IVA, Paginação, Cores Intercaladas
 
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../../../firebase.jsx";
 
-const generateQuotePDF = async (quoteId, quote, client, fileName) => {
+const generateQuotePDF = async (orderId, order, client, fileName) => {
   const pdfDoc = await PDFDocument.create();
   let currentPage = null;
 
@@ -16,7 +16,7 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
   const margin = 50;
   let yPos = 0;
 
-  // Função para buscar dados completos das peças
+  // ✅ FUNÇÃO PARA BUSCAR DADOS COMPLETOS DAS PEÇAS
   const fetchCompletePartData = async (partId) => {
     try {
       const partRef = doc(db, "pecas", partId);
@@ -34,7 +34,7 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
     }
   };
 
-  // Enriquecer items com dados completos das peças
+  // ✅ ENRIQUECER ITEMS COM DADOS COMPLETOS DAS PEÇAS
   const enrichItemsWithPartData = async (items) => {
     if (!items || items.length === 0) return [];
 
@@ -63,7 +63,26 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
     return enrichedItems;
   };
 
-  // Função para buscar imagem da biblioteca
+  // ✅ FUNÇÃO PARA BUSCAR DADOS DO EQUIPAMENTO
+  const fetchEquipmentData = async (equipmentId) => {
+    try {
+      if (!equipmentId) return null;
+
+      const equipmentRef = doc(db, "equipamentos", equipmentId);
+      const equipmentDoc = await getDoc(equipmentRef);
+
+      if (equipmentDoc.exists()) {
+        return { id: equipmentDoc.id, ...equipmentDoc.data() };
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error("Erro ao buscar dados do equipamento:", error);
+      return null;
+    }
+  };
+
+  // ✅ FUNÇÃO PARA BUSCAR IMAGEM DA BIBLIOTECA
   const loadImageFromLibrary = async (imageHash) => {
     try {
       if (!imageHash) return null;
@@ -83,11 +102,12 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
     }
   };
 
-  // Função para carregar imagem (BASE64 ou URL)
+  // ✅ FUNÇÃO PARA CARREGAR IMAGEM (BASE64 OU URL)
   const loadImageData = async (imageSrc) => {
     try {
       if (!imageSrc) return null;
 
+      // Se já é base64
       if (imageSrc.startsWith("data:image/")) {
         const base64Data = imageSrc.split(",")[1];
         const isJpeg = imageSrc.includes("jpeg") || imageSrc.includes("jpg");
@@ -97,6 +117,7 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
         };
       }
 
+      // Se é URL, fetch
       const response = await fetch(imageSrc);
       if (!response.ok) {
         return null;
@@ -117,7 +138,7 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
     }
   };
 
-  // Função para quebrar texto longo
+  // ✅ FUNÇÃO PARA QUEBRAR TEXTO LONGO
   const wrapText = (text, maxWidth, font, fontSize) => {
     const words = text.split(" ");
     const lines = [];
@@ -134,6 +155,7 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
           lines.push(currentLine);
           currentLine = word;
         } else {
+          // Palavra muito longa, truncar
           lines.push(
             word.substring(0, Math.floor(maxWidth / (fontSize * 0.6))) + "..."
           );
@@ -149,7 +171,7 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
     return lines;
   };
 
-  // Função para encurtar ID do orçamento
+  // ✅ FUNÇÃO PARA ENCURTAR ID DO ORÇAMENTO
   const getShortQuoteId = (fullId) => {
     if (!fullId) return "ORÇ-0001";
 
@@ -165,16 +187,6 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
     return `ORÇ-${fullId}`;
   };
 
-  // Verificar se precisa de nova página
-  const checkPageSpace = (requiredSpace) => {
-    if (yPos < margin + requiredSpace) {
-      createNewPage();
-      yPos = pageHeight - 140;
-      return true;
-    }
-    return false;
-  };
-
   // Carregar fontes
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -185,7 +197,7 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
   );
   const topImage = await pdfDoc.embedPng(topImageBytes);
 
-  // Criar nova página com controle de espaço
+  // ✅ CRIAR NOVA PÁGINA COM CONTROLE DE ESPAÇO
   const createNewPage = () => {
     currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
     yPos = pageHeight - margin;
@@ -196,12 +208,22 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
 
     currentPage.drawImage(topImage, {
       x: margin,
-      y: currentPage.getHeight() - margin - 90,
+      y: currentPage.getHeight() - margin - 90, // ✅ Logo um pouco mais acima
       width: imgWidth,
       height: imgHeight,
     });
 
     return currentPage;
+  };
+
+  // ✅ VERIFICAR SE PRECISA DE NOVA PÁGINA
+  const checkPageSpace = (requiredSpace) => {
+    if (yPos < margin + requiredSpace) {
+      createNewPage();
+      yPos = pageHeight - 140; // ✅ Mais espaço nas páginas seguintes para não sobrepor o logo
+      return true;
+    }
+    return false;
   };
 
   // Função para formatar data
@@ -215,7 +237,7 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
     return `€ ${parseFloat(price).toFixed(2)}`;
   };
 
-  // Calcular totais com IVA e envio
+  // ✅ CALCULAR TOTAIS COM IVA E ENVIO (usando items enriquecidos)
   const calculateTotals = (items = enrichedItems) => {
     const subtotal =
       items?.reduce(
@@ -223,12 +245,12 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
         0
       ) || 0;
 
-    const shipping = parseFloat(quote.shippingPrice) || 0;
+    const shipping = parseFloat(order.shippingPrice) || 0;
     const totalBeforeVat = subtotal + shipping;
 
     const vatAmount =
-      quote.includeVat && quote.vatRate
-        ? (totalBeforeVat * quote.vatRate) / 100
+      order.includeVat && order.vatRate
+        ? (totalBeforeVat * order.vatRate) / 100
         : 0;
 
     const totalWithVat = totalBeforeVat + vatAmount;
@@ -245,16 +267,22 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
   // Criar primeira página
   createNewPage();
 
-  // Enriquecer items com dados completos das peças
-  const originalItems = quote.items || [];
+  // ✅ ENRIQUECER ITEMS COM DADOS COMPLETOS DAS PEÇAS
+  const originalItems = order.items || [];
   const enrichedItems = await enrichItemsWithPartData(originalItems);
 
-  const shortQuoteId = getShortQuoteId(quoteId);
+  // Atualizar order com items enriquecidos
+  const enrichedOrder = {
+    ...order,
+    items: enrichedItems,
+  };
+
+  const shortQuoteId = getShortQuoteId(orderId);
   const totals = calculateTotals(enrichedItems);
 
   // Cabeçalho do documento
-  currentPage.drawText("ORÇAMENTO DE PEÇAS", {
-    x: 200,
+  currentPage.drawText("ORÇAMENTO", {
+    x: 240,
     y: pageHeight - 50,
     size: 20,
     color: rgb(0, 0, 0),
@@ -300,10 +328,10 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
     font: font,
   });
 
-  yPos = pageHeight - 140;
+  yPos = pageHeight - 140; // ✅ Ajustado para a nova posição da data
 
-  // Dados do Cliente
-  currentPage.drawText("DADOS DO CLIENTE", {
+  // ✅ SEÇÃO DE DADOS DO CLIENTE E EQUIPAMENTO (lado a lado)
+  currentPage.drawText("DADOS DO CLIENTE E EQUIPAMENTO", {
     x: margin,
     y: yPos,
     size: fontSize,
@@ -312,61 +340,164 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
 
   yPos -= 25;
 
-  // Cliente Info
-  const clientData = quote.clientInfo || {};
+  // ✅ COLUNA ESQUERDA - DADOS DO CLIENTE
+  let leftYPos = yPos;
+  const leftColumnX = margin;
+  const rightColumnX = margin + 250; // Coluna direita começa aos 250px
 
-  currentPage.drawText(`Nome: ${clientData.name || "N/A"}`, {
-    x: margin,
-    y: yPos,
-    size: fontSize,
-    font: font,
+  currentPage.drawText("CLIENTE:", {
+    x: leftColumnX,
+    y: leftYPos,
+    size: fontSize - 1,
+    font: boldFont,
+    color: rgb(0.3, 0.5, 0.8),
   });
 
-  yPos -= 15;
+  leftYPos -= 18;
 
-  currentPage.drawText(`Email: ${clientData.email || "N/A"}`, {
-    x: margin,
-    y: yPos,
-    size: fontSize,
-    font: font,
-  });
+  // Nome
+  currentPage.drawText(
+    `Nome: ${order.clientInfo?.name || client?.name || "N/A"}`,
+    {
+      x: leftColumnX,
+      y: leftYPos,
+      size: fontSize,
+      font: font,
+    }
+  );
 
-  yPos -= 15;
+  leftYPos -= 15;
 
-  currentPage.drawText(`Telefone: ${clientData.phone || "N/A"}`, {
-    x: margin,
-    y: yPos,
-    size: fontSize,
-    font: font,
-  });
+  // Email
+  currentPage.drawText(
+    `Email: ${order.clientInfo?.email || client?.email || "N/A"}`,
+    {
+      x: leftColumnX,
+      y: leftYPos,
+      size: fontSize,
+      font: font,
+    }
+  );
 
-  if (clientData.company) {
-    yPos -= 15;
-    currentPage.drawText(`Empresa: ${clientData.company}`, {
-      x: margin,
-      y: yPos,
+  leftYPos -= 15;
+
+  // Telefone
+  currentPage.drawText(
+    `Telefone: ${order.clientInfo?.phone || client?.phone || "N/A"}`,
+    {
+      x: leftColumnX,
+      y: leftYPos,
+      size: fontSize,
+      font: font,
+    }
+  );
+
+  leftYPos -= 15;
+
+  // Empresa
+  if (order.clientInfo?.company) {
+    currentPage.drawText(`Empresa: ${order.clientInfo.company}`, {
+      x: leftColumnX,
+      y: leftYPos,
       size: fontSize,
       font: font,
     });
+    leftYPos -= 15;
   }
 
-  yPos -= 30;
+  // ✅ COLUNA DIREITA - DADOS DO EQUIPAMENTO
+  let rightYPos = yPos;
 
-  // Tabela de Itens
+  currentPage.drawText("EQUIPAMENTO:", {
+    x: rightColumnX,
+    y: rightYPos,
+    size: fontSize - 1,
+    font: boldFont,
+    color: rgb(0.3, 0.5, 0.8),
+  });
+
+  rightYPos -= 18;
+
+  // ✅ BUSCAR DADOS DO EQUIPAMENTO (de várias fontes possíveis)
+  let equipmentModel = "N/A";
+  let equipmentSerial = "N/A";
+  let equipmentBrand = "N/A";
+
+  // 1. Tentar dos dados manuais (cliente não registrado)
+  if (order.manualEquipment?.model) {
+    equipmentModel = order.manualEquipment.model;
+    equipmentSerial = order.manualEquipment.serialNumber || "N/A";
+    equipmentBrand = order.manualEquipment.brand || "N/A";
+  }
+  // 2. Tentar buscar do equipamento registrado (se tiver equipmentId)
+  else if (order.equipmentId) {
+    // Buscar equipamento via ID
+    const equipment = await fetchEquipmentData(order.equipmentId);
+    if (equipment) {
+      equipmentModel = equipment.model || "N/A";
+      equipmentSerial = equipment.serialNumber || "N/A";
+      equipmentBrand = equipment.brand || "N/A";
+    }
+  }
+
+  // Marca
+  currentPage.drawText(`Marca: ${equipmentBrand}`, {
+    x: rightColumnX,
+    y: rightYPos,
+    size: fontSize,
+    font: font,
+  });
+
+  rightYPos -= 15;
+
+  // Modelo
+  currentPage.drawText(`Modelo: ${equipmentModel}`, {
+    x: rightColumnX,
+    y: rightYPos,
+    size: fontSize,
+    font: font,
+  });
+
+  rightYPos -= 15;
+
+  // Número de Série
+  currentPage.drawText(`Nº Série: ${equipmentSerial}`, {
+    x: rightColumnX,
+    y: rightYPos,
+    size: fontSize,
+    font: font,
+  });
+
+  rightYPos -= 15;
+
+  // ✅ USAR A POSIÇÃO Y MAIS BAIXA ENTRE AS DUAS COLUNAS
+  yPos = Math.min(leftYPos, rightYPos);
+
+  yPos -= 30; // ✅ Mais espaço antes da tabela
+
+  // ✅ TABELA DE ITENS COM IMAGENS E CORES INTERCALADAS
   checkPageSpace(150);
 
-  currentPage.drawText("ITENS SOLICITADOS", {
+  currentPage.drawText("ITENS DO ORÇAMENTO", {
     x: margin,
     y: yPos,
     size: fontSize,
     font: boldFont,
   });
 
-  yPos -= 20;
+  yPos -= 20; // ✅ Mais próximo da tabela
 
-  // Cabeçalho da tabela
-  const tableHeaders = ["Item", "Código", "Qtd", "Preço Un.", "Subtotal"];
-  const columnWidths = [200, 100, 50, 80, 85];
+  // ✅ CABEÇALHO DA TABELA COM COLUNA PARA IMAGEM (ajustada para não ultrapassar margem)
+  const tableHeaders = [
+    "Imagem", // ✅ Mudado de "Img" para "Imagem"
+    "Item",
+    "Código",
+    "Qtd",
+    "Preço Un.",
+    "Subtotal",
+  ];
+  // ✅ Tabela ajustada para não ultrapassar a margem (total: 490px)
+  const columnWidths = [55, 170, 75, 35, 75, 85]; // Mesma largura que o retângulo de envio
   let xPos = margin;
 
   // Desenhar cabeçalho
@@ -394,7 +525,7 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
 
   yPos -= 25;
 
-  // Processar itens
+  // ✅ PROCESSAR ITENS COM IMAGENS E CORES INTERCALADAS
   if (enrichedItems?.length > 0) {
     for (let idx = 0; idx < enrichedItems.length; idx++) {
       const item = enrichedItems[idx];
@@ -402,35 +533,142 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
       const subtotal = item.quantity * price;
       const hasPrice = price > 0;
 
-      const itemHeight = 30;
+      // ✅ VERIFICAR ESPAÇO PARA O ITEM (incluindo possível imagem)
+      const itemHeight = 45; // ✅ Altura maior para imagens maiores
       checkPageSpace(itemHeight + 10);
 
-      // Cores intercaladas
-      const bgColor = hasPrice
-        ? idx % 2 === 0
-          ? rgb(0.9, 1, 0.9)
-          : rgb(1, 1, 1)
-        : idx % 2 === 0
-        ? rgb(1, 0.95, 0.8)
-        : rgb(1, 1, 1);
+      // ✅ CORES INTERCALADAS
+      let bgColor;
+      if (hasPrice) {
+        // Linhas com preço: verde/branco intercalado
+        bgColor = idx % 2 === 0 ? rgb(0.9, 1, 0.9) : rgb(1, 1, 1);
+      } else {
+        // Linhas sem preço: laranja/branco intercalado
+        bgColor = idx % 2 === 0 ? rgb(1, 0.95, 0.8) : rgb(1, 1, 1);
+      }
+
+      // ✅ QUEBRAR NOME DO ITEM SE FOR MUITO LONGO
+      const nameLines = wrapText(
+        item.name,
+        columnWidths[1] - 10,
+        font,
+        fontSize
+      );
+      const maxLines = Math.min(nameLines.length, 3); // Máximo 3 linhas
+      const actualItemHeight = Math.max(itemHeight, maxLines * 12 + 10);
 
       xPos = margin;
 
-      // Desenhar células
-      const values = [
-        item.name,
+      // ✅ COLUNA 1: IMAGEM (maior)
+      currentPage.drawRectangle({
+        x: xPos,
+        y: yPos - actualItemHeight,
+        width: columnWidths[0],
+        height: actualItemHeight,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+        color: bgColor,
+      });
+
+      // Tentar carregar e mostrar imagem
+      try {
+        let imageData = null;
+
+        // Tentar imageHash primeiro, depois src
+        if (item.imageHash) {
+          const libraryImageData = await loadImageFromLibrary(item.imageHash);
+          if (libraryImageData) {
+            imageData = await loadImageData(libraryImageData);
+          }
+        } else if (item.image) {
+          imageData = await loadImageData(item.image);
+        }
+
+        if (imageData) {
+          const partImage = imageData.isJpeg
+            ? await pdfDoc.embedJpg(imageData.data)
+            : await pdfDoc.embedPng(imageData.data);
+
+          // ✅ Calcular dimensões da imagem para caber na célula (ajustada)
+          const maxImgWidth = columnWidths[0] - 6; // Margem de 3px de cada lado (agora 49px)
+          const maxImgHeight = actualItemHeight - 6; // Margem de 3px em cima e embaixo
+
+          let imgWidth = maxImgWidth;
+          let imgHeight = (imgWidth * partImage.height) / partImage.width;
+
+          if (imgHeight > maxImgHeight) {
+            imgHeight = maxImgHeight;
+            imgWidth = (imgHeight * partImage.width) / partImage.height;
+          }
+
+          currentPage.drawImage(partImage, {
+            x: xPos + (columnWidths[0] - imgWidth) / 2,
+            y: yPos - actualItemHeight + (actualItemHeight - imgHeight) / 2,
+            width: imgWidth,
+            height: imgHeight,
+          });
+        } else {
+          // Texto placeholder se não tiver imagem
+          currentPage.drawText("N/A", {
+            x: xPos + columnWidths[0] / 2 - 8,
+            y: yPos - actualItemHeight / 2 - 4,
+            size: smallFontSize,
+            font: font,
+            color: rgb(0.6, 0.6, 0.6),
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao processar imagem:", error);
+        // Fallback para N/A em caso de erro
+        currentPage.drawText("N/A", {
+          x: xPos + columnWidths[0] / 2 - 8,
+          y: yPos - actualItemHeight / 2 - 4,
+          size: smallFontSize,
+          font: font,
+          color: rgb(0.6, 0.6, 0.6),
+        });
+      }
+
+      xPos += columnWidths[0];
+
+      // ✅ COLUNA 2: NOME DO ITEM (com quebra de linha)
+      currentPage.drawRectangle({
+        x: xPos,
+        y: yPos - actualItemHeight,
+        width: columnWidths[1],
+        height: actualItemHeight,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+        color: bgColor,
+      });
+
+      // Desenhar linhas do nome
+      nameLines.slice(0, maxLines).forEach((line, lineIndex) => {
+        currentPage.drawText(line, {
+          x: xPos + 3,
+          y: yPos - 12 - lineIndex * 10,
+          size: fontSize,
+          font: font,
+          color: hasPrice ? rgb(0, 0, 0) : rgb(0.8, 0.4, 0),
+        });
+      });
+
+      xPos += columnWidths[1];
+
+      // ✅ COLUNAS RESTANTES
+      const remainingValues = [
         item.code,
         item.quantity.toString(),
         price > 0 ? formatPrice(price) : "A definir",
         price > 0 ? formatPrice(subtotal) : "A definir",
       ];
 
-      values.forEach((value, index) => {
+      remainingValues.forEach((value, index) => {
         currentPage.drawRectangle({
           x: xPos,
-          y: yPos - itemHeight,
-          width: columnWidths[index],
-          height: itemHeight,
+          y: yPos - actualItemHeight,
+          width: columnWidths[index + 2],
+          height: actualItemHeight,
           borderColor: rgb(0, 0, 0),
           borderWidth: 1,
           color: bgColor,
@@ -440,25 +678,26 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
         const textColor = hasPrice ? rgb(0, 0, 0) : rgb(0.8, 0.4, 0);
 
         currentPage.drawText(value, {
-          x: xPos + (columnWidths[index] - textWidth) / 2,
-          y: yPos - itemHeight / 2 - 4,
+          x: xPos + (columnWidths[index + 2] - textWidth) / 2,
+          y: yPos - actualItemHeight / 2 - 4,
           size: fontSize,
           font: font,
           color: textColor,
         });
 
-        xPos += columnWidths[index];
+        xPos += columnWidths[index + 2];
       });
 
-      yPos -= itemHeight;
+      yPos -= actualItemHeight;
     }
   }
 
-  yPos -= 20;
+  // ✅ ESPAÇO EXTRA APÓS A TABELA
+  yPos -= 20; // Margem extra em baixo da tabela
 
-  // Seção de envio (se configurado)
-  if (quote.shippingType && quote.shippingPrice > 0) {
-    yPos -= 15;
+  // ✅ SEÇÃO DE ENVIO (se configurado)
+  if (order.shippingType && order.shippingPrice > 0) {
+    yPos -= 15; // ✅ Menos espaço antes do título
     checkPageSpace(60);
 
     currentPage.drawText("INFORMAÇÕES DE ENVIO", {
@@ -468,8 +707,9 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
       font: boldFont,
     });
 
-    yPos -= 15;
+    yPos -= 15; // ✅ Mais próximo do retângulo
 
+    // Caixa de envio
     const shippingBox = {
       x: margin,
       y: yPos - 30,
@@ -487,14 +727,14 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
       color: rgb(0.95, 0.95, 1),
     });
 
-    currentPage.drawText(`Tipo: ${quote.shippingType}`, {
+    currentPage.drawText(`Tipo: ${order.shippingType}`, {
       x: shippingBox.x + 10,
       y: shippingBox.y + 15,
       size: fontSize,
       font: font,
     });
 
-    currentPage.drawText(`Preço: ${formatPrice(quote.shippingPrice)}`, {
+    currentPage.drawText(`Preço: ${formatPrice(order.shippingPrice)}`, {
       x: shippingBox.x + shippingBox.width - 120,
       y: shippingBox.y + 15,
       size: fontSize,
@@ -504,11 +744,11 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
     yPos -= 40;
   }
 
-  // Totais
+  // ✅ TOTAIS COM IVA
   yPos -= 20;
   checkPageSpace(120);
 
-  const totalWidth = 240;
+  const totalWidth = 240; // ✅ Ajustado para alinhar melhor com a tabela
   const totalX = pageWidth - margin - totalWidth;
 
   // Subtotal
@@ -567,9 +807,8 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
     yPos -= 25;
   }
 
-  // IVA (se aplicável)
-  if (quote.includeVat && totals.vatAmount > 0) {
-    // Total sem IVA
+  // Total sem IVA (se IVA estiver ativo)
+  if (order.includeVat && totals.vatAmount > 0) {
     currentPage.drawRectangle({
       x: totalX,
       y: yPos - 25,
@@ -607,7 +846,7 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
       color: rgb(0.9, 0.9, 1),
     });
 
-    currentPage.drawText(`IVA (${quote.vatRate}%):`, {
+    currentPage.drawText(`IVA (${order.vatRate}%):`, {
       x: totalX + 10,
       y: yPos - 15,
       size: fontSize,
@@ -643,10 +882,9 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
     font: boldFont,
   });
 
-  const finalTotal = quote.includeVat
+  const finalTotal = order.includeVat
     ? totals.totalWithVat
     : totals.totalBeforeVat;
-
   currentPage.drawText(formatPrice(finalTotal), {
     x: totalX + totalWidth - 90,
     y: yPos - 20,
@@ -657,8 +895,8 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
 
   yPos -= 40;
 
-  // Observações
-  if (quote.resultDescription || quote.pontosEmAberto) {
+  // ✅ OBSERVAÇÕES
+  if (order.clientInfo?.message) {
     yPos -= 20;
     checkPageSpace(80);
 
@@ -687,12 +925,9 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
       borderWidth: 1,
     });
 
-    const observationsText = [quote.resultDescription, quote.pontosEmAberto]
-      .filter(Boolean)
-      .join(" | ");
-
+    // Quebrar texto das observações
     const messageLines = wrapText(
-      observationsText,
+      order.clientInfo.message,
       messageBox.width - 20,
       font,
       fontSize
@@ -712,10 +947,11 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
     yPos -= 70;
   }
 
-  // Aviso sobre troca de peças
+  // ✅ AVISO SOBRE TROCA DE PEÇAS EM CAIXA DESTACADA
   yPos -= 20;
   checkPageSpace(80);
 
+  // Caixa de aviso
   const warningBox = {
     x: margin,
     y: yPos - 60,
@@ -733,6 +969,7 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
     color: rgb(1, 0.95, 0.95),
   });
 
+  // Título do aviso
   currentPage.drawText("AVISO IMPORTANTE", {
     x: warningBox.x + 10,
     y: warningBox.y + 45,
@@ -741,6 +978,7 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
     color: rgb(0.8, 0, 0),
   });
 
+  // Texto do aviso
   const warningText =
     "NÃO SERÁ ACEITE A TROCA DE PEÇAS POR EQUÍVOCO OU ENGANO DE QUEM SOLICITOU.";
   const warningLines = wrapText(
@@ -775,7 +1013,7 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
 
   yPos -= 80;
 
-  // Assinaturas
+  // ✅ ASSINATURAS (estilo similar ao relatório de serviço)
   yPos -= 30;
   checkPageSpace(100);
 
@@ -835,7 +1073,7 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
     font: font,
   });
 
-  // Rodapé
+  // ✅ RODAPÉ COM INFORMAÇÕES DA EMPRESA
   const footerY = 40;
   const footerText =
     "NONATO - Assistência Técnica - Tel: 911115479 - Email: service.nonato@gmail.com";
@@ -849,6 +1087,7 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
     color: rgb(0.5, 0.5, 0.5),
   });
 
+  // Linha do rodapé
   currentPage.drawLine({
     start: { x: margin, y: footerY + 15 },
     end: { x: pageWidth - margin, y: footerY + 15 },
@@ -856,7 +1095,7 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
     color: rgb(0.7, 0.7, 0.7),
   });
 
-  // Numeração de páginas
+  // ✅ NUMERAÇÃO DE PÁGINAS (se mais de uma página)
   if (pdfDoc.getPageCount() > 1) {
     const pages = pdfDoc.getPages();
     pages.forEach((page, index) => {
@@ -870,11 +1109,14 @@ const generateQuotePDF = async (quoteId, quote, client, fileName) => {
     });
   }
 
+  // Atualizar nome do arquivo para usar ID encurtado
+  const shortFileName = fileName.replace(orderId, shortQuoteId);
+
   // Salvar PDF
   const pdfBytes = await pdfDoc.save();
   return {
     blob: new Blob([pdfBytes], { type: "application/pdf" }),
-    fileName: fileName,
+    fileName: shortFileName,
   };
 };
 

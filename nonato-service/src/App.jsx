@@ -119,6 +119,12 @@ const ManageBudgets = React.lazy(() =>
 const AddSimpleBudget = React.lazy(() =>
   import("./features/budgets/components/AddSimpleBudget")
 );
+const PartBudgetDetail = React.lazy(() =>
+  import("./features/partsBudgets/components/PartBudgetDetail")
+);
+const EditPartBudget = React.lazy(() =>
+  import("./features/partsBudgets/components/EditPartBudget")
+);
 const ManageChecklist = React.lazy(() =>
   import("./features/checklists/ManageCheckList")
 );
@@ -882,6 +888,14 @@ const App = () => {
                           <Route
                             path="manage-shop-access"
                             element={<ManageShopAccess />}
+                          />
+                          <Route
+                            path="part-budget-detail/:quoteId"
+                            element={<PartBudgetDetail />}
+                          />
+                          <Route
+                            path="edit-part-budget/:quoteId"
+                            element={<EditPartBudget />}
                           />
                         </Routes>
                       </DashboardShell>
