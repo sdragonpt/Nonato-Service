@@ -1,4 +1,4 @@
-// generateQuotePDF.jsx - VERSÃO COMPLETA: Imagens, IVA, Paginação, Cores Intercaladas
+// generateQuotePDF.jsx - VERSÃO CORRIGIDA: Melhor carregamento de imagens
 
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { doc, getDoc } from "firebase/firestore";
@@ -16,7 +16,7 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
   const margin = 50;
   let yPos = 0;
 
-  // ✅ FUNÇÃO PARA BUSCAR DADOS COMPLETOS DAS PEÇAS
+  // ✅ FUNÇÃO MELHORADA PARA BUSCAR DADOS COMPLETOS DAS PEÇAS
   const fetchCompletePartData = async (partId) => {
     try {
       const partRef = doc(db, "pecas", partId);
@@ -36,7 +36,9 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
 
   // ✅ ENRIQUECER ITEMS COM DADOS COMPLETOS DAS PEÇAS
   const enrichItemsWithPartData = async (items) => {
-    if (!items || items.length === 0) return [];
+    if (!items || items.length === 0) {
+      return [];
+    }
 
     const enrichedItems = [];
 
@@ -50,6 +52,10 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
             ...item,
             name: completePartData.name || item.name,
             code: completePartData.code || item.code,
+            // ✅ Garantir que temos todos os campos de imagem possíveis
+            imageHash: completePartData.imageHash || item.imageHash,
+            image: completePartData.image || item.image,
+            imageUrl: completePartData.imageUrl || item.imageUrl,
           };
           enrichedItems.push(enrichedItem);
         } else {
@@ -63,29 +69,12 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     return enrichedItems;
   };
 
-  // ✅ FUNÇÃO PARA BUSCAR DADOS DO EQUIPAMENTO
-  const fetchEquipmentData = async (equipmentId) => {
-    try {
-      if (!equipmentId) return null;
-
-      const equipmentRef = doc(db, "equipamentos", equipmentId);
-      const equipmentDoc = await getDoc(equipmentRef);
-
-      if (equipmentDoc.exists()) {
-        return { id: equipmentDoc.id, ...equipmentDoc.data() };
-      } else {
-        return null;
-      }
-    } catch (error) {
-      console.error("Erro ao buscar dados do equipamento:", error);
-      return null;
-    }
-  };
-
-  // ✅ FUNÇÃO PARA BUSCAR IMAGEM DA BIBLIOTECA
+  // ✅ FUNÇÃO MELHORADA PARA BUSCAR IMAGEM DA BIBLIOTECA
   const loadImageFromLibrary = async (imageHash) => {
     try {
-      if (!imageHash) return null;
+      if (!imageHash) {
+        return null;
+      }
 
       const imageRef = doc(db, "image_library", imageHash);
       const imageDoc = await getDoc(imageRef);
@@ -102,22 +91,27 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     }
   };
 
-  // ✅ FUNÇÃO PARA CARREGAR IMAGEM (BASE64 OU URL)
+  // ✅ FUNÇÃO MELHORADA PARA CARREGAR IMAGEM
   const loadImageData = async (imageSrc) => {
     try {
-      if (!imageSrc) return null;
+      if (!imageSrc) {
+        return null;
+      }
 
       // Se já é base64
       if (imageSrc.startsWith("data:image/")) {
         const base64Data = imageSrc.split(",")[1];
         const isJpeg = imageSrc.includes("jpeg") || imageSrc.includes("jpg");
-        return {
+
+        const imageData = {
           data: Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0)),
           isJpeg,
         };
+
+        return imageData;
       }
 
-      // Se é URL, fetch
+      // Se é URL, fazer fetch
       const response = await fetch(imageSrc);
       if (!response.ok) {
         return null;
@@ -128,14 +122,50 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
         imageSrc.toLowerCase().includes("jpg") ||
         imageSrc.toLowerCase().includes("jpeg");
 
-      return {
+      const imageData = {
         data: new Uint8Array(arrayBuffer),
         isJpeg,
       };
+
+      return imageData;
     } catch (error) {
       console.error("Erro ao carregar dados da imagem:", error);
       return null;
     }
+  };
+
+  // ✅ FUNÇÃO MELHORADA PARA PROCESSAR IMAGEM DO ITEM
+  const processItemImage = async (item) => {
+    // Lista de campos possíveis para imagem (ordem de prioridade)
+    const imageFields = ["imageHash", "image", "imageUrl", "img"];
+
+    for (const field of imageFields) {
+      if (item[field]) {
+        try {
+          let imageData = null;
+
+          if (field === "imageHash") {
+            // Buscar na biblioteca
+            const libraryImageData = await loadImageFromLibrary(item[field]);
+            if (libraryImageData) {
+              imageData = await loadImageData(libraryImageData);
+            }
+          } else {
+            // Carregar diretamente
+            imageData = await loadImageData(item[field]);
+          }
+
+          if (imageData) {
+            return imageData;
+          }
+        } catch (error) {
+          console.error(`Erro ao processar campo '${field}':`, error);
+          continue;
+        }
+      }
+    }
+
+    return null;
   };
 
   // ✅ FUNÇÃO PARA QUEBRAR TEXTO LONGO
@@ -155,7 +185,6 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
           lines.push(currentLine);
           currentLine = word;
         } else {
-          // Palavra muito longa, truncar
           lines.push(
             word.substring(0, Math.floor(maxWidth / (fontSize * 0.6))) + "..."
           );
@@ -169,6 +198,25 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     }
 
     return lines;
+  };
+
+  // ✅ FUNÇÃO PARA BUSCAR DADOS DO EQUIPAMENTO
+  const fetchEquipmentData = async (equipmentId) => {
+    try {
+      if (!equipmentId) return null;
+
+      const equipmentRef = doc(db, "equipamentos", equipmentId);
+      const equipmentDoc = await getDoc(equipmentRef);
+
+      if (equipmentDoc.exists()) {
+        return { id: equipmentDoc.id, ...equipmentDoc.data() };
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error("Erro ao buscar dados do equipamento:", error);
+      return null;
+    }
   };
 
   // ✅ FUNÇÃO PARA ENCURTAR ID DO ORÇAMENTO
@@ -208,7 +256,7 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
 
     currentPage.drawImage(topImage, {
       x: margin,
-      y: currentPage.getHeight() - margin - 90, // ✅ Logo um pouco mais acima
+      y: currentPage.getHeight() - margin - 90,
       width: imgWidth,
       height: imgHeight,
     });
@@ -220,7 +268,7 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
   const checkPageSpace = (requiredSpace) => {
     if (yPos < margin + requiredSpace) {
       createNewPage();
-      yPos = pageHeight - 140; // ✅ Mais espaço nas páginas seguintes para não sobrepor o logo
+      yPos = pageHeight - 140;
       return true;
     }
     return false;
@@ -237,8 +285,8 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     return `€ ${parseFloat(price).toFixed(2)}`;
   };
 
-  // ✅ CALCULAR TOTAIS COM IVA E ENVIO (usando items enriquecidos)
-  const calculateTotals = (items = enrichedItems) => {
+  // ✅ CALCULAR TOTAIS COM IVA E ENVIO
+  const calculateTotals = (items = []) => {
     const subtotal =
       items?.reduce(
         (sum, item) => sum + item.quantity * (item.price || 0),
@@ -271,14 +319,10 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
   const originalItems = order.items || [];
   const enrichedItems = await enrichItemsWithPartData(originalItems);
 
-  // Atualizar order com items enriquecidos
-  const enrichedOrder = {
-    ...order,
-    items: enrichedItems,
-  };
-
   const shortQuoteId = getShortQuoteId(orderId);
   const totals = calculateTotals(enrichedItems);
+
+  // [... resto do código do cabeçalho permanece igual ...]
 
   // Cabeçalho do documento
   currentPage.drawText("ORÇAMENTO", {
@@ -328,9 +372,9 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     font: font,
   });
 
-  yPos = pageHeight - 140; // ✅ Ajustado para a nova posição da data
+  yPos = pageHeight - 140;
 
-  // ✅ SEÇÃO DE DADOS DO CLIENTE E EQUIPAMENTO (lado a lado)
+  // ✅ SEÇÃO DE DADOS DO CLIENTE E EQUIPAMENTO
   currentPage.drawText("DADOS DO CLIENTE E EQUIPAMENTO", {
     x: margin,
     y: yPos,
@@ -340,10 +384,10 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
 
   yPos -= 25;
 
-  // ✅ COLUNA ESQUERDA - DADOS DO CLIENTE
+  // COLUNA ESQUERDA - DADOS DO CLIENTE
   let leftYPos = yPos;
   const leftColumnX = margin;
-  const rightColumnX = margin + 250; // Coluna direita começa aos 250px
+  const rightColumnX = margin + 250;
 
   currentPage.drawText("CLIENTE:", {
     x: leftColumnX,
@@ -405,7 +449,7 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     leftYPos -= 15;
   }
 
-  // ✅ COLUNA DIREITA - DADOS DO EQUIPAMENTO
+  // COLUNA DIREITA - DADOS DO EQUIPAMENTO
   let rightYPos = yPos;
 
   currentPage.drawText("EQUIPAMENTO:", {
@@ -418,20 +462,16 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
 
   rightYPos -= 18;
 
-  // ✅ BUSCAR DADOS DO EQUIPAMENTO (de várias fontes possíveis)
+  // Buscar dados do equipamento
   let equipmentModel = "N/A";
   let equipmentSerial = "N/A";
   let equipmentBrand = "N/A";
 
-  // 1. Tentar dos dados manuais (cliente não registrado)
   if (order.manualEquipment?.model) {
     equipmentModel = order.manualEquipment.model;
     equipmentSerial = order.manualEquipment.serialNumber || "N/A";
     equipmentBrand = order.manualEquipment.brand || "N/A";
-  }
-  // 2. Tentar buscar do equipamento registrado (se tiver equipmentId)
-  else if (order.equipmentId) {
-    // Buscar equipamento via ID
+  } else if (order.equipmentId) {
     const equipment = await fetchEquipmentData(order.equipmentId);
     if (equipment) {
       equipmentModel = equipment.model || "N/A";
@@ -470,12 +510,10 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
 
   rightYPos -= 15;
 
-  // ✅ USAR A POSIÇÃO Y MAIS BAIXA ENTRE AS DUAS COLUNAS
   yPos = Math.min(leftYPos, rightYPos);
+  yPos -= 30;
 
-  yPos -= 30; // ✅ Mais espaço antes da tabela
-
-  // ✅ TABELA DE ITENS COM IMAGENS E CORES INTERCALADAS
+  // ✅ TABELA DE ITENS COM IMAGENS MELHORADA
   checkPageSpace(150);
 
   currentPage.drawText("ITENS DO ORÇAMENTO", {
@@ -485,19 +523,18 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     font: boldFont,
   });
 
-  yPos -= 20; // ✅ Mais próximo da tabela
+  yPos -= 20;
 
-  // ✅ CABEÇALHO DA TABELA COM COLUNA PARA IMAGEM (ajustada para não ultrapassar margem)
+  // Cabeçalho da tabela
   const tableHeaders = [
-    "Imagem", // ✅ Mudado de "Img" para "Imagem"
+    "Imagem",
     "Item",
     "Código",
     "Qtd",
     "Preço Un.",
     "Subtotal",
   ];
-  // ✅ Tabela ajustada para não ultrapassar a margem (total: 490px)
-  const columnWidths = [55, 170, 75, 35, 75, 85]; // Mesma largura que o retângulo de envio
+  const columnWidths = [55, 170, 75, 35, 75, 85];
   let xPos = margin;
 
   // Desenhar cabeçalho
@@ -525,7 +562,7 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
 
   yPos -= 25;
 
-  // ✅ PROCESSAR ITENS COM IMAGENS E CORES INTERCALADAS
+  // ✅ PROCESSAR ITENS COM IMAGENS MELHORADO
   if (enrichedItems?.length > 0) {
     for (let idx = 0; idx < enrichedItems.length; idx++) {
       const item = enrichedItems[idx];
@@ -533,33 +570,31 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
       const subtotal = item.quantity * price;
       const hasPrice = price > 0;
 
-      // ✅ VERIFICAR ESPAÇO PARA O ITEM (incluindo possível imagem)
-      const itemHeight = 45; // ✅ Altura maior para imagens maiores
+      // Verificar espaço para o item
+      const itemHeight = 45;
       checkPageSpace(itemHeight + 10);
 
-      // ✅ CORES INTERCALADAS
+      // Cores intercaladas
       let bgColor;
       if (hasPrice) {
-        // Linhas com preço: verde/branco intercalado
         bgColor = idx % 2 === 0 ? rgb(0.9, 1, 0.9) : rgb(1, 1, 1);
       } else {
-        // Linhas sem preço: laranja/branco intercalado
         bgColor = idx % 2 === 0 ? rgb(1, 0.95, 0.8) : rgb(1, 1, 1);
       }
 
-      // ✅ QUEBRAR NOME DO ITEM SE FOR MUITO LONGO
+      // Quebrar nome do item se for muito longo
       const nameLines = wrapText(
         item.name,
         columnWidths[1] - 10,
         font,
         fontSize
       );
-      const maxLines = Math.min(nameLines.length, 3); // Máximo 3 linhas
+      const maxLines = Math.min(nameLines.length, 3);
       const actualItemHeight = Math.max(itemHeight, maxLines * 12 + 10);
 
       xPos = margin;
 
-      // ✅ COLUNA 1: IMAGEM (maior)
+      // ✅ COLUNA 1: IMAGEM (MELHORADA)
       currentPage.drawRectangle({
         x: xPos,
         y: yPos - actualItemHeight,
@@ -570,28 +605,18 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
         color: bgColor,
       });
 
-      // Tentar carregar e mostrar imagem
+      // ✅ PROCESSAR IMAGEM
       try {
-        let imageData = null;
-
-        // Tentar imageHash primeiro, depois src
-        if (item.imageHash) {
-          const libraryImageData = await loadImageFromLibrary(item.imageHash);
-          if (libraryImageData) {
-            imageData = await loadImageData(libraryImageData);
-          }
-        } else if (item.image) {
-          imageData = await loadImageData(item.image);
-        }
+        const imageData = await processItemImage(item);
 
         if (imageData) {
           const partImage = imageData.isJpeg
             ? await pdfDoc.embedJpg(imageData.data)
             : await pdfDoc.embedPng(imageData.data);
 
-          // ✅ Calcular dimensões da imagem para caber na célula (ajustada)
-          const maxImgWidth = columnWidths[0] - 6; // Margem de 3px de cada lado (agora 49px)
-          const maxImgHeight = actualItemHeight - 6; // Margem de 3px em cima e embaixo
+          // Calcular dimensões da imagem
+          const maxImgWidth = columnWidths[0] - 6;
+          const maxImgHeight = actualItemHeight - 6;
 
           let imgWidth = maxImgWidth;
           let imgHeight = (imgWidth * partImage.height) / partImage.width;
@@ -608,7 +633,7 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
             height: imgHeight,
           });
         } else {
-          // Texto placeholder se não tiver imagem
+          // Texto placeholder
           currentPage.drawText("N/A", {
             x: xPos + columnWidths[0] / 2 - 8,
             y: yPos - actualItemHeight / 2 - 4,
@@ -618,20 +643,21 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
           });
         }
       } catch (error) {
-        console.error("Erro ao processar imagem:", error);
+        console.error(`Erro ao processar imagem para ${item.name}:`, error);
         // Fallback para N/A em caso de erro
-        currentPage.drawText("N/A", {
-          x: xPos + columnWidths[0] / 2 - 8,
+        currentPage.drawText("ERRO", {
+          x: xPos + columnWidths[0] / 2 - 12,
           y: yPos - actualItemHeight / 2 - 4,
           size: smallFontSize,
           font: font,
-          color: rgb(0.6, 0.6, 0.6),
+          color: rgb(0.8, 0, 0),
         });
       }
 
       xPos += columnWidths[0];
 
-      // ✅ COLUNA 2: NOME DO ITEM (com quebra de linha)
+      // ✅ COLUNAS RESTANTES (permanecem iguais)
+      // COLUNA 2: NOME DO ITEM
       currentPage.drawRectangle({
         x: xPos,
         y: yPos - actualItemHeight,
@@ -642,7 +668,6 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
         color: bgColor,
       });
 
-      // Desenhar linhas do nome
       nameLines.slice(0, maxLines).forEach((line, lineIndex) => {
         currentPage.drawText(line, {
           x: xPos + 3,
@@ -655,9 +680,9 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
 
       xPos += columnWidths[1];
 
-      // ✅ COLUNAS RESTANTES
+      // COLUNAS RESTANTES
       const remainingValues = [
-        item.code,
+        item.code || "N/A",
         item.quantity.toString(),
         price > 0 ? formatPrice(price) : "A definir",
         price > 0 ? formatPrice(subtotal) : "A definir",
@@ -690,14 +715,18 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
 
       yPos -= actualItemHeight;
     }
+  } else {
+    // Se não há items, mostrar mensagem
   }
 
-  // ✅ ESPAÇO EXTRA APÓS A TABELA
-  yPos -= 20; // Margem extra em baixo da tabela
+  // [... resto do código para totais, observações, etc. permanece igual ...]
 
-  // ✅ SEÇÃO DE ENVIO (se configurado)
+  // ✅ RESTO DO CÓDIGO PARA TOTAIS, ENVIO, ETC.
+  yPos -= 20;
+
+  // SEÇÃO DE ENVIO
   if (order.shippingType && order.shippingPrice > 0) {
-    yPos -= 15; // ✅ Menos espaço antes do título
+    yPos -= 15;
     checkPageSpace(60);
 
     currentPage.drawText("INFORMAÇÕES DE ENVIO", {
@@ -707,9 +736,8 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
       font: boldFont,
     });
 
-    yPos -= 15; // ✅ Mais próximo do retângulo
+    yPos -= 15;
 
-    // Caixa de envio
     const shippingBox = {
       x: margin,
       y: yPos - 30,
@@ -744,11 +772,11 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     yPos -= 40;
   }
 
-  // ✅ TOTAIS COM IVA
+  // TOTAIS
   yPos -= 20;
   checkPageSpace(120);
 
-  const totalWidth = 240; // ✅ Ajustado para alinhar melhor com a tabela
+  const totalWidth = 240;
   const totalX = pageWidth - margin - totalWidth;
 
   // Subtotal
@@ -895,7 +923,7 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
 
   yPos -= 40;
 
-  // ✅ OBSERVAÇÕES
+  // OBSERVAÇÕES
   if (order.clientInfo?.message) {
     yPos -= 20;
     checkPageSpace(80);
@@ -925,7 +953,6 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
       borderWidth: 1,
     });
 
-    // Quebrar texto das observações
     const messageLines = wrapText(
       order.clientInfo.message,
       messageBox.width - 20,
@@ -947,11 +974,10 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     yPos -= 70;
   }
 
-  // ✅ AVISO SOBRE TROCA DE PEÇAS EM CAIXA DESTACADA
+  // AVISO SOBRE TROCA DE PEÇAS
   yPos -= 20;
   checkPageSpace(80);
 
-  // Caixa de aviso
   const warningBox = {
     x: margin,
     y: yPos - 60,
@@ -969,7 +995,6 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     color: rgb(1, 0.95, 0.95),
   });
 
-  // Título do aviso
   currentPage.drawText("AVISO IMPORTANTE", {
     x: warningBox.x + 10,
     y: warningBox.y + 45,
@@ -978,7 +1003,6 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     color: rgb(0.8, 0, 0),
   });
 
-  // Texto do aviso
   const warningText =
     "NÃO SERÁ ACEITE A TROCA DE PEÇAS POR EQUÍVOCO OU ENGANO DE QUEM SOLICITOU.";
   const warningLines = wrapText(
@@ -1013,7 +1037,7 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
 
   yPos -= 80;
 
-  // ✅ ASSINATURAS (estilo similar ao relatório de serviço)
+  // ASSINATURAS
   yPos -= 30;
   checkPageSpace(100);
 
@@ -1073,7 +1097,7 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     font: font,
   });
 
-  // ✅ RODAPÉ COM INFORMAÇÕES DA EMPRESA
+  // RODAPÉ
   const footerY = 40;
   const footerText =
     "NONATO - Assistência Técnica - Tel: 911115479 - Email: service.nonato@gmail.com";
@@ -1095,7 +1119,7 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     color: rgb(0.7, 0.7, 0.7),
   });
 
-  // ✅ NUMERAÇÃO DE PÁGINAS (se mais de uma página)
+  // NUMERAÇÃO DE PÁGINAS
   if (pdfDoc.getPageCount() > 1) {
     const pages = pdfDoc.getPages();
     pages.forEach((page, index) => {
@@ -1109,14 +1133,12 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     });
   }
 
-  // Atualizar nome do arquivo para usar ID encurtado
-  const shortFileName = fileName.replace(orderId, shortQuoteId);
-
   // Salvar PDF
   const pdfBytes = await pdfDoc.save();
+
   return {
     blob: new Blob([pdfBytes], { type: "application/pdf" }),
-    fileName: shortFileName,
+    fileName: fileName.replace(orderId, shortQuoteId),
   };
 };
 
