@@ -1,4 +1,4 @@
-// ✅ EDITORDER.JSX - VERSÃO FOCADA EM ORDENS DE SERVIÇO
+// ✅ EDITORDER.JSX - VERSÃO COM ORÇAMENTO DE PEÇAS INTEGRADO
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -10,6 +10,7 @@ import {
   getDocs,
   query,
   where,
+  setDoc,
 } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import {
@@ -30,6 +31,7 @@ import {
   Plus,
   X,
   ShoppingCart,
+  Euro,
 } from "lucide-react";
 
 // UI Components
@@ -98,6 +100,19 @@ const EditOrder = () => {
   });
 
   // ✅ NOVOS ESTADOS PARA ORÇAMENTO DE PEÇAS
+  const [partsQuoteItems, setPartsQuoteItems] = useState([]);
+  const [partSearchTerm, setPartSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
+
+  // ✅ CONFIGURAÇÕES DE ENVIO E IVA
+  const [shippingConfig, setShippingConfig] = useState({
+    shippingType: "",
+    shippingPrice: 0,
+    includeVat: false,
+    vatRate: 23,
+  });
 
   const [clients, setClients] = useState([]);
   const [equipments, setEquipments] = useState([]);
@@ -108,6 +123,128 @@ const EditOrder = () => {
   const [, setTouched] = useState({});
   const [originalData, setOriginalData] = useState(null);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
+
+  // ✅ FUNÇÃO PARA PESQUISAR PEÇAS
+  const searchPartsByCode = async (searchTerm) => {
+    if (!searchTerm.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      setIsSearching(true);
+      setSearchError("");
+
+      const partsSnapshot = await getDocs(collection(db, "pecas"));
+
+      const results = partsSnapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter(
+          (part) =>
+            part.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            part.name?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .slice(0, 10);
+
+      setSearchResults(results);
+
+      if (results.length === 0) {
+        setSearchError("Nenhuma peça encontrada com esse código/nome");
+      }
+    } catch (err) {
+      console.error("Erro ao pesquisar peças:", err);
+      setSearchError("Erro ao pesquisar peças");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // ✅ DEBOUNCE PARA PESQUISA DE PEÇAS
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (partSearchTerm.trim()) {
+        searchPartsByCode(partSearchTerm);
+      } else {
+        setSearchResults([]);
+        setSearchError("");
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [partSearchTerm]);
+
+  // ✅ FUNÇÃO PARA ADICIONAR PEÇA AO ORÇAMENTO
+  const addPartToQuote = (part) => {
+    const existingIndex = partsQuoteItems.findIndex(
+      (item) => item.id === part.id
+    );
+
+    if (existingIndex >= 0) {
+      const updatedItems = [...partsQuoteItems];
+      updatedItems[existingIndex].quantity += 1;
+      setPartsQuoteItems(updatedItems);
+    } else {
+      const newItem = {
+        id: part.id,
+        name: part.name,
+        code: part.code,
+        quantity: 1,
+        price: 0,
+        imageHash: part.imageHash || null,
+        image: part.image || null,
+      };
+
+      setPartsQuoteItems([...partsQuoteItems, newItem]);
+    }
+
+    setPartSearchTerm("");
+    setSearchResults([]);
+  };
+
+  // ✅ FUNÇÃO PARA REMOVER PEÇA DO ORÇAMENTO
+  const removePartFromQuote = (partId) => {
+    setPartsQuoteItems(partsQuoteItems.filter((item) => item.id !== partId));
+  };
+
+  // ✅ FUNÇÃO PARA ATUALIZAR QUANTIDADE
+  const updatePartQuantity = (partId, quantity) => {
+    const newQuantity = Math.max(1, parseInt(quantity) || 1);
+    setPartsQuoteItems(
+      partsQuoteItems.map((item) =>
+        item.id === partId ? { ...item, quantity: newQuantity } : item
+      )
+    );
+  };
+
+  // ✅ FUNÇÃO PARA ATUALIZAR PREÇO
+  const updatePartPrice = (partId, price) => {
+    const newPrice = Math.max(0, parseFloat(price) || 0);
+    setPartsQuoteItems(
+      partsQuoteItems.map((item) =>
+        item.id === partId ? { ...item, price: newPrice } : item
+      )
+    );
+  };
+
+  // ✅ CALCULAR TOTAIS DO ORÇAMENTO
+  const calculateSubtotal = () => {
+    return partsQuoteItems.reduce((total, item) => {
+      return total + item.quantity * (item.price || 0);
+    }, 0);
+  };
+
+  const calculateTotal = () => {
+    const subtotal = calculateSubtotal();
+    const shipping = parseFloat(shippingConfig.shippingPrice) || 0;
+    const totalBeforeVat = subtotal + shipping;
+
+    if (shippingConfig.includeVat) {
+      const vatAmount = (totalBeforeVat * shippingConfig.vatRate) / 100;
+      return totalBeforeVat + vatAmount;
+    }
+
+    return totalBeforeVat;
+  };
 
   // ✅ BUSCAR INFORMAÇÕES DO EQUIPAMENTO SELECIONADO
   useEffect(() => {
@@ -182,6 +319,15 @@ const EditOrder = () => {
             pecas: false,
           }
         );
+
+        // ✅ CARREGAR DADOS DO ORÇAMENTO DE PEÇAS (SE EXISTIR)
+        setPartsQuoteItems(orderData.partsQuoteItems || []);
+        setShippingConfig({
+          shippingType: orderData.shippingType || "",
+          shippingPrice: orderData.shippingPrice || 0,
+          includeVat: orderData.includeVat || false,
+          vatRate: orderData.vatRate || 23,
+        });
 
         // Process clients and equipments
         const clientsData = clientsSnapshot.docs.map((doc) => ({
@@ -298,6 +444,22 @@ const EditOrder = () => {
       ...prev,
       [name]: checked,
     }));
+
+    // ✅ LIMPAR ORÇAMENTO DE PEÇAS SE DESMARCADO
+    if (name === "pecas" && !checked) {
+      setPartsQuoteItems([]);
+      setShippingConfig({
+        shippingType: "",
+        shippingPrice: 0,
+        includeVat: false,
+        vatRate: 23,
+      });
+    }
+  };
+
+  // ✅ FUNÇÃO PARA FORMATAR PREÇO
+  const formatPrice = (price) => {
+    return `€ ${parseFloat(price || 0).toFixed(2)}`;
   };
 
   const handleSubmit = async (e) => {
@@ -307,11 +469,58 @@ const EditOrder = () => {
       setIsSubmitting(true);
       setError(null);
 
+      // ✅ DADOS PRINCIPAIS DA ORDEM
       const serviceData = {
         ...formData,
         checklist,
         lastUpdated: new Date(),
       };
+
+      // ✅ SE ORÇAMENTO DE PEÇAS ESTIVER MARCADO, INCLUIR DADOS
+      if (checklist.pecas) {
+        serviceData.partsQuoteItems = partsQuoteItems;
+        serviceData.shippingType = shippingConfig.shippingType;
+        serviceData.shippingPrice = shippingConfig.shippingPrice;
+        serviceData.includeVat = shippingConfig.includeVat;
+        serviceData.vatRate = shippingConfig.vatRate;
+
+        // ✅ SE HÁ PEÇAS, CRIAR TAMBÉM UM ORÇAMENTO DE PEÇAS SEPARADO
+        if (partsQuoteItems.length > 0) {
+          const partsQuoteData = {
+            date: formData.date,
+            isUnregisteredClient: formData.isUnregisteredClient,
+            unregisteredClient: formData.unregisteredClient,
+            manualEquipment: formData.manualEquipment,
+            clientId: formData.clientId,
+            equipmentId: formData.equipmentId,
+            serviceType: "Orçamento de Peças da Ordem " + orderId,
+            status: "Aberto",
+            description: `Orçamento de peças gerado da ordem de serviço ${orderId}`,
+            resultDescription: formData.resultDescription || "",
+            pontosEmAberto: formData.pontosEmAberto || "",
+            partsQuoteItems,
+            shippingType: shippingConfig.shippingType,
+            shippingPrice: shippingConfig.shippingPrice,
+            includeVat: shippingConfig.includeVat,
+            vatRate: shippingConfig.vatRate,
+            isQuote: true,
+            originalOrderId: orderId,
+            source: "service-order",
+            createdAt: new Date(),
+            lastUpdated: new Date(),
+          };
+
+          // Criar orçamento de peças separado
+          await setDoc(doc(collection(db, "ordens")), partsQuoteData);
+        }
+      } else {
+        // ✅ SE DESMARCADO, REMOVER DADOS DE ORÇAMENTO
+        delete serviceData.partsQuoteItems;
+        delete serviceData.shippingType;
+        delete serviceData.shippingPrice;
+        delete serviceData.includeVat;
+        delete serviceData.vatRate;
+      }
 
       await updateDoc(doc(db, "ordens", orderId), serviceData);
       navigate("/app/manage-orders");
@@ -337,7 +546,16 @@ const EditOrder = () => {
     originalData &&
     (JSON.stringify(formData) !== JSON.stringify(originalData) ||
       JSON.stringify(checklist) !==
-        JSON.stringify(originalData.checklist || {}));
+        JSON.stringify(originalData.checklist || {}) ||
+      JSON.stringify(partsQuoteItems) !==
+        JSON.stringify(originalData.partsQuoteItems || []) ||
+      JSON.stringify(shippingConfig) !==
+        JSON.stringify({
+          shippingType: originalData.shippingType || "",
+          shippingPrice: originalData.shippingPrice || 0,
+          includeVat: originalData.includeVat || false,
+          vatRate: originalData.vatRate || 23,
+        }));
 
   return (
     <div className="space-y-6">
@@ -902,6 +1120,320 @@ const EditOrder = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* ✅ SEÇÃO DE ORÇAMENTO DE PEÇAS (CONDICIONAL) */}
+        {checklist.pecas && (
+          <Card className="bg-zinc-800 border-zinc-700">
+            <CardHeader>
+              <CardTitle className="text-lg text-white flex items-center">
+                <ShoppingCart className="h-5 w-5 mr-2 text-purple-400" />
+                Orçamento de Peças
+                <Badge className="ml-2 bg-purple-500/20 text-purple-400">
+                  {partsQuoteItems.length} item(s)
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Pesquisa de Peças */}
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <Input
+                    type="text"
+                    value={partSearchTerm}
+                    onChange={(e) => setPartSearchTerm(e.target.value)}
+                    placeholder="Pesquisar peças por código ou nome..."
+                    className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                  />
+                  {isSearching && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4 animate-spin" />
+                  )}
+                </div>
+
+                {searchError && (
+                  <Alert className="border-amber-500 bg-amber-500/10">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription className="text-amber-400">
+                      {searchError}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Resultados da pesquisa */}
+                {searchResults.length > 0 && (
+                  <div className="border border-zinc-600 rounded-lg max-h-60 overflow-y-auto">
+                    {searchResults.map((part) => (
+                      <div
+                        key={part.id}
+                        className="flex items-center justify-between p-3 border-b border-zinc-700 last:border-b-0 hover:bg-zinc-700/50 cursor-pointer"
+                        onClick={() => addPartToQuote(part)}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-white">
+                              {part.name}
+                            </span>
+                            <Badge className="bg-blue-500/20 text-blue-400 text-xs">
+                              {part.code}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-zinc-400 mt-1">
+                            {part.description || "Sem descrição"}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-green-600 text-green-400 hover:bg-green-500/20"
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Adicionar
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Lista de Peças Adicionadas */}
+              {partsQuoteItems.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-lg font-medium text-white">
+                      Peças Selecionadas
+                    </h4>
+                    <div className="text-right">
+                      <p className="text-sm text-zinc-400">Subtotal</p>
+                      <p className="text-xl font-bold text-green-400">
+                        {formatPrice(calculateSubtotal())}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {partsQuoteItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="grid grid-cols-12 gap-4 items-center p-4 bg-zinc-700/30 rounded-lg border border-zinc-600"
+                      >
+                        <div className="col-span-12 md:col-span-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Package className="h-4 w-4 text-purple-400" />
+                            <span className="font-medium text-white">
+                              {item.name}
+                            </span>
+                          </div>
+                          <p className="text-sm text-zinc-400">
+                            Código: {item.code}
+                          </p>
+                        </div>
+
+                        <div className="col-span-6 md:col-span-2">
+                          <label className="text-sm text-zinc-400 block mb-1">
+                            Qtd
+                          </label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) =>
+                              updatePartQuantity(item.id, e.target.value)
+                            }
+                            className="bg-zinc-900 border-zinc-700 text-white text-center"
+                          />
+                        </div>
+
+                        <div className="col-span-6 md:col-span-3">
+                          <label className="text-sm text-zinc-400 block mb-1">
+                            Preço Unitário (€)
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={item.price}
+                            onChange={(e) =>
+                              updatePartPrice(item.id, e.target.value)
+                            }
+                            className="bg-zinc-900 border-zinc-700 text-white"
+                            placeholder="0.00"
+                          />
+                        </div>
+
+                        <div className="col-span-9 md:col-span-2">
+                          <label className="text-sm text-zinc-400 block mb-1">
+                            Subtotal
+                          </label>
+                          <div className="bg-zinc-800 rounded px-3 py-2 text-center border border-zinc-600">
+                            <span className="text-green-400 font-medium">
+                              {formatPrice(item.quantity * item.price)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="col-span-3 md:col-span-1 flex justify-end">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => removePartFromQuote(item.id)}
+                            className="bg-red-600 hover:bg-red-700 h-8 w-8 p-0"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Configurações de Envio e IVA */}
+                  <div className="mt-6 p-4 bg-zinc-700/50 rounded-lg border border-zinc-600">
+                    <h5 className="text-md font-medium text-white mb-4">
+                      Configurações do Orçamento
+                    </h5>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-zinc-400">
+                          Tipo de Envio
+                        </label>
+                        <Input
+                          type="text"
+                          value={shippingConfig.shippingType}
+                          onChange={(e) =>
+                            setShippingConfig((prev) => ({
+                              ...prev,
+                              shippingType: e.target.value,
+                            }))
+                          }
+                          placeholder="Ex: Correios, Transportadora..."
+                          className="bg-zinc-900 border-zinc-700 text-white"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-zinc-400">
+                          Preço do Envio (€)
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={shippingConfig.shippingPrice}
+                          onChange={(e) =>
+                            setShippingConfig((prev) => ({
+                              ...prev,
+                              shippingPrice: e.target.value,
+                            }))
+                          }
+                          placeholder="0.00"
+                          className="bg-zinc-900 border-zinc-700 text-white"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-zinc-400">
+                          Taxa de IVA (%)
+                        </label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={shippingConfig.vatRate}
+                          onChange={(e) =>
+                            setShippingConfig((prev) => ({
+                              ...prev,
+                              vatRate: e.target.value,
+                            }))
+                          }
+                          className="bg-zinc-900 border-zinc-700 text-white"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="includeVat"
+                          checked={shippingConfig.includeVat}
+                          onChange={(e) =>
+                            setShippingConfig((prev) => ({
+                              ...prev,
+                              includeVat: e.target.checked,
+                            }))
+                          }
+                          className="rounded border-zinc-600"
+                        />
+                        <label
+                          htmlFor="includeVat"
+                          className="text-sm text-zinc-400"
+                        >
+                          Incluir IVA no orçamento
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Resumo Total */}
+                  <div className="mt-4 p-4 bg-zinc-700/50 rounded-lg border border-zinc-600">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-white">Subtotal Peças:</span>
+                        <span className="text-white">
+                          {formatPrice(calculateSubtotal())}
+                        </span>
+                      </div>
+
+                      {shippingConfig.shippingPrice > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-white">Envio:</span>
+                          <span className="text-white">
+                            {formatPrice(shippingConfig.shippingPrice)}
+                          </span>
+                        </div>
+                      )}
+
+                      {shippingConfig.includeVat && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-white">
+                            IVA ({shippingConfig.vatRate}%):
+                          </span>
+                          <span className="text-white">
+                            {formatPrice(
+                              ((calculateSubtotal() +
+                                parseFloat(shippingConfig.shippingPrice || 0)) *
+                                shippingConfig.vatRate) /
+                                100
+                            )}
+                          </span>
+                        </div>
+                      )}
+
+                      <hr className="border-zinc-600" />
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-lg font-bold text-white">
+                          Total Final:
+                        </span>
+                        <span className="text-xl font-bold text-green-400">
+                          {formatPrice(calculateTotal())}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {partsQuoteItems.length === 0 && (
+                <div className="text-center py-8">
+                  <ShoppingCart className="h-12 w-12 text-zinc-600 mx-auto mb-3" />
+                  <p className="text-zinc-400">Nenhuma peça adicionada ainda</p>
+                  <p className="text-sm text-zinc-500">
+                    Use a pesquisa acima para encontrar e adicionar peças
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Submit Button */}
         <Button

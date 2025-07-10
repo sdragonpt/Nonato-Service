@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../../firebase";
 import generateServiceOrderPDF from "./pdf/generateServiceOrderPDF";
+import generateQuotePDF from "./pdf/generateQuotePDF";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { FileOpener } from "@capacitor-community/file-opener";
 import {
@@ -32,6 +33,10 @@ import {
   Edit,
   UserCheck,
   UserX,
+  ShoppingCart,
+  Package,
+  Euro,
+  Receipt,
 } from "lucide-react";
 
 // UI Components
@@ -64,8 +69,49 @@ const OrderDetail = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isGeneratingQuotePDF, setIsGeneratingQuotePDF] = useState(false);
   const [error, setError] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // ✅ FUNÇÃO PARA FORMATAR PREÇO
+  const formatPrice = (price) => {
+    return `€ ${parseFloat(price || 0).toFixed(2)}`;
+  };
+
+  // ✅ CALCULAR TOTAIS DO ORÇAMENTO
+  const calculateQuoteTotals = () => {
+    if (!order?.partsQuoteItems?.length) {
+      return {
+        subtotal: 0,
+        shipping: 0,
+        vatAmount: 0,
+        totalWithVat: 0,
+        totalBeforeVat: 0,
+      };
+    }
+
+    const subtotal = order.partsQuoteItems.reduce((total, item) => {
+      return total + item.quantity * (item.price || 0);
+    }, 0);
+
+    const shipping = parseFloat(order.shippingPrice) || 0;
+    const totalBeforeVat = subtotal + shipping;
+
+    const vatAmount =
+      order.includeVat && order.vatRate
+        ? (totalBeforeVat * order.vatRate) / 100
+        : 0;
+
+    const totalWithVat = totalBeforeVat + vatAmount;
+
+    return {
+      subtotal,
+      shipping,
+      vatAmount,
+      totalWithVat,
+      totalBeforeVat,
+    };
+  };
 
   const fetchData = async () => {
     try {
@@ -245,6 +291,95 @@ const OrderDetail = () => {
     }
   };
 
+  // ✅ FUNÇÃO PARA GERAR PDF DO ORÇAMENTO
+  const handleGenerateQuotePDF = async () => {
+    try {
+      setIsGeneratingQuotePDF(true);
+      setError(null);
+
+      const clientName = order.isUnregisteredClient
+        ? order.unregisteredClient?.name || "Cliente"
+        : client?.name || "Cliente";
+
+      const fileName = `Orcamento_${clientName}_${orderId}.pdf`;
+
+      // ✅ PREPARAR DADOS DO ORÇAMENTO
+      const quoteData = {
+        ...order,
+        items: order.partsQuoteItems || [],
+        clientInfo: order.isUnregisteredClient
+          ? {
+              name: order.unregisteredClient?.name || "",
+              email: order.unregisteredClient?.email || "",
+              phone: order.unregisteredClient?.phone || "",
+              company: order.unregisteredClient?.company || "",
+            }
+          : {
+              name: client?.name || "",
+              email: client?.email || "",
+              phone: client?.phone || "",
+              company: client?.company || "",
+            },
+      };
+
+      const pdfResult = await generateQuotePDF(
+        orderId,
+        quoteData,
+        order.isUnregisteredClient ? order.unregisteredClient : client,
+        fileName
+      );
+
+      // Handle mobile or web download
+      if (window?.Capacitor?.isNative) {
+        try {
+          // Convert Blob to Base64
+          const reader = new FileReader();
+          reader.readAsDataURL(pdfResult.blob);
+          reader.onloadend = async () => {
+            const base64Data = reader.result.split(",")[1];
+
+            // Save file
+            await Filesystem.writeFile({
+              path: pdfResult.fileName,
+              data: base64Data,
+              directory: Directory.Documents,
+            });
+
+            // Get file URI
+            const { uri } = await Filesystem.getUri({
+              directory: Directory.Documents,
+              path: pdfResult.fileName,
+            });
+
+            // Open file
+            await FileOpener.open({
+              filePath: uri,
+              contentType: "application/pdf",
+            });
+          };
+        } catch (error) {
+          console.error("Erro ao salvar/abrir arquivo:", error);
+          throw error;
+        }
+      } else {
+        // Web download
+        const url = URL.createObjectURL(pdfResult.blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = pdfResult.fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      console.error("Erro ao gerar PDF do orçamento:", err);
+      setError("Erro ao gerar PDF do orçamento. Por favor, tente novamente.");
+    } finally {
+      setIsGeneratingQuotePDF(false);
+    }
+  };
+
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
@@ -307,6 +442,11 @@ const OrderDetail = () => {
     Fechado: "bg-green-500/10 text-green-400",
   };
 
+  // ✅ CALCULAR TOTAIS DO ORÇAMENTO
+  const quoteTotals = calculateQuoteTotals();
+  const hasQuote =
+    order?.checklist?.pecas && order?.partsQuoteItems?.length > 0;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -357,6 +497,12 @@ const OrderDetail = () => {
                   ? "Normal"
                   : "Baixa"}
               </Badge>
+              {hasQuote && (
+                <Badge className="bg-purple-500/10 text-purple-400">
+                  <ShoppingCart className="h-3 w-3 mr-1" />
+                  Com Orçamento
+                </Badge>
+              )}
             </div>
 
             {/* Action Buttons */}
@@ -402,8 +548,24 @@ const OrderDetail = () => {
                 ) : (
                   <FileText className="w-4 h-4 mr-2" />
                 )}
-                <span className="sm:inline">Gerar PDF</span>
+                <span className="sm:inline">PDF Ordem</span>
               </Button>
+
+              {/* ✅ BOTÃO PARA GERAR PDF DO ORÇAMENTO */}
+              {hasQuote && (
+                <Button
+                  onClick={handleGenerateQuotePDF}
+                  className="bg-purple-600 hover:bg-purple-700 flex-1 sm:flex-none"
+                  disabled={isGeneratingQuotePDF}
+                >
+                  {isGeneratingQuotePDF ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Receipt className="w-4 h-4 mr-2" />
+                  )}
+                  <span className="sm:inline">PDF Orçamento</span>
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -609,14 +771,162 @@ const OrderDetail = () => {
                     value ? "text-green-400" : "text-zinc-400"
                   }`}
                 >
-                  {key.charAt(0).toUpperCase() +
-                    key.slice(1).replace(/([A-Z])/g, " $1")}
+                  {key === "concluido"
+                    ? "Serviço Concluído"
+                    : key === "retorno"
+                    ? "Retorno Necessário"
+                    : key === "funcionarios"
+                    ? "Instrução dos Funcionários"
+                    : key === "documentacao"
+                    ? "Entrega da Documentação"
+                    : key === "producao"
+                    ? "Liberação para Produção"
+                    : key === "pecas"
+                    ? "Orçamento de Peças"
+                    : key.charAt(0).toUpperCase() +
+                      key.slice(1).replace(/([A-Z])/g, " $1")}
                 </span>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
+
+      {/* ✅ SEÇÃO DE ORÇAMENTO DE PEÇAS (SE EXISTIR) */}
+      {hasQuote && (
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white flex items-center">
+              <ShoppingCart className="h-5 w-5 mr-2 text-purple-400" />
+              Orçamento de Peças
+              <Badge className="ml-2 bg-purple-500/20 text-purple-400">
+                {order.partsQuoteItems.length} item(s)
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Lista de Peças */}
+            <div className="space-y-3">
+              {order.partsQuoteItems.map((item, index) => (
+                <div
+                  key={item.id || index}
+                  className="grid grid-cols-12 gap-4 items-center p-3 bg-zinc-700/30 rounded-lg border border-zinc-600"
+                >
+                  <div className="col-span-12 md:col-span-5">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Package className="h-4 w-4 text-purple-400" />
+                      <span className="font-medium text-white">
+                        {item.name}
+                      </span>
+                    </div>
+                    <p className="text-sm text-zinc-400">
+                      Código: {item.code || "N/A"}
+                    </p>
+                  </div>
+
+                  <div className="col-span-4 md:col-span-2">
+                    <p className="text-sm text-zinc-400">Quantidade</p>
+                    <p className="text-white font-medium">{item.quantity}</p>
+                  </div>
+
+                  <div className="col-span-4 md:col-span-2">
+                    <p className="text-sm text-zinc-400">Preço Unitário</p>
+                    <p className="text-white font-medium">
+                      {formatPrice(item.price)}
+                    </p>
+                  </div>
+
+                  <div className="col-span-4 md:col-span-3">
+                    <p className="text-sm text-zinc-400">Subtotal</p>
+                    <p className="text-green-400 font-medium">
+                      {formatPrice(item.quantity * (item.price || 0))}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Informações de Envio */}
+            {order.shippingType && (
+              <div className="mt-4 p-3 bg-zinc-700/50 rounded-lg border border-zinc-600">
+                <h5 className="text-sm font-medium text-white mb-2">
+                  Informações de Envio
+                </h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-zinc-400">Tipo de Envio</p>
+                    <p className="text-white">{order.shippingType}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-zinc-400">Preço do Envio</p>
+                    <p className="text-white">
+                      {formatPrice(order.shippingPrice)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Resumo de Totais */}
+            <div className="mt-4 p-4 bg-zinc-700/50 rounded-lg border border-zinc-600">
+              <h5 className="text-md font-medium text-white mb-3">
+                Resumo do Orçamento
+              </h5>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-white">Subtotal Peças:</span>
+                  <span className="text-white">
+                    {formatPrice(quoteTotals.subtotal)}
+                  </span>
+                </div>
+
+                {quoteTotals.shipping > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-white">Envio:</span>
+                    <span className="text-white">
+                      {formatPrice(quoteTotals.shipping)}
+                    </span>
+                  </div>
+                )}
+
+                {order.includeVat && quoteTotals.vatAmount > 0 && (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white">Total s/ IVA:</span>
+                      <span className="text-white">
+                        {formatPrice(quoteTotals.totalBeforeVat)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white">
+                        IVA ({order.vatRate}%):
+                      </span>
+                      <span className="text-white">
+                        {formatPrice(quoteTotals.vatAmount)}
+                      </span>
+                    </div>
+                  </>
+                )}
+
+                <hr className="border-zinc-600" />
+
+                <div className="flex justify-between items-center">
+                  <span className="text-lg font-bold text-white">
+                    Total Final:
+                  </span>
+                  <span className="text-xl font-bold text-green-400">
+                    {formatPrice(
+                      order.includeVat
+                        ? quoteTotals.totalWithVat
+                        : quoteTotals.totalBeforeVat
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Workdays Card */}
       <Card className="bg-zinc-800 border-zinc-700">
