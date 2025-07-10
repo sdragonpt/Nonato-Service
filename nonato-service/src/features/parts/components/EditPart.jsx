@@ -4,6 +4,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../../../firebase.jsx";
 import { useCategories } from "../../../context/CategoriesContext.jsx";
 import {
+  incrementPartCount,
+  decrementPartCount,
+} from "../../../utils/MetadataCounters.js";
+import {
   ArrowLeft,
   Camera,
   Loader2,
@@ -398,6 +402,32 @@ const EditPart = () => {
         );
         if (subcategory) {
           subcategoryName = subcategory.name;
+        }
+      }
+
+      // ✅ NOVO: Detectar mudanças nas categorias para atualizar contadores
+      const oldCategoryId = originalData?.categoryId || null;
+      const oldSubcategoryId = originalData?.subcategoryId || null;
+      const newCategoryId = formDataToSave.categoryId || null;
+      const newSubcategoryId = formDataToSave.subcategoryId || null;
+
+      const categoryChanged = oldCategoryId !== newCategoryId;
+      const subcategoryChanged = oldSubcategoryId !== newSubcategoryId;
+
+      // Atualizar contadores apenas se houve mudança
+      if (categoryChanged || subcategoryChanged) {
+        console.log("🔄 Categorias alteradas, atualizando contadores...");
+
+        // Decrementar da categoria/subcategoria antiga
+        if (oldCategoryId || oldSubcategoryId) {
+          await decrementPartCount(oldCategoryId, oldSubcategoryId);
+          console.log("➖ Decrementado:", oldCategoryId, oldSubcategoryId);
+        }
+
+        // Incrementar na nova categoria/subcategoria
+        if (newCategoryId || newSubcategoryId) {
+          await incrementPartCount(newCategoryId, newSubcategoryId);
+          console.log("➕ Incrementado:", newCategoryId, newSubcategoryId);
         }
       }
 

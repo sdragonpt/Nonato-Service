@@ -3,6 +3,7 @@ import { doc, setDoc, getDoc, increment } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useNavigate } from "react-router-dom";
 import { useCategories } from "../../../context/CategoriesContext.jsx";
+import { incrementPartCount } from "../../../utils/MetadataCounters.js";
 import {
   ArrowLeft,
   Camera,
@@ -330,6 +331,11 @@ const AddPart = () => {
         categoryName,
         subcategoryName,
       });
+
+      incrementPartCount(
+        formDataToSave.categoryId || null,
+        formDataToSave.subcategoryId || null
+      );
 
       navigate("/app/parts-library");
     } catch (err) {
