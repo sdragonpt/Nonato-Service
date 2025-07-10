@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { doc, getDoc, updateDoc, setDoc, increment } from "firebase/firestore";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../../../firebase.jsx";
@@ -43,9 +43,65 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
 
+// ✅ HOOK para compatibilidade com PCs antigos
+const useOldBrowserSafe = () => {
+  const mounted = useRef(true);
+  const timeouts = useRef([]);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      // Limpar todos os timeouts pendentes
+      timeouts.current.forEach((id) => clearTimeout(id));
+    };
+  }, []);
+
+  const safeSetState = (setter, delay = 200) => {
+    return new Promise((resolve) => {
+      const timeoutId = setTimeout(() => {
+        if (mounted.current) {
+          try {
+            setter();
+            resolve(true);
+          } catch (error) {
+            console.warn("Estado não atualizado (PC antigo):", error);
+            resolve(false);
+          }
+        }
+      }, delay);
+      timeouts.current.push(timeoutId);
+    });
+  };
+
+  const safeNavigate = (navigate, path, delay = 800) => {
+    return new Promise((resolve) => {
+      const timeoutId = setTimeout(() => {
+        if (mounted.current) {
+          try {
+            console.log("🔄 Navegando de forma segura para:", path);
+            navigate(path);
+            resolve(true);
+          } catch (error) {
+            console.warn("Navigate falhou, usando fallback:", error);
+            window.location.href = path;
+            resolve(true);
+          }
+        }
+      }, delay);
+      timeouts.current.push(timeoutId);
+    });
+  };
+
+  return { safeSetState, safeNavigate, isMounted: () => mounted.current };
+};
+
 const EditPart = () => {
   const { partId } = useParams();
   const navigate = useNavigate();
+
+  // ✅ NOVO: Hook para compatibilidade com PCs antigos
+  const { safeSetState, safeNavigate } = useOldBrowserSafe();
 
   const {
     categories,
@@ -78,6 +134,19 @@ const EditPart = () => {
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [isCreatingSubcategory, setIsCreatingSubcategory] = useState(false);
+
+  // ✅ NOVO: Ordenar categorias alfabeticamente
+  const sortedCategories = categories.sort((a, b) =>
+    a.name.localeCompare(b.name, "pt-PT")
+  );
+
+  // ✅ MODIFICADO: Ordenar subcategorias alfabeticamente
+  const subcategories =
+    formData.categoryId && formData.categoryId !== "none"
+      ? getSubcategoriesByParent(formData.categoryId).sort((a, b) =>
+          a.name.localeCompare(b.name, "pt-PT")
+        )
+      : [];
 
   // Função para gerar IDs únicos
   const generateUniqueId = () => {
@@ -171,11 +240,6 @@ const EditPart = () => {
   const handleGoToPartDetail = () => {
     window.location.href = `/app/part/${partId}`;
   };
-
-  const subcategories =
-    formData.categoryId && formData.categoryId !== "none"
-      ? getSubcategoriesByParent(formData.categoryId)
-      : [];
 
   // Fetch part data
   useEffect(() => {
@@ -485,27 +549,21 @@ const EditPart = () => {
 
       await updateDoc(partRef, updateData);
 
-      // ✅ NOVO: Redirecionar para o detalhe da peça para verificar alterações
+      // ✅ MODIFICADO: Redirecionar de forma segura para PCs antigos
       console.log(
-        "✅ Peça atualizada com sucesso, redirecionando para o detalhe..."
+        "✅ Peça atualizada com sucesso, navegando de forma segura..."
       );
 
-      // ✅ OTIMIZADO: Tentar navigate primeiro (mais rápido)
-      try {
-        navigate(`/app/part/${partId}`);
-      } catch (navError) {
-        console.warn("Fallback para redirecionamento:", navError);
-        // Fallback para computadores antigos
-        setTimeout(() => {
-          window.location.href = `/app/part/${partId}`;
-        }, 500);
-      }
+      // ✅ Aguardar mais tempo e navegar com fallback robusto
+      await safeNavigate(navigate, `/app/part/${partId}`, 1200);
     } catch (err) {
       console.error("Erro ao atualizar peça:", err);
       setError("Erro ao salvar alterações. Por favor, tente novamente.");
-      setIsSubmitting(false); // ✅ Só resetar o loading se houver erro
+
+      // ✅ Só resetar o loading se houver erro (com delay seguro)
+      await safeSetState(() => setIsSubmitting(false), 300);
     }
-    // ✅ REMOVIDO: Não resetar isSubmitting aqui para manter o loading durante o refresh
+    // ✅ Não resetar isSubmitting no sucesso para manter loading durante navegação
   };
 
   const hasChanges =
@@ -740,7 +798,8 @@ const EditPart = () => {
                 className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
               >
                 <option value="none">Nenhuma</option>
-                {categories.map((category) => (
+                {/* ✅ MODIFICADO: Usar categorias ordenadas alfabeticamente */}
+                {sortedCategories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
                   </option>
@@ -784,6 +843,7 @@ const EditPart = () => {
                   className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-white disabled:opacity-50"
                 >
                   <option value="none">Nenhuma</option>
+                  {/* ✅ JÁ MODIFICADO: subcategories já estão ordenadas acima */}
                   {subcategories.map((subcategory) => (
                     <option key={subcategory.id} value={subcategory.id}>
                       {subcategory.name}
@@ -809,7 +869,7 @@ const EditPart = () => {
           {isSubmitting ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Salvando e abrindo detalhe da peça...
+              Salvando e redirecionando...
             </>
           ) : (
             <>
@@ -819,13 +879,17 @@ const EditPart = () => {
           )}
         </Button>
 
-        {/* ✅ NOVO: Aviso sobre o redirecionamento */}
+        {/* ✅ MODIFICADO: Aviso melhorado sobre o redirecionamento */}
         {isSubmitting && (
           <Alert className="border-blue-500 bg-blue-500/10">
             <Loader2 className="h-4 w-4 animate-spin" />
             <AlertDescription className="text-blue-400">
-              Salvando alterações... Será redirecionado para o detalhe da peça
-              para verificar as mudanças.
+              💾 Salvando alterações... Será redirecionado para verificar as
+              mudanças.
+              <br />
+              <span className="text-xs text-blue-300">
+                Em PCs antigos este processo pode demorar alguns segundos.
+              </span>
             </AlertDescription>
           </Alert>
         )}

@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { doc, setDoc, getDoc, increment } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useCategories } from "../../../context/CategoriesContext.jsx";
 import { incrementPartCount } from "../../../utils/MetadataCounters.js";
 import {
@@ -39,8 +39,69 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
 
+// ✅ HOOK para compatibilidade com PCs antigos
+const useOldBrowserSafe = () => {
+  const mounted = useRef(true);
+  const timeouts = useRef([]);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      // Limpar todos os timeouts pendentes
+      timeouts.current.forEach((id) => clearTimeout(id));
+    };
+  }, []);
+
+  const safeSetState = (setter, delay = 200) => {
+    return new Promise((resolve) => {
+      const timeoutId = setTimeout(() => {
+        if (mounted.current) {
+          try {
+            setter();
+            resolve(true);
+          } catch (error) {
+            console.warn("Estado não atualizado (PC antigo):", error);
+            resolve(false);
+          }
+        }
+      }, delay);
+      timeouts.current.push(timeoutId);
+    });
+  };
+
+  const safeNavigate = (navigate, path, delay = 800) => {
+    return new Promise((resolve) => {
+      const timeoutId = setTimeout(() => {
+        if (mounted.current) {
+          try {
+            console.log("🔄 Navegando de forma segura para:", path);
+            navigate(path);
+            resolve(true);
+          } catch (error) {
+            console.warn("Navigate falhou, usando fallback:", error);
+            window.location.href = path;
+            resolve(true);
+          }
+        }
+      }, delay);
+      timeouts.current.push(timeoutId);
+    });
+  };
+
+  return { safeSetState, safeNavigate, isMounted: () => mounted.current };
+};
+
 const AddPart = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // ✅ NOVO: Hook para compatibilidade com PCs antigos
+  const { safeSetState, safeNavigate } = useOldBrowserSafe();
+
+  // ✅ NOVO: Pegar categoria/subcategoria da URL
+  const preSelectedCategoryId = searchParams.get("categoryId");
+  const preSelectedSubcategoryId = searchParams.get("subcategoryId");
 
   const {
     categories,
@@ -59,9 +120,12 @@ const AddPart = () => {
     subcategoryId: "none",
   });
 
+  // ✅ MODIFICADO: Ordenar subcategorias alfabeticamente
   const subcategories =
     formData.categoryId && formData.categoryId !== "none"
-      ? getSubcategoriesByParent(formData.categoryId)
+      ? getSubcategoriesByParent(formData.categoryId).sort((a, b) =>
+          a.name.localeCompare(b.name, "pt-PT")
+        )
       : [];
 
   const [image, setImage] = useState(null);
@@ -76,6 +140,51 @@ const AddPart = () => {
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [isCreatingSubcategory, setIsCreatingSubcategory] = useState(false);
+
+  // ✅ NOVO: Efeito para pré-selecionar categoria/subcategoria da URL
+  useEffect(() => {
+    if (categories.length > 0 && !categoriesLoading) {
+      // Verificar se a categoria pré-selecionada existe
+      if (preSelectedCategoryId) {
+        const categoryExists = categories.find(
+          (cat) => cat.id === preSelectedCategoryId
+        );
+        if (categoryExists) {
+          setFormData((prev) => ({
+            ...prev,
+            categoryId: preSelectedCategoryId,
+            subcategoryId: "none", // Resetar subcategoria primeiro
+          }));
+
+          // Se também há subcategoria pré-selecionada, aplicar após um delay
+          if (preSelectedSubcategoryId) {
+            setTimeout(() => {
+              const subcategoryExists = getSubcategoriesByParent(
+                preSelectedCategoryId
+              ).find((sub) => sub.id === preSelectedSubcategoryId);
+              if (subcategoryExists) {
+                setFormData((prev) => ({
+                  ...prev,
+                  subcategoryId: preSelectedSubcategoryId,
+                }));
+              }
+            }, 100);
+          }
+        }
+      }
+    }
+  }, [
+    categories,
+    categoriesLoading,
+    preSelectedCategoryId,
+    preSelectedSubcategoryId,
+    getSubcategoriesByParent,
+  ]);
+
+  // ✅ NOVO: Ordenar categorias alfabeticamente
+  const sortedCategories = categories.sort((a, b) =>
+    a.name.localeCompare(b.name, "pt-PT")
+  );
 
   // Função para gerar IDs únicos
   const generateUniqueId = () => {
@@ -337,12 +446,17 @@ const AddPart = () => {
         formDataToSave.subcategoryId || null
       );
 
-      navigate("/app/parts-library");
+      // ✅ MODIFICADO: Navegação segura para PCs antigos
+      console.log("✅ Peça criada com sucesso, navegando de forma segura...");
+
+      // Aguardar um pouco e navegar de forma segura
+      await safeNavigate(navigate, "/app/parts-library", 1000);
     } catch (err) {
       console.error("Erro ao adicionar peça:", err);
       setError("Erro ao adicionar peça. Por favor, tente novamente.");
     } finally {
-      setIsSubmitting(false);
+      // ✅ MODIFICADO: Reset seguro do loading para PCs antigos
+      await safeSetState(() => setIsSubmitting(false), 300);
     }
   };
 
@@ -368,6 +482,12 @@ const AddPart = () => {
           <h1 className="text-2xl font-bold text-white">Nova Peça</h1>
           <p className="text-sm text-zinc-400">
             Adicione uma nova peça à biblioteca
+            {/* ✅ NOVO: Mostrar contexto de pré-seleção */}
+            {(preSelectedCategoryId || preSelectedSubcategoryId) && (
+              <span className="block text-green-400 text-xs mt-1">
+                ✅ Categoria/subcategoria pré-selecionada
+              </span>
+            )}
           </p>
         </div>
         <Button
@@ -537,6 +657,12 @@ const AddPart = () => {
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-zinc-400">
                   Categoria
+                  {/* ✅ NOVO: Indicador visual de pré-seleção */}
+                  {preSelectedCategoryId && (
+                    <span className="ml-2 text-xs text-green-500">
+                      ✅ Pré-selecionada
+                    </span>
+                  )}
                 </label>
                 <Button
                   type="button"
@@ -564,7 +690,8 @@ const AddPart = () => {
                 className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
               >
                 <option value="none">Nenhuma</option>
-                {categories.map((category) => (
+                {/* ✅ MODIFICADO: Usar categorias ordenadas alfabeticamente */}
+                {sortedCategories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
                   </option>
@@ -578,6 +705,12 @@ const AddPart = () => {
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-zinc-400">
                     Subcategoria
+                    {/* ✅ NOVO: Indicador visual de pré-seleção */}
+                    {preSelectedSubcategoryId && (
+                      <span className="ml-2 text-xs text-green-500">
+                        ✅ Pré-selecionada
+                      </span>
+                    )}
                   </label>
                   <Button
                     type="button"
@@ -608,6 +741,7 @@ const AddPart = () => {
                   className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-white disabled:opacity-50"
                 >
                   <option value="none">Nenhuma</option>
+                  {/* ✅ JÁ MODIFICADO: subcategories já estão ordenadas acima */}
                   {subcategories.map((subcategory) => (
                     <option key={subcategory.id} value={subcategory.id}>
                       {subcategory.name}
@@ -633,7 +767,7 @@ const AddPart = () => {
           {isSubmitting ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Adicionando...
+              Salvando e redirecionando...
             </>
           ) : (
             <>
@@ -642,6 +776,20 @@ const AddPart = () => {
             </>
           )}
         </Button>
+
+        {/* ✅ NOVO: Aviso sobre redirecionamento para PCs antigos */}
+        {isSubmitting && (
+          <Alert className="border-blue-500 bg-blue-500/10">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <AlertDescription className="text-blue-400">
+              💾 Salvando peça... Aguarde, será redirecionado automaticamente.
+              <br />
+              <span className="text-xs text-blue-300">
+                Em PCs antigos este processo pode demorar alguns segundos.
+              </span>
+            </AlertDescription>
+          </Alert>
+        )}
       </form>
 
       {/* New Category Dialog */}

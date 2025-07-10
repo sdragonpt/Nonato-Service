@@ -1,4 +1,4 @@
-// App.jsx - COM PARTSCACHE INTEGRADO + Ferramenta de Migração + Pré-Agendamento
+// App.jsx - COM PARTSCACHE INTEGRADO + Ferramenta de Migração + Pré-Agendamento + SUPORTE PCs ANTIGOS
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { getAuth, signOut } from "firebase/auth";
@@ -39,6 +39,9 @@ import {
   Zap, // ✅ NOVO: Para pré-agendamento
   Calculator, // ✅ NOVO: Para orçamento de peças
 } from "lucide-react";
+
+// ✅ NOVO: Suporte para PCs antigos
+import { initOldBrowserSupport } from "./utils/oldBrowserUtils.js";
 
 // ✅ LAZY LOADING - Componentes principais importados sob demanda
 const InitialPage = React.lazy(() => import("./pages/initial/InitialPage"));
@@ -612,12 +615,18 @@ const DashboardShell = React.memo(({ children }) => {
   );
 });
 
-// ✅ COMPONENTE PRINCIPAL OTIMIZADO
+// ✅ COMPONENTE PRINCIPAL OTIMIZADO COM SUPORTE PCs ANTIGOS
 const App = () => {
   const { user, loading } = useAuth();
 
-  // ✅ EFEITO OTIMIZADO - Só roda uma vez
+  // ✅ EFEITO OTIMIZADO - Inicialização única
   useEffect(() => {
+    let cleanupOldBrowser;
+
+    // ✅ NOVO: Suporte para PCs antigos
+    cleanupOldBrowser = initOldBrowserSupport();
+
+    // Configuração Google Auth (já existente)
     if (Capacitor.isNativePlatform()) {
       GoogleAuth.initialize({
         clientId:
@@ -626,6 +635,13 @@ const App = () => {
         grantOfflineAccess: true,
       });
     }
+
+    // ✅ NOVO: Cleanup na desmontagem
+    return () => {
+      if (cleanupOldBrowser) {
+        cleanupOldBrowser();
+      }
+    };
   }, []);
 
   // ✅ LOADING OTIMIZADO

@@ -1,4 +1,4 @@
-// ManagePartsLibrary.jsx - ZERO REQUESTS: Contadores ultrarrápidos
+// ManagePartsLibrary.jsx - ZERO REQUESTS: Contadores ultrarrápidos + SUPORTE PCs ANTIGOS
 
 import { useState, useEffect, useCallback } from "react";
 import { doc, deleteDoc } from "firebase/firestore";
@@ -10,6 +10,7 @@ import {
   usePartsCounters,
   decrementPartCount,
 } from "../../utils/MetadataCounters.js"; // ✅ NOVO
+import { useOldBrowserCompat } from "../../utils/oldBrowserUtils.js"; // ✅ NOVO: Suporte PCs antigos
 import PartImage from "../../components/ui/PartImage.jsx";
 import {
   Search,
@@ -90,6 +91,9 @@ const loadFromStorage = (key, defaultValue) => {
 };
 
 const ManagePartsLibrary = () => {
+  // ✅ NOVO: Hook para compatibilidade com PCs antigos
+  const { safeSetState, safeNavigate } = useOldBrowserCompat();
+
   // ✅ CACHE INTELIGENTE para peças (sem contadores - agora é separado)
   const {
     fetchParts,
@@ -142,6 +146,7 @@ const ManagePartsLibrary = () => {
   const [error, setError] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [partToDelete, setPartToDelete] = useState(null);
+  const [isClearingFilters, setIsClearingFilters] = useState(false); // ✅ NOVO: Estado para limpeza
 
   // ✅ ESTADOS PERSISTENTES para navegação por categorias
   const [selectedCategory, setSelectedCategory] = useState(() => {
@@ -377,57 +382,140 @@ const ManagePartsLibrary = () => {
     setPartToDelete(null);
   };
 
-  // ✅ HANDLERS OTIMIZADOS com persistência
-  const handleTabChange = (value) => {
-    setActiveTab(value);
-    setError(null);
-    if (value === "all") {
-      setSelectedCategory(null);
-      setSelectedSubcategory(null);
+  // ✅ HANDLERS OTIMIZADOS com persistência - SEGUROS PARA PCs ANTIGOS
+  const handleTabChange = async (value) => {
+    console.log("🔧 Mudando tab (PC antigo seguro):", value);
+
+    try {
+      await safeSetState(() => setActiveTab(value), 100);
+      await safeSetState(() => setError(null), 150);
+
+      if (value === "all") {
+        await safeSetState(() => setSelectedCategory(null), 200);
+        await safeSetState(() => setSelectedSubcategory(null), 250);
+      }
+    } catch (error) {
+      console.warn("Erro ao mudar tab (PC antigo):", error);
     }
   };
 
-  const handleCategoryClick = (category) => {
-    setError(null);
-    setSelectedCategory(category);
-    setSelectedSubcategory(null);
+  const handleCategoryClick = async (category) => {
+    console.log("🔧 Selecionando categoria (PC antigo seguro):", category.name);
+
+    try {
+      await safeSetState(() => setError(null), 50);
+      await safeSetState(() => setSelectedCategory(category), 100);
+      await safeSetState(() => setSelectedSubcategory(null), 150);
+    } catch (error) {
+      console.warn("Erro ao selecionar categoria (PC antigo):", error);
+    }
   };
 
-  const handleSubcategoryClick = (subcategory) => {
-    setError(null);
-    setSelectedSubcategory(subcategory);
+  const handleSubcategoryClick = async (subcategory) => {
+    console.log(
+      "🔧 Selecionando subcategoria (PC antigo seguro):",
+      subcategory.name
+    );
+
+    try {
+      await safeSetState(() => setError(null), 50);
+      await safeSetState(() => setSelectedSubcategory(subcategory), 100);
+    } catch (error) {
+      console.warn("Erro ao selecionar subcategoria (PC antigo):", error);
+    }
   };
 
-  const handleBackToCategories = () => {
-    setError(null);
+  const handleBackToCategories = async () => {
+    console.log("🔧 Voltando nas categorias (PC antigo seguro)...");
+
+    try {
+      await safeSetState(() => setError(null), 50);
+
+      if (selectedSubcategory) {
+        await safeSetState(() => setSelectedSubcategory(null), 100);
+      } else {
+        await safeSetState(() => setSelectedCategory(null), 100);
+        await safeSetState(() => setSubcategoryCounts({}), 150);
+      }
+    } catch (error) {
+      console.warn("Erro ao voltar categorias (PC antigo):", error);
+    }
+  };
+
+  // ✅ LIMPAR BUSCA MANUAL - SEGURO PARA PCs ANTIGOS
+  const clearSearch = async () => {
+    if (isClearingFilters) return; // Evitar múltiplas chamadas
+
+    console.log("🔧 Limpando busca (PC antigo seguro)...");
+    setIsClearingFilters(true);
+
+    try {
+      // Limpar de forma sequencial e segura
+      await safeSetState(() => setSearchTerm(""), 100);
+      await safeSetState(() => setDebouncedSearchTerm(""), 150);
+
+      console.log("✅ Busca limpa com segurança");
+    } catch (error) {
+      console.warn("Erro ao limpar busca (PC antigo):", error);
+    } finally {
+      await safeSetState(() => setIsClearingFilters(false), 100);
+    }
+  };
+
+  // ✅ LIMPAR TODOS OS FILTROS - SEGURO PARA PCs ANTIGOS
+  const clearAllFilters = async () => {
+    if (isClearingFilters) return; // Evitar múltiplas chamadas
+
+    console.log("🔧 Limpando todos os filtros (PC antigo seguro)...");
+    setIsClearingFilters(true);
+
+    try {
+      // Limpar estados de forma sequencial para evitar conflitos DOM
+      await safeSetState(() => setError(null), 50);
+      await safeSetState(() => setSearchTerm(""), 100);
+      await safeSetState(() => setDebouncedSearchTerm(""), 150);
+      await safeSetState(() => setFilterCategory("all"), 200);
+      await safeSetState(() => setSelectedCategory(null), 250);
+      await safeSetState(() => setSelectedSubcategory(null), 300);
+      await safeSetState(() => setSortField("name"), 350);
+      await safeSetState(() => setSortOrder("asc"), 400);
+
+      // Limpar storage de forma segura
+      try {
+        Object.values(STORAGE_KEYS).forEach((key) => {
+          sessionStorage.removeItem(key);
+        });
+      } catch (storageError) {
+        console.warn("Erro ao limpar storage (ignorado):", storageError);
+      }
+
+      console.log("✅ Todos os filtros limpos com segurança");
+    } catch (error) {
+      console.warn("Erro ao limpar filtros (PC antigo):", error);
+      // Não quebrar a aplicação - continuar funcionando
+    } finally {
+      await safeSetState(() => setIsClearingFilters(false), 100);
+    }
+  };
+
+  // ✅ NOVO: Função para navegar para nova peça com contexto
+  const handleAddPart = () => {
+    // Construir URL com contexto atual
+    const searchParams = new URLSearchParams();
+
+    if (selectedCategory) {
+      searchParams.set("categoryId", selectedCategory.id);
+    }
+
     if (selectedSubcategory) {
-      setSelectedSubcategory(null);
-    } else {
-      setSelectedCategory(null);
-      setSubcategoryCounts({});
+      searchParams.set("subcategoryId", selectedSubcategory.id);
     }
-  };
 
-  // ✅ LIMPAR BUSCA MANUAL
-  const clearSearch = () => {
-    setSearchTerm("");
-    setDebouncedSearchTerm("");
-  };
-
-  // ✅ LIMPAR TODOS OS FILTROS
-  const clearAllFilters = () => {
-    setSearchTerm("");
-    setDebouncedSearchTerm("");
-    setFilterCategory("all");
-    setSelectedCategory(null);
-    setSelectedSubcategory(null);
-    setSortField("name");
-    setSortOrder("asc");
-
-    // Limpar também do storage
-    Object.values(STORAGE_KEYS).forEach((key) => {
-      sessionStorage.removeItem(key);
-    });
+    // Navegar com query params
+    const url = `/app/add-part${
+      searchParams.toString() ? `?${searchParams.toString()}` : ""
+    }`;
+    navigate(url);
   };
 
   // ✅ FUNÇÃO helper para mostrar contagem (ZERO REQUESTS)
@@ -462,13 +550,15 @@ const ManagePartsLibrary = () => {
     }
   };
 
-  // Funções auxiliares
+  // ✅ NOVO: Funções auxiliares para ordenação alfabética
   const getSubcategories = (categoryId) => {
-    return getSubcategoriesByParent(categoryId);
+    return getSubcategoriesByParent(categoryId).sort((a, b) =>
+      a.name.localeCompare(b.name, "pt-PT")
+    );
   };
 
   const getMainCategories = () => {
-    return categories;
+    return categories.sort((a, b) => a.name.localeCompare(b.name, "pt-PT"));
   };
 
   // ✅ VERIFICAR LOADING STATES
@@ -507,12 +597,17 @@ const ManagePartsLibrary = () => {
           </p>
         </div>
         <div className="flex gap-2">
+          {/* ✅ MODIFICADO: Usar função com contexto */}
           <Button
-            onClick={() => navigate("/app/add-part")}
+            onClick={handleAddPart}
             className="bg-green-600 hover:bg-green-700"
           >
             <Plus className="w-4 h-4 mr-2" />
             Nova Peça
+            {/* ✅ NOVO: Indicador de contexto */}
+            {(selectedCategory || selectedSubcategory) && (
+              <span className="ml-1 text-xs bg-green-800 px-1 rounded">+</span>
+            )}
           </Button>
         </div>
       </div>
@@ -631,7 +726,7 @@ const ManagePartsLibrary = () => {
                   placeholder="Buscar por nome, código ou descrição..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                  className="pl-10 pr-10 w-full bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
                 />
                 {searchTerm !== debouncedSearchTerm && (
                   <div className="absolute right-10 top-1/2 -translate-y-1/2">
@@ -643,9 +738,15 @@ const ManagePartsLibrary = () => {
                     variant="ghost"
                     size="sm"
                     onClick={clearSearch}
+                    disabled={isLoadingParts || isClearingFilters}
                     className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-zinc-700"
+                    title="Limpar busca (PC antigo seguro)"
                   >
-                    <X className="h-4 w-4 text-zinc-400" />
+                    {isClearingFilters ? (
+                      <Loader2 className="h-3 w-3 animate-spin text-zinc-400" />
+                    ) : (
+                      <X className="h-4 w-4 text-zinc-400" />
+                    )}
                   </Button>
                 )}
               </div>
@@ -666,6 +767,7 @@ const ManagePartsLibrary = () => {
                     >
                       Todas as Categorias
                     </SelectItem>
+                    {/* ✅ MODIFICADO: Usar categorias ordenadas */}
                     {getMainCategories().map((category) => (
                       <SelectItem
                         key={category.id}
@@ -761,7 +863,7 @@ const ManagePartsLibrary = () => {
                     Refresh
                   </Button>
 
-                  {/* ✅ BOTÃO LIMPAR FILTROS */}
+                  {/* ✅ BOTÃO LIMPAR FILTROS - SEGURO PARA PCs ANTIGOS */}
                   {(searchTerm ||
                     filterCategory !== "all" ||
                     sortField !== "name" ||
@@ -769,10 +871,16 @@ const ManagePartsLibrary = () => {
                     <Button
                       variant="outline"
                       onClick={clearAllFilters}
+                      disabled={isLoadingParts || isClearingFilters}
                       className="gap-2 text-amber-400 border-amber-600 hover:bg-amber-600/20"
+                      title="Limpar todos os filtros (PC antigo seguro)"
                     >
-                      <X className="w-4 h-4" />
-                      Limpar Filtros
+                      {isClearingFilters ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <X className="w-4 h-4" />
+                      )}
+                      {isClearingFilters ? "Limpando..." : "Limpar Filtros"}
                     </Button>
                   )}
                 </div>
@@ -823,6 +931,19 @@ const ManagePartsLibrary = () => {
                   >
                     <X className="h-4 w-4" />
                   </Button>
+                </Alert>
+              )}
+
+              {/* ✅ NOVO: Alerta informativo para limpeza de filtros */}
+              {isClearingFilters && (
+                <Alert className="border-blue-500 bg-blue-500/10">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <AlertDescription className="text-blue-400">
+                    🔧 Limpando filtros de forma segura...
+                    <span className="text-xs text-blue-300 block mt-1">
+                      Aguarde, processo otimizado para PCs antigos.
+                    </span>
+                  </AlertDescription>
                 </Alert>
               )}
             </CardContent>
@@ -1060,10 +1181,16 @@ const ManagePartsLibrary = () => {
                 {(searchTerm || filterCategory !== "all") && (
                   <Button
                     onClick={clearAllFilters}
+                    disabled={isLoadingParts || isClearingFilters}
                     className="bg-amber-600 hover:bg-amber-700"
+                    title="Limpar filtros (PC antigo seguro)"
                   >
-                    <X className="w-4 h-4 mr-2" />
-                    Limpar Filtros
+                    {isClearingFilters ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <X className="w-4 h-4 mr-2" />
+                    )}
+                    {isClearingFilters ? "Limpando..." : "Limpar Filtros"}
                   </Button>
                 )}
               </CardContent>
@@ -1071,7 +1198,7 @@ const ManagePartsLibrary = () => {
           )}
         </TabsContent>
 
-        {/* ✅ CATEGORIES TAB - IMPLEMENTAÇÃO COMPLETA */}
+        {/* ✅ CATEGORIES TAB - IMPLEMENTAÇÃO COMPLETA COM ORDENAÇÃO */}
         <TabsContent value="categories">
           <div className="space-y-4">
             {/* Breadcrumb */}
@@ -1109,7 +1236,7 @@ const ManagePartsLibrary = () => {
                 }
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
               />
             </div>
 
@@ -1125,15 +1252,21 @@ const ManagePartsLibrary = () => {
                   variant="ghost"
                   size="sm"
                   onClick={clearAllFilters}
+                  disabled={isLoadingParts || isClearingFilters}
                   className="text-blue-400 hover:text-white hover:bg-blue-600/20 h-6 px-2"
+                  title="Limpar filtros (PC antigo seguro)"
                 >
-                  <X className="h-3 w-3 mr-1" />
-                  Limpar
+                  {isClearingFilters ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
+                    <X className="h-3 w-3 mr-1" />
+                  )}
+                  {isClearingFilters ? "Limpando..." : "Limpar"}
                 </Button>
               </div>
             )}
 
-            {/* 1. CATEGORIAS PRINCIPAIS */}
+            {/* ✅ 1. CATEGORIAS PRINCIPAIS - ORDENADAS ALFABETICAMENTE */}
             {!selectedCategory && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {getMainCategories()
@@ -1165,7 +1298,7 @@ const ManagePartsLibrary = () => {
               </div>
             )}
 
-            {/* ✅ 2. SUBCATEGORIAS - COM CONTADORES REAIS */}
+            {/* ✅ 2. SUBCATEGORIAS - ORDENADAS ALFABETICAMENTE COM CONTADORES REAIS */}
             {selectedCategory && !selectedSubcategory && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {getSubcategories(selectedCategory.id)
@@ -1323,12 +1456,16 @@ const ManagePartsLibrary = () => {
                       <p className="text-zinc-400 text-sm">
                         Esta subcategoria ainda não tem peças cadastradas
                       </p>
+                      {/* ✅ MODIFICADO: Usar função com contexto */}
                       <Button
-                        onClick={() => navigate("/app/add-part")}
+                        onClick={handleAddPart}
                         className="mt-4 bg-green-600 hover:bg-green-700"
                       >
                         <Plus className="w-4 h-4 mr-2" />
                         Adicionar Peça
+                        <span className="ml-1 text-xs bg-green-800 px-1 rounded">
+                          +
+                        </span>
                       </Button>
                     </CardContent>
                   </Card>
@@ -1366,12 +1503,19 @@ const ManagePartsLibrary = () => {
                 </Button>
               )}
 
+              {/* ✅ MODIFICADO: Usar função com contexto */}
               <Button
-                onClick={() => navigate("/app/add-part")}
+                onClick={handleAddPart}
                 className="bg-zinc-600 hover:bg-zinc-700"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Nova Peça
+                {/* ✅ NOVO: Indicador de contexto */}
+                {(selectedCategory || selectedSubcategory) && (
+                  <span className="ml-1 text-xs bg-green-800 px-1 rounded">
+                    +
+                  </span>
+                )}
               </Button>
             </div>
           </div>
@@ -1425,8 +1569,9 @@ const ManagePartsLibrary = () => {
             className={`h-5 w-5 ${isLoadingParts ? "animate-spin" : ""}`}
           />
         </Button>
+        {/* ✅ MODIFICADO: Usar função com contexto */}
         <Button
-          onClick={() => navigate("/app/add-part")}
+          onClick={handleAddPart}
           size="icon"
           className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
         >
