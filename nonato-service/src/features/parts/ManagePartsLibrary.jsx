@@ -1071,12 +1071,310 @@ const ManagePartsLibrary = () => {
           )}
         </TabsContent>
 
-        {/* Categories Tab - MANTIDO IGUAL (já otimizado) */}
+        {/* ✅ CATEGORIES TAB - IMPLEMENTAÇÃO COMPLETA */}
         <TabsContent value="categories">
-          {/* ... código igual ao original ... */}
-          <p className="text-zinc-400 p-4">
-            Tab de categorias mantida igual (já otimizada)
-          </p>
+          <div className="space-y-4">
+            {/* Breadcrumb */}
+            {(selectedCategory || selectedSubcategory) && (
+              <div className="flex items-center gap-2 mb-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBackToCategories}
+                  className="h-8 border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
+                >
+                  <ArrowLeft className="h-3 w-3 mr-1" />
+                  Voltar
+                </Button>
+                <span className="text-zinc-400">
+                  {selectedSubcategory
+                    ? `${selectedCategory.name} > ${selectedSubcategory.name}`
+                    : selectedCategory
+                    ? selectedCategory.name
+                    : "Categorias"}
+                </span>
+              </div>
+            )}
+
+            {/* Search */}
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <Input
+                placeholder={
+                  selectedCategory && !selectedSubcategory
+                    ? "Buscar subcategorias..."
+                    : selectedSubcategory
+                    ? "Buscar peças..."
+                    : "Buscar categorias..."
+                }
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+              />
+            </div>
+
+            {/* ✅ INDICADOR DE FILTROS ATIVOS na aba Categories */}
+            {(searchTerm || filterCategory !== "all") && (
+              <div className="flex items-center gap-2 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <AlertTriangle className="h-4 w-4 text-blue-400" />
+                <span className="text-blue-400 text-sm flex-1">
+                  Filtros ativos da aba "Todas as Peças" podem afetar os
+                  resultados
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  className="text-blue-400 hover:text-white hover:bg-blue-600/20 h-6 px-2"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Limpar
+                </Button>
+              </div>
+            )}
+
+            {/* 1. CATEGORIAS PRINCIPAIS */}
+            {!selectedCategory && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {getMainCategories()
+                  .filter((cat) =>
+                    cat.name.toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                  .map((category) => (
+                    <Card
+                      key={category.id}
+                      onClick={() => handleCategoryClick(category)}
+                      className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Tag className="h-5 w-5 text-blue-500" />
+                            <h3 className="font-semibold text-base text-white">
+                              {category.name}
+                            </h3>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-zinc-400" />
+                        </div>
+                        <p className="text-zinc-400 text-sm mt-2">
+                          {getSubcategories(category.id).length} subcategorias
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
+            )}
+
+            {/* ✅ 2. SUBCATEGORIAS - COM CONTADORES REAIS */}
+            {selectedCategory && !selectedSubcategory && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {getSubcategories(selectedCategory.id)
+                  .filter((sub) =>
+                    sub.name.toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                  .map((subcategory) => (
+                    <Card
+                      key={subcategory.id}
+                      onClick={() => handleSubcategoryClick(subcategory)}
+                      className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Package className="h-5 w-5 text-purple-500" />
+                            <h3 className="font-semibold text-base text-white">
+                              {subcategory.name}
+                            </h3>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-zinc-400" />
+                        </div>
+                        <p className="text-zinc-400 text-sm mt-2">
+                          {/* ✅ CONTADOR REAL do cache */}
+                          {subcategoryCounts[subcategory.id] || 0} peças
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                {getSubcategories(selectedCategory.id).length === 0 && (
+                  <Card className="md:col-span-2 lg:col-span-3 bg-zinc-800 border-zinc-700">
+                    <CardContent className="p-8 text-center">
+                      <Package className="w-10 h-10 text-zinc-600 mx-auto mb-4" />
+                      <p className="text-lg font-medium mb-2 text-white">
+                        Nenhuma subcategoria encontrada
+                      </p>
+                      <p className="text-sm text-zinc-400">
+                        Esta categoria ainda não tem subcategorias
+                      </p>
+                      <Button
+                        onClick={() =>
+                          navigate(
+                            `/app/add-subcategory/${selectedCategory.id}`
+                          )
+                        }
+                        className="mt-4 bg-purple-600 hover:bg-purple-700"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Adicionar Subcategoria
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+
+            {/* ✅ 3. PEÇAS DA SUBCATEGORIA - COM CACHE */}
+            {selectedSubcategory && (
+              <>
+                {isLoadingParts && displayParts.length === 0 ? (
+                  <Card className="bg-zinc-800 border-zinc-700">
+                    <CardContent className="p-8 text-center">
+                      <Loader2 className="w-8 h-8 animate-spin text-white mx-auto mb-4" />
+                      <p className="text-white">
+                        Carregando peças da subcategoria...
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : displayParts.length > 0 ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {displayParts
+                        .filter(
+                          (part) =>
+                            part.name
+                              ?.toLowerCase()
+                              .includes(searchTerm.toLowerCase()) ||
+                            part.code
+                              ?.toLowerCase()
+                              .includes(searchTerm.toLowerCase()) ||
+                            part.description
+                              ?.toLowerCase()
+                              .includes(searchTerm.toLowerCase())
+                        )
+                        .map((part) => (
+                          <Card
+                            key={part.id}
+                            onClick={() => navigate(`/app/part/${part.id}`)}
+                            className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-lg overflow-hidden">
+                                  <PartImage
+                                    src={part.image}
+                                    imageHash={part.imageHash}
+                                    alt={part.name}
+                                    className="w-full h-full object-cover"
+                                    defaultImage="/default-part.png"
+                                  />
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="font-semibold text-base text-white truncate">
+                                      {part.name}
+                                    </h3>
+                                    <Badge className="bg-blue-500/10 text-blue-500">
+                                      {part.code}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-white text-sm">
+                                    {new Intl.NumberFormat("pt-PT", {
+                                      style: "currency",
+                                      currency: "EUR",
+                                    }).format(part.price || 0)}
+                                  </p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                    </div>
+
+                    {hasMore && (
+                      <div className="flex justify-center mt-8">
+                        <Button
+                          onClick={handleLoadMore}
+                          disabled={isLoadingParts}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          {isLoadingParts ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Carregando...
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-4 h-4 mr-2" />
+                              Carregar Mais
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <Card className="bg-zinc-800 border-zinc-700">
+                    <CardContent className="p-6 text-center">
+                      <Package className="w-10 h-10 text-zinc-600 mx-auto mb-4" />
+                      <p className="text-lg font-medium mb-2 text-white">
+                        Nenhuma peça encontrada
+                      </p>
+                      <p className="text-zinc-400 text-sm">
+                        Esta subcategoria ainda não tem peças cadastradas
+                      </p>
+                      <Button
+                        onClick={() => navigate("/app/add-part")}
+                        className="mt-4 bg-green-600 hover:bg-green-700"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Adicionar Peça
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-2 mt-4">
+              <Button
+                onClick={() => navigate("/app/add-category")}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Nova Categoria
+              </Button>
+
+              <Button
+                onClick={() => navigate("/app/manage-categories")}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                <Tag className="w-4 h-4 mr-2" />
+                Gerenciar Categorias
+              </Button>
+
+              {selectedCategory && (
+                <Button
+                  onClick={() =>
+                    navigate(`/app/add-subcategory/${selectedCategory.id}`)
+                  }
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nova Subcategoria
+                </Button>
+              )}
+
+              <Button
+                onClick={() => navigate("/app/add-part")}
+                className="bg-zinc-600 hover:bg-zinc-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Nova Peça
+              </Button>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
 
