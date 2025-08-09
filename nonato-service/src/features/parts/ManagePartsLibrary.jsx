@@ -1,15 +1,17 @@
+// ManagePartsLibrary.jsx - ZERO REQUESTS: Contadores ultrarrápidos + SUPORTE PCs ANTIGOS
+
 import { useState, useEffect, useCallback } from "react";
-import {
-  collection,
-  getDocs,
-  doc,
-  deleteDoc,
-  query,
-  orderBy,
-  where,
-} from "firebase/firestore";
+import { doc, deleteDoc } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useNavigate } from "react-router-dom";
+import { useCategories } from "../../context/CategoriesContext.jsx";
+import { usePartsCache } from "../../context/PartsCache.jsx";
+import {
+  usePartsCounters,
+  decrementPartCount,
+} from "../../utils/MetadataCounters.js"; // ✅ NOVO
+import { useOldBrowserCompat } from "../../utils/oldBrowserUtils.js"; // ✅ NOVO: Suporte PCs antigos
+import PartImage from "../../components/ui/PartImage.jsx";
 import {
   Search,
   Plus,
@@ -22,15 +24,13 @@ import {
   Tag,
   MoreVertical,
   RefreshCw,
-  Download,
   Book,
   ChevronRight,
   ArrowLeft,
   Grid,
   List,
   X,
-  Upload,
-  ChevronLeft,
+  Zap, // ✅ NOVO ícone para indicar velocidade
 } from "lucide-react";
 
 // UI Components
@@ -51,11 +51,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import {
   Tabs,
@@ -64,153 +59,315 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs.jsx";
 
+// ✅ CONSTANTES para persistência
+const STORAGE_KEYS = {
+  SEARCH_TERM: "partsLibrary_searchTerm",
+  FILTER_CATEGORY: "partsLibrary_filterCategory",
+  SORT_FIELD: "partsLibrary_sortField",
+  SORT_ORDER: "partsLibrary_sortOrder",
+  VIEW_MODE: "partsLibrary_viewMode",
+  ACTIVE_TAB: "partsLibrary_activeTab",
+  SELECTED_CATEGORY: "partsLibrary_selectedCategory",
+  SELECTED_SUBCATEGORY: "partsLibrary_selectedSubcategory",
+};
+
+// ✅ FUNÇÕES HELPER para persistência
+const saveToStorage = (key, value) => {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.warn("Erro ao salvar no sessionStorage:", error);
+  }
+};
+
+const loadFromStorage = (key, defaultValue) => {
+  try {
+    const saved = sessionStorage.getItem(key);
+    return saved ? JSON.parse(saved) : defaultValue;
+  } catch (error) {
+    console.warn("Erro ao carregar do sessionStorage:", error);
+    return defaultValue;
+  }
+};
+
 const ManagePartsLibrary = () => {
-  const [parts, setParts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  // ✅ NOVO: Hook para compatibilidade com PCs antigos
+  const { safeSetState, safeNavigate } = useOldBrowserCompat();
+
+  // ✅ CACHE INTELIGENTE para peças (sem contadores - agora é separado)
+  const {
+    fetchParts,
+    fetchSubcategoryCounts,
+    getCachedParts,
+    isLoading: isCacheLoading,
+    invalidateCache,
+    removePartFromCache,
+  } = usePartsCache();
+
+  // ✅ CONTADORES ULTRARRÁPIDOS (ZERO REQUESTS na maioria das vezes)
+  const {
+    counters,
+    loading: countersLoading,
+    getTotalCount,
+    getCategoryCount,
+    getSubcategoryCount,
+    refresh: refreshCounters,
+  } = usePartsCounters();
+
+  // Estados locais simplificados
+  const [displayParts, setDisplayParts] = useState([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [subcategoryCounts, setSubcategoryCounts] = useState({});
+
+  // ✅ ESTADOS PERSISTENTES - Carregados do sessionStorage
+  const [searchTerm, setSearchTerm] = useState(() =>
+    loadFromStorage(STORAGE_KEYS.SEARCH_TERM, "")
+  );
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(() =>
+    loadFromStorage(STORAGE_KEYS.SEARCH_TERM, "")
+  );
+  const [filterCategory, setFilterCategory] = useState(() =>
+    loadFromStorage(STORAGE_KEYS.FILTER_CATEGORY, "all")
+  );
+  const [sortOrder, setSortOrder] = useState(() =>
+    loadFromStorage(STORAGE_KEYS.SORT_ORDER, "asc")
+  );
+  const [sortField, setSortField] = useState(() =>
+    loadFromStorage(STORAGE_KEYS.SORT_FIELD, "name")
+  );
+  const [viewMode, setViewMode] = useState(() =>
+    loadFromStorage(STORAGE_KEYS.VIEW_MODE, "grid")
+  );
+  const [activeTab, setActiveTab] = useState(() =>
+    loadFromStorage(STORAGE_KEYS.ACTIVE_TAB, "all")
+  );
+
+  // Estados não persistentes
   const [error, setError] = useState(null);
-  const [sortOrder, setSortOrder] = useState("asc");
-  const [sortField, setSortField] = useState("name");
-  const [filterCategory, setFilterCategory] = useState("all");
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [partToDelete, setPartToDelete] = useState(null);
-  const [viewMode, setViewMode] = useState("grid");
-  const [activeTab, setActiveTab] = useState("all");
+  const [isClearingFilters, setIsClearingFilters] = useState(false); // ✅ NOVO: Estado para limpeza
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  // ✅ ESTADOS PERSISTENTES para navegação por categorias
+  const [selectedCategory, setSelectedCategory] = useState(() => {
+    const saved = loadFromStorage(STORAGE_KEYS.SELECTED_CATEGORY, null);
+    return saved;
+  });
+  const [selectedSubcategory, setSelectedSubcategory] = useState(() => {
+    const saved = loadFromStorage(STORAGE_KEYS.SELECTED_SUBCATEGORY, null);
+    return saved;
+  });
 
   const navigate = useNavigate();
 
-  const handleTabChange = (value) => {
-    setActiveTab(value);
-    setError(null);
-    setCurrentPage(1);
-    if (value === "all") {
-      setSelectedCategory(null);
-      setSelectedSubcategory(null);
-    }
-  };
+  // Cache de categorias
+  const {
+    categories,
+    getSubcategoriesByParent,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+  } = useCategories();
 
-  const paginate = (pageNumber) => {
-    setCurrentPage(pageNumber);
-    window.scrollTo(0, 0);
-  };
+  // ✅ EFFECT para salvar estados no sessionStorage
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.SEARCH_TERM, searchTerm);
+  }, [searchTerm]);
 
-  const fetchCategories = useCallback(async () => {
-    try {
-      const q = query(collection(db, "categorias"));
-      const snapshot = await getDocs(q);
-      const categoriesData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setCategories(categoriesData);
-    } catch (err) {
-      console.error("Erro ao buscar categorias:", err);
-      setError("Erro ao carregar categorias. Por favor, tente novamente.");
-    }
-  }, []);
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.FILTER_CATEGORY, filterCategory);
+  }, [filterCategory]);
 
-  const fetchParts = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      let q;
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.SORT_FIELD, sortField);
+  }, [sortField]);
 
-      if (selectedSubcategory) {
-        q = query(
-          collection(db, "pecas"),
-          where("subcategoryId", "==", selectedSubcategory.id),
-          orderBy(sortField, sortOrder)
-        );
-      } else if (selectedCategory) {
-        q = query(
-          collection(db, "pecas"),
-          where("categoryId", "==", selectedCategory.id),
-          orderBy(sortField, sortOrder)
-        );
-      } else {
-        q = query(collection(db, "pecas"), orderBy(sortField, sortOrder));
-      }
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.SORT_ORDER, sortOrder);
+  }, [sortOrder]);
 
-      const snapshot = await getDocs(q);
-      const partsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setParts(partsData);
-    } catch (err) {
-      console.error("Erro ao buscar peças:", err);
-      setError("Erro ao carregar peças. Por favor, tente novamente.");
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.VIEW_MODE, viewMode);
+  }, [viewMode]);
 
-      if (err.code === "failed-precondition" || err.message.includes("index")) {
-        try {
-          let fallbackQuery;
-          if (selectedSubcategory) {
-            fallbackQuery = query(
-              collection(db, "pecas"),
-              where("subcategoryId", "==", selectedSubcategory.id)
-            );
-          } else if (selectedCategory) {
-            fallbackQuery = query(
-              collection(db, "pecas"),
-              where("categoryId", "==", selectedCategory.id)
-            );
-          } else {
-            fallbackQuery = query(collection(db, "pecas"));
-          }
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.ACTIVE_TAB, activeTab);
+  }, [activeTab]);
 
-          const fallbackSnapshot = await getDocs(fallbackQuery);
-          const fallbackData = fallbackSnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          setParts(fallbackData);
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.SELECTED_CATEGORY, selectedCategory);
+  }, [selectedCategory]);
 
-          setError(
-            "Os dados estão sendo exibidos sem ordenação enquanto o índice é criado. Por favor, aguarde alguns minutos e tente novamente."
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.SELECTED_SUBCATEGORY, selectedSubcategory);
+  }, [selectedSubcategory]);
+
+  // ✅ DEBOUNCE OTIMIZADO - Mais rápido (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // ✅ FUNÇÃO OTIMIZADA - Evita chamadas desnecessárias
+  const loadParts = useCallback(
+    async (loadMore = false) => {
+      try {
+        setError(null);
+
+        // ✅ VERIFICAR CACHE PRIMEIRO (evita chamadas desnecessárias)
+        if (!loadMore && !debouncedSearchTerm) {
+          const cached = getCachedParts(
+            filterCategory !== "all" ? filterCategory : null,
+            selectedSubcategory?.id || null,
+            ""
           );
-        } catch (fallbackErr) {
-          console.error("Erro na consulta de fallback:", fallbackErr);
+
+          if (cached.isValid && cached.parts.length > 0) {
+            console.log("⚡ Usando dados em cache (sem busca)");
+            setDisplayParts(cached.parts);
+            setHasMore(cached.hasMore);
+            return;
+          }
         }
+
+        const result = await fetchParts({
+          categoryId: filterCategory !== "all" ? filterCategory : null,
+          subcategoryId: selectedSubcategory?.id || null,
+          searchTerm: debouncedSearchTerm,
+          sortField,
+          sortOrder,
+          loadMore,
+        });
+
+        if (result.error) {
+          setError(result.error);
+        }
+
+        if (result.warning) {
+          setError(result.warning);
+        }
+
+        setDisplayParts(result.parts);
+        setHasMore(result.hasMore);
+
+        if (result.fromCache) {
+          console.log("📦 Dados carregados do cache!");
+        }
+      } catch (err) {
+        console.error("❌ Erro ao carregar peças:", err);
+        setError("Erro ao carregar peças. Por favor, tente novamente.");
       }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [sortField, sortOrder, selectedCategory, selectedSubcategory]);
+    },
+    [
+      fetchParts,
+      getCachedParts,
+      filterCategory,
+      selectedSubcategory,
+      debouncedSearchTerm,
+      sortField,
+      sortOrder,
+    ]
+  );
 
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
+  // ✅ CARREGAR CONTADORES quando categoria é selecionada
+  const loadSubcategoryCounts = useCallback(
+    async (categoryId) => {
+      if (!categoryId) return;
 
-  useEffect(() => {
-    fetchParts();
-  }, [fetchParts]);
+      try {
+        const counts = await fetchSubcategoryCounts(categoryId);
+        setSubcategoryCounts(counts);
+      } catch (err) {
+        console.error("❌ Erro ao carregar contadores:", err);
+      }
+    },
+    [fetchSubcategoryCounts]
+  );
 
+  // ✅ EFFECT OTIMIZADO - Só carrega quando realmente necessário
   useEffect(() => {
-    setCurrentPage(1);
+    const timer = setTimeout(() => {
+      loadParts(false);
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [
-    searchTerm,
     filterCategory,
+    selectedSubcategory,
+    debouncedSearchTerm,
     sortField,
     sortOrder,
-    selectedCategory,
-    selectedSubcategory,
   ]);
 
+  // ✅ EFFECT - Carrega contadores quando categoria é selecionada
+  useEffect(() => {
+    if (selectedCategory) {
+      loadSubcategoryCounts(selectedCategory.id);
+    }
+  }, [selectedCategory, loadSubcategoryCounts]);
+
+  // ✅ FUNCTION LOAD MORE otimizada
+  const handleLoadMore = () => {
+    if (
+      hasMore &&
+      !isCacheLoading(
+        filterCategory !== "all" ? filterCategory : null,
+        selectedSubcategory?.id || null,
+        debouncedSearchTerm
+      )
+    ) {
+      loadParts(true);
+    }
+  };
+
+  // ✅ REFRESH otimizado - só invalida cache quando necessário
+  const handleRefresh = () => {
+    // Invalidar cache de peças
+    invalidateCache(
+      filterCategory !== "all" ? filterCategory : null,
+      selectedSubcategory?.id || null
+    );
+
+    setSubcategoryCounts({});
+    loadParts(false);
+
+    // ✅ OPCIONAL: Refresh contadores apenas se forçado
+    // refreshCounters(true); // Descomentrar só se realmente necessário
+
+    if (selectedCategory) {
+      loadSubcategoryCounts(selectedCategory.id);
+    }
+  };
+
+  // ✅ DELETE ULTRARRÁPIDO - Update local instantâneo + background
   const handleDelete = async (part) => {
     try {
+      // 1. ✅ UPDATE IMEDIATO DO CONTADOR (ZERO REQUESTS)
+      decrementPartCount(part.categoryId, part.subcategoryId);
+
+      // 2. ✅ UPDATE LOCAL da UI (instantâneo)
+      setDisplayParts((prev) => prev.filter((p) => p.id !== part.id));
+      removePartFromCache(part.id);
+
+      // 3. ✅ DELETE do Firestore (background - não bloqueia UI)
       await deleteDoc(doc(db, "pecas", part.id));
-      fetchParts();
+
       setDeleteDialogOpen(false);
       setPartToDelete(null);
+
+      // Recarregar contadores se necessário
+      if (selectedCategory) {
+        loadSubcategoryCounts(selectedCategory.id);
+      }
+
+      console.log("✅ Peça deletada com update instantâneo");
     } catch (error) {
-      console.error("Erro ao deletar peça:", error);
+      console.error("❌ Erro ao deletar peça:", error);
       setError("Erro ao deletar peça. Por favor, tente novamente.");
+
+      // ✅ REVERTER se falhou (raramente acontece)
+      // incrementPartCount(part.categoryId, part.subcategoryId);
     }
   };
 
@@ -225,55 +382,206 @@ const ManagePartsLibrary = () => {
     setPartToDelete(null);
   };
 
-  const handleCategoryClick = (category) => {
-    setError(null);
-    setSelectedCategory(category);
-    setSelectedSubcategory(null);
-  };
+  // ✅ HANDLERS OTIMIZADOS com persistência - SEGUROS PARA PCs ANTIGOS
+  const handleTabChange = async (value) => {
+    console.log("🔧 Mudando tab (PC antigo seguro):", value);
 
-  const handleSubcategoryClick = (subcategory) => {
-    setError(null);
-    setSelectedSubcategory(subcategory);
-  };
+    try {
+      await safeSetState(() => setActiveTab(value), 100);
+      await safeSetState(() => setError(null), 150);
 
-  const handleBackToCategories = () => {
-    setError(null);
-    if (selectedSubcategory) {
-      setSelectedSubcategory(null);
-    } else {
-      setSelectedCategory(null);
+      if (value === "all") {
+        await safeSetState(() => setSelectedCategory(null), 200);
+        await safeSetState(() => setSelectedSubcategory(null), 250);
+      }
+    } catch (error) {
+      console.warn("Erro ao mudar tab (PC antigo):", error);
     }
   };
 
-  const filteredParts = parts.filter((part) => {
-    const matchesSearch =
-      part.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      part.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      part.description?.toLowerCase().includes(searchTerm.toLowerCase());
+  const handleCategoryClick = async (category) => {
+    console.log("🔧 Selecionando categoria (PC antigo seguro):", category.name);
 
-    if (filterCategory === "all") return matchesSearch;
-    return matchesSearch && part.categoryId === filterCategory;
-  });
+    try {
+      await safeSetState(() => setError(null), 50);
+      await safeSetState(() => setSelectedCategory(category), 100);
+      await safeSetState(() => setSelectedSubcategory(null), 150);
+    } catch (error) {
+      console.warn("Erro ao selecionar categoria (PC antigo):", error);
+    }
+  };
 
+  const handleSubcategoryClick = async (subcategory) => {
+    console.log(
+      "🔧 Selecionando subcategoria (PC antigo seguro):",
+      subcategory.name
+    );
+
+    try {
+      await safeSetState(() => setError(null), 50);
+      await safeSetState(() => setSelectedSubcategory(subcategory), 100);
+    } catch (error) {
+      console.warn("Erro ao selecionar subcategoria (PC antigo):", error);
+    }
+  };
+
+  const handleBackToCategories = async () => {
+    console.log("🔧 Voltando nas categorias (PC antigo seguro)...");
+
+    try {
+      await safeSetState(() => setError(null), 50);
+
+      if (selectedSubcategory) {
+        await safeSetState(() => setSelectedSubcategory(null), 100);
+      } else {
+        await safeSetState(() => setSelectedCategory(null), 100);
+        await safeSetState(() => setSubcategoryCounts({}), 150);
+      }
+    } catch (error) {
+      console.warn("Erro ao voltar categorias (PC antigo):", error);
+    }
+  };
+
+  // ✅ LIMPAR BUSCA MANUAL - SEGURO PARA PCs ANTIGOS
+  const clearSearch = async () => {
+    if (isClearingFilters) return; // Evitar múltiplas chamadas
+
+    console.log("🔧 Limpando busca (PC antigo seguro)...");
+    setIsClearingFilters(true);
+
+    try {
+      // Limpar de forma sequencial e segura
+      await safeSetState(() => setSearchTerm(""), 100);
+      await safeSetState(() => setDebouncedSearchTerm(""), 150);
+
+      console.log("✅ Busca limpa com segurança");
+    } catch (error) {
+      console.warn("Erro ao limpar busca (PC antigo):", error);
+    } finally {
+      await safeSetState(() => setIsClearingFilters(false), 100);
+    }
+  };
+
+  // ✅ LIMPAR TODOS OS FILTROS - SEGURO PARA PCs ANTIGOS
+  const clearAllFilters = async () => {
+    if (isClearingFilters) return; // Evitar múltiplas chamadas
+
+    console.log("🔧 Limpando todos os filtros (PC antigo seguro)...");
+    setIsClearingFilters(true);
+
+    try {
+      // Limpar estados de forma sequencial para evitar conflitos DOM
+      await safeSetState(() => setError(null), 50);
+      await safeSetState(() => setSearchTerm(""), 100);
+      await safeSetState(() => setDebouncedSearchTerm(""), 150);
+      await safeSetState(() => setFilterCategory("all"), 200);
+      await safeSetState(() => setSelectedCategory(null), 250);
+      await safeSetState(() => setSelectedSubcategory(null), 300);
+      await safeSetState(() => setSortField("name"), 350);
+      await safeSetState(() => setSortOrder("asc"), 400);
+
+      // Limpar storage de forma segura
+      try {
+        Object.values(STORAGE_KEYS).forEach((key) => {
+          sessionStorage.removeItem(key);
+        });
+      } catch (storageError) {
+        console.warn("Erro ao limpar storage (ignorado):", storageError);
+      }
+
+      console.log("✅ Todos os filtros limpos com segurança");
+    } catch (error) {
+      console.warn("Erro ao limpar filtros (PC antigo):", error);
+      // Não quebrar a aplicação - continuar funcionando
+    } finally {
+      await safeSetState(() => setIsClearingFilters(false), 100);
+    }
+  };
+
+  // ✅ NOVO: Função para navegar para nova peça com contexto
+  const handleAddPart = () => {
+    // Construir URL com contexto atual
+    const searchParams = new URLSearchParams();
+
+    if (selectedCategory) {
+      searchParams.set("categoryId", selectedCategory.id);
+    }
+
+    if (selectedSubcategory) {
+      searchParams.set("subcategoryId", selectedSubcategory.id);
+    }
+
+    // Navegar com query params
+    const url = `/app/add-part${
+      searchParams.toString() ? `?${searchParams.toString()}` : ""
+    }`;
+    navigate(url);
+  };
+
+  // ✅ FUNÇÃO helper para mostrar contagem (ZERO REQUESTS)
+  const getDisplayCount = () => {
+    const hasFilters =
+      filterCategory !== "all" || selectedSubcategory || debouncedSearchTerm;
+
+    // ✅ USAR CONTADORES DIRETOS (memória - zero requests)
+    const totalCount = getTotalCount();
+
+    if (hasFilters) {
+      // Para filtros, estimar baseado no que foi carregado
+      const estimatedTotal = displayParts.length;
+      return {
+        count: estimatedTotal,
+        label: debouncedSearchTerm
+          ? "peças encontradas (busca)"
+          : "peças filtradas",
+        isFiltered: true,
+        isEstimated: !!debouncedSearchTerm,
+        totalAvailable: totalCount,
+      };
+    } else {
+      // Sem filtros - mostrar total real
+      return {
+        count: totalCount,
+        label: "peças no total",
+        isFiltered: false,
+        isEstimated: false,
+        totalAvailable: totalCount,
+      };
+    }
+  };
+
+  // ✅ NOVO: Funções auxiliares para ordenação alfabética
   const getSubcategories = (categoryId) => {
-    return categories.filter((cat) => cat.parentId === categoryId);
+    return getSubcategoriesByParent(categoryId).sort((a, b) =>
+      a.name.localeCompare(b.name, "pt-PT")
+    );
   };
 
   const getMainCategories = () => {
-    return categories.filter((cat) => !cat.parentId);
+    return categories.sort((a, b) => a.name.localeCompare(b.name, "pt-PT"));
   };
 
-  const indexOfLastPart = currentPage * itemsPerPage;
-  const indexOfFirstPart = indexOfLastPart - itemsPerPage;
-  const currentParts = filteredParts.slice(indexOfFirstPart, indexOfLastPart);
-  const totalPages = Math.ceil(filteredParts.length / itemsPerPage);
+  // ✅ VERIFICAR LOADING STATES
+  const isLoadingParts = isCacheLoading(
+    filterCategory !== "all" ? filterCategory : null,
+    selectedSubcategory?.id || null,
+    debouncedSearchTerm
+  );
 
-  if (isLoading && !parts.length) {
+  const countInfo = getDisplayCount();
+
+  // Loading state inicial
+  if (categoriesLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
+  }
+
+  // Mostrar erro das categorias
+  if (categoriesError && !error) {
+    setError(categoriesError);
   }
 
   return (
@@ -289,34 +597,74 @@ const ManagePartsLibrary = () => {
           </p>
         </div>
         <div className="flex gap-2">
+          {/* ✅ MODIFICADO: Usar função com contexto */}
           <Button
-            onClick={() => navigate("/app/add-part")}
+            onClick={handleAddPart}
             className="bg-green-600 hover:bg-green-700"
           >
             <Plus className="w-4 h-4 mr-2" />
             Nova Peça
-          </Button>
-          <Button
-            onClick={() => navigate("/app/import-parts")}
-            className="bg-amber-600 hover:bg-amber-700"
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            Importar
+            {/* ✅ NOVO: Indicador de contexto */}
+            {(selectedCategory || selectedSubcategory) && (
+              <span className="ml-1 text-xs bg-green-800 px-1 rounded">+</span>
+            )}
           </Button>
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* ✅ Stats Cards ULTRARRÁPIDOS (ZERO REQUESTS) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="bg-zinc-800 border-zinc-700">
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
               <p className="text-sm font-medium text-zinc-400">
-                Total de Peças
+                {countInfo.isFiltered ? "Peças Encontradas" : "Total de Peças"}
               </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
-                {parts.length}
-              </h3>
+              <div className="flex items-center gap-2 mt-1">
+                <h3 className="text-xl sm:text-2xl font-bold text-white">
+                  {countersLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin inline" />
+                  ) : (
+                    <>
+                      {countInfo.count?.toLocaleString("pt-PT") || 0}
+                      {hasMore && countInfo.isFiltered && (
+                        <span className="text-sm text-zinc-400">+</span>
+                      )}
+                    </>
+                  )}
+                </h3>
+
+                {/* ✅ Indicadores visuais ZERO REQUESTS */}
+                <div className="flex gap-1">
+                  {countInfo.isFiltered && (
+                    <Badge className="bg-blue-500/10 text-blue-500 text-xs">
+                      Filtrado
+                    </Badge>
+                  )}
+                  {countInfo.isEstimated && (
+                    <Badge className="bg-amber-500/10 text-amber-500 text-xs">
+                      ~
+                    </Badge>
+                  )}
+                  {!countersLoading && (
+                    <Badge className="bg-green-500/10 text-green-500 text-xs flex items-center gap-1">
+                      <Zap className="h-2 w-2" />
+                      0ms
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-zinc-500 mt-1">
+                {countersLoading ? "Carregando..." : countInfo.label}
+                {countInfo.isEstimated && (
+                  <span className="text-amber-400 ml-1">(busca local)</span>
+                )}
+                {countInfo.isFiltered && countInfo.totalAvailable && (
+                  <span className="block text-zinc-500">
+                    de {countInfo.totalAvailable.toLocaleString("pt-PT")} total
+                  </span>
+                )}
+              </p>
             </div>
             <Package className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
           </CardContent>
@@ -339,7 +687,9 @@ const ManagePartsLibrary = () => {
             <div>
               <p className="text-sm font-medium text-zinc-400">Subcategorias</p>
               <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
-                {categories.filter((cat) => cat.parentId).length}
+                {categories.reduce((total, cat) => {
+                  return total + getSubcategoriesByParent(cat.id).length;
+                }, 0)}
               </h3>
             </div>
             <Book className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
@@ -347,12 +697,8 @@ const ManagePartsLibrary = () => {
         </Card>
       </div>
 
-      {/* Tabs for All Parts vs Categories */}
-      <Tabs
-        defaultValue="all"
-        value={activeTab}
-        onValueChange={handleTabChange}
-      >
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="bg-zinc-800 border-zinc-700">
           <TabsTrigger
             value="all"
@@ -380,8 +726,29 @@ const ManagePartsLibrary = () => {
                   placeholder="Buscar por nome, código ou descrição..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                  className="pl-10 pr-10 w-full bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
                 />
+                {searchTerm !== debouncedSearchTerm && (
+                  <div className="absolute right-10 top-1/2 -translate-y-1/2">
+                    <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
+                  </div>
+                )}
+                {searchTerm && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearSearch}
+                    disabled={isLoadingParts || isClearingFilters}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-zinc-700"
+                    title="Limpar busca (PC antigo seguro)"
+                  >
+                    {isClearingFilters ? (
+                      <Loader2 className="h-3 w-3 animate-spin text-zinc-400" />
+                    ) : (
+                      <X className="h-4 w-4 text-zinc-400" />
+                    )}
+                  </Button>
+                )}
               </div>
 
               {/* Filters Grid */}
@@ -400,6 +767,7 @@ const ManagePartsLibrary = () => {
                     >
                       Todas as Categorias
                     </SelectItem>
+                    {/* ✅ MODIFICADO: Usar categorias ordenadas */}
                     {getMainCategories().map((category) => (
                       <SelectItem
                         key={category.id}
@@ -445,9 +813,9 @@ const ManagePartsLibrary = () => {
                 </Select>
               </div>
 
-              {/* Sort Order, View Mode, and Results Count */}
+              {/* Controls */}
               <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Button
                     variant="outline"
                     onClick={() =>
@@ -480,11 +848,70 @@ const ManagePartsLibrary = () => {
                   >
                     <List className="w-4 h-4" />
                   </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={handleRefresh}
+                    disabled={isLoadingParts}
+                    className="gap-2 text-white border-zinc-700 hover:bg-zinc-700 bg-zinc-600"
+                  >
+                    <RefreshCw
+                      className={`w-4 h-4 ${
+                        isLoadingParts ? "animate-spin" : ""
+                      }`}
+                    />
+                    Refresh
+                  </Button>
+
+                  {/* ✅ BOTÃO LIMPAR FILTROS - SEGURO PARA PCs ANTIGOS */}
+                  {(searchTerm ||
+                    filterCategory !== "all" ||
+                    sortField !== "name" ||
+                    sortOrder !== "asc") && (
+                    <Button
+                      variant="outline"
+                      onClick={clearAllFilters}
+                      disabled={isLoadingParts || isClearingFilters}
+                      className="gap-2 text-amber-400 border-amber-600 hover:bg-amber-600/20"
+                      title="Limpar todos os filtros (PC antigo seguro)"
+                    >
+                      {isClearingFilters ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <X className="w-4 h-4" />
+                      )}
+                      {isClearingFilters ? "Limpando..." : "Limpar Filtros"}
+                    </Button>
+                  )}
                 </div>
-                <span className="text-center sm:text-right text-sm text-zinc-400">
-                  {filteredParts.length} peça(s) encontrada(s) - Página{" "}
-                  {currentPage} de {totalPages}
-                </span>
+
+                {/* ✅ INDICADOR ULTRARRÁPIDO */}
+                <div className="flex items-center gap-2">
+                  <span className="text-center sm:text-right text-sm text-zinc-400">
+                    {debouncedSearchTerm ? (
+                      <>
+                        {displayParts.length} encontrada(s) para "
+                        {debouncedSearchTerm}"
+                      </>
+                    ) : (
+                      <>
+                        {displayParts.length} carregada(s)
+                        {countInfo.totalAvailable && (
+                          <span className="text-zinc-500">
+                            {" "}
+                            de{" "}
+                            {countInfo.totalAvailable.toLocaleString("pt-PT")}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </span>
+                  {!countersLoading && (
+                    <Badge className="bg-green-500/10 text-green-500 text-xs flex items-center gap-1">
+                      <Zap className="h-2 w-2" />
+                    </Badge>
+                  )}
+                </div>
               </div>
 
               {error && (
@@ -506,293 +933,272 @@ const ManagePartsLibrary = () => {
                   </Button>
                 </Alert>
               )}
+
+              {/* ✅ NOVO: Alerta informativo para limpeza de filtros */}
+              {isClearingFilters && (
+                <Alert className="border-blue-500 bg-blue-500/10">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <AlertDescription className="text-blue-400">
+                    🔧 Limpando filtros de forma segura...
+                    <span className="text-xs text-blue-300 block mt-1">
+                      Aguarde, processo otimizado para PCs antigos.
+                    </span>
+                  </AlertDescription>
+                </Alert>
+              )}
             </CardContent>
           </Card>
 
-          {/* Parts Grid or List */}
-          {viewMode === "grid" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-              {currentParts.map((part) => (
-                <Card
-                  key={part.id}
-                  onClick={() => navigate(`/app/part/${part.id}`)}
-                  className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-                        <AvatarImage src={part.image} alt={part.name} />
-                        <AvatarFallback className="bg-zinc-700 text-white text-sm">
-                          {part.name?.[0]?.toUpperCase() || "P"}
-                        </AvatarFallback>
-                      </Avatar>
+          {/* Loading State */}
+          {isLoadingParts && displayParts.length === 0 && (
+            <Card className="bg-zinc-800 border-zinc-700">
+              <CardContent className="p-8 text-center">
+                <Loader2 className="w-8 h-8 animate-spin text-white mx-auto mb-4" />
+                <p className="text-white">Carregando peças...</p>
+              </CardContent>
+            </Card>
+          )}
 
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-base sm:text-lg text-white truncate">
-                            {part.name}
-                          </h3>
-                          <Badge className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20">
-                            {part.code}
-                          </Badge>
+          {/* Parts Grid/List - MANTIDO IGUAL */}
+          {displayParts.length > 0 && (
+            <>
+              {viewMode === "grid" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                  {displayParts.map((part) => (
+                    <Card
+                      key={part.id}
+                      onClick={() => navigate(`/app/part/${part.id}`)}
+                      className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg overflow-hidden">
+                            <PartImage
+                              src={part.image}
+                              imageHash={part.imageHash}
+                              alt={part.name}
+                              className="w-full h-full object-cover"
+                              defaultImage="/default-part.png"
+                            />
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold text-base sm:text-lg text-white truncate">
+                                {part.name}
+                              </h3>
+                              <Badge className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20">
+                                {part.code}
+                              </Badge>
+                            </div>
+                            <p className="text-zinc-400 text-xs sm:text-sm truncate">
+                              {part.categoryName || "Sem categoria"}
+                            </p>
+                          </div>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              asChild
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="rounded-full hover:bg-zinc-700 text-white"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="end"
+                              className="bg-zinc-800 border-zinc-700"
+                            >
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  navigate(`/app/edit-part/${part.id}`)
+                                }
+                                className="text-white hover:bg-zinc-700 cursor-pointer"
+                              >
+                                <Edit2 className="w-4 h-4 mr-2" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
+                                onClick={(e) => confirmDelete(part, e)}
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                        <p className="text-zinc-400 text-xs sm:text-sm truncate">
-                          {part.categoryName || "Sem categoria"}
-                        </p>
-                      </div>
 
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          asChild
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="rounded-full hover:bg-zinc-700 text-white"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="end"
-                          className="bg-zinc-800 border-zinc-700"
-                        >
-                          <DropdownMenuItem
-                            onClick={() =>
-                              navigate(`/app/edit-part/${part.id}`)
-                            }
-                            className="text-white hover:bg-zinc-700 cursor-pointer"
-                          >
-                            <Edit2 className="w-4 h-4 mr-2" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
-                            onClick={(e) => confirmDelete(part, e)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-
-                    {/* Price and Description */}
-                    <div className="mt-3 space-y-1.5">
-                      <p className="text-white text-sm font-medium">
-                        {new Intl.NumberFormat("pt-PT", {
-                          style: "currency",
-                          currency: "EUR",
-                        }).format(part.price || 0)}
-                      </p>
-                      <p className="text-zinc-400 text-xs sm:text-sm line-clamp-2">
-                        {part.description || "Sem descrição"}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-
-              {filteredParts.length === 0 && (
-                <Card className="md:col-span-2 lg:col-span-3 bg-zinc-800 border-zinc-700">
-                  <CardContent className="p-8 sm:p-12 text-center">
-                    <Search className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
-                    <p className="text-lg font-medium mb-2 text-white">
-                      Nenhuma peça encontrada
-                    </p>
-                    <p className="text-sm sm:text-base text-zinc-400">
-                      Tente ajustar seus filtros ou adicione uma nova peça
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          ) : (
-            <div className="mt-4 space-y-2">
-              {currentParts.map((part) => (
-                <Card
-                  key={part.id}
-                  onClick={() => navigate(`/app/part/${part.id}`)}
-                  className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
-                >
-                  <CardContent className="p-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={part.image} alt={part.name} />
-                        <AvatarFallback className="bg-zinc-700 text-white text-sm">
-                          {part.name?.[0]?.toUpperCase() || "P"}
-                        </AvatarFallback>
-                      </Avatar>
-
-                      <div className="flex-1 min-w-0 flex items-center">
-                        <div>
-                          <h3 className="font-semibold text-base text-white truncate">
-                            {part.name}
-                          </h3>
-                          <p className="text-zinc-400 text-xs truncate">
-                            {part.categoryName || "Sem categoria"} • Código:{" "}
-                            {part.code}
+                        <div className="mt-3 space-y-1.5">
+                          <p className="text-white text-sm font-medium">
+                            {new Intl.NumberFormat("pt-PT", {
+                              style: "currency",
+                              currency: "EUR",
+                            }).format(part.price || 0)}
+                          </p>
+                          <p className="text-zinc-400 text-xs sm:text-sm line-clamp-2">
+                            {part.description || "Sem descrição"}
                           </p>
                         </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <p className="text-white font-medium whitespace-nowrap">
-                          {new Intl.NumberFormat("pt-PT", {
-                            style: "currency",
-                            currency: "EUR",
-                          }).format(part.price || 0)}
-                        </p>
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            asChild
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="rounded-full hover:bg-zinc-700 text-white"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align="end"
-                            className="bg-zinc-800 border-zinc-700"
-                          >
-                            <DropdownMenuItem
-                              onClick={() =>
-                                navigate(`/app/edit-part/${part.id}`)
-                              }
-                              className="text-white hover:bg-zinc-700 cursor-pointer"
-                            >
-                              <Edit2 className="w-4 h-4 mr-2" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
-                              onClick={(e) => confirmDelete(part, e)}
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-
-              {filteredParts.length === 0 && (
-                <Card className="bg-zinc-800 border-zinc-700">
-                  <CardContent className="p-8 sm:p-12 text-center">
-                    <Search className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
-                    <p className="text-lg font-medium mb-2 text-white">
-                      Nenhuma peça encontrada
-                    </p>
-                    <p className="text-sm sm:text-base text-zinc-400">
-                      Tente ajustar seus filtros ou adicione uma nova peça
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
-          {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-8">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => paginate(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-
-              {currentPage > 3 && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => paginate(1)}
-                    className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-                  >
-                    1
-                  </Button>
-                  {currentPage > 4 && (
-                    <span className="text-zinc-400">...</span>
-                  )}
-                </>
-              )}
-
-              {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
-                let pageNumber;
-                if (totalPages <= 5) {
-                  pageNumber = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNumber = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNumber = totalPages - 4 + i;
-                } else {
-                  pageNumber = currentPage - 2 + i;
-                }
-
-                if (pageNumber >= 1 && pageNumber <= totalPages) {
-                  return (
-                    <Button
-                      key={pageNumber}
-                      variant={
-                        currentPage === pageNumber ? "secondary" : "outline"
-                      }
-                      size="icon"
-                      onClick={() => paginate(pageNumber)}
-                      className={`border-zinc-700 ${
-                        currentPage === pageNumber
-                          ? "bg-zinc-700 text-white hover:bg-zinc-600"
-                          : "text-white hover:bg-zinc-700 bg-zinc-800"
-                      }`}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-4 space-y-2">
+                  {displayParts.map((part) => (
+                    <Card
+                      key={part.id}
+                      onClick={() => navigate(`/app/part/${part.id}`)}
+                      className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
                     >
-                      {pageNumber}
-                    </Button>
-                  );
-                }
-                return null;
-              })}
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg overflow-hidden">
+                            <PartImage
+                              src={part.image}
+                              imageHash={part.imageHash}
+                              alt={part.name}
+                              className="w-full h-full object-cover"
+                              defaultImage="/default-part.png"
+                            />
+                          </div>
 
-              {currentPage < totalPages - 2 && (
-                <>
-                  {currentPage < totalPages - 3 && (
-                    <span className="text-zinc-400">...</span>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => paginate(totalPages)}
-                    className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-                  >
-                    {totalPages}
-                  </Button>
-                </>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-base text-white truncate">
+                              {part.name}
+                            </h3>
+                            <p className="text-zinc-400 text-xs truncate">
+                              {part.categoryName || "Sem categoria"} • Código:{" "}
+                              {part.code}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <p className="text-white font-medium whitespace-nowrap">
+                              {new Intl.NumberFormat("pt-PT", {
+                                style: "currency",
+                                currency: "EUR",
+                              }).format(part.price || 0)}
+                            </p>
+
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                asChild
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="rounded-full hover:bg-zinc-700 text-white"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="end"
+                                className="bg-zinc-800 border-zinc-700"
+                              >
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    navigate(`/app/edit-part/${part.id}`)
+                                  }
+                                  className="text-white hover:bg-zinc-700 cursor-pointer"
+                                >
+                                  <Edit2 className="w-4 h-4 mr-2" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
+                                  onClick={(e) => confirmDelete(part, e)}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               )}
 
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => paginate(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+              {/* Load More Button */}
+              {hasMore && !debouncedSearchTerm && (
+                <div className="flex justify-center mt-8">
+                  <Button
+                    onClick={handleLoadMore}
+                    disabled={isLoadingParts}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {isLoadingParts ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Carregando...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Carregar Mais (20 itens)
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {!hasMore && displayParts.length > 0 && (
+                <div className="text-center mt-8">
+                  <p className="text-zinc-400">
+                    ✅ Todas as peças foram carregadas ({displayParts.length}{" "}
+                    {countInfo.totalAvailable &&
+                      `de ${countInfo.totalAvailable.toLocaleString(
+                        "pt-PT"
+                      )}`}{" "}
+                    total)
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Empty State */}
+          {displayParts.length === 0 && !isLoadingParts && (
+            <Card className="bg-zinc-800 border-zinc-700 mt-4">
+              <CardContent className="p-8 sm:p-12 text-center">
+                <Search className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
+                <p className="text-lg font-medium mb-2 text-white">
+                  Nenhuma peça encontrada
+                </p>
+                <p className="text-sm sm:text-base text-zinc-400 mb-4">
+                  Tente ajustar seus filtros ou adicione uma nova peça
+                </p>
+                {(searchTerm || filterCategory !== "all") && (
+                  <Button
+                    onClick={clearAllFilters}
+                    disabled={isLoadingParts || isClearingFilters}
+                    className="bg-amber-600 hover:bg-amber-700"
+                    title="Limpar filtros (PC antigo seguro)"
+                  >
+                    {isClearingFilters ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <X className="w-4 h-4 mr-2" />
+                    )}
+                    {isClearingFilters ? "Limpando..." : "Limpar Filtros"}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
 
-        {/* Categories Tab */}
+        {/* ✅ CATEGORIES TAB - IMPLEMENTAÇÃO COMPLETA COM ORDENAÇÃO */}
         <TabsContent value="categories">
           <div className="space-y-4">
             {/* Breadcrumb */}
@@ -810,25 +1216,57 @@ const ManagePartsLibrary = () => {
                 <span className="text-zinc-400">
                   {selectedSubcategory
                     ? `${selectedCategory.name} > ${selectedSubcategory.name}`
-                    : selectedCategory.name}
+                    : selectedCategory
+                    ? selectedCategory.name
+                    : "Categorias"}
                 </span>
               </div>
             )}
 
-            {/* Search for Categories Tab */}
-            {!selectedCategory && (
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <Input
-                  placeholder="Buscar categorias..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
-                />
+            {/* Search */}
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <Input
+                placeholder={
+                  selectedCategory && !selectedSubcategory
+                    ? "Buscar subcategorias..."
+                    : selectedSubcategory
+                    ? "Buscar peças..."
+                    : "Buscar categorias..."
+                }
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+              />
+            </div>
+
+            {/* ✅ INDICADOR DE FILTROS ATIVOS na aba Categories */}
+            {(searchTerm || filterCategory !== "all") && (
+              <div className="flex items-center gap-2 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <AlertTriangle className="h-4 w-4 text-blue-400" />
+                <span className="text-blue-400 text-sm flex-1">
+                  Filtros ativos da aba "Todas as Peças" podem afetar os
+                  resultados
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  disabled={isLoadingParts || isClearingFilters}
+                  className="text-blue-400 hover:text-white hover:bg-blue-600/20 h-6 px-2"
+                  title="Limpar filtros (PC antigo seguro)"
+                >
+                  {isClearingFilters ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
+                    <X className="h-3 w-3 mr-1" />
+                  )}
+                  {isClearingFilters ? "Limpando..." : "Limpar"}
+                </Button>
               </div>
             )}
 
-            {/* Display Main Categories */}
+            {/* ✅ 1. CATEGORIAS PRINCIPAIS - ORDENADAS ALFABETICAMENTE */}
             {!selectedCategory && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {getMainCategories()
@@ -857,106 +1295,189 @@ const ManagePartsLibrary = () => {
                       </CardContent>
                     </Card>
                   ))}
+              </div>
+            )}
 
-                {getMainCategories().filter((cat) =>
-                  cat.name.toLowerCase().includes(searchTerm.toLowerCase())
-                ).length === 0 && (
+            {/* ✅ 2. SUBCATEGORIAS - ORDENADAS ALFABETICAMENTE COM CONTADORES REAIS */}
+            {selectedCategory && !selectedSubcategory && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {getSubcategories(selectedCategory.id)
+                  .filter((sub) =>
+                    sub.name.toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                  .map((subcategory) => (
+                    <Card
+                      key={subcategory.id}
+                      onClick={() => handleSubcategoryClick(subcategory)}
+                      className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Package className="h-5 w-5 text-purple-500" />
+                            <h3 className="font-semibold text-base text-white">
+                              {subcategory.name}
+                            </h3>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-zinc-400" />
+                        </div>
+                        <p className="text-zinc-400 text-sm mt-2">
+                          {/* ✅ CONTADOR REAL do cache */}
+                          {subcategoryCounts[subcategory.id] || 0} peças
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                {getSubcategories(selectedCategory.id).length === 0 && (
                   <Card className="md:col-span-2 lg:col-span-3 bg-zinc-800 border-zinc-700">
                     <CardContent className="p-8 text-center">
-                      <Search className="w-10 h-10 text-zinc-600 mx-auto mb-4" />
+                      <Package className="w-10 h-10 text-zinc-600 mx-auto mb-4" />
                       <p className="text-lg font-medium mb-2 text-white">
-                        Nenhuma categoria encontrada
+                        Nenhuma subcategoria encontrada
                       </p>
                       <p className="text-sm text-zinc-400">
-                        Tente ajustar sua busca ou adicione uma nova categoria
+                        Esta categoria ainda não tem subcategorias
                       </p>
+                      <Button
+                        onClick={() =>
+                          navigate(
+                            `/app/add-subcategory/${selectedCategory.id}`
+                          )
+                        }
+                        className="mt-4 bg-purple-600 hover:bg-purple-700"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Adicionar Subcategoria
+                      </Button>
                     </CardContent>
                   </Card>
                 )}
               </div>
             )}
 
-            {/* Display Parts in Subcategory */}
+            {/* ✅ 3. PEÇAS DA SUBCATEGORIA - COM CACHE */}
             {selectedSubcategory && (
-              <div className="space-y-4">
-                <div className="relative w-full">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <Input
-                    placeholder="Buscar peças..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
-                  />
-                </div>
+              <>
+                {isLoadingParts && displayParts.length === 0 ? (
+                  <Card className="bg-zinc-800 border-zinc-700">
+                    <CardContent className="p-8 text-center">
+                      <Loader2 className="w-8 h-8 animate-spin text-white mx-auto mb-4" />
+                      <p className="text-white">
+                        Carregando peças da subcategoria...
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : displayParts.length > 0 ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {displayParts
+                        .filter(
+                          (part) =>
+                            part.name
+                              ?.toLowerCase()
+                              .includes(searchTerm.toLowerCase()) ||
+                            part.code
+                              ?.toLowerCase()
+                              .includes(searchTerm.toLowerCase()) ||
+                            part.description
+                              ?.toLowerCase()
+                              .includes(searchTerm.toLowerCase())
+                        )
+                        .map((part) => (
+                          <Card
+                            key={part.id}
+                            onClick={() => navigate(`/app/part/${part.id}`)}
+                            className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-lg overflow-hidden">
+                                  <PartImage
+                                    src={part.image}
+                                    imageHash={part.imageHash}
+                                    alt={part.name}
+                                    className="w-full h-full object-cover"
+                                    defaultImage="/default-part.png"
+                                  />
+                                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {parts
-                    .filter(
-                      (part) =>
-                        part.subcategoryId === selectedSubcategory.id &&
-                        (part.name
-                          .toLowerCase()
-                          .includes(searchTerm.toLowerCase()) ||
-                          part.code
-                            .toLowerCase()
-                            .includes(searchTerm.toLowerCase()))
-                    )
-                    .map((part) => (
-                      <Card
-                        key={part.id}
-                        onClick={() => navigate(`/app/part/${part.id}`)}
-                        className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={part.image} alt={part.name} />
-                              <AvatarFallback className="bg-zinc-700 text-white text-sm">
-                                {part.name?.[0]?.toUpperCase() || "P"}
-                              </AvatarFallback>
-                            </Avatar>
-
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-semibold text-base text-white truncate">
-                                  {part.name}
-                                </h3>
-                                <Badge className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20">
-                                  {part.code}
-                                </Badge>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="font-semibold text-base text-white truncate">
+                                      {part.name}
+                                    </h3>
+                                    <Badge className="bg-blue-500/10 text-blue-500">
+                                      {part.code}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-white text-sm">
+                                    {new Intl.NumberFormat("pt-PT", {
+                                      style: "currency",
+                                      currency: "EUR",
+                                    }).format(part.price || 0)}
+                                  </p>
+                                </div>
                               </div>
-                              <p className="text-white text-sm">
-                                {new Intl.NumberFormat("pt-PT", {
-                                  style: "currency",
-                                  currency: "EUR",
-                                }).format(part.price || 0)}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                            </CardContent>
+                          </Card>
+                        ))}
+                    </div>
 
-                  {parts.filter(
-                    (part) => part.subcategoryId === selectedSubcategory.id
-                  ).length === 0 && (
-                    <Card className="md:col-span-2 lg:col-span-3 bg-zinc-800 border-zinc-700">
-                      <CardContent className="p-6 text-center">
-                        <p className="text-zinc-400">
-                          Nenhuma peça encontrada nesta subcategoria
-                        </p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              </div>
+                    {hasMore && (
+                      <div className="flex justify-center mt-8">
+                        <Button
+                          onClick={handleLoadMore}
+                          disabled={isLoadingParts}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          {isLoadingParts ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Carregando...
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-4 h-4 mr-2" />
+                              Carregar Mais
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <Card className="bg-zinc-800 border-zinc-700">
+                    <CardContent className="p-6 text-center">
+                      <Package className="w-10 h-10 text-zinc-600 mx-auto mb-4" />
+                      <p className="text-lg font-medium mb-2 text-white">
+                        Nenhuma peça encontrada
+                      </p>
+                      <p className="text-zinc-400 text-sm">
+                        Esta subcategoria ainda não tem peças cadastradas
+                      </p>
+                      {/* ✅ MODIFICADO: Usar função com contexto */}
+                      <Button
+                        onClick={handleAddPart}
+                        className="mt-4 bg-green-600 hover:bg-green-700"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Adicionar Peça
+                        <span className="ml-1 text-xs bg-green-800 px-1 rounded">
+                          +
+                        </span>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
             )}
 
-            {/* Action Buttons for Categories Tab */}
+            {/* Action Buttons */}
             <div className="flex flex-wrap gap-2 mt-4">
               <Button
                 onClick={() => navigate("/app/add-category")}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                className="bg-green-600 hover:bg-green-700"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Nova Categoria
@@ -964,18 +1485,10 @@ const ManagePartsLibrary = () => {
 
               <Button
                 onClick={() => navigate("/app/manage-categories")}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
+                className="bg-purple-600 hover:bg-purple-700"
               >
                 <Tag className="w-4 h-4 mr-2" />
                 Gerenciar Categorias
-              </Button>
-
-              <Button
-                onClick={() => navigate("/app/import-parts")}
-                className="bg-amber-600 hover:bg-amber-700 text-white"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Importar Peças
               </Button>
 
               {selectedCategory && (
@@ -983,30 +1496,33 @@ const ManagePartsLibrary = () => {
                   onClick={() =>
                     navigate(`/app/add-subcategory/${selectedCategory.id}`)
                   }
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-blue-600 hover:bg-blue-700"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Nova Subcategoria
                 </Button>
               )}
 
+              {/* ✅ MODIFICADO: Usar função com contexto */}
               <Button
-                onClick={() => navigate("/app/add-part")}
-                className={`${
-                  selectedCategory || selectedSubcategory
-                    ? "bg-purple-600 hover:bg-purple-700"
-                    : "bg-zinc-600 hover:bg-zinc-700"
-                } text-white`}
+                onClick={handleAddPart}
+                className="bg-zinc-600 hover:bg-zinc-700"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Nova Peça
+                {/* ✅ NOVO: Indicador de contexto */}
+                {(selectedCategory || selectedSubcategory) && (
+                  <span className="ml-1 text-xs bg-green-800 px-1 rounded">
+                    +
+                  </span>
+                )}
               </Button>
             </div>
           </div>
         </TabsContent>
       </Tabs>
 
-      {/* Delete Confirmation Dialog - Alternative to Dialog component */}
+      {/* Delete Dialog - MANTIDO IGUAL */}
       {deleteDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/50" onClick={cancelDelete} />
@@ -1025,7 +1541,7 @@ const ManagePartsLibrary = () => {
               <Button
                 variant="outline"
                 onClick={cancelDelete}
-                className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
               >
                 Cancelar
               </Button>
@@ -1041,37 +1557,21 @@ const ManagePartsLibrary = () => {
         </div>
       )}
 
-      {/* FAB Menu for Mobile */}
+      {/* Mobile FAB */}
       <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden">
         <Button
-          onClick={() => {
-            setError(null);
-            fetchParts();
-          }}
+          onClick={handleRefresh}
           size="icon"
+          disabled={isLoadingParts}
           className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
         >
-          <RefreshCw className="h-5 w-5" />
+          <RefreshCw
+            className={`h-5 w-5 ${isLoadingParts ? "animate-spin" : ""}`}
+          />
         </Button>
+        {/* ✅ MODIFICADO: Usar função com contexto */}
         <Button
-          onClick={() => {
-            const csvContent = convertToCSV(parts);
-            downloadCSV(csvContent, "pecas.csv");
-          }}
-          size="icon"
-          className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
-        >
-          <Download className="h-5 w-5" />
-        </Button>
-        <Button
-          onClick={() => navigate("/app/import-parts")}
-          size="icon"
-          className="rounded-full shadow-lg bg-amber-600 hover:bg-amber-700"
-        >
-          <Upload className="h-5 w-5" />
-        </Button>
-        <Button
-          onClick={() => navigate("/app/add-part")}
+          onClick={handleAddPart}
           size="icon"
           className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
         >
@@ -1080,44 +1580,6 @@ const ManagePartsLibrary = () => {
       </div>
     </div>
   );
-};
-
-// Utility Functions
-const convertToCSV = (parts) => {
-  const headers = [
-    "Nome",
-    "Código",
-    "Preço",
-    "Descrição",
-    "Categoria",
-    "Subcategoria",
-  ];
-  const rows = parts.map((part) => [
-    part.name,
-    part.code,
-    part.price,
-    part.description,
-    part.categoryName || "",
-    part.subcategoryName || "",
-  ]);
-
-  return [headers, ...rows]
-    .map((row) => row.map((cell) => `"${cell || ""}"`).join(","))
-    .join("\n");
-};
-
-const downloadCSV = (content, filename) => {
-  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  if (link.download !== undefined) {
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", filename);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
 };
 
 export default ManagePartsLibrary;

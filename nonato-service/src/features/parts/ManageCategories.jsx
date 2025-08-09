@@ -11,6 +11,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useNavigate } from "react-router-dom";
+import { useCategories } from "../../context/CategoriesContext.jsx";
 import {
   Search,
   Plus,
@@ -29,7 +30,12 @@ import {
 } from "lucide-react";
 
 // UI Components
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.jsx";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card.jsx";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,9 +56,18 @@ import {
 } from "@/components/ui/dialog.jsx";
 
 const ManageCategories = () => {
-  const [categories, setCategories] = useState([]);
+  // USAR cache de categorias em vez de state local
+  const {
+    categories,
+    getSubcategoriesByParent,
+    refreshCategories,
+    removeCategoryFromCache,
+    updateCategoryInCache,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+  } = useCategories();
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedCategories, setExpandedCategories] = useState({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -61,80 +76,68 @@ const ManageCategories = () => {
   const [categoryToEdit, setCategoryToEdit] = useState(null);
   const [editName, setEditName] = useState("");
   const [categoryStats, setCategoryStats] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  // Fetch all categories
-  const fetchCategories = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      // Get main categories
-      const mainCategoriesQuery = query(
-        collection(db, "categorias"),
-        where("parentId", "==", null)
-      );
-      const mainCategoriesSnapshot = await getDocs(mainCategoriesQuery);
-      const mainCategories = mainCategoriesSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
+  // ✅ ORGANIZAR categorias com subcategorias + ORDENAÇÃO ALFABÉTICA
+  const organizedCategories = categories
+    .sort((a, b) => a.name.localeCompare(b.name)) // ✅ ORDENAR categorias alfabeticamente
+    .map((category) => {
+      const subcategories = getSubcategoriesByParent(category.id).sort((a, b) =>
+        a.name.localeCompare(b.name)
+      ); // ✅ ORDENAR subcategorias alfabeticamente
+      return {
+        ...category,
+        subcategories,
         isMainCategory: true,
-        subCategories: [],
-      }));
+      };
+    });
 
-      // Get all subcategories
-      const subcategoriesQuery = query(
-        collection(db, "categorias"),
-        where("parentId", "!=", null)
-      );
-      const subcategoriesSnapshot = await getDocs(subcategoriesQuery);
-      const subcategories = subcategoriesSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        isMainCategory: false,
-      }));
-
-      // Organize subcategories under their parent categories
-      const organizedCategories = mainCategories.map((category) => {
-        const subs = subcategories.filter(
-          (sub) => sub.parentId === category.id
-        );
-        return {
-          ...category,
-          subCategories: subs,
-        };
-      });
-
-      setCategories(organizedCategories);
-
-      // Get stats for each category (count of parts)
+  // Fetch stats for categories (manter esse pois é específico)
+  const fetchCategoryStats = useCallback(async () => {
+    try {
       const statsObj = {};
       const partsSnapshot = await getDocs(collection(db, "pecas"));
-      const parts = partsSnapshot.docs.map(doc => doc.data());
-      
+      const parts = partsSnapshot.docs.map((doc) => doc.data());
+
       // Count for main categories
-      for (const category of mainCategories) {
-        const mainCategoryParts = parts.filter(part => part.categoryId === category.id);
+      for (const category of categories) {
+        const mainCategoryParts = parts.filter(
+          (part) => part.categoryId === category.id
+        );
         statsObj[category.id] = mainCategoryParts.length;
       }
-      
+
       // Count for subcategories
-      for (const subcategory of subcategories) {
-        const subcategoryParts = parts.filter(part => part.subcategoryId === subcategory.id);
-        statsObj[subcategory.id] = subcategoryParts.length;
+      for (const category of categories) {
+        const subcategories = getSubcategoriesByParent(category.id);
+        for (const subcategory of subcategories) {
+          const subcategoryParts = parts.filter(
+            (part) => part.subcategoryId === subcategory.id
+          );
+          statsObj[subcategory.id] = subcategoryParts.length;
+        }
       }
-      
+
       setCategoryStats(statsObj);
     } catch (err) {
-      console.error("Erro ao buscar categorias:", err);
-      setError("Erro ao carregar categorias. Por favor, tente novamente.");
-    } finally {
-      setIsLoading(false);
+      console.error("Erro ao buscar estatísticas:", err);
     }
-  }, []);
+  }, [categories, getSubcategoriesByParent]);
 
+  // Buscar stats quando categorias carregarem
   useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
+    if (!categoriesLoading && categories.length > 0) {
+      fetchCategoryStats();
+    }
+  }, [categoriesLoading, categories, fetchCategoryStats]);
+
+  // USAR error do cache se disponível
+  useEffect(() => {
+    if (categoriesError) {
+      setError(categoriesError);
+    }
+  }, [categoriesError]);
 
   const toggleCategory = (categoryId) => {
     setExpandedCategories((prev) => ({
@@ -145,13 +148,19 @@ const ManageCategories = () => {
 
   const handleDeleteClick = (category, e) => {
     e.stopPropagation();
-    setCategoryToDelete(category);
+
+    // Verificar se é categoria principal ou subcategoria
+    const isMainCategory = categories.some((cat) => cat.id === category.id);
+    setCategoryToDelete({ ...category, isMainCategory });
     setDeleteDialogOpen(true);
   };
 
   const handleEditClick = (category, e) => {
     e.stopPropagation();
-    setCategoryToEdit(category);
+
+    // Verificar se é categoria principal ou subcategoria
+    const isMainCategory = categories.some((cat) => cat.id === category.id);
+    setCategoryToEdit({ ...category, isMainCategory });
     setEditName(category.name);
     setEditDialogOpen(true);
   };
@@ -160,32 +169,31 @@ const ManageCategories = () => {
     if (!categoryToDelete) return;
 
     try {
-      setIsLoading(true);
+      setIsSubmitting(true);
       const batch = writeBatch(db);
-      
+
       // If it's a main category, also delete all subcategories
       if (categoryToDelete.isMainCategory) {
         // Get the subcategories that need to be deleted
-        const subcategories = categories
-          .find(cat => cat.id === categoryToDelete.id)?.subCategories || [];
-        
+        const subcategories = getSubcategoriesByParent(categoryToDelete.id);
+
         // Update all parts that use this category to remove the reference
         const partsQuery = query(
           collection(db, "pecas"),
           where("categoryId", "==", categoryToDelete.id)
         );
         const partsSnapshot = await getDocs(partsQuery);
-        
-        partsSnapshot.docs.forEach(partDoc => {
+
+        partsSnapshot.docs.forEach((partDoc) => {
           const partRef = doc(db, "pecas", partDoc.id);
-          batch.update(partRef, { 
-            categoryId: "", 
+          batch.update(partRef, {
+            categoryId: "",
             categoryName: "",
             subcategoryId: "",
-            subcategoryName: ""
+            subcategoryName: "",
           });
         });
-        
+
         // Delete all subcategories
         for (const subcategory of subcategories) {
           // Update parts that use this subcategory
@@ -194,19 +202,19 @@ const ManageCategories = () => {
             where("subcategoryId", "==", subcategory.id)
           );
           const subPartsSnapshot = await getDocs(subPartsQuery);
-          
-          subPartsSnapshot.docs.forEach(partDoc => {
+
+          subPartsSnapshot.docs.forEach((partDoc) => {
             const partRef = doc(db, "pecas", partDoc.id);
-            batch.update(partRef, { 
+            batch.update(partRef, {
               subcategoryId: "",
-              subcategoryName: ""
+              subcategoryName: "",
             });
           });
-          
+
           // Delete the subcategory
           batch.delete(doc(db, "categorias", subcategory.id));
         }
-        
+
         // Delete the main category
         batch.delete(doc(db, "categorias", categoryToDelete.id));
       } else {
@@ -216,31 +224,34 @@ const ManageCategories = () => {
           where("subcategoryId", "==", categoryToDelete.id)
         );
         const partsSnapshot = await getDocs(partsQuery);
-        
-        partsSnapshot.docs.forEach(partDoc => {
+
+        partsSnapshot.docs.forEach((partDoc) => {
           const partRef = doc(db, "pecas", partDoc.id);
-          batch.update(partRef, { 
+          batch.update(partRef, {
             subcategoryId: "",
-            subcategoryName: ""
+            subcategoryName: "",
           });
         });
-        
+
         batch.delete(doc(db, "categorias", categoryToDelete.id));
       }
-      
+
       // Commit the batch
       await batch.commit();
-      
+
+      // USAR cache para remover categoria
+      removeCategoryFromCache(categoryToDelete.id);
+
       setDeleteDialogOpen(false);
       setCategoryToDelete(null);
-      
-      // Refresh categories
-      fetchCategories();
+
+      // Refresh stats
+      fetchCategoryStats();
     } catch (err) {
       console.error("Erro ao excluir categoria:", err);
       setError("Erro ao excluir categoria. Por favor, tente novamente.");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -248,13 +259,13 @@ const ManageCategories = () => {
     if (!categoryToEdit || !editName.trim()) return;
 
     try {
-      setIsLoading(true);
+      setIsSubmitting(true);
       const batch = writeBatch(db);
-      
+
       // Update the category name
       const categoryRef = doc(db, "categorias", categoryToEdit.id);
       batch.update(categoryRef, { name: editName });
-      
+
       // Update all references in parts
       if (categoryToEdit.isMainCategory) {
         // Update main category references
@@ -263,8 +274,8 @@ const ManageCategories = () => {
           where("categoryId", "==", categoryToEdit.id)
         );
         const partsSnapshot = await getDocs(partsQuery);
-        
-        partsSnapshot.docs.forEach(partDoc => {
+
+        partsSnapshot.docs.forEach((partDoc) => {
           const partRef = doc(db, "pecas", partDoc.id);
           batch.update(partRef, { categoryName: editName });
         });
@@ -275,42 +286,48 @@ const ManageCategories = () => {
           where("subcategoryId", "==", categoryToEdit.id)
         );
         const partsSnapshot = await getDocs(partsQuery);
-        
-        partsSnapshot.docs.forEach(partDoc => {
+
+        partsSnapshot.docs.forEach((partDoc) => {
           const partRef = doc(db, "pecas", partDoc.id);
           batch.update(partRef, { subcategoryName: editName });
         });
       }
-      
+
       // Commit the batch
       await batch.commit();
-      
+
+      // USAR cache para atualizar categoria
+      updateCategoryInCache(categoryToEdit.id, { name: editName });
+
       setEditDialogOpen(false);
       setCategoryToEdit(null);
       setEditName("");
-      
-      // Refresh categories
-      fetchCategories();
     } catch (err) {
       console.error("Erro ao editar categoria:", err);
       setError("Erro ao editar categoria. Por favor, tente novamente.");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const filteredCategories = categories.filter(category => {
-    const matchesSearch = category.name.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Also check subcategories
-    const hasMatchingSubcategories = category.subCategories.some(sub => 
-      sub.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    
-    return matchesSearch || hasMatchingSubcategories;
-  });
+  // ✅ FILTRAR e manter ORDEM ALFABÉTICA
+  const filteredCategories = organizedCategories
+    .filter((category) => {
+      const matchesSearch = category.name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
 
-  if (isLoading && !categories.length) {
+      // Also check subcategories
+      const hasMatchingSubcategories = category.subcategories.some((sub) =>
+        sub.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+
+      return matchesSearch || hasMatchingSubcategories;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name)); // ✅ MANTER ordem alfabética após filtro
+
+  // Loading state
+  if (categoriesLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
@@ -372,7 +389,11 @@ const ManageCategories = () => {
                 Total de Subcategorias
               </p>
               <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
-                {categories.reduce((total, cat) => total + cat.subCategories.length, 0)}
+                {categories.reduce(
+                  (total, cat) =>
+                    total + getSubcategoriesByParent(cat.id).length,
+                  0
+                )}
               </h3>
             </div>
             <FolderOpen className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
@@ -404,10 +425,13 @@ const ManageCategories = () => {
               </AlertDescription>
             </Alert>
           )}
-          
+
           <Button
             variant="outline"
-            onClick={fetchCategories}
+            onClick={() => {
+              refreshCategories();
+              fetchCategoryStats();
+            }}
             className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
@@ -420,10 +444,7 @@ const ManageCategories = () => {
       <div className="space-y-4">
         {filteredCategories.length > 0 ? (
           filteredCategories.map((category) => (
-            <Card
-              key={category.id}
-              className="bg-zinc-800 border-zinc-700"
-            >
+            <Card key={category.id} className="bg-zinc-800 border-zinc-700">
               <CardContent className="p-0">
                 {/* Main Category */}
                 <div
@@ -446,7 +467,7 @@ const ManageCategories = () => {
                   </div>
                   <div className="flex items-center">
                     <span className="text-sm text-zinc-400 mr-2">
-                      {category.subCategories.length} subcategorias
+                      {category.subcategories.length} subcategorias
                     </span>
                     <div className="flex items-center space-x-1">
                       <Button
@@ -474,11 +495,11 @@ const ManageCategories = () => {
                   </div>
                 </div>
 
-                {/* Subcategories */}
+                {/* ✅ CORRIGIR: Subcategorias */}
                 {expandedCategories[category.id] && (
                   <div className="border-t border-zinc-700 pl-4">
-                    {category.subCategories.length > 0 ? (
-                      category.subCategories.map((subcategory) => (
+                    {category.subcategories.length > 0 ? (
+                      category.subcategories.map((subcategory) => (
                         <div
                           key={subcategory.id}
                           className="flex items-center justify-between p-3 border-b border-zinc-700/50 last:border-b-0 hover:bg-zinc-700/30"
@@ -520,7 +541,7 @@ const ManageCategories = () => {
                         Nenhuma subcategoria encontrada
                       </div>
                     )}
-                    
+
                     {/* Add subcategory button */}
                     <div className="py-3 px-4">
                       <Button
@@ -574,8 +595,8 @@ const ManageCategories = () => {
                     ?
                   </p>
                   <p className="mt-2">
-                    Esta ação também excluirá todas as subcategorias associadas e removerá a associação
-                    de todas as peças a esta categoria.
+                    Esta ação também excluirá todas as subcategorias associadas
+                    e removerá a associação de todas as peças a esta categoria.
                   </p>
                 </>
               ) : (
@@ -588,7 +609,8 @@ const ManageCategories = () => {
                     ?
                   </p>
                   <p className="mt-2">
-                    Esta ação removerá a associação de todas as peças a esta subcategoria.
+                    Esta ação removerá a associação de todas as peças a esta
+                    subcategoria.
                   </p>
                 </>
               )}
@@ -609,9 +631,9 @@ const ManageCategories = () => {
               variant="destructive"
               onClick={handleDelete}
               className="bg-red-600 hover:bg-red-700"
-              disabled={isLoading}
+              disabled={isSubmitting}
             >
-              {isLoading ? (
+              {isSubmitting ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : (
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -627,14 +649,13 @@ const ManageCategories = () => {
         <DialogContent className="bg-zinc-800 border-zinc-700">
           <DialogHeader>
             <DialogTitle className="text-white">
-              Editar {categoryToEdit?.isMainCategory ? "Categoria" : "Subcategoria"}
+              Editar{" "}
+              {categoryToEdit?.isMainCategory ? "Categoria" : "Subcategoria"}
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
-                Nome
-              </label>
+              <label className="text-sm font-medium text-zinc-400">Nome</label>
               <Input
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
@@ -654,9 +675,9 @@ const ManageCategories = () => {
             <Button
               onClick={handleEdit}
               className="bg-green-600 hover:bg-green-700"
-              disabled={isLoading || !editName.trim()}
+              disabled={isSubmitting || !editName.trim()}
             >
-              {isLoading ? (
+              {isSubmitting ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : (
                 <Edit2 className="w-4 h-4 mr-2" />

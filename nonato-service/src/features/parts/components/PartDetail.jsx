@@ -1,29 +1,29 @@
-import { useState, useEffect } from "react";
-import { doc, getDoc, deleteDoc } from "firebase/firestore";
+// PartDetail.jsx - OTIMIZADO: Cache Universal para TUDO (incluindo imagens)
+import { useState, useEffect, useCallback } from "react";
+import { deleteDoc, doc } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useParams, useNavigate } from "react-router-dom";
+import { useCategories } from "../../../context/CategoriesContext.jsx";
+
+// ✅ NOVO: Hooks com cache universal
+import {
+  usePartWithCache,
+  usePartsCacheActions,
+} from "../../../hooks/usePartsWithCache.js";
+import { useCachedDocument } from "../../../hooks/useUniversalCache.js";
+
 import {
   Loader2,
   ArrowLeft,
-  Camera,
   Trash2,
   Edit2,
-  Plus,
   AlertTriangle,
   Package,
-  Tag,
-  DollarSign,
-  FileText,
+  RefreshCw,
 } from "lucide-react";
 
 // UI Components
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card.jsx";
+import { Card, CardContent, CardHeader } from "@/components/ui/card.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import {
@@ -35,105 +35,112 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar.jsx";
 
 const PartDetail = () => {
   const { partId } = useParams();
   const navigate = useNavigate();
-  const [part, setPart] = useState(null);
+
+  const {
+    getCategoryById,
+    getSubcategoryById,
+    isLoading: categoriesLoading,
+  } = useCategories();
+
+  // ✅ Hook principal para a peça com cache de 30 dias
+  const {
+    part,
+    loading: partLoading,
+    error: partError,
+    refetch: refetchPart,
+    exists,
+  } = usePartWithCache(partId, {
+    enabled: !!partId,
+    onSuccess: (partData) => {
+      console.log(`✅ Peça ${partId} carregada:`, partData.name);
+    },
+    onError: (error) => {
+      console.error(`❌ Erro ao carregar peça ${partId}:`, error);
+    },
+  });
+
+  // ✅ NOVO: Hook para imagem usando cache universal
+  const {
+    data: imageData,
+    loading: imageLoading,
+    error: imageError,
+  } = useCachedDocument("image_library", part?.imageHash || null, {
+    enabled: !!part?.imageHash, // Só buscar se tiver hash
+  });
+
+  // ✅ Hook para ações de cache
+  const { invalidatePart } = usePartsCacheActions();
+
   const [category, setCategory] = useState(null);
   const [subcategory, setSubcategory] = useState(null);
-  const [newPhotoURL, setNewPhotoURL] = useState("");
-  const [imageFile, setImageFile] = useState(null);
-  const [, setPhotoChanged] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [, setPhotoLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        // Fetch part data
-        const partDoc = doc(db, "pecas", partId);
-        const partData = await getDoc(partDoc);
-
-        if (!partData.exists()) {
-          setError("Peça não encontrada");
-          return;
-        }
-
-        const partInfo = { id: partData.id, ...partData.data() };
-        setPart(partInfo);
-        setNewPhotoURL(partInfo.image);
-
-        // Fetch category if exists
-        if (partInfo.categoryId) {
-          const categoryDoc = doc(db, "categorias", partInfo.categoryId);
-          const categoryData = await getDoc(categoryDoc);
-          if (categoryData.exists()) {
-            setCategory({ id: categoryData.id, ...categoryData.data() });
-          }
-        }
-
-        // Fetch subcategory if exists
-        if (partInfo.subcategoryId) {
-          const subcategoryDoc = doc(db, "categorias", partInfo.subcategoryId);
-          const subcategoryData = await getDoc(subcategoryDoc);
-          if (subcategoryData.exists()) {
-            setSubcategory({ id: subcategoryData.id, ...subcategoryData.data() });
-          }
-        }
-      } catch (err) {
-        console.error("Erro ao carregar dados:", err);
-        setError("Erro ao carregar dados da peça. Por favor, tente novamente.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [partId]);
-
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        setError("A imagem deve ter menos de 2MB");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewPhotoURL(reader.result);
-      };
-      reader.readAsDataURL(file);
-      setImageFile(file);
-      setPhotoChanged(true);
+  // ✅ OTIMIZADO: Processar imagem do cache
+  const imagePreview = useCallback(() => {
+    if (imageData?.data) {
+      return imageData.data; // Do cache universal
     }
-  };
+    if (part?.image) {
+      return part.image; // Fallback para imagem direta
+    }
+    return ""; // Sem imagem
+  }, [imageData, part]);
 
+  // ✅ Effect para tratar erros
+  useEffect(() => {
+    if (partError) {
+      setError(partError);
+    }
+    if (imageError) {
+      console.warn("Erro ao carregar imagem:", imageError);
+    }
+  }, [partError, imageError]);
+
+  // ✅ Effect para carregar categorias
+  useEffect(() => {
+    if (!part || categoriesLoading) return;
+
+    if (part.categoryId) {
+      const categoryData = getCategoryById(part.categoryId);
+      setCategory(categoryData);
+    }
+
+    if (part.subcategoryId) {
+      const subcategoryData = getSubcategoryById(part.subcategoryId);
+      setSubcategory(subcategoryData);
+    }
+  }, [part, categoriesLoading, getCategoryById, getSubcategoryById]);
+
+  // ✅ Delete com invalidação de cache
   const handleDeletePart = async () => {
     try {
       setIsSubmitting(true);
+
+      // Delete no Firestore
       await deleteDoc(doc(db, "pecas", partId));
+
+      // ✅ Invalidar cache da peça
+      invalidatePart(partId);
+
+      console.log(`🗑️ Peça ${partId} deletada e cache invalidado`);
       navigate("/app/parts-library");
     } catch (err) {
-      console.error("Erro ao apagar peça:", err);
+      console.error("❌ Erro ao apagar peça:", err);
       setError("Erro ao apagar peça. Por favor, tente novamente.");
     } finally {
       setIsSubmitting(false);
       setDeleteDialogOpen(false);
     }
   };
+
+  // ✅ Loading combinado
+  const isLoading = partLoading || categoriesLoading;
 
   if (isLoading) {
     return (
@@ -143,7 +150,24 @@ const PartDetail = () => {
     );
   }
 
-  if (!part) return null;
+  // ✅ Verificar se peça existe
+  if (!exists || !part) {
+    return (
+      <div className="flex justify-center items-center min-h-[50vh]">
+        <Alert
+          variant="destructive"
+          className="border-red-500 bg-red-500/10 max-w-md"
+        >
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-red-400">
+            Peça não encontrada
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  const currentImagePreview = imagePreview();
 
   return (
     <div className="space-y-6">
@@ -153,16 +177,36 @@ const PartDetail = () => {
           <h1 className="text-2xl font-bold text-white">Detalhes da Peça</h1>
           <p className="text-sm text-zinc-400">
             Visualize e gerencie as informações da peça
+            {/* ✅ Indicador de cache */}
+            {process.env.NODE_ENV === "development" && (
+              <span className="ml-2 text-green-400">
+                • Cache 30d ativo {imageData ? "(img cached)" : ""}
+              </span>
+            )}
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
+        <div className="flex gap-2">
+          {/* ✅ Botão para atualizar cache (dev) */}
+          {process.env.NODE_ENV === "development" && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={refetchPart}
+              className="h-10 w-10 rounded-full border-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-700"
+              title="Atualizar cache"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => navigate("/app/parts-library")}
+            className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+          >
+            <ArrowLeft className="h-4 w-4 text-white" />
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -172,112 +216,124 @@ const PartDetail = () => {
         </Alert>
       )}
 
-      {/* Part Info Card */}
+      {/* ✅ Card Principal */}
       <Card className="bg-zinc-800 border-zinc-700">
         <CardHeader className="pb-4">
           <div className="flex flex-col md:flex-row md:items-center gap-4">
-            <div className="relative group">
-              {part.image ? (
+            {/* ✅ OTIMIZADO: Imagem com cache universal */}
+            <div className="relative">
+              {currentImagePreview ? (
                 <div className="h-24 w-24 rounded-lg overflow-hidden bg-zinc-700">
                   <img
-                    src={part.image}
+                    src={currentImagePreview}
                     alt={part.name}
                     className="h-full w-full object-cover"
                   />
+                  {/* Loading overlay para imagem */}
+                  {imageLoading && (
+                    <div className="absolute inset-0 bg-zinc-800/50 flex items-center justify-center">
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="h-24 w-24 rounded-lg bg-zinc-700 flex items-center justify-center">
-                  <Package className="h-10 w-10 text-zinc-500" />
-                </div>
-              )}
-              <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                <Camera className="w-6 h-6 text-white" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  className="hidden"
-                />
-              </label>
-            </div>
-            <div className="flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-xl font-semibold text-white">{part.name}</h3>
-                <Badge className="bg-blue-500/10 text-blue-500">{part.code}</Badge>
-              </div>
-              <p className="text-xl font-bold text-green-500 mt-1">
-                {new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(part.price || 0)}
-              </p>
-              {category && (
-                <div className="flex items-center gap-1 mt-2">
-                  <Badge variant="outline" className="text-zinc-400 border-zinc-600">
-                    {category.name}
-                  </Badge>
-                  {subcategory && (
-                    <>
-                      <span className="text-zinc-500">&gt;</span>
-                      <Badge variant="outline" className="text-zinc-400 border-zinc-600">
-                        {subcategory.name}
-                      </Badge>
-                    </>
+                  {imageLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+                  ) : (
+                    <Package className="h-10 w-10 text-zinc-500" />
                   )}
                 </div>
               )}
+
+              {/* ✅ Indicador de cache de imagem */}
+              {process.env.NODE_ENV === "development" && imageData && (
+                <div className="absolute bottom-0 left-0 right-0 bg-purple-600/80 text-white text-xs px-1 py-0.5 rounded-b-lg text-center">
+                  💾 IMG 30d
+                </div>
+              )}
+            </div>
+
+            {/* ✅ Informações da peça */}
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-xl font-semibold text-white">
+                  {part.name}
+                </h3>
+                <Badge className="bg-blue-500/10 text-blue-500">
+                  {part.code}
+                </Badge>
+              </div>
+
+              <p className="text-xl font-bold text-green-500 mt-1">
+                {part.price > 0 ? (
+                  new Intl.NumberFormat("pt-PT", {
+                    style: "currency",
+                    currency: "EUR",
+                  }).format(part.price)
+                ) : (
+                  <span className="text-zinc-400 text-base">
+                    Preço não definido
+                  </span>
+                )}
+              </p>
             </div>
           </div>
         </CardHeader>
+
         <CardContent className="space-y-4">
-          {/* Description */}
-          {part.description && (
+          {/* ✅ SEÇÃO DEDICADA PARA CATEGORIA E SUBCATEGORIA */}
+          {(category || subcategory) && (
             <div className="bg-zinc-900/50 p-4 rounded-lg">
-              <h4 className="text-sm font-medium text-zinc-400 mb-2">Descrição</h4>
-              <p className="text-white whitespace-pre-line">{part.description}</p>
+              <h4 className="text-sm font-medium text-zinc-400 mb-3">
+                Classificação
+              </h4>
+              <div className="space-y-2">
+                {category && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-zinc-400">Categoria:</span>
+                    <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                      {category.name}
+                    </Badge>
+                  </div>
+                )}
+                {subcategory && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-zinc-400">Subcategoria:</span>
+                    <Badge className="bg-green-500/20 text-green-400 border border-green-500/30">
+                      {subcategory.name}
+                    </Badge>
+                  </div>
+                )}
+                {/* ✅ Caminho completo da categoria */}
+                {category && subcategory && (
+                  <div className="flex items-center gap-2 pt-2 border-t border-zinc-700">
+                    <span className="text-xs text-zinc-500">Caminho:</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-blue-300">
+                        {category.name}
+                      </span>
+                      <span className="text-zinc-500 text-xs">→</span>
+                      <span className="text-xs text-green-300">
+                        {subcategory.name}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
-          {/* Details List */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center gap-2 text-zinc-400">
-              <Package className="h-4 w-4 shrink-0 text-zinc-500" />
-              <span className="text-zinc-500">Código:</span>
-              <span className="text-white">{part.code}</span>
+          {part.description && (
+            <div className="bg-zinc-900/50 p-4 rounded-lg">
+              <h4 className="text-sm font-medium text-zinc-400 mb-2">
+                Descrição
+              </h4>
+              <p className="text-white whitespace-pre-line">
+                {part.description}
+              </p>
             </div>
-            <div className="flex items-center gap-2 text-zinc-400">
-              <DollarSign className="h-4 w-4 shrink-0 text-zinc-500" />
-              <span className="text-zinc-500">Preço:</span>
-              <span className="text-white">
-                {new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(part.price || 0)}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-zinc-400">
-              <Tag className="h-4 w-4 shrink-0 text-zinc-500" />
-              <span className="text-zinc-500">Categoria:</span>
-              <span className="text-white">{category?.name || "Nenhuma"}</span>
-            </div>
-            <div className="flex items-center gap-2 text-zinc-400">
-              <Tag className="h-4 w-4 shrink-0 text-zinc-500" />
-              <span className="text-zinc-500">Subcategoria:</span>
-              <span className="text-white">{subcategory?.name || "Nenhuma"}</span>
-            </div>
-            {part.createdAt && (
-              <div className="flex items-center gap-2 text-zinc-400">
-                <FileText className="h-4 w-4 shrink-0 text-zinc-500" />
-                <span className="text-zinc-500">Cadastrado em:</span>
-                <span className="text-white">
-                  {new Date(part.createdAt.toDate()).toLocaleDateString('pt-PT')}
-                </span>
-              </div>
-            )}
-            {part.lastUpdate && (
-              <div className="flex items-center gap-2 text-zinc-400">
-                <FileText className="h-4 w-4 shrink-0 text-zinc-500" />
-                <span className="text-zinc-500">Última atualização:</span>
-                <span className="text-white">
-                  {new Date(part.lastUpdate.toDate()).toLocaleDateString('pt-PT')}
-                </span>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-2 mt-6">
@@ -300,7 +356,7 @@ const PartDetail = () => {
         </CardContent>
       </Card>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="bg-zinc-800 border-zinc-700">
           <DialogHeader>

@@ -15,6 +15,8 @@ import {
   Clock,
   CheckCircle2,
   ClipboardList,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 // UI Components
@@ -180,6 +182,11 @@ const ManageOrders = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState(null);
 
+  // Estados para paginação
+  const [currentOpenPage, setCurrentOpenPage] = useState(1);
+  const [currentClosedPage, setCurrentClosedPage] = useState(1);
+  const itemsPerPage = 5; // Ajuste conforme necessário para cards maiores
+
   const fetchOrders = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -205,7 +212,10 @@ const ManageOrders = () => {
         return acc;
       }, {});
 
-      setOrders(ordersData);
+      // ✅ FILTRAR APENAS ORDENS DE SERVIÇO NORMAIS (sem orçamentos online)
+      const serviceOrders = ordersData.filter((order) => !order.isQuote);
+
+      setOrders(serviceOrders);
       setClients(clientsData);
       setEquipments(equipmentsData);
       setError(null);
@@ -238,14 +248,66 @@ const ManageOrders = () => {
     setDeleteDialogOpen(true);
   };
 
-  const filteredOrders = orders.filter((order) => {
-    const clientName = clients[order.clientId]?.name || order.clientName || "";
-    return (
-      clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
+  const filteredOrders = orders
+    .filter((order) => {
+      const clientName =
+        clients[order.clientId]?.name || order.clientName || "";
+      return (
+        clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    })
+    // Ordenar por data decrescente (mais recente primeiro)
+    .sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateB - dateA; // Ordem decrescente
+    });
 
+  // ✅ FILTRAR APENAS ORDENS NORMAIS (sem orçamentos)
+  const openOrders = filteredOrders.filter(
+    (order) => order.status !== "Fechado"
+  );
+  const closedOrders = filteredOrders.filter(
+    (order) => order.status === "Fechado"
+  );
+
+  // Calcular paginação para ordens abertas
+  const indexOfLastOpenOrder = currentOpenPage * itemsPerPage;
+  const indexOfFirstOpenOrder = indexOfLastOpenOrder - itemsPerPage;
+  const currentOpenOrders = openOrders.slice(
+    indexOfFirstOpenOrder,
+    indexOfLastOpenOrder
+  );
+  const totalOpenPages = Math.ceil(openOrders.length / itemsPerPage);
+
+  // Calcular paginação para ordens fechadas
+  const indexOfLastClosedOrder = currentClosedPage * itemsPerPage;
+  const indexOfFirstClosedOrder = indexOfLastClosedOrder - itemsPerPage;
+  const currentClosedOrders = closedOrders.slice(
+    indexOfFirstClosedOrder,
+    indexOfLastClosedOrder
+  );
+  const totalClosedPages = Math.ceil(closedOrders.length / itemsPerPage);
+
+  // Funções de paginação
+  const paginateOpen = (pageNumber) => {
+    setCurrentOpenPage(pageNumber);
+    window.scrollTo(0, 0);
+  };
+
+  const paginateClosed = (pageNumber) => {
+    setCurrentClosedPage(pageNumber);
+    window.scrollTo(0, 0);
+  };
+
+  // Resetar paginação quando o termo de busca mudar
+  useEffect(() => {
+    setCurrentOpenPage(1);
+    setCurrentClosedPage(1);
+  }, [searchTerm]);
+
+  // ✅ STATS ATUALIZADOS (sem orçamentos)
   const stats = {
     total: orders.length,
     open: orders.filter((order) => order.status !== "Fechado").length,
@@ -281,7 +343,7 @@ const ManageOrders = () => {
         </Button>
       </div>
 
-      {/* Stats Cards */}
+      {/* ✅ STATS CARDS ATUALIZADOS (removido orçamentos) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-zinc-800 border-zinc-700">
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
@@ -349,26 +411,23 @@ const ManageOrders = () => {
         </CardContent>
       </Card>
 
-      {/* Orders Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Open Orders */}
-        <Card className="bg-zinc-800 border-zinc-700">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <Clock className="w-5 h-5 text-blue-500" />
-              Ordens Abertas
-              <Badge className="ml-auto bg-blue-500/10 text-blue-400 hover:bg-blue-500/20">
-                {
-                  filteredOrders.filter((order) => order.status !== "Fechado")
-                    .length
-                }
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {filteredOrders
-              .filter((order) => order.status !== "Fechado")
-              .map((order) => (
+      {/* ✅ ORDERS SECTIONS ATUALIZADAS (removida seção de orçamentos) */}
+      <div className="space-y-6">
+        {/* Open and Closed Orders */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Open Orders */}
+          <Card className="bg-zinc-800 border-zinc-700">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Clock className="w-5 h-5 text-blue-500" />
+                Ordens Abertas
+                <Badge className="ml-auto bg-blue-500/10 text-blue-400 hover:bg-blue-500/20">
+                  {openOrders.length}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {currentOpenOrders.map((order) => (
                 <OrderCard
                   key={order.id}
                   order={order}
@@ -379,27 +438,61 @@ const ManageOrders = () => {
                   navigate={navigate}
                 />
               ))}
-          </CardContent>
-        </Card>
 
-        {/* Closed Orders */}
-        <Card className="bg-zinc-800 border-zinc-700">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <CheckCircle2 className="w-5 h-5 text-green-500" />
-              Ordens Fechadas
-              <Badge className="ml-auto bg-green-500/10 text-green-400 hover:bg-green-500/20">
-                {
-                  filteredOrders.filter((order) => order.status === "Fechado")
-                    .length
-                }
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {filteredOrders
-              .filter((order) => order.status === "Fechado")
-              .map((order) => (
+              {/* Controles de paginação para ordens abertas */}
+              {totalOpenPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => paginateOpen(currentOpenPage - 1)}
+                    disabled={currentOpenPage === 1}
+                    className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50 h-8 w-8 p-0"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+
+                  <span className="text-sm text-zinc-400">
+                    {currentOpenPage} / {totalOpenPages}
+                  </span>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => paginateOpen(currentOpenPage + 1)}
+                    disabled={currentOpenPage === totalOpenPages}
+                    className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50 h-8 w-8 p-0"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+
+              {openOrders.length === 0 && (
+                <Card className="bg-zinc-800 border-zinc-700">
+                  <CardContent className="p-6 text-center">
+                    <p className="text-zinc-400">
+                      Nenhuma ordem aberta encontrada
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Closed Orders */}
+          <Card className="bg-zinc-800 border-zinc-700">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                Ordens Fechadas
+                <Badge className="ml-auto bg-green-500/10 text-green-400 hover:bg-green-500/20">
+                  {closedOrders.length}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {currentClosedOrders.map((order) => (
                 <OrderCard
                   key={order.id}
                   order={order}
@@ -410,8 +503,48 @@ const ManageOrders = () => {
                   navigate={navigate}
                 />
               ))}
-          </CardContent>
-        </Card>
+
+              {/* Controles de paginação para ordens fechadas */}
+              {totalClosedPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => paginateClosed(currentClosedPage - 1)}
+                    disabled={currentClosedPage === 1}
+                    className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50 h-8 w-8 p-0"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+
+                  <span className="text-sm text-zinc-400">
+                    {currentClosedPage} / {totalClosedPages}
+                  </span>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => paginateClosed(currentClosedPage + 1)}
+                    disabled={currentClosedPage === totalClosedPages}
+                    className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50 h-8 w-8 p-0"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+
+              {closedOrders.length === 0 && (
+                <Card className="bg-zinc-800 border-zinc-700">
+                  <CardContent className="p-6 text-center">
+                    <p className="text-zinc-400">
+                      Nenhuma ordem fechada encontrada
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Delete Confirmation Dialog */}

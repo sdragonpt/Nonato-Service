@@ -1,14 +1,9 @@
 import { useState } from "react";
-import { doc, setDoc, getDoc, increment, collection, getDocs } from "firebase/firestore";
+import { doc, setDoc, getDoc, increment } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useNavigate } from "react-router-dom";
-import {
-  ArrowLeft,
-  Loader2,
-  Plus,
-  AlertTriangle,
-  Tag,
-} from "lucide-react";
+import { useCategories } from "../../../context/CategoriesContext.jsx"; // NOVO
+import { ArrowLeft, Loader2, Plus, AlertTriangle, Tag } from "lucide-react";
 
 // UI Components
 import {
@@ -24,6 +19,10 @@ import { Textarea } from "@/components/ui/textarea.jsx";
 
 const AddCategory = () => {
   const navigate = useNavigate();
+
+  // USAR cache de categorias para invalidar após criação
+  const { addCategoryToCache } = useCategories();
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -74,11 +73,22 @@ const AddCategory = () => {
       setError(null);
 
       const newCategoryId = await getNextCategoryId();
-      await setDoc(doc(db, "categorias", newCategoryId.toString()), {
+
+      const newCategory = {
+        id: newCategoryId.toString(),
         ...formData,
         createdAt: new Date(),
         parentId: null, // Indica que é uma categoria principal
+      };
+
+      await setDoc(doc(db, "categorias", newCategoryId.toString()), {
+        ...formData,
+        createdAt: new Date(),
+        parentId: null,
       });
+
+      // NOVO: Adicionar categoria ao cache para evitar nova leitura
+      addCategoryToCache(newCategory);
 
       navigate("/app/parts-library");
     } catch (err) {

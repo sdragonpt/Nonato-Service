@@ -30,6 +30,8 @@ import {
   AlertTriangle,
   Edit,
   Edit2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 // UI Components
@@ -95,7 +97,6 @@ const BudgetCard = ({ budget, onDelete, onViewPDF, clientName, navigate }) => {
               className="bg-zinc-800 border-zinc-700"
             >
               <DropdownMenuItem
-
                 onClick={() =>
                   navigate(
                     `/app/edit-${
@@ -153,6 +154,11 @@ const ManageBudgets = () => {
     return saved || "all";
   });
 
+  // Estados para paginação
+  const [currentSimplePage, setCurrentSimplePage] = useState(1);
+  const [currentRegularPage, setCurrentRegularPage] = useState(1);
+  const itemsPerPage = 8; // Menos itens por página já que são cards maiores
+
   useEffect(() => {
     localStorage.setItem("documentTypeFilter", documentTypeFilter);
   }, [documentTypeFilter]);
@@ -208,6 +214,23 @@ const ManageBudgets = () => {
     fetchBudgets();
   }, []);
 
+  // Funções de paginação
+  const paginateSimple = (pageNumber) => {
+    setCurrentSimplePage(pageNumber);
+    window.scrollTo(0, 0);
+  };
+
+  const paginateRegular = (pageNumber) => {
+    setCurrentRegularPage(pageNumber);
+    window.scrollTo(0, 0);
+  };
+
+  // Resetar paginação quando os filtros mudarem
+  useEffect(() => {
+    setCurrentSimplePage(1);
+    setCurrentRegularPage(1);
+  }, [searchTerm, documentTypeFilter]);
+
   const handleFilterChange = async (newFilter) => {
     try {
       setIsFilterLoading(true);
@@ -234,7 +257,7 @@ const ManageBudgets = () => {
     }
   };
 
-  const handleViewPDF = async (budget) => {
+  const handleViewPDF = async (budget, showIVA = false) => {
     try {
       setIsGeneratingPDF(true);
 
@@ -259,8 +282,9 @@ const ManageBudgets = () => {
           name: clientNames[budget.clientId] || "Cliente não encontrado",
         };
 
+        // Passar showIVA e ivaRate para o generateBudgetPDF
         pdfBlob = await generateBudgetPDF(
-          budget,
+          { ...budget, showIVA, ivaRate: budget.ivaRate || 23 },
           clientData,
           formattedServices,
           budget.orderNumber
@@ -295,6 +319,8 @@ const ManageBudgets = () => {
           ),
           createdAt: budget.createdAt || new Date(),
           isExpense: budget.isExpense || false,
+          showIVA, // Adicionar showIVA
+          ivaRate: budget.ivaRate || 23, // Garantir que ivaRate está definido
         };
 
         pdfBlob = await generateSimpleBudgetPDF(formattedBudget);
@@ -313,10 +339,10 @@ const ManageBudgets = () => {
           const fileName = isRegularBudget
             ? `Fechamento_${clientNames[budget.clientId]}_${
                 budget.orderNumber
-              }.pdf`
+              }${showIVA ? "_com_IVA" : "_sem_IVA"}.pdf`
             : `${budget.isExpense ? "Despesa" : "Orçamento"}_${
                 budget.clientData?.name
-              }_${budget.budgetNumber}.pdf`;
+              }_${budget.budgetNumber}${showIVA ? "_com_IVA" : "_sem_IVA"}.pdf`;
 
           await Filesystem.writeFile({
             path: fileName,
@@ -344,12 +370,12 @@ const ManageBudgets = () => {
         const link = document.createElement("a");
         link.href = url;
         const fileName = isRegularBudget
-          ? `Fechamento_${clientNames[budget.clientId]}_${
-              budget.orderNumber
+          ? `Fechamento_${clientNames[budget.clientId]}_${budget.orderNumber}${
+              showIVA ? "_com_IVA" : "_sem_IVA"
             }.pdf`
           : `${budget.isExpense ? "Despesa" : "Orçamento"}_${
               budget.clientData?.name
-            }_${budget.budgetNumber}.pdf`;
+            }_${budget.budgetNumber}${showIVA ? "_com_IVA" : "_sem_IVA"}.pdf`;
         link.download = fileName;
         document.body.appendChild(link);
         link.click();
@@ -399,6 +425,28 @@ const ManageBudgets = () => {
       (budget.orderNumber || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase())
+  );
+
+  // Calcular páginas para orçamentos simples
+  const indexOfLastSimpleBudget = currentSimplePage * itemsPerPage;
+  const indexOfFirstSimpleBudget = indexOfLastSimpleBudget - itemsPerPage;
+  const currentSimpleBudgets = filteredSimpleBudgets.slice(
+    indexOfFirstSimpleBudget,
+    indexOfLastSimpleBudget
+  );
+  const totalSimplePages = Math.ceil(
+    filteredSimpleBudgets.length / itemsPerPage
+  );
+
+  // Calcular páginas para orçamentos regulares
+  const indexOfLastRegularBudget = currentRegularPage * itemsPerPage;
+  const indexOfFirstRegularBudget = indexOfLastRegularBudget - itemsPerPage;
+  const currentRegularBudgets = filteredRegularBudgets.slice(
+    indexOfFirstRegularBudget,
+    indexOfLastRegularBudget
+  );
+  const totalRegularPages = Math.ceil(
+    filteredRegularBudgets.length / itemsPerPage
   );
 
   if (isLoading || isFilterLoading) {
@@ -619,7 +667,7 @@ const ManageBudgets = () => {
 
           <div className="grid grid-cols-1 gap-4">
             {filteredSimpleBudgets.length > 0 ? (
-              filteredSimpleBudgets.map((budget) => (
+              currentSimpleBudgets.map((budget) => (
                 <BudgetCard
                   key={budget.id}
                   budget={budget}
@@ -643,6 +691,35 @@ const ManageBudgets = () => {
               </Card>
             )}
           </div>
+
+          {/* Paginação para orçamentos simples */}
+          {totalSimplePages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => paginateSimple(currentSimplePage - 1)}
+                disabled={currentSimplePage === 1}
+                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50 h-8 w-8 p-0"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              <span className="text-sm text-zinc-400">
+                {currentSimplePage} / {totalSimplePages}
+              </span>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => paginateSimple(currentSimplePage + 1)}
+                disabled={currentSimplePage === totalSimplePages}
+                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50 h-8 w-8 p-0"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Regular Budgets */}
@@ -657,7 +734,7 @@ const ManageBudgets = () => {
 
           <div className="grid grid-cols-1 gap-4">
             {filteredRegularBudgets.length > 0 ? (
-              filteredRegularBudgets.map((budget) => (
+              currentRegularBudgets.map((budget) => (
                 <BudgetCard
                   key={budget.id}
                   budget={budget}
@@ -681,6 +758,35 @@ const ManageBudgets = () => {
               </Card>
             )}
           </div>
+
+          {/* Paginação para orçamentos regulares */}
+          {totalRegularPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => paginateRegular(currentRegularPage - 1)}
+                disabled={currentRegularPage === 1}
+                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50 h-8 w-8 p-0"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              <span className="text-sm text-zinc-400">
+                {currentRegularPage} / {totalRegularPages}
+              </span>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => paginateRegular(currentRegularPage + 1)}
+                disabled={currentRegularPage === totalRegularPages}
+                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50 h-8 w-8 p-0"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 

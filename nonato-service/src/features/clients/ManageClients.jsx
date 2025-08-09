@@ -26,6 +26,8 @@ import {
   User,
   RefreshCw,
   Download,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 // UI Components
@@ -71,6 +73,9 @@ const ManageClients = () => {
   const [filterType, setFilterType] = useState("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+
   const navigate = useNavigate();
 
   const fetchClients = useCallback(async () => {
@@ -128,6 +133,24 @@ const ManageClients = () => {
     if (filterType === "all") return matchesSearch;
     return matchesSearch && client.type === filterType;
   });
+
+  // Paginação
+  const indexOfLastClient = currentPage * itemsPerPage;
+  const indexOfFirstClient = indexOfLastClient - itemsPerPage;
+  const currentClients = filteredClients.slice(
+    indexOfFirstClient,
+    indexOfLastClient
+  );
+  const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
+
+  const paginate = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo(0, 0);
+  };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterType, sortField, sortOrder]);
 
   const getInitials = (name) => {
     return (
@@ -295,7 +318,8 @@ const ManageClients = () => {
               <span>{sortOrder === "asc" ? "Crescente" : "Decrescente"}</span>
             </Button>
             <span className="text-center sm:text-right text-sm text-zinc-400">
-              {filteredClients.length} cliente(s) encontrado(s)
+              {filteredClients.length} cliente(s) encontrado(s) - Página{" "}
+              {currentPage} de {totalPages || 1}
             </span>
           </div>
 
@@ -339,7 +363,7 @@ const ManageClients = () => {
 
       {/* Clients Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredClients.map((client) => (
+        {currentClients.map((client) => (
           <Card
             key={client.id}
             onClick={() => navigate(`/app/client/${client.id}`)}
@@ -457,6 +481,93 @@ const ManageClients = () => {
           </Card>
         )}
       </div>
+
+      {/* Paginação */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-8">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => paginate(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+
+          {currentPage > 3 && (
+            <>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => paginate(1)}
+                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
+              >
+                1
+              </Button>
+              {currentPage > 4 && <span className="text-zinc-400">...</span>}
+            </>
+          )}
+
+          {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
+            let pageNumber;
+            if (totalPages <= 5) {
+              pageNumber = i + 1;
+            } else if (currentPage <= 3) {
+              pageNumber = i + 1;
+            } else if (currentPage >= totalPages - 2) {
+              pageNumber = totalPages - 4 + i;
+            } else {
+              pageNumber = currentPage - 2 + i;
+            }
+
+            if (pageNumber >= 1 && pageNumber <= totalPages) {
+              return (
+                <Button
+                  key={pageNumber}
+                  variant={currentPage === pageNumber ? "secondary" : "outline"}
+                  size="icon"
+                  onClick={() => paginate(pageNumber)}
+                  className={`border-zinc-700 ${
+                    currentPage === pageNumber
+                      ? "bg-zinc-700 text-white hover:bg-zinc-600"
+                      : "text-white hover:bg-zinc-700 bg-zinc-800"
+                  }`}
+                >
+                  {pageNumber}
+                </Button>
+              );
+            }
+            return null;
+          })}
+
+          {currentPage < totalPages - 2 && (
+            <>
+              {currentPage < totalPages - 3 && (
+                <span className="text-zinc-400">...</span>
+              )}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => paginate(totalPages)}
+                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
+              >
+                {totalPages}
+              </Button>
+            </>
+          )}
+
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => paginate(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

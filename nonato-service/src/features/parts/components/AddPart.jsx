@@ -1,16 +1,9 @@
-import { useState, useEffect } from "react";
-import {
-  doc,
-  setDoc,
-  getDoc,
-  increment,
-  collection,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
+import { useState, useEffect, useRef } from "react";
+import { doc, setDoc, getDoc, increment } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useCategories } from "../../../context/CategoriesContext.jsx";
+import { incrementPartCount } from "../../../utils/MetadataCounters.js";
 import {
   ArrowLeft,
   Camera,
@@ -46,10 +39,78 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
 
+// ✅ HOOK para compatibilidade com PCs antigos
+const useOldBrowserSafe = () => {
+  const mounted = useRef(true);
+  const timeouts = useRef([]);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      // Limpar todos os timeouts pendentes
+      timeouts.current.forEach((id) => clearTimeout(id));
+    };
+  }, []);
+
+  const safeSetState = (setter, delay = 200) => {
+    return new Promise((resolve) => {
+      const timeoutId = setTimeout(() => {
+        if (mounted.current) {
+          try {
+            setter();
+            resolve(true);
+          } catch (error) {
+            console.warn("Estado não atualizado (PC antigo):", error);
+            resolve(false);
+          }
+        }
+      }, delay);
+      timeouts.current.push(timeoutId);
+    });
+  };
+
+  const safeNavigate = (navigate, path, delay = 800) => {
+    return new Promise((resolve) => {
+      const timeoutId = setTimeout(() => {
+        if (mounted.current) {
+          try {
+            console.log("🔄 Navegando de forma segura para:", path);
+            navigate(path);
+            resolve(true);
+          } catch (error) {
+            console.warn("Navigate falhou, usando fallback:", error);
+            window.location.href = path;
+            resolve(true);
+          }
+        }
+      }, delay);
+      timeouts.current.push(timeoutId);
+    });
+  };
+
+  return { safeSetState, safeNavigate, isMounted: () => mounted.current };
+};
+
 const AddPart = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  // Initialize formData with "none" for select fields
+  // ✅ NOVO: Hook para compatibilidade com PCs antigos
+  const { safeSetState, safeNavigate } = useOldBrowserSafe();
+
+  // ✅ NOVO: Pegar categoria/subcategoria da URL
+  const preSelectedCategoryId = searchParams.get("categoryId");
+  const preSelectedSubcategoryId = searchParams.get("subcategoryId");
+
+  const {
+    categories,
+    getSubcategoriesByParent,
+    addCategoryToCache,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+  } = useCategories();
+
   const [formData, setFormData] = useState({
     name: "",
     code: "",
@@ -59,8 +120,14 @@ const AddPart = () => {
     subcategoryId: "none",
   });
 
-  const [categories, setCategories] = useState([]);
-  const [subcategories, setSubcategories] = useState([]);
+  // ✅ MODIFICADO: Ordenar subcategorias alfabeticamente
+  const subcategories =
+    formData.categoryId && formData.categoryId !== "none"
+      ? getSubcategoriesByParent(formData.categoryId).sort((a, b) =>
+          a.name.localeCompare(b.name, "pt-PT")
+        )
+      : [];
+
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -71,66 +138,93 @@ const AddPart = () => {
   const [newSubcategoryDialogOpen, setNewSubcategoryDialogOpen] =
     useState(false);
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [isCreatingSubcategory, setIsCreatingSubcategory] = useState(false);
 
-  // Fetch categories
+  // ✅ NOVO: Efeito para pré-selecionar categoria/subcategoria da URL
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setIsLoadingCategories(true);
-        const q = query(
-          collection(db, "categorias"),
-          where("parentId", "==", null)
+    if (categories.length > 0 && !categoriesLoading) {
+      // Verificar se a categoria pré-selecionada existe
+      if (preSelectedCategoryId) {
+        const categoryExists = categories.find(
+          (cat) => cat.id === preSelectedCategoryId
         );
-        const snapshot = await getDocs(q);
-        const categoriesData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setCategories(categoriesData);
-        setError(null);
-      } catch (err) {
-        console.error("Erro ao buscar categorias:", err);
-        setError("Erro ao carregar categorias. Por favor, tente novamente.");
-      } finally {
-        setIsLoadingCategories(false);
+        if (categoryExists) {
+          setFormData((prev) => ({
+            ...prev,
+            categoryId: preSelectedCategoryId,
+            subcategoryId: "none", // Resetar subcategoria primeiro
+          }));
+
+          // Se também há subcategoria pré-selecionada, aplicar após um delay
+          if (preSelectedSubcategoryId) {
+            setTimeout(() => {
+              const subcategoryExists = getSubcategoriesByParent(
+                preSelectedCategoryId
+              ).find((sub) => sub.id === preSelectedSubcategoryId);
+              if (subcategoryExists) {
+                setFormData((prev) => ({
+                  ...prev,
+                  subcategoryId: preSelectedSubcategoryId,
+                }));
+              }
+            }, 100);
+          }
+        }
       }
-    };
+    }
+  }, [
+    categories,
+    categoriesLoading,
+    preSelectedCategoryId,
+    preSelectedSubcategoryId,
+    getSubcategoriesByParent,
+  ]);
 
-    fetchCategories();
-  }, []);
+  // ✅ NOVO: Ordenar categorias alfabeticamente
+  const sortedCategories = categories.sort((a, b) =>
+    a.name.localeCompare(b.name, "pt-PT")
+  );
 
-  // Fetch subcategories when category changes
-  useEffect(() => {
-    const fetchSubcategories = async () => {
-      if (!formData.categoryId || formData.categoryId === "none") {
-        setSubcategories([]);
-        return;
-      }
+  // Função para gerar IDs únicos
+  const generateUniqueId = () => {
+    return `${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}-${Math.floor(Math.random() * 10000)}`;
+  };
 
-      try {
-        const q = query(
-          collection(db, "categorias"),
-          where("parentId", "==", formData.categoryId)
-        );
-        const snapshot = await getDocs(q);
-        const subcategoriesData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setSubcategories(subcategoriesData);
-      } catch (err) {
-        console.error("Erro ao buscar subcategorias:", err);
-      }
-    };
+  // ✅ MODIFICADO: Função para gerar hash único da imagem (sempre único)
+  const generateImageHash = () => {
+    // Sempre gerar hash único usando timestamp + random
+    return `img_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}_${Math.floor(Math.random() * 10000)}`;
+  };
 
-    fetchSubcategories();
-  }, [formData.categoryId]);
+  // ✅ MODIFICADO: Salvar imagem na biblioteca (sempre salva nova entrada)
+  const saveImageToLibrary = async (imageData) => {
+    try {
+      const imageHash = generateImageHash();
+      const imageRef = doc(db, "image_library", imageHash);
+
+      // Sempre salvar como nova entrada (sem verificar duplicatas)
+      await setDoc(imageRef, {
+        hash: imageHash,
+        data: imageData,
+        createdAt: new Date(),
+        usageCount: 1,
+      });
+
+      console.log("✅ Nova imagem salva na biblioteca:", imageHash);
+      return imageHash;
+    } catch (error) {
+      console.error("Erro ao salvar imagem na biblioteca:", error);
+      throw error;
+    }
+  };
 
   // Reset subcategoryId when categoryId changes to none
   useEffect(() => {
-    // Esta função é chamada sempre que formData.categoryId mudar
-    // para verificar se precisamos atualizar o valor de subcategoryId
     if (formData.categoryId === "none" && formData.subcategoryId !== "none") {
       setFormData((prev) => ({
         ...prev,
@@ -206,55 +300,37 @@ const AddPart = () => {
   };
 
   const handleAddCategory = async () => {
-    if (!newCategoryName.trim()) {
-      return;
-    }
+    if (!newCategoryName.trim() || isCreatingCategory) return;
 
     try {
-      const counterRef = doc(db, "counters", "categoriesCounter");
-      const counterSnapshot = await getDoc(counterRef);
+      setIsCreatingCategory(true);
+      setError(null);
 
-      let newCategoryId;
-      if (counterSnapshot.exists()) {
-        const currentCounter = counterSnapshot.data().count;
-        newCategoryId = currentCounter + 1;
-        await setDoc(counterRef, { count: increment(1) }, { merge: true });
-      } else {
-        newCategoryId = 1;
-        await setDoc(counterRef, { count: 1 });
-      }
+      const newCategoryId = generateUniqueId();
 
-      await setDoc(doc(db, "categorias", newCategoryId.toString()), {
+      const newCategory = {
+        id: newCategoryId,
         name: newCategoryName,
         createdAt: new Date(),
         parentId: null,
-      });
+      };
 
-      // Refresh categories
-      const q = query(
-        collection(db, "categorias"),
-        where("parentId", "==", null)
-      );
-      const snapshot = await getDocs(q);
-      const categoriesData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setCategories(categoriesData);
+      await setDoc(doc(db, "categorias", newCategoryId), newCategory);
+      addCategoryToCache(newCategory);
 
-      // Reset and close dialog
       setNewCategoryName("");
       setNewCategoryDialogOpen(false);
 
-      // Set the newly created category as selected
       setFormData((prev) => ({
         ...prev,
-        categoryId: newCategoryId.toString(),
-        subcategoryId: "none", // Reset subcategory to "none"
+        categoryId: newCategoryId,
+        subcategoryId: "none",
       }));
     } catch (err) {
       console.error("Erro ao adicionar categoria:", err);
       setError("Erro ao adicionar categoria. Por favor, tente novamente.");
+    } finally {
+      setIsCreatingCategory(false);
     }
   };
 
@@ -262,64 +338,48 @@ const AddPart = () => {
     if (
       !newSubcategoryName.trim() ||
       !formData.categoryId ||
-      formData.categoryId === "none"
+      formData.categoryId === "none" ||
+      isCreatingSubcategory
     ) {
       return;
     }
 
     try {
-      const counterRef = doc(db, "counters", "categoriesCounter");
-      const counterSnapshot = await getDoc(counterRef);
+      setIsCreatingSubcategory(true);
+      setError(null);
 
-      let newSubcategoryId;
-      if (counterSnapshot.exists()) {
-        const currentCounter = counterSnapshot.data().count;
-        newSubcategoryId = currentCounter + 1;
-        await setDoc(counterRef, { count: increment(1) }, { merge: true });
-      } else {
-        newSubcategoryId = 1;
-        await setDoc(counterRef, { count: 1 });
-      }
+      const newSubcategoryId = generateUniqueId();
 
-      await setDoc(doc(db, "categorias", newSubcategoryId.toString()), {
+      const newSubcategory = {
+        id: newSubcategoryId,
         name: newSubcategoryName,
         createdAt: new Date(),
         parentId: formData.categoryId,
-      });
+      };
 
-      // Refresh subcategories
-      const q = query(
-        collection(db, "categorias"),
-        where("parentId", "==", formData.categoryId)
-      );
-      const snapshot = await getDocs(q);
-      const subcategoriesData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setSubcategories(subcategoriesData);
+      await setDoc(doc(db, "categorias", newSubcategoryId), newSubcategory);
+      addCategoryToCache(newSubcategory);
 
-      // Reset and close dialog
       setNewSubcategoryName("");
       setNewSubcategoryDialogOpen(false);
-
-      // Set the newly created subcategory as selected
       setFormData((prev) => ({
         ...prev,
-        subcategoryId: newSubcategoryId.toString(),
+        subcategoryId: newSubcategoryId,
       }));
     } catch (err) {
       console.error("Erro ao adicionar subcategoria:", err);
       setError("Erro ao adicionar subcategoria. Por favor, tente novamente.");
+    } finally {
+      setIsCreatingSubcategory(false);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Set all fields as touched for validation
-    const allFields = { name: true, code: true, price: true };
-    setTouched((prev) => ({ ...prev, ...allFields }));
+    // ✅ MODIFICADO: Só nome e código são obrigatórios (preço não é mais)
+    const requiredFields = { name: true, code: true };
+    setTouched((prev) => ({ ...prev, ...requiredFields }));
 
     // Validate required fields
     if (!formData.name.trim() || !formData.code.trim()) {
@@ -365,24 +425,54 @@ const AddPart = () => {
         }
       }
 
+      // ✅ NOVO: Salvar imagem na biblioteca (se houver)
+      let imageHash = null;
+      if (imagePreview) {
+        imageHash = await saveImageToLibrary(imagePreview);
+      }
+
       await setDoc(doc(db, "pecas", newPartId.toString()), {
         ...formDataToSave,
-        price: parseFloat(formDataToSave.price) || 0,
-        image: imagePreview,
+        price: parseFloat(formDataToSave.price) || 0, // ✅ Default para 0 se vazio
+        imageHash, // ✅ NOVO: Referência para imagem na biblioteca
         createdAt: new Date(),
         lastUpdate: new Date(),
         categoryName,
         subcategoryName,
       });
 
-      navigate("/app/parts-library");
+      incrementPartCount(
+        formDataToSave.categoryId || null,
+        formDataToSave.subcategoryId || null
+      );
+
+      // ✅ MODIFICADO: Navegação segura para PCs antigos
+      console.log("✅ Peça criada com sucesso, navegando de forma segura...");
+
+      // Aguardar um pouco e navegar de forma segura
+      await safeNavigate(navigate, "/app/parts-library", 1000);
     } catch (err) {
       console.error("Erro ao adicionar peça:", err);
       setError("Erro ao adicionar peça. Por favor, tente novamente.");
     } finally {
-      setIsSubmitting(false);
+      // ✅ MODIFICADO: Reset seguro do loading para PCs antigos
+      await safeSetState(() => setIsSubmitting(false), 300);
     }
   };
+
+  // Loading state para categorias
+  if (categoriesLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-white" />
+      </div>
+    );
+  }
+
+  // Mostrar erro das categorias se houver
+  if (categoriesError && !error) {
+    setError(categoriesError);
+  }
 
   return (
     <div className="space-y-6">
@@ -392,6 +482,12 @@ const AddPart = () => {
           <h1 className="text-2xl font-bold text-white">Nova Peça</h1>
           <p className="text-sm text-zinc-400">
             Adicione uma nova peça à biblioteca
+            {/* ✅ NOVO: Mostrar contexto de pré-seleção */}
+            {(preSelectedCategoryId || preSelectedSubcategoryId) && (
+              <span className="block text-green-400 text-xs mt-1">
+                ✅ Categoria/subcategoria pré-selecionada
+              </span>
+            )}
           </p>
         </div>
         <Button
@@ -415,7 +511,12 @@ const AddPart = () => {
         {/* Part Image Card */}
         <Card className="bg-zinc-800 border-zinc-700">
           <CardHeader>
-            <CardTitle className="text-lg text-white">Imagem da Peça</CardTitle>
+            <CardTitle className="text-lg text-white">
+              Imagem da Peça
+              <span className="text-sm font-normal text-zinc-400 ml-2">
+                (Cada imagem é salva individualmente)
+              </span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {imagePreview ? (
@@ -440,6 +541,9 @@ const AddPart = () => {
                 <Camera className="h-8 w-8 text-zinc-400 mb-2" />
                 <span className="text-sm text-zinc-400">
                   Clique para adicionar imagem
+                </span>
+                <span className="text-xs text-zinc-500 mt-1">
+                  ✅ Todas as imagens são sempre salvas
                 </span>
                 <input
                   type="file"
@@ -508,10 +612,11 @@ const AddPart = () => {
               )}
             </div>
 
-            {/* Price Field */}
+            {/* ✅ MODIFICADO: Price Field - Não é mais obrigatório */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-400">
                 Preço (€)
+                <span className="text-zinc-500 text-xs ml-1">(Opcional)</span>
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -522,14 +627,12 @@ const AddPart = () => {
                   onChange={handleChange}
                   onBlur={() => handleBlur("price")}
                   placeholder="Ex: 29.99"
-                  className={`pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 ${
-                    touched.price && !formData.price ? "border-red-500" : ""
-                  }`}
+                  className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
                 />
               </div>
-              {touched.price && !formData.price && (
-                <p className="text-sm text-red-500">Preço é obrigatório</p>
-              )}
+              <p className="text-xs text-zinc-500">
+                Deixe vazio se o preço não for definido
+              </p>
             </div>
 
             {/* Description Field */}
@@ -554,6 +657,12 @@ const AddPart = () => {
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-zinc-400">
                   Categoria
+                  {/* ✅ NOVO: Indicador visual de pré-seleção */}
+                  {preSelectedCategoryId && (
+                    <span className="ml-2 text-xs text-green-500">
+                      ✅ Pré-selecionada
+                    </span>
+                  )}
                 </label>
                 <Button
                   type="button"
@@ -581,7 +690,8 @@ const AddPart = () => {
                 className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
               >
                 <option value="none">Nenhuma</option>
-                {categories.map((category) => (
+                {/* ✅ MODIFICADO: Usar categorias ordenadas alfabeticamente */}
+                {sortedCategories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
                   </option>
@@ -589,12 +699,18 @@ const AddPart = () => {
               </select>
             </div>
 
-            {/* Subcategory Selection (only if category is selected) */}
+            {/* Subcategory Selection */}
             {formData.categoryId && formData.categoryId !== "none" && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-zinc-400">
                     Subcategoria
+                    {/* ✅ NOVO: Indicador visual de pré-seleção */}
+                    {preSelectedSubcategoryId && (
+                      <span className="ml-2 text-xs text-green-500">
+                        ✅ Pré-selecionada
+                      </span>
+                    )}
                   </label>
                   <Button
                     type="button"
@@ -625,6 +741,7 @@ const AddPart = () => {
                   className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-white disabled:opacity-50"
                 >
                   <option value="none">Nenhuma</option>
+                  {/* ✅ JÁ MODIFICADO: subcategories já estão ordenadas acima */}
                   {subcategories.map((subcategory) => (
                     <option key={subcategory.id} value={subcategory.id}>
                       {subcategory.name}
@@ -650,7 +767,7 @@ const AddPart = () => {
           {isSubmitting ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Adicionando...
+              Salvando e redirecionando...
             </>
           ) : (
             <>
@@ -659,6 +776,20 @@ const AddPart = () => {
             </>
           )}
         </Button>
+
+        {/* ✅ NOVO: Aviso sobre redirecionamento para PCs antigos */}
+        {isSubmitting && (
+          <Alert className="border-blue-500 bg-blue-500/10">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <AlertDescription className="text-blue-400">
+              💾 Salvando peça... Aguarde, será redirecionado automaticamente.
+              <br />
+              <span className="text-xs text-blue-300">
+                Em PCs antigos este processo pode demorar alguns segundos.
+              </span>
+            </AlertDescription>
+          </Alert>
+        )}
       </form>
 
       {/* New Category Dialog */}

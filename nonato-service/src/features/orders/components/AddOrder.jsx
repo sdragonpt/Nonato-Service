@@ -19,6 +19,13 @@ import {
   Printer,
   AlertCircle,
   Settings,
+  UserCheck,
+  UserX,
+  Package,
+  Search,
+  X,
+  ShoppingCart,
+  Euro,
 } from "lucide-react";
 
 // UI Components
@@ -35,6 +42,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const AddOrder = () => {
   const { search } = useLocation();
@@ -51,6 +60,19 @@ const AddOrder = () => {
     status: "Aberto",
     resultDescription: "",
     pontosEmAberto: "",
+    // ✅ CAMPOS PARA CLIENTE NÃO REGISTRADO
+    isUnregisteredClient: false,
+    unregisteredClient: {
+      name: "",
+      email: "",
+      phone: "",
+      company: "",
+    },
+    manualEquipment: {
+      brand: "",
+      model: "",
+      serialNumber: "",
+    },
   };
 
   const [formData, setFormData] = useState(initialForm);
@@ -71,6 +93,148 @@ const AddOrder = () => {
     producao: false,
     pecas: false,
   });
+
+  // ✅ NOVOS ESTADOS PARA ORÇAMENTO DE PEÇAS
+  const [partsQuoteItems, setPartsQuoteItems] = useState([]);
+  const [partSearchTerm, setPartSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
+
+  // ✅ CONFIGURAÇÕES DE ENVIO E IVA
+  const [shippingConfig, setShippingConfig] = useState({
+    shippingType: "",
+    shippingPrice: 0,
+    includeVat: false,
+    vatRate: 23,
+  });
+
+  // ✅ FUNÇÃO PARA PESQUISAR PEÇAS
+  const searchPartsByCode = async (searchTerm) => {
+    if (!searchTerm.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      setIsSearching(true);
+      setSearchError("");
+
+      const partsSnapshot = await getDocs(collection(db, "pecas"));
+
+      const results = partsSnapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter(
+          (part) =>
+            part.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            part.name?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .slice(0, 10);
+
+      setSearchResults(results);
+
+      if (results.length === 0) {
+        setSearchError("Nenhuma peça encontrada com esse código/nome");
+      }
+    } catch (err) {
+      console.error("Erro ao pesquisar peças:", err);
+      setSearchError("Erro ao pesquisar peças");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // ✅ DEBOUNCE PARA PESQUISA DE PEÇAS
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (partSearchTerm.trim()) {
+        searchPartsByCode(partSearchTerm);
+      } else {
+        setSearchResults([]);
+        setSearchError("");
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [partSearchTerm]);
+
+  // ✅ FUNÇÃO PARA ADICIONAR PEÇA AO ORÇAMENTO
+  const addPartToQuote = (part) => {
+    const existingIndex = partsQuoteItems.findIndex(
+      (item) => item.id === part.id
+    );
+
+    if (existingIndex >= 0) {
+      const updatedItems = [...partsQuoteItems];
+      updatedItems[existingIndex].quantity += 1;
+      setPartsQuoteItems(updatedItems);
+    } else {
+      const newItem = {
+        id: part.id,
+        name: part.name,
+        code: part.code,
+        quantity: 1,
+        price: 0,
+        imageHash: part.imageHash || null,
+        image: part.image || null,
+      };
+
+      setPartsQuoteItems([...partsQuoteItems, newItem]);
+    }
+
+    setPartSearchTerm("");
+    setSearchResults([]);
+  };
+
+  // ✅ FUNÇÃO PARA REMOVER PEÇA DO ORÇAMENTO
+  const removePartFromQuote = (partId) => {
+    setPartsQuoteItems(partsQuoteItems.filter((item) => item.id !== partId));
+  };
+
+  // ✅ FUNÇÃO PARA ATUALIZAR QUANTIDADE
+  const updatePartQuantity = (partId, quantity) => {
+    const newQuantity = Math.max(1, parseInt(quantity) || 1);
+    setPartsQuoteItems(
+      partsQuoteItems.map((item) =>
+        item.id === partId ? { ...item, quantity: newQuantity } : item
+      )
+    );
+  };
+
+  // ✅ FUNÇÃO PARA ATUALIZAR PREÇO
+  const updatePartPrice = (partId, price) => {
+    const newPrice = Math.max(0, parseFloat(price) || 0);
+    setPartsQuoteItems(
+      partsQuoteItems.map((item) =>
+        item.id === partId ? { ...item, price: newPrice } : item
+      )
+    );
+  };
+
+  // ✅ CALCULAR TOTAIS DO ORÇAMENTO
+  const calculateSubtotal = () => {
+    return partsQuoteItems.reduce((total, item) => {
+      return total + item.quantity * (item.price || 0);
+    }, 0);
+  };
+
+  const calculateTotal = () => {
+    const subtotal = calculateSubtotal();
+    const shipping = parseFloat(shippingConfig.shippingPrice) || 0;
+    const totalBeforeVat = subtotal + shipping;
+
+    if (shippingConfig.includeVat) {
+      const vatAmount = (totalBeforeVat * shippingConfig.vatRate) / 100;
+      return totalBeforeVat + vatAmount;
+    }
+
+    return totalBeforeVat;
+  };
+
+  // ✅ FUNÇÃO PARA FORMATAR PREÇO
+  const formatPrice = (price) => {
+    return `€ ${parseFloat(price || 0).toFixed(2)}`;
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -122,7 +286,7 @@ const AddOrder = () => {
       [name]: value,
     }));
 
-    if (name === "clientId") {
+    if (name === "clientId" && !formData.isUnregisteredClient) {
       const filtered = equipments.filter(
         (equipment) => equipment.clientId === value
       );
@@ -131,6 +295,59 @@ const AddOrder = () => {
         ...prev,
         equipmentId: "",
       }));
+    }
+  };
+
+  // ✅ HANDLER PARA DADOS DE CLIENTE NÃO REGISTRADO
+  const handleUnregisteredClientChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      unregisteredClient: {
+        ...prev.unregisteredClient,
+        [field]: value,
+      },
+    }));
+  };
+
+  // ✅ HANDLER PARA DADOS DE EQUIPAMENTO MANUAL
+  const handleManualEquipmentChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      manualEquipment: {
+        ...prev.manualEquipment,
+        [field]: value,
+      },
+    }));
+  };
+
+  // ✅ TOGGLE ENTRE CLIENTE REGISTRADO E NÃO REGISTRADO
+  const handleClientTypeToggle = (isUnregistered) => {
+    setFormData((prev) => ({
+      ...prev,
+      isUnregisteredClient: isUnregistered,
+      // Limpar campos quando muda de tipo
+      ...(isUnregistered
+        ? {
+            clientId: "",
+            equipmentId: "",
+          }
+        : {
+            unregisteredClient: {
+              name: "",
+              email: "",
+              phone: "",
+              company: "",
+            },
+            manualEquipment: {
+              brand: "",
+              model: "",
+              serialNumber: "",
+            },
+          }),
+    }));
+
+    if (!isUnregistered) {
+      setFilteredEquipments([]);
     }
   };
 
@@ -147,6 +364,17 @@ const AddOrder = () => {
       ...prev,
       [name]: checked,
     }));
+
+    // ✅ LIMPAR ORÇAMENTO DE PEÇAS SE DESMARCADO
+    if (name === "pecas" && !checked) {
+      setPartsQuoteItems([]);
+      setShippingConfig({
+        shippingType: "",
+        shippingPrice: 0,
+        includeVat: false,
+        vatRate: 23,
+      });
+    }
   };
 
   const getNextOrderId = async () => {
@@ -179,9 +407,26 @@ const AddOrder = () => {
     );
     setTouched(allTouched);
 
-    if (!formData.clientId || !formData.equipmentId || !formData.serviceType) {
-      setError("Por favor, preencha todos os campos obrigatórios");
-      return;
+    // ✅ VALIDAÇÃO BASEADA NO TIPO DE CLIENTE
+    if (formData.isUnregisteredClient) {
+      if (
+        !formData.unregisteredClient.name ||
+        !formData.manualEquipment.brand ||
+        !formData.manualEquipment.model ||
+        !formData.serviceType
+      ) {
+        setError("Por favor, preencha todos os campos obrigatórios");
+        return;
+      }
+    } else {
+      if (
+        !formData.clientId ||
+        !formData.equipmentId ||
+        !formData.serviceType
+      ) {
+        setError("Por favor, preencha todos os campos obrigatórios");
+        return;
+      }
     }
 
     try {
@@ -195,6 +440,15 @@ const AddOrder = () => {
         createdAt: new Date(),
         lastUpdated: new Date(),
       };
+
+      // ✅ SE ORÇAMENTO DE PEÇAS ESTIVER MARCADO, INCLUIR DADOS
+      if (checklist.pecas) {
+        serviceData.partsQuoteItems = partsQuoteItems;
+        serviceData.shippingType = shippingConfig.shippingType;
+        serviceData.shippingPrice = shippingConfig.shippingPrice;
+        serviceData.includeVat = shippingConfig.includeVat;
+        serviceData.vatRate = shippingConfig.vatRate;
+      }
 
       await setDoc(doc(db, "ordens", newOrderId.toString()), serviceData);
       navigate("/app/manage-orders");
@@ -244,150 +498,346 @@ const AddOrder = () => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Main Information Card */}
+        {/* ✅ SEÇÃO: CLIENTE E EQUIPAMENTO COM ABAS */}
         <Card className="bg-zinc-800 border-zinc-700">
           <CardHeader>
             <CardTitle className="text-lg text-white">
-              Informações Principais
+              Informações de Cliente e Equipamento
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Date Field */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Data</label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <input
-                  type="date"
-                  name="date"
-                  value={formData.date}
-                  onChange={handleChange}
-                  className="w-full pl-10 p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Client Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
-                Cliente
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <Select
-                  value={formData.clientId}
-                  onValueChange={(value) =>
-                    handleChange({ target: { name: "clientId", value } })
-                  }
+          <CardContent>
+            <Tabs
+              value={
+                formData.isUnregisteredClient ? "unregistered" : "registered"
+              }
+              onValueChange={(value) =>
+                handleClientTypeToggle(value === "unregistered")
+              }
+              className="space-y-4"
+            >
+              <TabsList className="grid w-full grid-cols-2 bg-zinc-700">
+                <TabsTrigger
+                  value="registered"
+                  className="flex items-center gap-2 data-[state=active]:bg-green-600"
                 >
-                  <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
-                    <SelectValue placeholder="Selecione um Cliente" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
-                    {clients.map((client) => (
+                  <UserCheck className="h-4 w-4" />
+                  Cliente Registrado
+                </TabsTrigger>
+                <TabsTrigger
+                  value="unregistered"
+                  className="flex items-center gap-2 data-[state=active]:bg-blue-600"
+                >
+                  <UserX className="h-4 w-4" />
+                  Cliente Não Registrado
+                </TabsTrigger>
+              </TabsList>
+
+              {/* ✅ ABA CLIENTE REGISTRADO */}
+              <TabsContent value="registered" className="space-y-4">
+                {/* Date Field */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-400">
+                    Data
+                  </label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <input
+                      type="date"
+                      name="date"
+                      value={formData.date}
+                      onChange={handleChange}
+                      className="w-full pl-10 p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Client Selection */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-400">
+                    Cliente
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <Select
+                      value={formData.clientId}
+                      onValueChange={(value) =>
+                        handleChange({ target: { name: "clientId", value } })
+                      }
+                    >
+                      <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                        <SelectValue placeholder="Selecione um Cliente" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-800 border-zinc-700">
+                        {clients.map((client) => (
+                          <SelectItem
+                            key={client.id}
+                            value={client.id}
+                            className="text-white hover:bg-zinc-700"
+                          >
+                            {client.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Equipment Selection */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-400">
+                    Equipamento
+                  </label>
+                  <div className="relative">
+                    <Printer className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <Select
+                      value={formData.equipmentId}
+                      onValueChange={(value) =>
+                        handleChange({ target: { name: "equipmentId", value } })
+                      }
+                      disabled={!formData.clientId}
+                    >
+                      <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                        <SelectValue placeholder="Selecione um Equipamento" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-800 border-zinc-700">
+                        {filteredEquipments.map((equipment) => (
+                          <SelectItem
+                            key={equipment.id}
+                            value={equipment.id}
+                            className="text-white hover:bg-zinc-700"
+                          >
+                            {`${equipment.brand} - ${equipment.model}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* ✅ ABA CLIENTE NÃO REGISTRADO */}
+              <TabsContent value="unregistered" className="space-y-4">
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle className="h-4 w-4 text-blue-400" />
+                    <span className="text-sm font-medium text-blue-400">
+                      Modo Cliente Não Registrado
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    Preencha manualmente os dados do cliente e equipamento que
+                    não estão cadastrados no sistema.
+                  </p>
+                </div>
+
+                {/* Data */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-400">
+                    Data
+                  </label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <input
+                      type="date"
+                      name="date"
+                      value={formData.date}
+                      onChange={handleChange}
+                      className="w-full pl-10 p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* ✅ DADOS DO CLIENTE NÃO REGISTRADO */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-400">
+                      Nome do Cliente *
+                    </label>
+                    <Input
+                      type="text"
+                      value={formData.unregisteredClient.name}
+                      onChange={(e) =>
+                        handleUnregisteredClientChange("name", e.target.value)
+                      }
+                      placeholder="Digite o nome completo"
+                      className="bg-zinc-900 border-zinc-700 text-white"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-400">
+                      Email
+                    </label>
+                    <Input
+                      type="email"
+                      value={formData.unregisteredClient.email}
+                      onChange={(e) =>
+                        handleUnregisteredClientChange("email", e.target.value)
+                      }
+                      placeholder="email@exemplo.com"
+                      className="bg-zinc-900 border-zinc-700 text-white"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-400">
+                      Telefone
+                    </label>
+                    <Input
+                      type="tel"
+                      value={formData.unregisteredClient.phone}
+                      onChange={(e) =>
+                        handleUnregisteredClientChange("phone", e.target.value)
+                      }
+                      placeholder="(XX) XXXXX-XXXX"
+                      className="bg-zinc-900 border-zinc-700 text-white"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-400">
+                      Empresa (opcional)
+                    </label>
+                    <Input
+                      type="text"
+                      value={formData.unregisteredClient.company}
+                      onChange={(e) =>
+                        handleUnregisteredClientChange(
+                          "company",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Nome da empresa"
+                      className="bg-zinc-900 border-zinc-700 text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* ✅ DADOS DO EQUIPAMENTO MANUAL */}
+                <div className="mt-6">
+                  <h4 className="text-sm font-medium text-zinc-300 mb-3 flex items-center">
+                    <Printer className="h-4 w-4 mr-2 text-orange-400" />
+                    Dados do Equipamento
+                  </h4>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">
+                        Marca *
+                      </label>
+                      <Input
+                        type="text"
+                        value={formData.manualEquipment.brand}
+                        onChange={(e) =>
+                          handleManualEquipmentChange("brand", e.target.value)
+                        }
+                        placeholder="Ex: HP, Canon, Epson..."
+                        className="bg-zinc-900 border-zinc-700 text-white"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">
+                        Modelo *
+                      </label>
+                      <Input
+                        type="text"
+                        value={formData.manualEquipment.model}
+                        onChange={(e) =>
+                          handleManualEquipmentChange("model", e.target.value)
+                        }
+                        placeholder="Ex: LaserJet 1020, MG3610..."
+                        className="bg-zinc-900 border-zinc-700 text-white"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">
+                        Número de Série
+                      </label>
+                      <Input
+                        type="text"
+                        value={formData.manualEquipment.serialNumber}
+                        onChange={(e) =>
+                          handleManualEquipmentChange(
+                            "serialNumber",
+                            e.target.value
+                          )
+                        }
+                        placeholder="Número de série do equipamento"
+                        className="bg-zinc-900 border-zinc-700 text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            {/* ✅ CAMPOS COMUNS (FORA DAS ABAS) */}
+            <div className="mt-6 space-y-4">
+              {/* Service Type */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  Tipo de Serviço
+                </label>
+                <div className="relative">
+                  <Settings className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <Input
+                    type="text"
+                    name="serviceType"
+                    value={formData.serviceType}
+                    onChange={handleChange}
+                    onBlur={() => handleBlur("serviceType")}
+                    placeholder="Descreva o tipo de serviço"
+                    className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Priority Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">
+                  Prioridade
+                </label>
+                <div className="relative">
+                  <AlertCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <Select
+                    value={formData.priority}
+                    onValueChange={(value) =>
+                      handleChange({ target: { name: "priority", value } })
+                    }
+                  >
+                    <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                      <SelectValue placeholder="Selecione a Prioridade" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zinc-800 border-zinc-700">
                       <SelectItem
-                        key={client.id}
-                        value={client.id}
+                        value="low"
                         className="text-white hover:bg-zinc-700"
                       >
-                        {client.name}
+                        Baixa
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Equipment Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
-                Equipamento
-              </label>
-              <div className="relative">
-                <Printer className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <Select
-                  value={formData.equipmentId}
-                  onValueChange={(value) =>
-                    handleChange({ target: { name: "equipmentId", value } })
-                  }
-                  disabled={!formData.clientId}
-                >
-                  <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
-                    <SelectValue placeholder="Selecione um Equipamento" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
-                    {filteredEquipments.map((equipment) => (
                       <SelectItem
-                        key={equipment.id}
-                        value={equipment.id}
+                        value="normal"
                         className="text-white hover:bg-zinc-700"
                       >
-                        {`${equipment.brand} - ${equipment.model}`}
+                        Normal
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Service Type */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
-                Tipo de Serviço
-              </label>
-              <div className="relative">
-                <Settings className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <Input
-                  type="text"
-                  name="serviceType"
-                  value={formData.serviceType}
-                  onChange={handleChange}
-                  onBlur={() => handleBlur("serviceType")}
-                  placeholder="Descreva o tipo de serviço"
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Priority Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
-                Prioridade
-              </label>
-              <div className="relative">
-                <AlertCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <Select
-                  value={formData.priority}
-                  onValueChange={(value) =>
-                    handleChange({ target: { name: "priority", value } })
-                  }
-                >
-                  <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
-                    <SelectValue placeholder="Selecione a Prioridade" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
-                    <SelectItem
-                      value="low"
-                      className="text-white hover:bg-zinc-700"
-                    >
-                      Baixa
-                    </SelectItem>
-                    <SelectItem
-                      value="normal"
-                      className="text-white hover:bg-zinc-700"
-                    >
-                      Normal
-                    </SelectItem>
-                    <SelectItem
-                      value="high"
-                      className="text-white hover:bg-zinc-700"
-                    >
-                      Alta
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                      <SelectItem
+                        value="high"
+                        className="text-white hover:bg-zinc-700"
+                      >
+                        Alta
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -512,6 +962,320 @@ const AddOrder = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* ✅ SEÇÃO DE ORÇAMENTO DE PEÇAS (CONDICIONAL) */}
+        {checklist.pecas && (
+          <Card className="bg-zinc-800 border-zinc-700">
+            <CardHeader>
+              <CardTitle className="text-lg text-white flex items-center">
+                <ShoppingCart className="h-5 w-5 mr-2 text-purple-400" />
+                Orçamento de Peças
+                <Badge className="ml-2 bg-purple-500/20 text-purple-400">
+                  {partsQuoteItems.length} item(s)
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Pesquisa de Peças */}
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <Input
+                    type="text"
+                    value={partSearchTerm}
+                    onChange={(e) => setPartSearchTerm(e.target.value)}
+                    placeholder="Pesquisar peças por código ou nome..."
+                    className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                  />
+                  {isSearching && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4 animate-spin" />
+                  )}
+                </div>
+
+                {searchError && (
+                  <Alert className="border-amber-500 bg-amber-500/10">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription className="text-amber-400">
+                      {searchError}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Resultados da pesquisa */}
+                {searchResults.length > 0 && (
+                  <div className="border border-zinc-600 rounded-lg max-h-60 overflow-y-auto">
+                    {searchResults.map((part) => (
+                      <div
+                        key={part.id}
+                        className="flex items-center justify-between p-3 border-b border-zinc-700 last:border-b-0 hover:bg-zinc-700/50 cursor-pointer"
+                        onClick={() => addPartToQuote(part)}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-white">
+                              {part.name}
+                            </span>
+                            <Badge className="bg-blue-500/20 text-blue-400 text-xs">
+                              {part.code}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-zinc-400 mt-1">
+                            {part.description || "Sem descrição"}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-green-600 text-green-400 hover:bg-green-500/20"
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Adicionar
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Lista de Peças Adicionadas */}
+              {partsQuoteItems.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-lg font-medium text-white">
+                      Peças Selecionadas
+                    </h4>
+                    <div className="text-right">
+                      <p className="text-sm text-zinc-400">Subtotal</p>
+                      <p className="text-xl font-bold text-green-400">
+                        {formatPrice(calculateSubtotal())}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {partsQuoteItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="grid grid-cols-12 gap-4 items-center p-4 bg-zinc-700/30 rounded-lg border border-zinc-600"
+                      >
+                        <div className="col-span-12 md:col-span-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Package className="h-4 w-4 text-purple-400" />
+                            <span className="font-medium text-white">
+                              {item.name}
+                            </span>
+                          </div>
+                          <p className="text-sm text-zinc-400">
+                            Código: {item.code}
+                          </p>
+                        </div>
+
+                        <div className="col-span-6 md:col-span-2">
+                          <label className="text-sm text-zinc-400 block mb-1">
+                            Qtd
+                          </label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) =>
+                              updatePartQuantity(item.id, e.target.value)
+                            }
+                            className="bg-zinc-900 border-zinc-700 text-white text-center"
+                          />
+                        </div>
+
+                        <div className="col-span-6 md:col-span-3">
+                          <label className="text-sm text-zinc-400 block mb-1">
+                            Preço Unitário (€)
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={item.price}
+                            onChange={(e) =>
+                              updatePartPrice(item.id, e.target.value)
+                            }
+                            className="bg-zinc-900 border-zinc-700 text-white"
+                            placeholder="0.00"
+                          />
+                        </div>
+
+                        <div className="col-span-9 md:col-span-2">
+                          <label className="text-sm text-zinc-400 block mb-1">
+                            Subtotal
+                          </label>
+                          <div className="bg-zinc-800 rounded px-3 py-2 text-center border border-zinc-600">
+                            <span className="text-green-400 font-medium">
+                              {formatPrice(item.quantity * item.price)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="col-span-3 md:col-span-1 flex justify-end">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => removePartFromQuote(item.id)}
+                            className="bg-red-600 hover:bg-red-700 h-8 w-8 p-0"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Configurações de Envio e IVA */}
+                  <div className="mt-6 p-4 bg-zinc-700/50 rounded-lg border border-zinc-600">
+                    <h5 className="text-md font-medium text-white mb-4">
+                      Configurações do Orçamento
+                    </h5>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-zinc-400">
+                          Tipo de Envio
+                        </label>
+                        <Input
+                          type="text"
+                          value={shippingConfig.shippingType}
+                          onChange={(e) =>
+                            setShippingConfig((prev) => ({
+                              ...prev,
+                              shippingType: e.target.value,
+                            }))
+                          }
+                          placeholder="Ex: Correios, Transportadora..."
+                          className="bg-zinc-900 border-zinc-700 text-white"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-zinc-400">
+                          Preço do Envio (€)
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={shippingConfig.shippingPrice}
+                          onChange={(e) =>
+                            setShippingConfig((prev) => ({
+                              ...prev,
+                              shippingPrice: e.target.value,
+                            }))
+                          }
+                          placeholder="0.00"
+                          className="bg-zinc-900 border-zinc-700 text-white"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-zinc-400">
+                          Taxa de IVA (%)
+                        </label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={shippingConfig.vatRate}
+                          onChange={(e) =>
+                            setShippingConfig((prev) => ({
+                              ...prev,
+                              vatRate: e.target.value,
+                            }))
+                          }
+                          className="bg-zinc-900 border-zinc-700 text-white"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="includeVat"
+                          checked={shippingConfig.includeVat}
+                          onChange={(e) =>
+                            setShippingConfig((prev) => ({
+                              ...prev,
+                              includeVat: e.target.checked,
+                            }))
+                          }
+                          className="rounded border-zinc-600"
+                        />
+                        <label
+                          htmlFor="includeVat"
+                          className="text-sm text-zinc-400"
+                        >
+                          Incluir IVA no orçamento
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Resumo Total */}
+                  <div className="mt-4 p-4 bg-zinc-700/50 rounded-lg border border-zinc-600">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-white">Subtotal Peças:</span>
+                        <span className="text-white">
+                          {formatPrice(calculateSubtotal())}
+                        </span>
+                      </div>
+
+                      {shippingConfig.shippingPrice > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-white">Envio:</span>
+                          <span className="text-white">
+                            {formatPrice(shippingConfig.shippingPrice)}
+                          </span>
+                        </div>
+                      )}
+
+                      {shippingConfig.includeVat && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-white">
+                            IVA ({shippingConfig.vatRate}%):
+                          </span>
+                          <span className="text-white">
+                            {formatPrice(
+                              ((calculateSubtotal() +
+                                parseFloat(shippingConfig.shippingPrice || 0)) *
+                                shippingConfig.vatRate) /
+                                100
+                            )}
+                          </span>
+                        </div>
+                      )}
+
+                      <hr className="border-zinc-600" />
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-lg font-bold text-white">
+                          Total Final:
+                        </span>
+                        <span className="text-xl font-bold text-green-400">
+                          {formatPrice(calculateTotal())}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {partsQuoteItems.length === 0 && (
+                <div className="text-center py-8">
+                  <ShoppingCart className="h-12 w-12 text-zinc-600 mx-auto mb-3" />
+                  <p className="text-zinc-400">Nenhuma peça adicionada ainda</p>
+                  <p className="text-sm text-zinc-500">
+                    Use a pesquisa acima para encontrar e adicionar peças
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Submit Button */}
         <Button

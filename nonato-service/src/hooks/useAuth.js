@@ -19,6 +19,15 @@ export function useAuth() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
+          // Verificar se é um usuário anônimo
+          if (firebaseUser.isAnonymous) {
+            // Usuários anônimos são permitidos, mas não são considerados autenticados
+            // para fins de acesso à plataforma
+            setUser(null);
+            setLoading(false);
+            return;
+          }
+
           // Verificar configuração de emails autorizados
           const configDoc = await getDoc(doc(db, 'config', 'authorizedEmails'));
           

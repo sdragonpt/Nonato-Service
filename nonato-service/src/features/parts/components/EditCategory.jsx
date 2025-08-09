@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
-import { doc, getDoc, updateDoc, collection, getDocs, query, where } from "firebase/firestore";
+import {
+  doc,
+  updateDoc,
+  collection,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  ArrowLeft,
-  Loader2,
-  Save,
-  AlertTriangle,
-  Tag,
-} from "lucide-react";
+import { useCategories } from "../../../context/CategoriesContext.jsx"; // NOVO
+import { ArrowLeft, Loader2, Save, AlertTriangle, Tag } from "lucide-react";
 
 // UI Components
 import {
@@ -26,64 +28,76 @@ import { Badge } from "@/components/ui/badge.jsx";
 const EditCategory = () => {
   const { categoryId } = useParams();
   const navigate = useNavigate();
+
+  // USAR cache de categorias
+  const {
+    getCategoryById,
+    getSubcategoryById,
+    updateCategoryInCache,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+  } = useCategories();
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
   });
   const [parentCategory, setParentCategory] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [touched, setTouched] = useState({});
   const [originalData, setOriginalData] = useState(null);
   const [isSubcategory, setIsSubcategory] = useState(false);
 
+  // USAR cache em vez de fetch direto
   useEffect(() => {
-    const fetchCategory = async () => {
-      try {
-        setIsLoading(true);
-        const categoryDoc = doc(db, "categorias", categoryId);
-        const categorySnapshot = await getDoc(categoryDoc);
+    if (!categoriesLoading) {
+      // Primeiro tentar como categoria principal
+      let categoryData = getCategoryById(categoryId);
 
-        if (!categorySnapshot.exists()) {
-          setError("Categoria não encontrada");
-          return;
-        }
-
-        const categoryData = categorySnapshot.data();
+      if (categoryData) {
+        // É uma categoria principal
+        setIsSubcategory(false);
         setFormData({
           name: categoryData.name || "",
           description: categoryData.description || "",
         });
         setOriginalData(categoryData);
-        
-        // Check if it's a subcategory
-        if (categoryData.parentId) {
-          setIsSubcategory(true);
-          
-          // Fetch parent category
-          const parentDoc = doc(db, "categorias", categoryData.parentId);
-          const parentSnapshot = await getDoc(parentDoc);
-          
-          if (parentSnapshot.exists()) {
-            setParentCategory({
-              id: parentSnapshot.id,
-              ...parentSnapshot.data()
-            });
-          }
-        }
-        
         setError(null);
-      } catch (err) {
-        console.error("Erro ao carregar categoria:", err);
-        setError("Erro ao carregar dados da categoria. Por favor, tente novamente.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      } else {
+        // Tentar como subcategoria
+        categoryData = getSubcategoryById(categoryId);
 
-    fetchCategory();
-  }, [categoryId]);
+        if (categoryData) {
+          // É uma subcategoria
+          setIsSubcategory(true);
+          setFormData({
+            name: categoryData.name || "",
+            description: categoryData.description || "",
+          });
+          setOriginalData(categoryData);
+
+          // Buscar categoria pai usando cache
+          if (categoryData.parentId) {
+            const parentData = getCategoryById(categoryData.parentId);
+            if (parentData) {
+              setParentCategory(parentData);
+            }
+          }
+          setError(null);
+        } else {
+          setError("Categoria não encontrada");
+        }
+      }
+    }
+  }, [categoryId, categoriesLoading, getCategoryById, getSubcategoryById]);
+
+  // Mostrar erro das categorias se houver
+  useEffect(() => {
+    if (categoriesError) {
+      setError(categoriesError);
+    }
+  }, [categoriesError]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -108,7 +122,7 @@ const EditCategory = () => {
       setError(null);
 
       const categoryRef = doc(db, "categorias", categoryId);
-      
+
       // Update category data
       await updateDoc(categoryRef, {
         ...formData,
@@ -118,23 +132,31 @@ const EditCategory = () => {
       // If category name changed, we need to update all parts that reference this category
       if (formData.name !== originalData.name) {
         // Determine if we need to update categoryName or subcategoryName in parts
-        const fieldToUpdate = isSubcategory ? "subcategoryName" : "categoryName";
+        const fieldToUpdate = isSubcategory
+          ? "subcategoryName"
+          : "categoryName";
         const queryField = isSubcategory ? "subcategoryId" : "categoryId";
-        
+
         // Get all parts that use this category
-        const partsQuery = query(collection(db, "pecas"), where(queryField, "==", categoryId));
+        const partsQuery = query(
+          collection(db, "pecas"),
+          where(queryField, "==", categoryId)
+        );
         const partsSnapshot = await getDocs(partsQuery);
-        
+
         // Update each part
-        const updatePromises = partsSnapshot.docs.map(partDoc => {
+        const updatePromises = partsSnapshot.docs.map((partDoc) => {
           return updateDoc(doc(db, "pecas", partDoc.id), {
-            [fieldToUpdate]: formData.name
+            [fieldToUpdate]: formData.name,
           });
         });
-        
+
         // Wait for all updates to complete
         await Promise.all(updatePromises);
       }
+
+      // NOVO: Atualizar cache em vez de forçar refresh
+      updateCategoryInCache(categoryId, formData);
 
       navigate("/app/parts-library?tab=categories");
     } catch (err) {
@@ -145,7 +167,8 @@ const EditCategory = () => {
     }
   };
 
-  if (isLoading) {
+  // Loading state
+  if (categoriesLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
@@ -156,7 +179,7 @@ const EditCategory = () => {
   const hasChanges =
     originalData &&
     (formData.name !== originalData.name ||
-     formData.description !== originalData.description);
+      formData.description !== (originalData.description || ""));
 
   return (
     <div className="space-y-6">
@@ -167,7 +190,8 @@ const EditCategory = () => {
             Editar {isSubcategory ? "Subcategoria" : "Categoria"}
           </h1>
           <p className="text-sm text-zinc-400">
-            Atualize as informações da {isSubcategory ? "subcategoria" : "categoria"}
+            Atualize as informações da{" "}
+            {isSubcategory ? "subcategoria" : "categoria"}
           </p>
         </div>
         <Button
@@ -196,7 +220,9 @@ const EditCategory = () => {
                 <Tag className="h-5 w-5 text-blue-500" />
                 <div>
                   <p className="text-sm text-zinc-400">Categoria Principal:</p>
-                  <p className="text-base font-medium text-white">{parentCategory.name}</p>
+                  <p className="text-base font-medium text-white">
+                    {parentCategory.name}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -210,9 +236,13 @@ const EditCategory = () => {
               <CardTitle className="text-lg text-white">
                 Informações da {isSubcategory ? "Subcategoria" : "Categoria"}
               </CardTitle>
-              
-              <Badge 
-                className={isSubcategory ? "bg-purple-500/10 text-purple-500" : "bg-blue-500/10 text-blue-500"}
+
+              <Badge
+                className={
+                  isSubcategory
+                    ? "bg-purple-500/10 text-purple-500"
+                    : "bg-blue-500/10 text-blue-500"
+                }
               >
                 {isSubcategory ? "Subcategoria" : "Categoria"}
               </Badge>
@@ -232,7 +262,9 @@ const EditCategory = () => {
                   value={formData.name}
                   onChange={handleChange}
                   onBlur={() => handleBlur("name")}
-                  placeholder={isSubcategory ? "Ex: Filtros de Óleo" : "Ex: Filtros"}
+                  placeholder={
+                    isSubcategory ? "Ex: Filtros de Óleo" : "Ex: Filtros"
+                  }
                   className={`pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 ${
                     touched.name && !formData.name ? "border-red-500" : ""
                   }`}
@@ -262,7 +294,7 @@ const EditCategory = () => {
         {/* Submit Button */}
         <Button
           type="submit"
-          disabled={isSubmitting || !hasChanges}
+          disabled={isSubmitting || !hasChanges || !originalData}
           className="w-full bg-green-600 hover:bg-green-700"
         >
           {isSubmitting ? (

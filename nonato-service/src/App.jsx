@@ -1,4 +1,7 @@
-import { useState, useEffect } from "react";
+// App.jsx - COM PARTSCACHE INTEGRADO + Ferramenta de Migração + Pré-Agendamento + SUPORTE PCs ANTIGOS
+
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { getAuth, signOut } from "firebase/auth";
 import {
   BrowserRouter as Router,
   Routes,
@@ -8,7 +11,6 @@ import {
   Link,
   useNavigate,
 } from "react-router-dom";
-import { getAuth, signOut } from "firebase/auth";
 import {
   Users,
   Wrench,
@@ -29,72 +31,194 @@ import {
   Settings,
   User,
   UserCog,
-  ShoppingBag, // Novo ícone para Loja
+  ShoppingBag,
   Store,
+  Shield,
+  Database, // ✅ NOVO: Para migração de imagens
+  RotateCcw, // ✅ NOVO: Para rollback
+  Zap, // ✅ NOVO: Para pré-agendamento
+  Calculator, // ✅ NOVO: Para orçamento de peças
 } from "lucide-react";
 
-// Componentes
-import InitialPage from "./pages/initial/InitialPage";
-import ManageOrders from "./features/orders/ManageOrders";
-import AddEquipment from "./features/equipments/AddEquipment";
-import AddClient from "./features/clients/components/AddClient";
-import ManageClients from "./features/clients/ManageClients";
-import ClientDetail from "./features/clients/components/ClientDetail";
-import EquipmentDetail from "./features/equipments/EquipmentDetail";
-import EditClient from "./features/clients/components/EditClient";
-import EditEquipment from "./features/equipments/EditEquipment";
-import AddOrder from "./features/orders/components/AddOrder";
-import OrderDetail from "./features/orders/components/OrderDetail";
-import AddWorkday from "./features/workdays/AddWorkDay";
-import EditOrder from "./features/orders/components/EditOrder";
-import EditWorkday from "./features/workdays/EditWorkDay";
-import LoginPage from "./pages/auth/LoginPage";
-import ManageAgenda from "./features/agendamentos/ManageAgenda";
-import AddAgendamento from "./features/agendamentos/components/AddAgendamento";
-import EditAgendamento from "./features/agendamentos/components/EditAgendamento";
-import ManageServices from "./features/services/ManageServices";
-import AddService from "./features/services/components/AddService";
-import EditService from "./features/services/components/EditService";
-import AddBudget from "./features/budgets/components/AddBudget";
-import EditBudget from "./features/budgets/components/EditBudget";
-import EditSimpleBudget from "./features/budgets/components/EditSimpleBudget";
-import ManageBudgets from "./features/budgets/ManageBudgets";
-import AddSimpleBudget from "./features/budgets/components/AddSimpleBudget";
-import ErrorBoundary from "./components/layout/ErrorBoundary";
-import ManageChecklist from "./features/checklists/ManageCheckList";
-import AddChecklistType from "./features/checklists/components/AddChecklistType";
-import EditChecklistType from "./features/checklists/components/EditCheckListType";
-import ManageInspection from "./features/inspections/ManageInspection";
-import AddInspection from "./features/inspections/components/AddInspection";
-import EditInspection from "./features/inspections/components/EditInspection";
-import InspectionDetail from "./features/inspections/components/InspectionDetail";
-import ProtectedRoute from "./pages/auth/ProtectedRoute";
-import UserProfile from "./features/users/components/UserProfile";
-import UserSettings from "./features/users/components/UserSettings";
-import DashboardPage from "./pages/dashboard/DashboardPage";
-import ManageUsers from "./features/users/ManageUsers";
-import ManagePartsLibrary from "./features/parts/ManagePartsLibrary";
-import AddPart from "./features/parts/components/AddPart";
-import EditPart from "./features/parts/components/EditPart";
-import PartDetail from "./features/parts/components/PartDetail";
-import AddCategory from "./features/parts/components/AddCategory";
-import AddSubcategory from "./features/parts/components/AddSubcategory";
-import EditCategory from "./features/parts/components/EditCategory";
-import ManageCategories from "./features/parts/ManageCategories";
-import ImportParts from "./features/parts/ImportParts";
+// ✅ NOVO: Suporte para PCs antigos
+import { initOldBrowserSupport } from "./utils/oldBrowserUtils.js";
 
+// ✅ LAZY LOADING - Componentes principais importados sob demanda
+const InitialPage = React.lazy(() => import("./pages/initial/InitialPage"));
+const LoginPage = React.lazy(() => import("./pages/auth/LoginPage"));
+const DashboardPage = React.lazy(() =>
+  import("./pages/dashboard/DashboardPage")
+);
+const ProtectedRoute = React.lazy(() => import("./pages/auth/ProtectedRoute"));
+
+// ✅ LAZY LOADING - Features carregadas sob demanda
+const ManageOrders = React.lazy(() => import("./features/orders/ManageOrders"));
+const AddEquipment = React.lazy(() =>
+  import("./features/equipments/AddEquipment")
+);
+const AddClient = React.lazy(() =>
+  import("./features/clients/components/AddClient")
+);
+const ManageClients = React.lazy(() =>
+  import("./features/clients/ManageClients")
+);
+const ClientDetail = React.lazy(() =>
+  import("./features/clients/components/ClientDetail")
+);
+const EquipmentDetail = React.lazy(() =>
+  import("./features/equipments/EquipmentDetail")
+);
+const EditClient = React.lazy(() =>
+  import("./features/clients/components/EditClient")
+);
+const EditEquipment = React.lazy(() =>
+  import("./features/equipments/EditEquipment")
+);
+const AddOrder = React.lazy(() =>
+  import("./features/orders/components/AddOrder")
+);
+const OrderDetail = React.lazy(() =>
+  import("./features/orders/components/OrderDetail")
+);
+const AddWorkday = React.lazy(() => import("./features/workdays/AddWorkDay"));
+const EditOrder = React.lazy(() =>
+  import("./features/orders/components/EditOrder")
+);
+const EditWorkday = React.lazy(() => import("./features/workdays/EditWorkDay"));
+const ManageAgenda = React.lazy(() =>
+  import("./features/agendamentos/ManageAgenda")
+);
+const AddAgendamento = React.lazy(() =>
+  import("./features/agendamentos/components/AddAgendamento")
+);
+// ✅ NOVO: Pré-agendamento
+const AddPreAgendamento = React.lazy(() =>
+  import("./features/agendamentos/components/AddPreAgendamento")
+);
+const EditAgendamento = React.lazy(() =>
+  import("./features/agendamentos/components/EditAgendamento")
+);
+const ManageServices = React.lazy(() =>
+  import("./features/services/ManageServices")
+);
+const AddService = React.lazy(() =>
+  import("./features/services/components/AddService")
+);
+const EditService = React.lazy(() =>
+  import("./features/services/components/EditService")
+);
+const AddBudget = React.lazy(() =>
+  import("./features/budgets/components/AddBudget")
+);
+const EditBudget = React.lazy(() =>
+  import("./features/budgets/components/EditBudget")
+);
+const EditSimpleBudget = React.lazy(() =>
+  import("./features/budgets/components/EditSimpleBudget")
+);
+const ManageBudgets = React.lazy(() =>
+  import("./features/budgets/ManageBudgets")
+);
+const AddSimpleBudget = React.lazy(() =>
+  import("./features/budgets/components/AddSimpleBudget")
+);
+const PartBudgetDetail = React.lazy(() =>
+  import("./features/partsBudgets/components/PartBudgetDetail")
+);
+const EditPartBudget = React.lazy(() =>
+  import("./features/partsBudgets/components/EditPartBudget")
+);
+const ManageChecklist = React.lazy(() =>
+  import("./features/checklists/ManageCheckList")
+);
+const AddChecklistType = React.lazy(() =>
+  import("./features/checklists/components/AddChecklistType")
+);
+const EditChecklistType = React.lazy(() =>
+  import("./features/checklists/components/EditCheckListType")
+);
+const ManageInspection = React.lazy(() =>
+  import("./features/inspections/ManageInspection")
+);
+const AddInspection = React.lazy(() =>
+  import("./features/inspections/components/AddInspection")
+);
+const EditInspection = React.lazy(() =>
+  import("./features/inspections/components/EditInspection")
+);
+const InspectionDetail = React.lazy(() =>
+  import("./features/inspections/components/InspectionDetail")
+);
+const UserProfile = React.lazy(() =>
+  import("./features/users/components/UserProfile")
+);
+const UserSettings = React.lazy(() =>
+  import("./features/users/components/UserSettings")
+);
+const ManageUsers = React.lazy(() => import("./features/users/ManageUsers"));
+const ManagePartsLibrary = React.lazy(() =>
+  import("./features/parts/ManagePartsLibrary")
+);
+const AddPart = React.lazy(() => import("./features/parts/components/AddPart"));
+const EditPart = React.lazy(() =>
+  import("./features/parts/components/EditPart")
+);
+const PartDetail = React.lazy(() =>
+  import("./features/parts/components/PartDetail")
+);
+const AddCategory = React.lazy(() =>
+  import("./features/parts/components/AddCategory")
+);
+const AddSubcategory = React.lazy(() =>
+  import("./features/parts/components/AddSubcategory")
+);
+const EditCategory = React.lazy(() =>
+  import("./features/parts/components/EditCategory")
+);
+const ManageCategories = React.lazy(() =>
+  import("./features/parts/ManageCategories")
+);
+
+// ✅ LAZY LOADING - Loja pública
+const PublicShop = React.lazy(() => import("./features/publicShop/PublicShop"));
+// ✅ NOVO: Orçamento de Peças (ordens convertidas com isQuote: true)
+const ManagePartsBudgets = React.lazy(() =>
+  import("./features/partsBudgets/ManagePartsBudgets")
+);
+// ✅ MANTER: Gestão de Orçamentos Online (conversões)
+const ManageOnlineQuotes = React.lazy(() =>
+  import("./features/onlineQuotes/ManageOnlineQuotes")
+);
+const ManageShopAccess = React.lazy(() =>
+  import("./features/shopAccess/ManageShopAccess")
+);
+const ShopAccessWrapper = React.lazy(() =>
+  import("./features/publicShop/ShopAccessWrapper")
+);
+
+// ✅ NOVO: Ferramenta de migração de imagens
+const ImageMigrationTool = React.lazy(
+  () => import("./context/ImageMigrationTool") // Caminho para src/context/
+);
+
+// ✅ NOVO: Ferramenta de rollback
+const RollbackTool = React.lazy(
+  () => import("./context/RollbackTool") // Caminho para src/context/
+);
+
+// ✅ COMPONENTES ESSENCIAIS - Não lazy load para evitar flash
+import ErrorBoundary from "./components/layout/ErrorBoundary";
+import { CategoriesProvider } from "./context/CategoriesContext.jsx";
+import { PartsCacheProvider } from "./context/PartsCache.jsx"; // ✅ NOVO: Cache de peças
+// import CacheDebugTool from "./components/debug/CacheDebugTool.jsx";
 import { NotificationProvider } from "./context/NotificationContext.jsx";
 import NotificationsDropdown from "./components/ui/NotificationsDropdown";
-
-//Loja
-import PublicShop from "./features/publicShop/PublicShop";
-import ManageOnlineQuotes from "./features/onlineQuotes/ManageOnlineQuotes";
 
 import { useAuth } from "./hooks/useAuth";
 import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
 import { Capacitor } from "@capacitor/core";
 
-// Components UI
+// UI Components
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -104,38 +228,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge"; // ✅ NOVO: Para badge admin
 
-// Configuração das rotas e navegação
+// ✅ MEMOIZED NAVIGATION - Evita re-renders desnecessários
 const NAVIGATION_ITEMS = [
   {
     title: "Cadastro",
     items: [
-      {
-        path: "/app/manage-clients",
-        icon: Users,
-        label: "Clientes",
-      },
-      {
-        path: "/app/manage-services",
-        icon: Wrench,
-        label: "Serviços",
-      },
-      {
-        path: "/app/manage-budgets",
-        icon: FileText,
-        label: "Orçamentos",
-      },
-      {
-        path: "/app/manage-equipment",
-        icon: Package,
-        label: "Peças",
-      },
-      {
-        path: "/app/parts-library",
-        icon: Book,
-        label: "Biblioteca de Peças",
-      },
+      { path: "/app/manage-clients", icon: Users, label: "Clientes" },
+      { path: "/app/manage-services", icon: Wrench, label: "Serviços" },
+      { path: "/app/manage-budgets", icon: FileText, label: "Orçamentos" },
+      { path: "/app/parts-library", icon: Book, label: "Biblioteca de Peças" },
     ],
   },
   {
@@ -146,21 +249,15 @@ const NAVIGATION_ITEMS = [
         icon: ClipboardList,
         label: "Ordem de Serviço",
       },
+      // ✅ ALTERADO: Mudança de "Peças" para "Orçamento de Peças"
       {
-        path: "/app/manage-agenda",
-        icon: Calendar,
-        label: "Agenda",
+        path: "/app/parts-budgets",
+        icon: Calculator,
+        label: "Orçamento de Peças",
       },
-      {
-        path: "/app/manage-report",
-        icon: BarChart,
-        label: "Relatório",
-      },
-      {
-        path: "/app/manage-checklist",
-        icon: CheckSquare,
-        label: "Check List",
-      },
+      { path: "/app/manage-agenda", icon: Calendar, label: "Agenda" },
+      { path: "/app/manage-report", icon: BarChart, label: "Relatório" },
+      { path: "/app/manage-checklist", icon: CheckSquare, label: "Check List" },
       {
         path: "/app/manage-inspection",
         icon: ClipboardCheck,
@@ -175,29 +272,42 @@ const NAVIGATION_ITEMS = [
         path: "/loja",
         icon: ShoppingBag,
         label: "Visitar Loja",
-        external: true, // Marca como link externo
+        external: true,
       },
       {
         path: "/app/orcamento-online",
         icon: Store,
         label: "Gestão de Orçamentos Online",
       },
+      {
+        path: "/app/manage-shop-access",
+        icon: Shield,
+        label: "Gerenciar Acessos",
+      },
     ],
   },
-  // {
-  //   title: "Administração",
-  //   items: [
-  //     {
-  //       path: "/app/manage-users",
-  //       icon: UserCog,
-  //       label: "Gerenciar Usuários",
-  //     },
-  //   ],
-  // },
+  // ✅ NOVA SEÇÃO: Administração
+  {
+    title: "Administração",
+    items: [
+      {
+        path: "/app/image-migration",
+        icon: Database,
+        label: "Migração de Imagens",
+        adminOnly: true,
+      },
+      {
+        path: "/app/rollback-tool",
+        icon: RotateCcw,
+        label: "Rollback de Migração",
+        adminOnly: true,
+      },
+    ],
+  },
 ];
 
-// Componente de rota protegida por role
-const RoleRoute = ({ children, allowedRoles }) => {
+// ✅ COMPONENTE OTIMIZADO - Evita re-renders
+const RoleRoute = React.memo(({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -213,12 +323,25 @@ const RoleRoute = ({ children, allowedRoles }) => {
   }
 
   return children;
-};
+});
 
-const UserNav = () => {
+// ✅ COMPONENTE OTIMIZADO - Memoizado para evitar re-renders
+const UserNav = React.memo(() => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const auth = getAuth();
+
+  const handleSignOut = useCallback(() => {
+    signOut(auth);
+  }, [auth]);
+
+  const handleNavigateProfile = useCallback(() => {
+    navigate("/app/profile");
+  }, [navigate]);
+
+  const handleNavigateSettings = useCallback(() => {
+    navigate("/app/settings");
+  }, [navigate]);
 
   return (
     <DropdownMenu>
@@ -239,14 +362,14 @@ const UserNav = () => {
       >
         <DropdownMenuItem
           className="text-white hover:bg-zinc-700 cursor-pointer"
-          onClick={() => navigate("/app/profile")}
+          onClick={handleNavigateProfile}
         >
           <User className="mr-2 h-4 w-4" />
           <span>Perfil</span>
         </DropdownMenuItem>
         <DropdownMenuItem
           className="text-white hover:bg-zinc-700 cursor-pointer"
-          onClick={() => navigate("/app/settings")}
+          onClick={handleNavigateSettings}
         >
           <Settings className="mr-2 h-4 w-4" />
           <span>Configurações</span>
@@ -254,7 +377,7 @@ const UserNav = () => {
         <DropdownMenuSeparator className="bg-zinc-700" />
         <DropdownMenuItem
           className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
-          onClick={() => signOut(auth)}
+          onClick={handleSignOut}
         >
           <LogOut className="mr-2 h-4 w-4" />
           <span>Sair</span>
@@ -262,37 +385,41 @@ const UserNav = () => {
       </DropdownMenuContent>
     </DropdownMenu>
   );
-};
+});
 
-// DashboardShell component that wraps the main content
-const DashboardShell = ({ children }) => {
+// ✅ SIDEBAR OTIMIZADA - Memoizada e com navegação otimizada
+const DashboardShell = React.memo(({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
   const { user, loading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarOpen((prev) => !prev);
+  }, []);
 
+  const handleNavigateUsers = useCallback(() => {
+    navigate("/app/manage-users");
+  }, [navigate]);
+
+  // ✅ MEMOIZED - Evita recalcular toda vez
+  const isActiveLink = useCallback(
+    (path) => {
+      return location.pathname === path;
+    },
+    [location.pathname]
+  );
+
+  // ✅ EFFECT OTIMIZADO - Só roda quando necessário
   useEffect(() => {
     if (window.innerWidth < 768) {
       setIsSidebarOpen(false);
     }
   }, [location]);
 
+  // ✅ LOADING OTIMIZADO
   if (loading || !user) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-zinc-900">
-        <Loader2 className="h-12 w-12 animate-spin text-white" />
-      </div>
-    );
-  }
-
-  const isActiveLink = (path) => {
-    return location.pathname === path;
-  };
-
-  if (!NAVIGATION_ITEMS || NAVIGATION_ITEMS.length === 0) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-zinc-900">
         <Loader2 className="h-12 w-12 animate-spin text-white" />
@@ -302,6 +429,7 @@ const DashboardShell = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-zinc-900">
+      {/* Overlay */}
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-30 md:hidden"
@@ -309,6 +437,7 @@ const DashboardShell = ({ children }) => {
         />
       )}
 
+      {/* Sidebar */}
       <aside
         className={`fixed top-0 left-0 z-40 h-screen transition-transform duration-300 w-[280px] bg-zinc-900 border-r border-zinc-800 ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -333,83 +462,104 @@ const DashboardShell = ({ children }) => {
           </div>
 
           <div className="flex-1 space-y-4 overflow-y-auto">
-            {NAVIGATION_ITEMS.map((section, idx) => (
-              <div key={idx} className="space-y-2">
-                <button
-                  onClick={() =>
-                    setActiveSection(
-                      activeSection === section.title ? "" : section.title
-                    )
-                  }
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg ${
-                    activeSection === section.title
-                      ? "bg-green-700 hover:bg-green-70 text-white"
-                      : section.title === "Cadastro" ||
-                        section.title === "Gestão" ||
-                        section.title === "Loja Online"
-                      ? "text-white font-bold bg-green-700/25 hover:bg-green-700/70 hover:border-green-700/70"
-                      : "text-zinc-400 hover:text-white"
-                  } transition-colors`}
-                >
-                  <span
-                    className={`${
-                      section.title === "Cadastro" ||
-                      section.title === "Gestão" ||
-                      section.title === "Loja Online"
-                        ? "text-base"
-                        : "text-sm"
-                    } font-semibold`}
-                  >
-                    {section.title}
-                  </span>
-                  <ChevronDown
-                    className={`w-4 h-4 transition-transform ${
-                      activeSection === section.title ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
+            {NAVIGATION_ITEMS.map((section, idx) => {
+              // ✅ NOVO: Filtrar seções admin para não-admins
+              if (section.title === "Administração" && user?.role !== "admin") {
+                return null;
+              }
 
-                <div
-                  className={`space-y-1 pl-2 ${
-                    activeSection === section.title ? "block" : "hidden"
-                  }`}
-                >
-                  {section.items.map((item, itemIdx) => {
-                    // Renderizar links externos de forma diferente
-                    if (item.external) {
-                      return (
-                        <a
-                          key={itemIdx}
-                          href={item.path}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`flex items-center gap-x-3 px-3 py-2 text-sm rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors`}
-                        >
-                          <item.icon className="w-4 h-4" />
-                          {item.label}
-                        </a>
-                      );
+              return (
+                <div key={idx} className="space-y-2">
+                  <button
+                    onClick={() =>
+                      setActiveSection(
+                        activeSection === section.title ? "" : section.title
+                      )
                     }
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg ${
+                      activeSection === section.title
+                        ? "bg-green-700 hover:bg-green-70 text-white"
+                        : section.title === "Cadastro" ||
+                          section.title === "Gestão" ||
+                          section.title === "Loja Online" ||
+                          section.title === "Administração"
+                        ? "text-white font-bold bg-green-700/25 hover:bg-green-700/70 hover:border-green-700/70"
+                        : "text-zinc-400 hover:text-white"
+                    } transition-colors`}
+                  >
+                    <span
+                      className={`${
+                        section.title === "Cadastro" ||
+                        section.title === "Gestão" ||
+                        section.title === "Loja Online" ||
+                        section.title === "Administração"
+                          ? "text-base"
+                          : "text-sm"
+                      } font-semibold`}
+                    >
+                      {section.title}
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${
+                        activeSection === section.title ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
 
-                    // Renderizar links internos normalmente
-                    return (
-                      <Link
-                        key={itemIdx}
-                        to={item.path}
-                        className={`flex items-center gap-x-3 px-3 py-2 text-sm rounded-lg ${
-                          isActiveLink(item.path)
-                            ? "bg-zinc-800 text-white"
-                            : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
-                        } transition-colors`}
-                      >
-                        <item.icon className="w-4 h-4" />
-                        {item.label}
-                      </Link>
-                    );
-                  })}
+                  <div
+                    className={`space-y-1 pl-2 ${
+                      activeSection === section.title ? "block" : "hidden"
+                    }`}
+                  >
+                    {section.items
+                      .filter((item) => {
+                        // ✅ NOVO: Filtrar itens admin-only
+                        if (item.adminOnly && user?.role !== "admin") {
+                          return false;
+                        }
+                        return true;
+                      })
+                      .map((item, itemIdx) => {
+                        if (item.external) {
+                          return (
+                            <a
+                              key={itemIdx}
+                              href={item.path}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`flex items-center gap-x-3 px-3 py-2 text-sm rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors`}
+                            >
+                              <item.icon className="w-4 h-4" />
+                              {item.label}
+                            </a>
+                          );
+                        }
+
+                        return (
+                          <Link
+                            key={itemIdx}
+                            to={item.path}
+                            className={`flex items-center gap-x-3 px-3 py-2 text-sm rounded-lg ${
+                              isActiveLink(item.path)
+                                ? "bg-zinc-800 text-white"
+                                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                            } transition-colors`}
+                          >
+                            <item.icon className="w-4 h-4" />
+                            {item.label}
+                            {/* ✅ NOVO: Badge admin */}
+                            {item.adminOnly && (
+                              <Badge className="ml-auto bg-red-500/20 text-red-400 text-xs">
+                                Admin
+                              </Badge>
+                            )}
+                          </Link>
+                        );
+                      })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="mt-auto pt-4 border-t border-zinc-800">
@@ -418,6 +568,7 @@ const DashboardShell = ({ children }) => {
         </div>
       </aside>
 
+      {/* Main Content */}
       <main className="transition-[margin] duration-300 md:ml-[280px]">
         <header className="sticky top-0 z-30 bg-zinc-800/95 backdrop-blur supports-[backdrop-filter]:bg-zinc-800/75 border-b border-zinc-700">
           <div className="flex h-16 items-center gap-4 px-4">
@@ -436,7 +587,7 @@ const DashboardShell = ({ children }) => {
                   variant="ghost"
                   size="icon"
                   className="text-zinc-400 hover:text-white hover:bg-zinc-700/50"
-                  onClick={() => navigate("/app/manage-users")}
+                  onClick={handleNavigateUsers}
                 >
                   <UserCog className="h-5 w-5" />
                 </Button>
@@ -447,18 +598,35 @@ const DashboardShell = ({ children }) => {
         </header>
 
         <div className="p-4 sm:p-6 lg:p-8">
-          <ErrorBoundary>{children}</ErrorBoundary>
+          <ErrorBoundary>
+            <React.Suspense
+              fallback={
+                <div className="flex justify-center items-center min-h-[50vh]">
+                  <Loader2 className="h-8 w-8 animate-spin text-white" />
+                </div>
+              }
+            >
+              {children}
+            </React.Suspense>
+          </ErrorBoundary>
         </div>
       </main>
     </div>
   );
-};
+});
 
-// Main App Component
+// ✅ COMPONENTE PRINCIPAL OTIMIZADO COM SUPORTE PCs ANTIGOS
 const App = () => {
-  const { user, loading } = useAuth(); // Substitui o useState e useEffect anterior
+  const { user, loading } = useAuth();
 
+  // ✅ EFEITO OTIMIZADO - Inicialização única
   useEffect(() => {
+    let cleanupOldBrowser;
+
+    // ✅ NOVO: Suporte para PCs antigos
+    cleanupOldBrowser = initOldBrowserSupport();
+
+    // Configuração Google Auth (já existente)
     if (Capacitor.isNativePlatform()) {
       GoogleAuth.initialize({
         clientId:
@@ -467,8 +635,16 @@ const App = () => {
         grantOfflineAccess: true,
       });
     }
+
+    // ✅ NOVO: Cleanup na desmontagem
+    return () => {
+      if (cleanupOldBrowser) {
+        cleanupOldBrowser();
+      }
+    };
   }, []);
 
+  // ✅ LOADING OTIMIZADO
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-zinc-900">
@@ -479,162 +655,276 @@ const App = () => {
 
   return (
     <NotificationProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Navigate to="/app" />} />
-          <Route path="/app" element={<Navigate to="/app/dashboard" />} />
-          <Route path="/start" element={<InitialPage />} />
-          <Route path="/login" element={<LoginPage />} />
+      <CategoriesProvider>
+        <PartsCacheProvider>
+          {" "}
+          {/* ✅ NOVO: Cache inteligente para peças */}
+          <Router>
+            <React.Suspense
+              fallback={
+                <div className="flex justify-center items-center min-h-screen bg-zinc-900">
+                  <Loader2 className="h-12 w-12 animate-spin text-white" />
+                </div>
+              }
+            >
+              <Routes>
+                <Route path="/" element={<Navigate to="/app" />} />
+                <Route path="/app" element={<Navigate to="/app/dashboard" />} />
+                <Route path="/start" element={<InitialPage />} />
+                <Route path="/login" element={<LoginPage />} />
 
-          <Route path="/loja" element={<PublicShop />} />
-          <Route path="/loja/categoria/:categoryId" element={<PublicShop />} />
-          <Route path="/loja/busca" element={<PublicShop />} />
+                {/* ✅ LOJA PÚBLICA - Otimizada com lazy loading */}
+                <Route
+                  path="/loja"
+                  element={
+                    <ShopAccessWrapper>
+                      <PublicShop />
+                    </ShopAccessWrapper>
+                  }
+                />
+                <Route
+                  path="/loja/categoria/:categoryId"
+                  element={
+                    <ShopAccessWrapper>
+                      <PublicShop />
+                    </ShopAccessWrapper>
+                  }
+                />
+                <Route
+                  path="/loja/busca"
+                  element={
+                    <ShopAccessWrapper>
+                      <PublicShop />
+                    </ShopAccessWrapper>
+                  }
+                />
 
-          <Route
-            path="/app/*"
-            element={
-              <ProtectedRoute>
-                <DashboardShell>
-                  <Routes>
-                    <Route
-                      path="/orcamento-online"
-                      element={<ManageOnlineQuotes />}
-                    />
-                    <Route path="/dashboard" element={<DashboardPage />} />
-                    <Route path="add-client" element={<AddClient />} />
-                    <Route path="add-equipment" element={<AddEquipment />} />
-                    <Route path="add-order" element={<AddOrder />} />
-                    <Route path="manage-orders" element={<ManageOrders />} />
-                    <Route
-                      path="manage-services"
-                      element={<ManageServices />}
-                    />
-                    <Route path="add-service" element={<AddService />} />
-                    <Route path="profile" element={<UserProfile />} />
-                    <Route path="settings" element={<UserSettings />} />
-                    {/* Rotas protegidas por role */}
-                    <Route
-                      path="manage-users"
-                      element={
-                        <RoleRoute allowedRoles={["admin"]}>
-                          <ManageUsers />
-                        </RoleRoute>
-                      }
-                    />
-                    <Route
-                      path="edit-service/:serviceId"
-                      element={<EditService />}
-                    />
-                    <Route path="manage-clients" element={<ManageClients />} />
-                    <Route path="client/:clientId" element={<ClientDetail />} />
-                    <Route
-                      path="equipment/:equipmentId"
-                      element={<EquipmentDetail />}
-                    />
-                    <Route
-                      path="edit-client/:clientId"
-                      element={<EditClient />}
-                    />
-                    <Route
-                      path="edit-equipment/:equipmentId"
-                      element={<EditEquipment />}
-                    />
-                    <Route
-                      path="client/:clientId/add-equipment"
-                      element={<AddEquipment />}
-                    />
-                    <Route
-                      path="order-detail/:orderId"
-                      element={<OrderDetail />}
-                    />
-                    <Route
-                      path="order/:orderId/add-workday"
-                      element={<AddWorkday />}
-                    />
-                    <Route
-                      path="edit-service-order/:orderId"
-                      element={<EditOrder />}
-                    />
-                    <Route
-                      path="edit-workday/:workdayId"
-                      element={<EditWorkday />}
-                    />
-                    <Route path="manage-agenda" element={<ManageAgenda />} />
-                    <Route
-                      path="add-agendamento"
-                      element={<AddAgendamento />}
-                    />
-                    <Route
-                      path="edit-agendamento/:agendamentoId"
-                      element={<EditAgendamento />}
-                    />
-                    <Route path="manage-budgets" element={<ManageBudgets />} />
-                    <Route path="add-budget" element={<AddBudget />} />
-                    <Route
-                      path="add-simple-budget"
-                      element={<AddSimpleBudget />}
-                    />
-                    <Route
-                      path="edit-budget/:budgetId"
-                      element={<EditBudget />}
-                    />
-                    <Route
-                      path="edit-simple-budget/:budgetId"
-                      element={<EditSimpleBudget />}
-                    />
-                    <Route
-                      path="manage-checklist"
-                      element={<ManageChecklist />}
-                    />
-                    <Route
-                      path="add-checklist-type"
-                      element={<AddChecklistType />}
-                    />
-                    <Route
-                      path="edit-checklist-type/:typeId"
-                      element={<EditChecklistType />}
-                    />
-                    <Route
-                      path="manage-inspection"
-                      element={<ManageInspection />}
-                    />
-                    <Route path="add-inspection" element={<AddInspection />} />
-                    <Route
-                      path="edit-inspection/:inspectionId"
-                      element={<EditInspection />}
-                    />
-                    <Route
-                      path="inspection-detail/:inspectionId"
-                      element={<InspectionDetail />}
-                    />
-                    <Route
-                      path="parts-library"
-                      element={<ManagePartsLibrary />}
-                    />
-                    <Route path="add-part" element={<AddPart />} />
-                    <Route path="edit-part/:partId" element={<EditPart />} />
-                    <Route path="part/:partId" element={<PartDetail />} />
-                    <Route path="add-category" element={<AddCategory />} />
-                    <Route
-                      path="add-subcategory/:categoryId"
-                      element={<AddSubcategory />}
-                    />
-                    <Route
-                      path="edit-category/:categoryId"
-                      element={<EditCategory />}
-                    />
-                    <Route
-                      path="manage-categories"
-                      element={<ManageCategories />}
-                    />
-                    <Route path="import-parts" element={<ImportParts />} />
-                  </Routes>
-                </DashboardShell>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </Router>
+                {/* ✅ ROTAS PROTEGIDAS - Todas com lazy loading */}
+                <Route
+                  path="/app/*"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardShell>
+                        <Routes>
+                          {/* ✅ NOVA ROTA: Orçamento de Peças (ordens convertidas) */}
+                          <Route
+                            path="/parts-budgets"
+                            element={<ManagePartsBudgets />}
+                          />
+                          {/* ✅ MANTER: Gestão de Orçamentos Online (conversões) */}
+                          <Route
+                            path="/orcamento-online"
+                            element={<ManageOnlineQuotes />}
+                          />
+                          <Route
+                            path="/dashboard"
+                            element={<DashboardPage />}
+                          />
+                          <Route path="add-client" element={<AddClient />} />
+                          <Route
+                            path="add-equipment"
+                            element={<AddEquipment />}
+                          />
+                          <Route path="add-order" element={<AddOrder />} />
+                          <Route
+                            path="manage-orders"
+                            element={<ManageOrders />}
+                          />
+                          <Route
+                            path="manage-services"
+                            element={<ManageServices />}
+                          />
+                          <Route path="add-service" element={<AddService />} />
+                          <Route path="profile" element={<UserProfile />} />
+                          <Route path="settings" element={<UserSettings />} />
+
+                          {/* ✅ ROTAS PROTEGIDAS POR ROLE - Otimizadas */}
+                          <Route
+                            path="manage-users"
+                            element={
+                              <RoleRoute allowedRoles={["admin"]}>
+                                <ManageUsers />
+                              </RoleRoute>
+                            }
+                          />
+
+                          {/* ✅ NOVA ROTA: Ferramenta de migração (só admin) */}
+                          <Route
+                            path="image-migration"
+                            element={
+                              <RoleRoute allowedRoles={["admin"]}>
+                                <ImageMigrationTool />
+                              </RoleRoute>
+                            }
+                          />
+
+                          {/* ✅ NOVA ROTA: Ferramenta de rollback (só admin) */}
+                          <Route
+                            path="rollback-tool"
+                            element={
+                              <RoleRoute allowedRoles={["admin"]}>
+                                <RollbackTool />
+                              </RoleRoute>
+                            }
+                          />
+
+                          {/* ✅ TODAS AS OUTRAS ROTAS COM LAZY LOADING */}
+                          <Route
+                            path="edit-service/:serviceId"
+                            element={<EditService />}
+                          />
+                          <Route
+                            path="manage-clients"
+                            element={<ManageClients />}
+                          />
+                          <Route
+                            path="client/:clientId"
+                            element={<ClientDetail />}
+                          />
+                          <Route
+                            path="equipment/:equipmentId"
+                            element={<EquipmentDetail />}
+                          />
+                          <Route
+                            path="edit-client/:clientId"
+                            element={<EditClient />}
+                          />
+                          <Route
+                            path="edit-equipment/:equipmentId"
+                            element={<EditEquipment />}
+                          />
+                          <Route
+                            path="client/:clientId/add-equipment"
+                            element={<AddEquipment />}
+                          />
+                          <Route
+                            path="order-detail/:orderId"
+                            element={<OrderDetail />}
+                          />
+                          <Route
+                            path="order/:orderId/add-workday"
+                            element={<AddWorkday />}
+                          />
+                          <Route
+                            path="edit-service-order/:orderId"
+                            element={<EditOrder />}
+                          />
+                          <Route
+                            path="edit-workday/:workdayId"
+                            element={<EditWorkday />}
+                          />
+                          <Route
+                            path="manage-agenda"
+                            element={<ManageAgenda />}
+                          />
+                          <Route
+                            path="add-agendamento"
+                            element={<AddAgendamento />}
+                          />
+                          {/* ✅ NOVA ROTA: Pré-agendamento */}
+                          <Route
+                            path="add-pre-agendamento"
+                            element={<AddPreAgendamento />}
+                          />
+                          <Route
+                            path="edit-agendamento/:agendamentoId"
+                            element={<EditAgendamento />}
+                          />
+                          <Route
+                            path="manage-budgets"
+                            element={<ManageBudgets />}
+                          />
+                          <Route path="add-budget" element={<AddBudget />} />
+                          <Route
+                            path="add-simple-budget"
+                            element={<AddSimpleBudget />}
+                          />
+                          <Route
+                            path="edit-budget/:budgetId"
+                            element={<EditBudget />}
+                          />
+                          <Route
+                            path="edit-simple-budget/:budgetId"
+                            element={<EditSimpleBudget />}
+                          />
+                          <Route
+                            path="manage-checklist"
+                            element={<ManageChecklist />}
+                          />
+                          <Route
+                            path="add-checklist-type"
+                            element={<AddChecklistType />}
+                          />
+                          <Route
+                            path="edit-checklist-type/:typeId"
+                            element={<EditChecklistType />}
+                          />
+                          <Route
+                            path="manage-inspection"
+                            element={<ManageInspection />}
+                          />
+                          <Route
+                            path="add-inspection"
+                            element={<AddInspection />}
+                          />
+                          <Route
+                            path="edit-inspection/:inspectionId"
+                            element={<EditInspection />}
+                          />
+                          <Route
+                            path="inspection-detail/:inspectionId"
+                            element={<InspectionDetail />}
+                          />
+                          <Route
+                            path="parts-library"
+                            element={<ManagePartsLibrary />}
+                          />
+                          <Route path="add-part" element={<AddPart />} />
+                          <Route
+                            path="edit-part/:partId"
+                            element={<EditPart />}
+                          />
+                          <Route path="part/:partId" element={<PartDetail />} />
+                          <Route
+                            path="add-category"
+                            element={<AddCategory />}
+                          />
+                          <Route
+                            path="add-subcategory/:categoryId"
+                            element={<AddSubcategory />}
+                          />
+                          <Route
+                            path="edit-category/:categoryId"
+                            element={<EditCategory />}
+                          />
+                          <Route
+                            path="manage-categories"
+                            element={<ManageCategories />}
+                          />
+                          <Route
+                            path="manage-shop-access"
+                            element={<ManageShopAccess />}
+                          />
+                          <Route
+                            path="part-budget-detail/:quoteId"
+                            element={<PartBudgetDetail />}
+                          />
+                          <Route
+                            path="edit-part-budget/:quoteId"
+                            element={<EditPartBudget />}
+                          />
+                        </Routes>
+                      </DashboardShell>
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </React.Suspense>
+            {/* <CacheDebugTool /> */}
+          </Router>
+        </PartsCacheProvider>{" "}
+        {/* ✅ Fim do novo provider */}
+      </CategoriesProvider>
     </NotificationProvider>
   );
 };

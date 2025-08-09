@@ -32,6 +32,8 @@ import {
   RefreshCw,
   ChartBarIcon,
   GraduationCap,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 // UI Components
@@ -173,6 +175,10 @@ const ManageInspection = () => {
   const [languageDialogOpen, setLanguageDialogOpen] = useState(false);
   const [inspectionToGenerate, setInspectionToGenerate] = useState(null);
 
+  // Adicionar estado de paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // Ajuste conforme necessário
+
   const fetchInspections = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -247,7 +253,7 @@ const ManageInspection = () => {
     try {
       setIsGeneratingPDF(true);
       const [clientDoc, equipmentDoc, checklistDoc] = await Promise.all([
-        getDoc(doc(db, "clientes", inspectionToGenerate.clientId)), // corrigido
+        getDoc(doc(db, "clientes", inspectionToGenerate.clientId)),
         getDoc(doc(db, "equipamentos", inspectionToGenerate.equipmentId)),
         getDoc(
           doc(db, "checklist_machines", inspectionToGenerate.checklistTypeId)
@@ -324,6 +330,26 @@ const ManageInspection = () => {
         .includes(searchTerm.toLowerCase()) ||
       inspection.checklistType.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Calcular dados da paginação
+  const indexOfLastInspection = currentPage * itemsPerPage;
+  const indexOfFirstInspection = indexOfLastInspection - itemsPerPage;
+  const currentInspections = filteredInspections.slice(
+    indexOfFirstInspection,
+    indexOfLastInspection
+  );
+  const totalPages = Math.ceil(filteredInspections.length / itemsPerPage);
+
+  // Função para mudança de página
+  const paginate = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo(0, 0);
+  };
+
+  // Resetar página quando filtros mudarem
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const stats = {
     total: inspections.length,
@@ -429,9 +455,12 @@ const ManageInspection = () => {
             </Alert>
           )}
 
-          <div className="flex justify-end">
+          <div className="flex justify-between">
             <span className="text-sm text-zinc-400">
               {filteredInspections.length} inspeção(ões) encontrada(s)
+            </span>
+            <span className="text-sm text-zinc-400">
+              Página {currentPage} de {totalPages || 1}
             </span>
           </div>
         </CardContent>
@@ -452,7 +481,7 @@ const ManageInspection = () => {
       {/* Inspections Grid */}
       <div className="grid grid-cols-1 gap-4">
         {filteredInspections.length > 0 ? (
-          filteredInspections.map((inspection) => (
+          currentInspections.map((inspection) => (
             <InspectionCard
               key={inspection.id}
               inspection={inspection}
@@ -476,6 +505,93 @@ const ManageInspection = () => {
           </Card>
         )}
       </div>
+
+      {/* Paginação */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-8">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => paginate(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+
+          {currentPage > 3 && (
+            <>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => paginate(1)}
+                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
+              >
+                1
+              </Button>
+              {currentPage > 4 && <span className="text-zinc-400">...</span>}
+            </>
+          )}
+
+          {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
+            let pageNumber;
+            if (totalPages <= 5) {
+              pageNumber = i + 1;
+            } else if (currentPage <= 3) {
+              pageNumber = i + 1;
+            } else if (currentPage >= totalPages - 2) {
+              pageNumber = totalPages - 4 + i;
+            } else {
+              pageNumber = currentPage - 2 + i;
+            }
+
+            if (pageNumber >= 1 && pageNumber <= totalPages) {
+              return (
+                <Button
+                  key={pageNumber}
+                  variant={currentPage === pageNumber ? "secondary" : "outline"}
+                  size="icon"
+                  onClick={() => paginate(pageNumber)}
+                  className={`border-zinc-700 ${
+                    currentPage === pageNumber
+                      ? "bg-zinc-700 text-white hover:bg-zinc-600"
+                      : "text-white hover:bg-zinc-700 bg-zinc-800"
+                  }`}
+                >
+                  {pageNumber}
+                </Button>
+              );
+            }
+            return null;
+          })}
+
+          {currentPage < totalPages - 2 && (
+            <>
+              {currentPage < totalPages - 3 && (
+                <span className="text-zinc-400">...</span>
+              )}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => paginate(totalPages)}
+                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
+              >
+                {totalPages}
+              </Button>
+            </>
+          )}
+
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => paginate(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Componente de seleção de idioma */}
       <LanguageDialog

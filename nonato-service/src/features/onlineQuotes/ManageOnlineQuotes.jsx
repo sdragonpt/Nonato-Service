@@ -171,71 +171,74 @@ const ManageOnlineQuotes = () => {
     }
   };
 
-  // Convert to order
-  // ManageOnlineQuotes.jsx - Atualizar a função convertToOrder
-
+  // ✅ FUNÇÃO ATUALIZADA: Convert to parts budget
   const convertToOrder = async (quote) => {
     try {
       setIsUpdating(true);
 
-      // Criar dados da nova ordem
-      const orderData = {
+      // ✅ CRIAR DADOS ESPECÍFICOS PARA ORÇAMENTO DE PEÇAS
+      const partsQuoteData = {
         date: new Date().toISOString().split("T")[0],
-        clientInfo: quote.clientInfo,
-        // Criar um novo "cliente" para compatibilidade com ordens
-        clientName: quote.clientInfo.name,
-        clientId: null, // Será preenchido se encontrarmos o cliente no sistema
-        equipment: {
+
+        // ✅ CLIENTE NÃO REGISTRADO (mais apropriado para orçamentos online)
+        isUnregisteredClient: true,
+        unregisteredClient: {
+          name: quote.clientInfo.name || "",
+          email: quote.clientInfo.email || "",
+          phone: quote.clientInfo.phone || "",
+          company: quote.clientInfo.company || "",
+        },
+
+        // ✅ EQUIPAMENTO MANUAL (genérico para orçamentos de peças)
+        manualEquipment: {
           brand: "Diversos",
-          model: "Diversos",
+          model: "Orçamento de Peças",
           serialNumber: "N/A",
         },
-        equipmentId: null,
-        serviceType: "Orçamento", // Sempre orçamento
-        priority: "normal",
-        description: `Orçamento online #${quote.id}`,
-        status: "Aberto",
-        resultDescription: "",
+
+        serviceType: "Orçamento de Peças Online",
+        status: "Aberto", // Em Análise
+        description: `Orçamento online convertido - ID: ${quote.id}`,
+        resultDescription: quote.clientInfo?.message || "",
         pontosEmAberto: "",
-        source: "online-quote",
+
+        // ✅ USAR partsQuoteItems EM VEZ DE items (consistência)
+        partsQuoteItems: quote.items.map((item) => ({
+          id: item.id || null,
+          name: item.name,
+          code: item.code,
+          quantity: item.quantity,
+          price: 0, // Preço inicial 0 para ser definido pelo admin
+          imageHash: item.imageHash || null,
+          image: item.image || null,
+        })),
+
+        // ✅ CONFIGURAÇÕES DE ENVIO E IVA (padrão)
+        shippingType: "",
+        shippingPrice: 0,
+        includeVat: false,
+        vatRate: 23,
+
+        // ✅ FLAGS E METADADOS
+        isQuote: true, // FLAG PRINCIPAL para orçamentos de peças
         originalQuoteId: quote.id,
-        items: quote.items, // Manter os items do orçamento
-        isQuote: true, // Flag para identificar como orçamento
-        checklist: {
-          concluido: false,
-          retorno: false,
-          funcionarios: false,
-          documentacao: false,
-          producao: false,
-          pecas: false,
-        },
+        source: "online-quote",
+
+        // ✅ TIMESTAMPS
         createdAt: new Date(),
         lastUpdated: new Date(),
-        type: "online-order",
       };
 
-      // Tentar encontrar o cliente existente
-      const clientsSnapshot = await getDocs(collection(db, "clientes"));
-      const existingClient = clientsSnapshot.docs.find(
-        (doc) =>
-          doc.data().email?.toLowerCase() ===
-          quote.clientInfo.email?.toLowerCase()
-      );
+      // Adicionar à coleção de ordens (será capturado pelo ManagePartsBudgets)
+      await setDoc(doc(collection(db, "ordens")), partsQuoteData);
 
-      if (existingClient) {
-        orderData.clientId = existingClient.id;
-      }
-
-      // Adicionar à coleção de ordens
-      await setDoc(doc(collection(db, "ordens")), orderData);
-
-      // Atualizar status do orçamento
+      // Atualizar status do orçamento online
       await updateQuoteStatus(quote.id, "converted");
 
       setShowDetailModal(false);
-      alert("Orçamento convertido em ordem de serviço com sucesso!");
+      alert("Orçamento convertido em orçamento de peças com sucesso!");
     } catch (err) {
-      console.error("Erro ao converter em ordem:", err);
+      console.error("Erro ao converter em orçamento de peças:", err);
       setError("Erro ao converter orçamento. Por favor, tente novamente.");
     } finally {
       setIsUpdating(false);
@@ -644,7 +647,7 @@ const ManageOnlineQuotes = () => {
                             disabled={isUpdating}
                           >
                             <ShoppingCart className="h-4 w-4 mr-2" />
-                            Converter em Ordem
+                            Converter em Orçamento de Peças
                           </Button>
                         )}
 
@@ -869,7 +872,7 @@ const ManageOnlineQuotes = () => {
                     className="bg-blue-600 hover:bg-blue-700"
                     disabled={isUpdating}
                   >
-                    Converter em Ordem
+                    Converter em Orçamento de Peças
                   </Button>
                 )}
               </DialogFooter>
