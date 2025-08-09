@@ -38,6 +38,7 @@ import {
   RotateCcw, // ✅ NOVO: Para rollback
   Zap, // ✅ NOVO: Para pré-agendamento
   Calculator, // ✅ NOVO: Para orçamento de peças
+  Euro,
 } from "lucide-react";
 
 // ✅ NOVO: Suporte para PCs antigos
@@ -179,6 +180,10 @@ const ManageCategories = React.lazy(() =>
   import("./features/parts/ManageCategories")
 );
 
+const ManageFinances = React.lazy(() =>
+  import("./features/finances/ManageFinances")
+);
+
 // ✅ LAZY LOADING - Loja pública
 const PublicShop = React.lazy(() => import("./features/publicShop/PublicShop"));
 // ✅ NOVO: Orçamento de Peças (ordens convertidas com isQuote: true)
@@ -249,7 +254,11 @@ const NAVIGATION_ITEMS = [
         icon: ClipboardList,
         label: "Ordem de Serviço",
       },
-      // ✅ ALTERADO: Mudança de "Peças" para "Orçamento de Peças"
+      {
+        path: "/app/manage-finances",
+        icon: Euro,
+        label: "Finanças",
+      },
       {
         path: "/app/parts-budgets",
         icon: Calculator,
@@ -715,6 +724,10 @@ const App = () => {
                           <Route
                             path="/orcamento-online"
                             element={<ManageOnlineQuotes />}
+                          />
+                          <Route
+                            path="/manage-finances"
+                            element={<ManageFinances />}
                           />
                           <Route
                             path="/dashboard"
