@@ -210,7 +210,7 @@ const RollbackTool = React.lazy(
 import ErrorBoundary from "./components/layout/ErrorBoundary";
 import { CategoriesProvider } from "./context/CategoriesContext.jsx";
 import { PartsCacheProvider } from "./context/PartsCache.jsx"; // ✅ NOVO: Cache de peças
-import CacheDebugTool from "./components/debug/CacheDebugTool.jsx";
+// import CacheDebugTool from "./components/debug/CacheDebugTool.jsx";
 import { NotificationProvider } from "./context/NotificationContext.jsx";
 import NotificationsDropdown from "./components/ui/NotificationsDropdown";
 
@@ -238,12 +238,6 @@ const NAVIGATION_ITEMS = [
       { path: "/app/manage-clients", icon: Users, label: "Clientes" },
       { path: "/app/manage-services", icon: Wrench, label: "Serviços" },
       { path: "/app/manage-budgets", icon: FileText, label: "Orçamentos" },
-      // ✅ ALTERADO: Mudança de "Peças" para "Orçamento de Peças"
-      {
-        path: "/app/parts-budgets",
-        icon: Calculator,
-        label: "Orçamento de Peças",
-      },
       { path: "/app/parts-library", icon: Book, label: "Biblioteca de Peças" },
     ],
   },
@@ -254,6 +248,12 @@ const NAVIGATION_ITEMS = [
         path: "/app/manage-orders",
         icon: ClipboardList,
         label: "Ordem de Serviço",
+      },
+      // ✅ ALTERADO: Mudança de "Peças" para "Orçamento de Peças"
+      {
+        path: "/app/parts-budgets",
+        icon: Calculator,
+        label: "Orçamento de Peças",
       },
       { path: "/app/manage-agenda", icon: Calendar, label: "Agenda" },
       { path: "/app/manage-report", icon: BarChart, label: "Relatório" },
@@ -920,7 +920,7 @@ const App = () => {
                 />
               </Routes>
             </React.Suspense>
-            <CacheDebugTool />
+            {/* <CacheDebugTool /> */}
           </Router>
         </PartsCacheProvider>{" "}
         {/* ✅ Fim do novo provider */}
