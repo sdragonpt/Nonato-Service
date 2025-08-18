@@ -1,73 +1,256 @@
-// src/features/finances/ManageFinances.jsx
-import React, { useState, useEffect } from "react";
+// src/features/finances/ManageFinances.jsx - Atualizado com sistema de lucro
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "../../firebase";
 import {
   TrendingUp,
   TrendingDown,
-  Euro,
-  Calendar,
-  BarChart3,
   DollarSign,
-  CreditCard,
-  AlertTriangle,
-  Clock,
-  CheckCircle,
-  FileText,
-  Package,
-  Users,
+  Euro,
+  PieChart,
+  BarChart3,
+  Calendar,
+  Download,
+  Filter,
   Loader2,
+  AlertTriangle,
+  Package,
+  Wrench,
+  Calculator,
+  Percent,
 } from "lucide-react";
 
 // UI Components
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card.jsx";
+import { Button } from "@/components/ui/button.jsx";
+import { Badge } from "@/components/ui/badge.jsx";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
+} from "@/components/ui/select.jsx";
+import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 
-// Hooks and utils
+// Financial utils
 import {
-  useFinancialSummary,
-  useMonthlyFinancialData,
-  useTopClients,
-} from "../../hooks/useFinancialData";
-import { formatPrice, formatPercentage } from "../../utils/financialUtils";
-import {
-  FinancialMetricCard,
-  VATBreakdown,
-  CollectionProgress,
-  FinancialAlert,
-} from "../../components/financial/FinancialComponents";
+  calculateFinancialSummary,
+  calculateFinancialMetrics,
+  groupServicesByType,
+  formatPrice,
+  formatPercentage,
+  getPaymentStatus,
+} from "../../utils/financialUtils";
 
 const ManageFinances = () => {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
 
-  // Hooks para dados financeiros
-  const { summary: annualSummary, isLoading: isLoadingAnnual } =
-    useFinancialSummary(selectedYear);
-  const { summary: monthlySummary, isLoading: isLoadingMonthly } =
-    useFinancialSummary(selectedYear, selectedMonth);
-  const { monthlyData, isLoading: isLoadingMonthlyData } =
-    useMonthlyFinancialData(selectedYear);
-  const { topClients, isLoading: isLoadingTopClients } = useTopClients(
-    selectedYear,
-    10
-  );
+  // Financial data
+  const [partsBudgets, setPartsBudgets] = useState([]);
+  const [closures, setClosures] = useState([]);
+  const [financialMetrics, setFinancialMetrics] = useState(null);
 
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
-  const months = Array.from({ length: 12 }, (_, i) => ({
-    value: i + 1,
-    label: new Date(2024, i).toLocaleDateString("pt-PT", { month: "long" }),
-  }));
+  // Fetch all financial data
+  const fetchFinancialData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
 
-  if (isLoadingAnnual || isLoadingMonthly) {
+      // Buscar orçamentos de peças (isQuote: true)
+      const partsBudgetsQuery = query(
+        collection(db, "ordens"),
+        where("isQuote", "==", true)
+      );
+
+      // Buscar fechamentos (orçamentos regulares)
+      const closuresQuery = collection(db, "orcamentos");
+
+      const [partsBudgetsSnapshot, closuresSnapshot] = await Promise.all([
+        getDocs(partsBudgetsQuery),
+        getDocs(closuresQuery),
+      ]);
+
+      const partsBudgetsData = partsBudgetsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        type: "parts_budget",
+        ...doc.data(),
+      }));
+
+      const closuresData = closuresSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        type: "closure",
+        ...doc.data(),
+      }));
+
+      setPartsBudgets(partsBudgetsData);
+      setClosures(closuresData);
+    } catch (err) {
+      console.error("Erro ao carregar dados financeiros:", err);
+      setError(
+        "Erro ao carregar dados financeiros. Por favor, tente novamente."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFinancialData();
+  }, []);
+
+  // Filter data by selected period
+  const filteredData = useMemo(() => {
+    if (!partsBudgets.length && !closures.length)
+      return { current: [], previous: [] };
+
+    const allServices = [...partsBudgets, ...closures];
+    const now = new Date();
+
+    let currentPeriodStart,
+      currentPeriodEnd,
+      previousPeriodStart,
+      previousPeriodEnd;
+
+    switch (selectedPeriod) {
+      case "week":
+        currentPeriodStart = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() - 7
+        );
+        currentPeriodEnd = now;
+        previousPeriodStart = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() - 14
+        );
+        previousPeriodEnd = currentPeriodStart;
+        break;
+      case "month":
+        currentPeriodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        currentPeriodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        previousPeriodStart = new Date(
+          now.getFullYear(),
+          now.getMonth() - 1,
+          1
+        );
+        previousPeriodEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+        break;
+      case "quarter":
+        const currentQuarter = Math.floor(now.getMonth() / 3);
+        currentPeriodStart = new Date(now.getFullYear(), currentQuarter * 3, 1);
+        currentPeriodEnd = new Date(
+          now.getFullYear(),
+          (currentQuarter + 1) * 3,
+          0
+        );
+        previousPeriodStart = new Date(
+          now.getFullYear(),
+          (currentQuarter - 1) * 3,
+          1
+        );
+        previousPeriodEnd = new Date(now.getFullYear(), currentQuarter * 3, 0);
+        break;
+      case "year":
+        currentPeriodStart = new Date(selectedYear, 0, 1);
+        currentPeriodEnd = new Date(selectedYear, 11, 31);
+        previousPeriodStart = new Date(selectedYear - 1, 0, 1);
+        previousPeriodEnd = new Date(selectedYear - 1, 11, 31);
+        break;
+      default:
+        return { current: allServices, previous: [] };
+    }
+
+    const current = allServices.filter((service) => {
+      const serviceDate = service.createdAt?.toDate
+        ? service.createdAt.toDate()
+        : new Date(service.createdAt);
+      return (
+        serviceDate >= currentPeriodStart && serviceDate <= currentPeriodEnd
+      );
+    });
+
+    const previous = allServices.filter((service) => {
+      const serviceDate = service.createdAt?.toDate
+        ? service.createdAt.toDate()
+        : new Date(service.createdAt);
+      return (
+        serviceDate >= previousPeriodStart && serviceDate <= previousPeriodEnd
+      );
+    });
+
+    return { current, previous };
+  }, [partsBudgets, closures, selectedPeriod, selectedYear]);
+
+  // Calculate financial metrics
+  const metrics = useMemo(() => {
+    if (!filteredData.current.length) return null;
+    return calculateFinancialMetrics(
+      filteredData.current,
+      filteredData.previous
+    );
+  }, [filteredData]);
+
+  // Group services by type for analysis
+  const serviceGroups = useMemo(() => {
+    return groupServicesByType(filteredData.current);
+  }, [filteredData]);
+
+  // Calculate metrics for each service type
+  const partsBudgetsMetrics = useMemo(() => {
+    return calculateFinancialSummary(serviceGroups.partsBudgets);
+  }, [serviceGroups]);
+
+  const closuresMetrics = useMemo(() => {
+    return calculateFinancialSummary(serviceGroups.closures);
+  }, [serviceGroups]);
+
+  // Export financial data
+  const exportFinancialData = () => {
+    if (!metrics) return;
+
+    const csvContent = [
+      ["Métrica", "Valor"],
+      ["Faturamento Total", formatPrice(metrics.totalRevenue)],
+      ["Vendas (sem margem)", formatPrice(metrics.totalSales)],
+      ["Lucro (margens)", formatPrice(metrics.totalProfit)],
+      ["IVA Total", formatPrice(metrics.totalVat)],
+      ["Valores Recebidos", formatPrice(metrics.paidAmount)],
+      ["Valores Pendentes", formatPrice(metrics.pendingAmount)],
+      ["Valores em Atraso", formatPrice(metrics.overdueAmount)],
+      ["Margem Média", formatPercentage(metrics.profitMargin)],
+      ["", ""],
+      ["Orçamentos de Peças", ""],
+      ["Faturamento", formatPrice(partsBudgetsMetrics.totalRevenue)],
+      ["Vendas", formatPrice(partsBudgetsMetrics.totalSales)],
+      ["Lucro", formatPrice(partsBudgetsMetrics.totalProfit)],
+      ["", ""],
+      ["Fechamentos", ""],
+      ["Faturamento", formatPrice(closuresMetrics.totalRevenue)],
+      ["Vendas", formatPrice(closuresMetrics.totalSales)],
+    ]
+      .map((row) => row.map((field) => `"${field}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `relatorio-financeiro-${selectedPeriod}-${selectedYear}.csv`;
+    link.click();
+  };
+
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
@@ -75,482 +258,353 @@ const ManageFinances = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-red-400">{error}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Finanças</h1>
-          <p className="text-zinc-400">
-            Dashboard financeiro e controle de pagamentos
+          <h1 className="text-xl sm:text-2xl font-bold text-white">
+            Gestão Financeira
+          </h1>
+          <p className="text-sm sm:text-base text-zinc-400">
+            Análise completa do desempenho financeiro com separação de vendas e
+            lucros
           </p>
         </div>
 
         <div className="flex gap-2">
-          <Select
-            value={selectedYear.toString()}
-            onValueChange={(value) => setSelectedYear(parseInt(value))}
-          >
-            <SelectTrigger className="w-32 bg-zinc-800 border-zinc-700">
+          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+            <SelectTrigger className="w-32 bg-zinc-700 border-zinc-600 text-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-zinc-800 border-zinc-700">
-              {years.map((year) => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
+              <SelectItem value="week">Semana</SelectItem>
+              <SelectItem value="month">Mês</SelectItem>
+              <SelectItem value="quarter">Trimestre</SelectItem>
+              <SelectItem value="year">Ano</SelectItem>
             </SelectContent>
           </Select>
 
-          <Select
-            value={selectedMonth.toString()}
-            onValueChange={(value) => setSelectedMonth(parseInt(value))}
+          {selectedPeriod === "year" && (
+            <Select
+              value={selectedYear.toString()}
+              onValueChange={(value) => setSelectedYear(parseInt(value))}
+            >
+              <SelectTrigger className="w-20 bg-zinc-700 border-zinc-600 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-800 border-zinc-700">
+                {Array.from(
+                  { length: 5 },
+                  (_, i) => new Date().getFullYear() - i
+                ).map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          <Button
+            variant="outline"
+            onClick={exportFinancialData}
+            disabled={!metrics}
+            className="border-zinc-700 text-white hover:bg-zinc-700"
           >
-            <SelectTrigger className="w-40 bg-zinc-800 border-zinc-700">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-zinc-800 border-zinc-700">
-              {months.map((month) => (
-                <SelectItem key={month.value} value={month.value.toString()}>
-                  {month.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Download className="w-4 h-4 mr-2" />
+            Exportar
+          </Button>
         </div>
       </div>
 
-      {/* Alertas Financeiros */}
-      {annualSummary && annualSummary.overdue > 0 && (
-        <FinancialAlert
-          alert={{
-            type: "overdue",
-            severity: "high",
-            title: "Atenção: Valores em atraso",
-            description: "Existem serviços não pagos há mais de 1 mês",
-            totalAmount: annualSummary.overdue,
-          }}
-        />
-      )}
-
-      {/* Tabs */}
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="flex w-full lg:w-[400px] bg-zinc-800">
-          <TabsTrigger className="flex-1" value="overview">
-            Visão Geral
-          </TabsTrigger>
-          <TabsTrigger className="flex-1" value="monthly">
-            Mensal
-          </TabsTrigger>
-          <TabsTrigger className="flex-1" value="clients">
-            Clientes
-          </TabsTrigger>
-          <TabsTrigger className="flex-1" value="tax">
-            Fiscalidade
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Overview */}
-        <TabsContent value="overview" className="space-y-6">
-          {/* Cards de Resumo Anual */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <FinancialMetricCard
-              title={`Faturação ${selectedYear}`}
-              value={annualSummary?.total || 0}
-              subtitle={`${annualSummary?.servicesCount || 0} serviços`}
-              icon={Euro}
-              color="blue"
-            />
-
-            <FinancialMetricCard
-              title="Pagos"
-              value={annualSummary?.paid || 0}
-              subtitle={
-                formatPercentage(
-                  annualSummary?.paid || 0,
-                  annualSummary?.total || 0
-                ) + " do total"
-              }
-              icon={CheckCircle}
-              color="green"
-            />
-
-            <FinancialMetricCard
-              title="Pendentes"
-              value={annualSummary?.pending || 0}
-              subtitle={
-                formatPercentage(
-                  annualSummary?.pending || 0,
-                  annualSummary?.total || 0
-                ) + " do total"
-              }
-              icon={Clock}
-              color="yellow"
-            />
-
-            <FinancialMetricCard
-              title="Devedores"
-              value={annualSummary?.overdue || 0}
-              subtitle={
-                formatPercentage(
-                  annualSummary?.overdue || 0,
-                  annualSummary?.total || 0
-                ) + " do total"
-              }
-              icon={AlertTriangle}
-              color="red"
-            />
-          </div>
-
-          {/* Separação Fiscal e Evolução Mensal */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Composição Fiscal */}
+      {!metrics ? (
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardContent className="p-12 text-center">
+            <PieChart className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
+            <p className="text-lg font-medium mb-2 text-white">
+              Nenhum dado financeiro encontrado
+            </p>
+            <p className="text-zinc-400">
+              Não há dados para o período selecionado
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Main Financial Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="bg-zinc-800 border-zinc-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
-                  Composição Fiscal {selectedYear}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <VATBreakdown
-                  totalWithVat={annualSummary?.total || 0}
-                  vatAmount={annualSummary?.vatTotal || 0}
-                  salesAmount={annualSummary?.salesTotal || 0}
-                  vatRate={23}
-                  showDetails={true}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Evolução Mensal */}
-            <Card className="bg-zinc-800 border-zinc-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Evolução Mensal {selectedYear}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {!isLoadingMonthlyData &&
-                    monthlyData?.map((month) => {
-                      const maxTotal = Math.max(
-                        ...monthlyData.map((m) => m.total)
-                      );
-                      const widthPercentage =
-                        maxTotal > 0 ? (month.total / maxTotal) * 100 : 0;
-
-                      return (
-                        <div
-                          key={month.month}
-                          className="flex items-center justify-between p-2 rounded border border-zinc-700"
-                        >
-                          <span className="text-sm text-zinc-300 w-12">
-                            {month.name}
-                          </span>
-                          <div className="flex-1 mx-3">
-                            <div className="w-full bg-zinc-700 rounded-full h-2">
-                              <div
-                                className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${widthPercentage}%` }}
-                              />
-                            </div>
-                          </div>
-                          <span className="text-sm text-white font-medium w-20 text-right">
-                            {formatPrice(month.total)}
-                          </span>
-                        </div>
-                      );
-                    })}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Progresso de Cobrança */}
-          <Card className="bg-zinc-800 border-zinc-700">
-            <CardHeader>
-              <CardTitle className="text-white">
-                Progresso de Cobrança {selectedYear}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CollectionProgress
-                paid={annualSummary?.paid || 0}
-                pending={annualSummary?.pending || 0}
-                overdue={annualSummary?.overdue || 0}
-                total={annualSummary?.total || 0}
-                showLabels={true}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Monthly */}
-        <TabsContent value="monthly" className="space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <FinancialMetricCard
-              title={`${
-                months.find((m) => m.value === selectedMonth)?.label
-              } ${selectedYear}`}
-              value={monthlySummary?.total || 0}
-              subtitle={`${monthlySummary?.servicesCount || 0} serviços`}
-              icon={Calendar}
-              color="blue"
-            />
-
-            <FinancialMetricCard
-              title="IVA Mensal"
-              value={monthlySummary?.vatTotal || 0}
-              subtitle="A entregar ao Estado"
-              icon={FileText}
-              color="blue"
-            />
-
-            <FinancialMetricCard
-              title="Vendas Mensais"
-              value={monthlySummary?.salesTotal || 0}
-              subtitle="Valor sem IVA"
-              icon={TrendingUp}
-              color="purple"
-            />
-
-            <FinancialMetricCard
-              title="Taxa Cobrança"
-              value={formatPercentage(
-                monthlySummary?.paid || 0,
-                monthlySummary?.total || 0
-              )}
-              subtitle="Pagos vs Total"
-              icon={CreditCard}
-              color="green"
-            />
-          </div>
-
-          {/* Comparação Mensal */}
-          <Card className="bg-zinc-800 border-zinc-700">
-            <CardHeader>
-              <CardTitle className="text-white">
-                Comparação com Mês Anterior
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {monthlyData && selectedMonth > 1 && (
-                  <>
-                    {/* Faturação */}
-                    <div className="text-center p-4 bg-zinc-700/50 rounded-lg">
-                      <p className="text-sm text-zinc-400">Faturação</p>
-                      <p className="text-2xl font-bold text-white">
-                        {formatPrice(
-                          monthlyData[selectedMonth - 1]?.total || 0
-                        )}
-                      </p>
-                      <div className="flex items-center justify-center gap-1 mt-1">
-                        <TrendingUp className="h-4 w-4 text-green-400" />
-                        <span className="text-sm text-green-400">
-                          vs{" "}
-                          {formatPrice(
-                            monthlyData[selectedMonth - 2]?.total || 0
-                          )}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* IVA */}
-                    <div className="text-center p-4 bg-zinc-700/50 rounded-lg">
-                      <p className="text-sm text-zinc-400">IVA</p>
-                      <p className="text-2xl font-bold text-blue-400">
-                        {formatPrice(monthlyData[selectedMonth - 1]?.vat || 0)}
-                      </p>
-                      <div className="flex items-center justify-center gap-1 mt-1">
-                        <TrendingUp className="h-4 w-4 text-blue-400" />
-                        <span className="text-sm text-blue-400">
-                          vs{" "}
-                          {formatPrice(
-                            monthlyData[selectedMonth - 2]?.vat || 0
-                          )}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Vendas */}
-                    <div className="text-center p-4 bg-zinc-700/50 rounded-lg">
-                      <p className="text-sm text-zinc-400">Vendas</p>
-                      <p className="text-2xl font-bold text-purple-400">
-                        {formatPrice(
-                          monthlyData[selectedMonth - 1]?.sales || 0
-                        )}
-                      </p>
-                      <div className="flex items-center justify-center gap-1 mt-1">
-                        <TrendingUp className="h-4 w-4 text-purple-400" />
-                        <span className="text-sm text-purple-400">
-                          vs{" "}
-                          {formatPrice(
-                            monthlyData[selectedMonth - 2]?.sales || 0
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Clients */}
-        <TabsContent value="clients" className="space-y-6">
-          <Card className="bg-zinc-800 border-zinc-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Top 10 Clientes {selectedYear}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {!isLoadingTopClients &&
-                  topClients?.map((client, index) => (
+              <CardContent className="flex items-center justify-between p-4 sm:p-6">
+                <div>
+                  <p className="text-sm font-medium text-zinc-400">
+                    Faturamento Total
+                  </p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+                    {formatPrice(metrics.totalRevenue)}
+                  </h3>
+                  {metrics.revenueGrowth !== 0 && (
                     <div
-                      key={client.clientId}
-                      className="flex items-center justify-between p-3 bg-zinc-700/30 rounded-lg"
+                      className={`flex items-center gap-1 mt-1 ${
+                        metrics.revenueGrowth > 0
+                          ? "text-green-400"
+                          : "text-red-400"
+                      }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <Badge
-                          variant="outline"
-                          className="w-8 h-8 rounded-full p-0 flex items-center justify-center"
-                        >
-                          {index + 1}
-                        </Badge>
-                        <div>
-                          <p className="font-medium text-white">
-                            {client.name}
-                          </p>
-                          <p className="text-xs text-zinc-400">
-                            {client.servicesCount} serviços
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="text-right space-y-1">
-                        <p className="font-bold text-white">
-                          {formatPrice(client.total)}
-                        </p>
-                        <div className="flex gap-1 text-xs">
-                          {client.paid > 0 && (
-                            <span className="text-green-400">
-                              P: {formatPrice(client.paid)}
-                            </span>
-                          )}
-                          {client.pending > 0 && (
-                            <span className="text-yellow-400">
-                              Pe: {formatPrice(client.pending)}
-                            </span>
-                          )}
-                          {client.overdue > 0 && (
-                            <span className="text-red-400">
-                              D: {formatPrice(client.overdue)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                      {metrics.revenueGrowth > 0 ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3" />
+                      )}
+                      <span className="text-xs">
+                        {formatPercentage(Math.abs(metrics.revenueGrowth))}
+                      </span>
                     </div>
-                  ))}
-
-                {isLoadingTopClients && (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-white" />
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Tax */}
-        <TabsContent value="tax" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-zinc-800 border-zinc-700">
-              <CardHeader>
-                <CardTitle className="text-white">
-                  Declaração de IVA - {selectedYear}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between p-3 bg-zinc-700/30 rounded">
-                    <span className="text-zinc-300">Vendas sujeitas a IVA</span>
-                    <span className="text-white font-medium">
-                      {formatPrice(annualSummary?.salesTotal || 0)}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between p-3 bg-blue-500/10 rounded">
-                    <span className="text-zinc-300">IVA liquidado (23%)</span>
-                    <span className="text-blue-400 font-medium">
-                      {formatPrice(annualSummary?.vatTotal || 0)}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between p-3 bg-green-500/10 rounded border-t border-zinc-600 pt-3">
-                    <span className="text-zinc-300 font-medium">
-                      Total faturado
-                    </span>
-                    <span className="text-green-400 font-bold">
-                      {formatPrice(annualSummary?.total || 0)}
-                    </span>
-                  </div>
+                  )}
                 </div>
+                <Euro className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
               </CardContent>
             </Card>
 
             <Card className="bg-zinc-800 border-zinc-700">
+              <CardContent className="flex items-center justify-between p-4 sm:p-6">
+                <div>
+                  <p className="text-sm font-medium text-zinc-400">
+                    Vendas (Base)
+                  </p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+                    {formatPrice(metrics.totalSales)}
+                  </h3>
+                  <p className="text-xs text-zinc-500 mt-1">Sem margens</p>
+                </div>
+                <BarChart3 className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
+              </CardContent>
+            </Card>
+
+            <Card className="bg-zinc-800 border-zinc-700">
+              <CardContent className="flex items-center justify-between p-4 sm:p-6">
+                <div>
+                  <p className="text-sm font-medium text-zinc-400">
+                    Lucro (Margens)
+                  </p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-purple-400 mt-1 sm:mt-2">
+                    {formatPrice(metrics.totalProfit)}
+                  </h3>
+                  {metrics.profitGrowth !== 0 && (
+                    <div
+                      className={`flex items-center gap-1 mt-1 ${
+                        metrics.profitGrowth > 0
+                          ? "text-green-400"
+                          : "text-red-400"
+                      }`}
+                    >
+                      {metrics.profitGrowth > 0 ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3" />
+                      )}
+                      <span className="text-xs">
+                        {formatPercentage(Math.abs(metrics.profitGrowth))}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <Percent className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
+              </CardContent>
+            </Card>
+
+            <Card className="bg-zinc-800 border-zinc-700">
+              <CardContent className="flex items-center justify-between p-4 sm:p-6">
+                <div>
+                  <p className="text-sm font-medium text-zinc-400">
+                    Margem Média
+                  </p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+                    {formatPercentage(metrics.profitMargin)}
+                  </h3>
+                  <p className="text-xs text-zinc-500 mt-1">
+                    Ticket: {formatPrice(metrics.averageTicket)}
+                  </p>
+                </div>
+                <Calculator className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500" />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Payment Status Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="bg-zinc-800 border-zinc-700">
+              <CardContent className="flex items-center justify-between p-4 sm:p-6">
+                <div>
+                  <p className="text-sm font-medium text-zinc-400">
+                    Valores Recebidos
+                  </p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-green-500 mt-1 sm:mt-2">
+                    {formatPrice(metrics.paidAmount)}
+                  </h3>
+                  <p className="text-xs text-zinc-500 mt-1">
+                    {formatPercentage(metrics.conversionRate)} conversão
+                  </p>
+                </div>
+                <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
+              </CardContent>
+            </Card>
+
+            <Card className="bg-zinc-800 border-zinc-700">
+              <CardContent className="flex items-center justify-between p-4 sm:p-6">
+                <div>
+                  <p className="text-sm font-medium text-zinc-400">
+                    Valores Pendentes
+                  </p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-yellow-500 mt-1 sm:mt-2">
+                    {formatPrice(metrics.pendingAmount)}
+                  </h3>
+                </div>
+                <Calendar className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500" />
+              </CardContent>
+            </Card>
+
+            <Card className="bg-zinc-800 border-zinc-700">
+              <CardContent className="flex items-center justify-between p-4 sm:p-6">
+                <div>
+                  <p className="text-sm font-medium text-zinc-400">
+                    Valores em Atraso
+                  </p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-red-500 mt-1 sm:mt-2">
+                    {formatPrice(metrics.overdueAmount)}
+                  </h3>
+                </div>
+                <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-red-500" />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Service Type Analysis */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Parts Budgets Analysis */}
+            <Card className="bg-zinc-800 border-zinc-700">
               <CardHeader>
-                <CardTitle className="text-white">Fluxo de Caixa</CardTitle>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Orçamentos de Peças ({serviceGroups.partsBudgets.length})
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between p-3 bg-green-500/10 rounded">
-                    <span className="text-zinc-300">Valores recebidos</span>
-                    <span className="text-green-400 font-medium">
-                      {formatPrice(annualSummary?.paid || 0)}
-                    </span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-zinc-400">Faturamento</p>
+                    <p className="text-lg font-bold text-white">
+                      {formatPrice(partsBudgetsMetrics.totalRevenue)}
+                    </p>
                   </div>
+                  <div>
+                    <p className="text-sm text-zinc-400">Vendas Base</p>
+                    <p className="text-lg font-bold text-white">
+                      {formatPrice(partsBudgetsMetrics.totalSales)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-zinc-400">Lucro</p>
+                    <p className="text-lg font-bold text-purple-400">
+                      {formatPrice(partsBudgetsMetrics.totalProfit)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-zinc-400">IVA</p>
+                    <p className="text-lg font-bold text-blue-400">
+                      {formatPrice(partsBudgetsMetrics.totalVat)}
+                    </p>
+                  </div>
+                </div>
 
-                  <div className="flex justify-between p-3 bg-yellow-500/10 rounded">
-                    <span className="text-zinc-300">A receber (pendente)</span>
-                    <span className="text-yellow-400 font-medium">
-                      {formatPrice(annualSummary?.pending || 0)}
-                    </span>
+                {partsBudgetsMetrics.totalProfit > 0 && (
+                  <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+                    <p className="text-sm text-purple-400">
+                      ✨ Os orçamentos de peças geraram{" "}
+                      {formatPrice(partsBudgetsMetrics.totalProfit)} em lucro
+                      líquido
+                    </p>
                   </div>
+                )}
+              </CardContent>
+            </Card>
 
-                  <div className="flex justify-between p-3 bg-red-500/10 rounded">
-                    <span className="text-zinc-300">Em incumprimento</span>
-                    <span className="text-red-400 font-medium">
-                      {formatPrice(annualSummary?.overdue || 0)}
-                    </span>
+            {/* Closures Analysis */}
+            <Card className="bg-zinc-800 border-zinc-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Wrench className="h-5 w-5" />
+                  Fechamentos ({serviceGroups.closures.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-zinc-400">Faturamento</p>
+                    <p className="text-lg font-bold text-white">
+                      {formatPrice(closuresMetrics.totalRevenue)}
+                    </p>
                   </div>
+                  <div>
+                    <p className="text-sm text-zinc-400">Vendas</p>
+                    <p className="text-lg font-bold text-white">
+                      {formatPrice(closuresMetrics.totalSales)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-zinc-400">IVA</p>
+                    <p className="text-lg font-bold text-blue-400">
+                      {formatPrice(closuresMetrics.totalVat)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-zinc-400">Ticket Médio</p>
+                    <p className="text-lg font-bold text-white">
+                      {formatPrice(closuresMetrics.averageTicket)}
+                    </p>
+                  </div>
+                </div>
 
-                  <div className="flex justify-between p-3 bg-zinc-700/50 rounded border-t border-zinc-600 pt-3">
-                    <span className="text-zinc-300 font-medium">
-                      Taxa de cobrança
-                    </span>
-                    <span className="text-white font-bold">
-                      {formatPercentage(
-                        annualSummary?.paid || 0,
-                        annualSummary?.total || 0
-                      )}
-                    </span>
-                  </div>
+                <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                  <p className="text-sm text-blue-400">
+                    💼 Fechamentos representam serviços completos (valor cobrado
+                    com IVA incluído)
+                  </p>
                 </div>
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-      </Tabs>
+
+          {/* Additional Actions */}
+          <div className="flex justify-center gap-4">
+            <Button
+              onClick={() => navigate("/app/parts-budgets")}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Package className="w-4 h-4 mr-2" />
+              Gerir Orçamentos de Peças
+            </Button>
+            <Button
+              onClick={() => navigate("/app/manage-budgets")}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Wrench className="w-4 h-4 mr-2" />
+              Gerir Fechamentos
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 };

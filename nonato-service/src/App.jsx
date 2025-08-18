@@ -129,6 +129,9 @@ const PartBudgetDetail = React.lazy(() =>
 const EditPartBudget = React.lazy(() =>
   import("./features/partsBudgets/components/EditPartBudget")
 );
+const AddPartBudget = React.lazy(() =>
+  import("./features/partsBudgets/components/AddPartBudget")
+);
 const ManageChecklist = React.lazy(() =>
   import("./features/checklists/ManageCheckList")
 );
@@ -925,6 +928,10 @@ const App = () => {
                           <Route
                             path="edit-part-budget/:quoteId"
                             element={<EditPartBudget />}
+                          />
+                          <Route
+                            path="add-part-budget"
+                            element={<AddPartBudget />}
                           />
                         </Routes>
                       </DashboardShell>

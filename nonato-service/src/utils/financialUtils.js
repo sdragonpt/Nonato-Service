@@ -1,445 +1,282 @@
-// src/utils/financialUtils.js
-import { 
-  collection, 
-  getDocs, 
-  updateDoc, 
-  doc, 
-  query, 
-  where,
-  serverTimestamp 
-} from 'firebase/firestore';
-import { db } from '../firebase';
-
-// ===================================
-// 1. CONSTANTES FINANCEIRAS
-// ===================================
-export const FINANCIAL_CONSTANTS = {
-  // Prazos
-  DEFAULT_PAYMENT_TERM_DAYS: 30,
-  OVERDUE_THRESHOLD_DAYS: 30,
-  
-  // Taxas de IVA
-  VAT_RATES: {
-    SERVICES: 23,
-    PARTS: 23,
-    SHIPPING: 23
-  },
-  
-  // Status de pagamento
-  PAYMENT_STATUSES: {
-    PAID: 'paid',
-    PENDING: 'pending', 
-    OVERDUE: 'overdue'
-  },
-  
-  // Métodos de pagamento
-  PAYMENT_METHODS: {
-    TRANSFER: 'transfer',
-    CASH: 'cash',
-    CARD: 'card',
-    CHECK: 'check'
-  },
-  
-  // Tipos de serviço
-  SERVICE_TYPES: {
-    PARTS_BUDGET: 'parts_budget',
-    CLOSURE: 'closure'
-  }
-};
-
-// ===================================
-// 2. FUNÇÕES DE CÁLCULO FINANCEIRO
-// ===================================
+// src/utils/financialUtils.js - ✅ CORRIGIDO: IVA 23% default para fechamentos
 
 /**
- * Calcula valores financeiros para orçamento de peças
+ * Calcula os valores financeiros de um serviço/orçamento
+ * Agora inclui o cálculo de margem de lucro para orçamentos de peças
+ * ✅ CORRIGIDO: Fechamentos agora usam 23% IVA por default
  */
-export const calculatePartsBudgetFinancials = (order) => {
-  const items = order.partsQuoteItems || [];
-  const subtotal = items.reduce((total, item) => 
-    total + (item.quantity * (item.price || 0)), 0
-  );
-  
-  const shipping = parseFloat(order.shippingPrice) || 0;
-  const totalBeforeVat = subtotal + shipping;
-  const vatRate = order.vatRate || FINANCIAL_CONSTANTS.VAT_RATES.PARTS;
-  const vatAmount = order.includeVat ? (totalBeforeVat * vatRate) / 100 : 0;
-  const totalWithVat = totalBeforeVat + vatAmount;
-  
+export const calculateServiceFinancials = (service) => {
+  if (!service) {
+    return {
+      totalBeforeVat: 0,
+      vatAmount: 0,
+      totalWithVat: 0,
+      salesAmount: 0,
+      profitAmount: 0,
+      profitMargin: 0,
+    };
+  }
+
+  let salesAmount = 0;
+  let profitAmount = 0;
+
+  // ✅ ORÇAMENTOS DE PEÇAS (isQuote: true)
+  if (service.isQuote && service.partsQuoteItems) {
+    const itemsTotal = service.partsQuoteItems.reduce((total, item) => {
+      const basePrice = parseFloat(item.price || 0);
+      const quantity = parseInt(item.quantity || 1);
+      
+      // Calcular valor base (sem margem)
+      const basePriceTotal = basePrice * quantity;
+      salesAmount += basePriceTotal;
+      
+      // Calcular margem de lucro se aplicável
+      if (service.includeProfitMargin && service.profitMargin > 0) {
+        const marginAmount = basePriceTotal * (service.profitMargin / 100);
+        profitAmount += marginAmount;
+        return total + basePriceTotal + marginAmount;
+      }
+      
+      return total + basePriceTotal;
+    }, 0);
+
+    const shippingCost = parseFloat(service.shippingPrice || 0);
+    const totalBeforeVat = itemsTotal + shippingCost;
+    
+    const vatRate = parseFloat(service.vatRate || 23);
+    const vatAmount = service.includeVat ? (totalBeforeVat * vatRate) / 100 : 0;
+    const totalWithVat = totalBeforeVat + vatAmount;
+
+    return {
+      totalBeforeVat,
+      vatAmount,
+      totalWithVat,
+      salesAmount: salesAmount + shippingCost, // Vendas = valor base + envio
+      profitAmount, // Lucro da margem aplicada
+      profitMargin: service.profitMargin || 0,
+    };
+  }
+
+  // ✅ ORÇAMENTOS REGULARES (fechamentos) - CORRIGIDO: Default 23% IVA
+  if (service.services && Array.isArray(service.services)) {
+    const servicesTotal = service.services.reduce((total, serviceItem) => {
+      const value = parseFloat(serviceItem.value || 0);
+      const quantity = parseFloat(serviceItem.quantity || 1);
+      return total + (value * quantity);
+    }, 0);
+
+    const vatRate = parseFloat(service.ivaRate || 23); // ✅ CORRIGIDO: Default 23%
+    // ✅ CORRIGIDO: Sempre incluir IVA para fechamentos, a menos que explicitamente false
+    const includeIva = service.showIVA !== false; // Default true
+    const vatAmount = includeIva ? (servicesTotal * vatRate) / 100 : 0;
+    const totalWithVat = servicesTotal + vatAmount;
+
+    return {
+      totalBeforeVat: servicesTotal,
+      vatAmount,
+      totalWithVat,
+      salesAmount: servicesTotal, // Para fechamentos, vendas = total dos serviços
+      profitAmount: 0, // Fechamentos não têm margem calculada separadamente
+      profitMargin: 0,
+    };
+  }
+
+  // ✅ FALLBACK para estruturas antigas - CORRIGIDO: Default 23% IVA
+  const total = parseFloat(service.total || service.value || 0);
+  const vatRate = parseFloat(service.vatRate || service.ivaRate || 23); // ✅ CORRIGIDO
+  // ✅ CORRIGIDO: Default incluir IVA para fechamentos
+  const includeIva = service.includeVat !== false && service.showIVA !== false;
+  const vatAmount = includeIva ? (total * vatRate) / 100 : 0;
+
   return {
-    subtotal: roundToTwoDecimals(subtotal),
-    shipping: roundToTwoDecimals(shipping),
-    totalBeforeVat: roundToTwoDecimals(totalBeforeVat),
-    vatAmount: roundToTwoDecimals(vatAmount),
-    totalWithVat: roundToTwoDecimals(totalWithVat),
-    salesAmount: roundToTwoDecimals(totalBeforeVat),
-    vatRate
+    totalBeforeVat: total,
+    vatAmount,
+    totalWithVat: total + vatAmount,
+    salesAmount: total,
+    profitAmount: 0,
+    profitMargin: 0,
   };
 };
 
 /**
- * Calcula valores financeiros para fechamento de serviços
+ * Calcula estatísticas financeiras resumidas para um conjunto de serviços
+ * Inclui separação entre vendas e lucros
  */
-export const calculateClosureFinancials = (budget) => {
-  const servicesTotal =
-    budget.services?.reduce((total, service) => total + (service.total || 0), 0) ||
-    budget.total ||
-    0;
+export const calculateFinancialSummary = (services) => {
+  let totalRevenue = 0;
+  let totalSales = 0;
+  let totalProfit = 0;
+  let totalVat = 0;
+  let paidAmount = 0;
+  let pendingAmount = 0;
+  let overdueAmount = 0;
 
-  // Forçar IVA de 23% sempre
-  const vatRate = FINANCIAL_CONSTANTS.VAT_RATES.SERVICES;
-  const vatAmount = (servicesTotal * vatRate) / 100;
-  const totalWithVat = servicesTotal + vatAmount;
+  services.forEach(service => {
+    const financials = calculateServiceFinancials(service);
+    const paymentStatus = getPaymentStatus(service);
+    
+    totalRevenue += financials.totalWithVat;
+    totalSales += financials.salesAmount;
+    totalProfit += financials.profitAmount;
+    totalVat += financials.vatAmount;
+
+    switch (paymentStatus) {
+      case 'paid':
+        paidAmount += financials.totalWithVat;
+        break;
+      case 'pending':
+        pendingAmount += financials.totalWithVat;
+        break;
+      case 'overdue':
+        overdueAmount += financials.totalWithVat;
+        break;
+    }
+  });
 
   return {
-    subtotal: roundToTwoDecimals(servicesTotal),
-    shipping: 0,
-    totalBeforeVat: roundToTwoDecimals(servicesTotal),
-    vatAmount: roundToTwoDecimals(vatAmount),
-    totalWithVat: roundToTwoDecimals(totalWithVat),
-    salesAmount: roundToTwoDecimals(servicesTotal),
-    vatRate
+    totalRevenue,    // Faturamento total (com IVA)
+    totalSales,      // Vendas líquidas (sem margem)
+    totalProfit,     // Lucro das margens
+    totalVat,        // Total de IVA
+    paidAmount,      // Valores recebidos
+    pendingAmount,   // Valores pendentes
+    overdueAmount,   // Valores em atraso
+    profitMargin: totalSales > 0 ? (totalProfit / totalSales) * 100 : 0, // Margem média
+    averageTicket: services.length > 0 ? totalRevenue / services.length : 0, // ✅ NOVO: Ticket médio aqui
   };
 };
 
-
 /**
- * Determina status de pagamento baseado na data e status atual
+ * Determina o status de pagamento de um serviço
  */
-export const determinePaymentStatus = (serviceDate, currentStatus = null) => {
-  if (currentStatus && Object.values(FINANCIAL_CONSTANTS.PAYMENT_STATUSES).includes(currentStatus)) {
-    return currentStatus;
+export const getPaymentStatus = (service) => {
+  if (!service) return 'unknown';
+
+  const paymentStatus = service.paymentStatus || 'pending';
+  
+  // Se marcado como pago
+  if (paymentStatus === 'paid') {
+    return 'paid';
   }
-  
-  const now = new Date();
-  const threshold = new Date();
-  threshold.setDate(now.getDate() - FINANCIAL_CONSTANTS.OVERDUE_THRESHOLD_DAYS);
-  
-  const date = serviceDate?.toDate ? serviceDate.toDate() : new Date(serviceDate);
-  
-  return date < threshold ? 
-    FINANCIAL_CONSTANTS.PAYMENT_STATUSES.OVERDUE : 
-    FINANCIAL_CONSTANTS.PAYMENT_STATUSES.PENDING;
+
+  // Se tem data de vencimento e já passou
+  if (service.dueDate) {
+    const dueDate = service.dueDate.toDate ? service.dueDate.toDate() : new Date(service.dueDate);
+    const now = new Date();
+    
+    if (now > dueDate) {
+      return 'overdue';
+    }
+  }
+
+  // Se serviço foi criado há mais de 30 dias e não foi pago
+  if (service.createdAt) {
+    const createdDate = service.createdAt.toDate ? service.createdAt.toDate() : new Date(service.createdAt);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    if (createdDate < thirtyDaysAgo && paymentStatus !== 'paid') {
+      return 'overdue';
+    }
+  }
+
+  return 'pending';
 };
 
 /**
  * Verifica se um serviço está em atraso
  */
-export const isServiceOverdue = (serviceDate) => {
-  const now = new Date();
-  const threshold = new Date();
-  threshold.setDate(now.getDate() - FINANCIAL_CONSTANTS.OVERDUE_THRESHOLD_DAYS);
-  
-  const date = serviceDate?.toDate ? serviceDate.toDate() : new Date(serviceDate);
-  return date < threshold;
+export const isServiceOverdue = (service) => {
+  return getPaymentStatus(service) === 'overdue';
 };
 
 /**
- * Formata preço para exibição
+ * Formata um valor monetário para exibição
  */
-export const formatPrice = (price, currency = '€') => {
-  const value = parseFloat(price || 0);
-  return `${currency} ${value.toFixed(2)}`;
+export const formatPrice = (amount, currency = '€') => {
+  const numericAmount = parseFloat(amount || 0);
+  return `${currency} ${numericAmount.toFixed(2).replace('.', ',')}`;
 };
 
 /**
- * Formata percentual
+ * Formata uma percentagem para exibição
  */
-export const formatPercentage = (value, total, decimals = 1) => {
-  if (total === 0) return '0%';
-  const percentage = (value / total) * 100;
-  return `${percentage.toFixed(decimals)}%`;
+export const formatPercentage = (percentage) => {
+  const numericPercentage = parseFloat(percentage || 0);
+  return `${numericPercentage.toFixed(1)}%`;
 };
 
 /**
- * Arredonda para duas casas decimais
+ * Calcula a margem de lucro em percentagem
  */
-const roundToTwoDecimals = (number) => {
-  return Math.round(number * 100) / 100;
-};
-
-// ===================================
-// 3. SCRIPT DE MIGRAÇÃO DE DADOS EXISTENTES
-// ===================================
-
-/**
- * MIGRAÇÃO PRINCIPAL - Executa migração completa dos dados financeiros
- */
-export const migrateFinancialData = async (options = {}) => {
-  const { 
-    dryRun = false, 
-    onProgress = null,
-    skipPartsBudgets = false,
-    skipClosures = false 
-  } = options;
-  
-  console.log(`🚀 Iniciando migração financeira ${dryRun ? '(DRY RUN)' : '(REAL)'}`);
-  
-  const migrationLog = {
-    startTime: new Date(),
-    partsBudgets: { total: 0, updated: 0, errors: 0 },
-    closures: { total: 0, updated: 0, errors: 0 },
-    errors: []
-  };
-
-  try {
-    // Migrar orçamentos de peças
-    if (!skipPartsBudgets) {
-      console.log('📦 Migrando orçamentos de peças...');
-      const partsBudgetsResult = await migratePartsBudgets(dryRun, onProgress);
-      migrationLog.partsBudgets = partsBudgetsResult;
-    }
-
-    // Migrar fechamentos
-    if (!skipClosures) {
-      console.log('📄 Migrando fechamentos...');
-      const closuresResult = await migrateClosures(dryRun, onProgress);
-      migrationLog.closures = closuresResult;
-    }
-
-    migrationLog.endTime = new Date();
-    migrationLog.duration = migrationLog.endTime - migrationLog.startTime;
-
-    console.log('✅ Migração concluída!', migrationLog);
-    return migrationLog;
-
-  } catch (error) {
-    console.error('❌ Erro na migração:', error);
-    migrationLog.errors.push({ type: 'GENERAL', error: error.message });
-    throw error;
-  }
+export const calculateProfitMarginPercentage = (profit, sales) => {
+  if (!sales || sales === 0) return 0;
+  return (profit / sales) * 100;
 };
 
 /**
- * Migra orçamentos de peças (isQuote: true)
+ * Agrupa serviços por tipo para análise financeira
  */
-const migratePartsBudgets = async (dryRun = false, onProgress = null) => {
-  const result = { total: 0, updated: 0, errors: 0 };
-  
-  try {
-    const partsBudgetsQuery = query(
-      collection(db, "ordens"), 
-      where("isQuote", "==", true)
-    );
-    const snapshot = await getDocs(partsBudgetsQuery);
-    
-    result.total = snapshot.docs.length;
-    console.log(`📦 Encontrados ${result.total} orçamentos de peças para migrar`);
-
-    for (let i = 0; i < snapshot.docs.length; i++) {
-      const docRef = snapshot.docs[i];
-      const data = docRef.data();
-
-      try {
-        // Calcular valores financeiros
-        const financials = calculatePartsBudgetFinancials(data);
-        
-        // Determinar status de pagamento
-        const paymentStatus = determinePaymentStatus(
-          data.createdAt, 
-          data.paymentStatus
-        );
-
-        // Preparar dados de atualização
-        const updateData = {
-          paymentStatus,
-          paymentUpdatedAt: serverTimestamp(),
-          financialSummary: financials
-        };
-
-        // Campos adicionais se não existirem
-        if (!data.paymentDueDate) updateData.paymentDueDate = null;
-        if (!data.paymentReceivedDate) updateData.paymentReceivedDate = null;
-        if (!data.paymentNotes) updateData.paymentNotes = "";
-        if (!data.paymentMethod) updateData.paymentMethod = "";
-
-        // Executar atualização (se não for dry run)
-        if (!dryRun) {
-          await updateDoc(docRef.ref, updateData);
-        }
-
-        result.updated++;
-        
-        if (onProgress) {
-          onProgress({
-            type: 'parts_budget',
-            current: i + 1,
-            total: result.total,
-            item: { id: docRef.id, status: paymentStatus, total: financials.totalWithVat }
-          });
-        }
-
-        // Log progresso a cada 10 itens
-        if ((i + 1) % 10 === 0) {
-          console.log(`📦 Progresso: ${i + 1}/${result.total} orçamentos de peças`);
-        }
-
-      } catch (error) {
-        console.error(`❌ Erro ao migrar orçamento ${docRef.id}:`, error);
-        result.errors++;
-      }
-    }
-
-    console.log(`✅ Orçamentos de peças: ${result.updated}/${result.total} migrados (${result.errors} erros)`);
-    return result;
-
-  } catch (error) {
-    console.error('❌ Erro ao migrar orçamentos de peças:', error);
-    throw error;
-  }
-};
-
-/**
- * Migra fechamentos de serviços
- */
-const migrateClosures = async (dryRun = false, onProgress = null) => {
-  const result = { total: 0, updated: 0, errors: 0 };
-  
-  try {
-    const closuresSnapshot = await getDocs(collection(db, "orcamentos"));
-    
-    result.total = closuresSnapshot.docs.length;
-    console.log(`📄 Encontrados ${result.total} fechamentos para migrar`);
-
-    for (let i = 0; i < closuresSnapshot.docs.length; i++) {
-      const docRef = closuresSnapshot.docs[i];
-      const data = docRef.data();
-
-      try {
-        // Calcular valores financeiros
-        const financials = calculateClosureFinancials(data);
-        
-        // Determinar status de pagamento
-        const paymentStatus = determinePaymentStatus(
-          data.createdAt, 
-          data.paymentStatus
-        );
-
-        // Preparar dados de atualização
-        const updateData = {
-          paymentStatus,
-          paymentUpdatedAt: serverTimestamp(),
-          financialSummary: financials,
-          showIVA: data.showIVA || false,
-          ivaRate: data.ivaRate || FINANCIAL_CONSTANTS.VAT_RATES.SERVICES
-        };
-
-        // Campos adicionais se não existirem
-        if (!data.paymentDueDate) updateData.paymentDueDate = null;
-        if (!data.paymentReceivedDate) updateData.paymentReceivedDate = null;
-        if (!data.paymentNotes) updateData.paymentNotes = "";
-        if (!data.paymentMethod) updateData.paymentMethod = "";
-
-        // Executar atualização (se não for dry run)
-        if (!dryRun) {
-          await updateDoc(docRef.ref, updateData);
-        }
-
-        result.updated++;
-        
-        if (onProgress) {
-          onProgress({
-            type: 'closure',
-            current: i + 1,
-            total: result.total,
-            item: { id: docRef.id, status: paymentStatus, total: financials.totalWithVat }
-          });
-        }
-
-        // Log progresso a cada 10 itens
-        if ((i + 1) % 10 === 0) {
-          console.log(`📄 Progresso: ${i + 1}/${result.total} fechamentos`);
-        }
-
-      } catch (error) {
-        console.error(`❌ Erro ao migrar fechamento ${docRef.id}:`, error);
-        result.errors++;
-      }
-    }
-
-    console.log(`✅ Fechamentos: ${result.updated}/${result.total} migrados (${result.errors} erros)`);
-    return result;
-
-  } catch (error) {
-    console.error('❌ Erro ao migrar fechamentos:', error);
-    throw error;
-  }
-};
-
-// ===================================
-// 4. FUNÇÕES AUXILIARES PARA COMPONENTES
-// ===================================
-
-/**
- * Calcula financials de um serviço baseado no tipo
- */
-export const calculateServiceFinancials = (service) => {
-  if (service.type === 'parts_budget') {
-    return calculatePartsBudgetFinancials(service);
-  } else {
-    return calculateClosureFinancials(service);
-  }
-};
-
-/**
- * Obtém status de pagamento de um serviço
- */
-export const getPaymentStatus = (service) => {
-  if (service.paymentStatus) return service.paymentStatus;
-  
-  return determinePaymentStatus(service.createdAt, service.paymentStatus);
-};
-
-/**
- * Calcula resumo financeiro de múltiplos serviços
- */
-export const calculateFinancialSummary = (services, year = null, month = null) => {
-  const summary = {
-    total: 0,
-    paid: 0,
-    pending: 0,
-    overdue: 0,
-    vatTotal: 0,
-    salesTotal: 0,
-    servicesCount: 0
+export const groupServicesByType = (services) => {
+  const groups = {
+    partsBudgets: [], // Orçamentos de peças
+    closures: [],     // Fechamentos/orçamentos regulares
+    others: []        // Outros tipos
   };
 
   services.forEach(service => {
-    const serviceDate = service.createdAt?.toDate() || new Date(service.createdAt);
-    const serviceYear = serviceDate.getFullYear();
-    const serviceMonth = serviceDate.getMonth() + 1;
-
-    // Filtrar por ano e mês se especificado
-    if (year && serviceYear !== year) return;
-    if (month && serviceMonth !== month) return;
-
-    const financials = calculateServiceFinancials(service);
-    const paymentStatus = getPaymentStatus(service);
-
-    summary.total += financials.totalWithVat;
-    summary.vatTotal += financials.vatAmount;
-    summary.salesTotal += financials.salesAmount;
-    summary.servicesCount += 1;
-
-    switch (paymentStatus) {
-      case FINANCIAL_CONSTANTS.PAYMENT_STATUSES.PAID:
-        summary.paid += financials.totalWithVat;
-        break;
-      case FINANCIAL_CONSTANTS.PAYMENT_STATUSES.PENDING:
-        summary.pending += financials.totalWithVat;
-        break;
-      case FINANCIAL_CONSTANTS.PAYMENT_STATUSES.OVERDUE:
-        summary.overdue += financials.totalWithVat;
-        break;
+    if (service.isQuote) {
+      groups.partsBudgets.push(service);
+    } else if (service.services || service.type === 'closure') {
+      groups.closures.push(service);
+    } else {
+      groups.others.push(service);
     }
   });
 
-  // Arredondar valores finais
-  Object.keys(summary).forEach(key => {
-    if (typeof summary[key] === 'number' && key !== 'servicesCount') {
-      summary[key] = roundToTwoDecimals(summary[key]);
-    }
-  });
+  return groups;
+};
 
-  return summary;
+/**
+ * Calcula métricas de performance financeira
+ */
+export const calculateFinancialMetrics = (services, previousPeriodServices = []) => {
+  const currentPeriod = calculateFinancialSummary(services);
+  const previousPeriod = calculateFinancialSummary(previousPeriodServices);
+  
+  const revenueGrowth = previousPeriod.totalRevenue > 0 
+    ? ((currentPeriod.totalRevenue - previousPeriod.totalRevenue) / previousPeriod.totalRevenue) * 100
+    : 0;
+
+  const profitGrowth = previousPeriod.totalProfit > 0
+    ? ((currentPeriod.totalProfit - previousPeriod.totalProfit) / previousPeriod.totalProfit) * 100
+    : 0;
+
+  return {
+    ...currentPeriod,
+    revenueGrowth,
+    profitGrowth,
+    averageTicket: services.length > 0 ? currentPeriod.totalRevenue / services.length : 0,
+    conversionRate: services.length > 0 ? (currentPeriod.paidAmount / currentPeriod.totalRevenue) * 100 : 0,
+  };
+};
+
+/**
+ * Exportar também as funções antigas para compatibilidade
+ */
+export const calculateTotalsWithIVA = (services, ivaRate = 23) => {
+  const subtotal = services.reduce((total, service) => {
+    const value = parseFloat(service.value || 0);
+    const quantity = parseFloat(service.quantity || 1);
+    return total + (value * quantity);
+  }, 0);
+
+  const ivaAmount = (subtotal * ivaRate) / 100;
+  const total = subtotal + ivaAmount;
+
+  return {
+    subtotal,
+    ivaAmount,
+    total
+  };
 };
