@@ -660,7 +660,7 @@ const generateServiceOrderPDF = async (
         description.trim() !== "" &&
         description.trim().toUpperCase() !== "N/A"
       ) {
-        const maxWidth = 370; // ✅ LARGURA REDUZIDA PARA NÃO ULTRAPASSAR
+        const maxWidth = 460; // ✅ LARGURA REDUZIDA PARA NÃO ULTRAPASSAR
         const lines = wrapText(description, maxWidth, font, 9);
         const lineHeight = 12;
         const boxHeight = Math.max(lines.length * lineHeight + 20, 50); // ✅ ALTURA MÍNIMA MAIOR
@@ -720,13 +720,13 @@ const generateServiceOrderPDF = async (
           colors.white,
           colors.black,
           1
-        ); // ✅ BORDA FINA
+        ); // ✅ BORDA FINAL
 
         lines.forEach((line, index) => {
           if (line.trim()) {
             currentPage.drawText(line.trim(), {
-              x: 160,
-              y: boxTopY - index * lineHeight - 25, // ✅ POSICIONAMENTO VERTICAL CORRIGIDO
+              x: 60,
+              y: boxTopY - index * lineHeight - 20, // ✅ POSICIONAMENTO VERTICAL CORRIGIDO
               size: 9,
               font: font,
               color: colors.black,
@@ -1135,7 +1135,7 @@ const generateServiceOrderPDF = async (
     lines.forEach((line, index) => {
       if (line.trim()) {
         page.drawText(line.trim(), {
-          x: x + labelWidth + padding,
+          x: x + labelWidth + padding - 120,
           y: boxY - index * lineHeight - padding - 8, // ✅ POSICIONAMENTO AJUSTADO
           size: fontSize - 1,
           font: font,

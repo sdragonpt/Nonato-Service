@@ -333,6 +333,21 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     font: boldFont,
   });
 
+  // ✅ NOVO: Subtítulo do tipo de serviço com posicionamento ajustado
+  const serviceType = order.serviceType || "ORÇAMENTO DE PEÇAS";
+  const serviceTypeUpper = serviceType.toUpperCase();
+  
+  // Ajustar posição X baseado no tipo de serviço
+  const xPosition = serviceTypeUpper.includes("SERVIÇOS") ? 225 : 235;
+  
+  currentPage.drawText(serviceTypeUpper, {
+    x: xPosition,
+    y: pageHeight - 70,
+    size: 12,
+    color: rgb(0.0667, 0.4902, 0.2863), // Verde da marca (mesmo do ASSISTÊNCIA TÉCNICA)
+    font: font,
+  });
+
   currentPage.drawText(`Nº: ${shortQuoteId}`, {
     x: 415,
     y: pageHeight - 50,

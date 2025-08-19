@@ -27,6 +27,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.jsx";
 
 const AddPartBudget = () => {
   const navigate = useNavigate();
@@ -337,12 +344,30 @@ const AddPartBudget = () => {
                 <label className="text-sm font-medium text-zinc-400">
                   Tipo de Serviço
                 </label>
-                <Input
-                  name="serviceType"
+                <Select
                   value={formData.serviceType}
-                  onChange={handleChange}
-                  className="bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800 hover:border-zinc-600 focus:border-zinc-500"
-                />
+                  onValueChange={(value) =>
+                    handleChange({ target: { name: "serviceType", value } })
+                  }
+                >
+                  <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800 hover:border-zinc-600">
+                    <SelectValue placeholder="Selecione o tipo de serviço" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-800 border-zinc-600 shadow-lg">
+                    <SelectItem
+                      value="Orçamento de Peças"
+                      className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white"
+                    >
+                      Orçamento de Peças
+                    </SelectItem>
+                    <SelectItem
+                      value="Orçamento de Serviços"
+                      className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white"
+                    >
+                      Orçamento de Serviços
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

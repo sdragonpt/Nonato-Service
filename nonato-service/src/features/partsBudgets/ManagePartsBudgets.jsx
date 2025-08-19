@@ -539,8 +539,8 @@ const ManagePartsBudgets = () => {
                             : quote.status}
                         </Badge>
 
-                        {/* ✅ BADGE DE MARGEM DE LUCRO */}
-                        {quote.profitMargin && quote.profitMargin > 0 && (
+                        {/* ✅ BADGE DE MARGEM DE LUCRO - CORRIGIDO */}
+                        {quote.includeProfitMargin && quote.profitMargin && quote.profitMargin > 0 && (
                           <Badge className="bg-purple-500/20 text-purple-400">
                             +{quote.profitMargin}% lucro
                           </Badge>

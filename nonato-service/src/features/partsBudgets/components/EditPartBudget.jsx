@@ -354,6 +354,9 @@ const EditPartBudget = () => {
 
   // ✅ NOVO: Handler específico para seleção de cliente
   const handleClientSelect = (clientId) => {
+    // ✅ Verificar se clientId não é vazio
+    if (!clientId || clientId === "no-client") return;
+    
     setFormData((prev) => ({
       ...prev,
       clientId: clientId,
@@ -538,12 +541,30 @@ const EditPartBudget = () => {
                     <label className="text-sm font-medium text-zinc-400">
                       Tipo de Serviço
                     </label>
-                    <Input
-                      name="serviceType"
+                    <Select
                       value={formData.serviceType}
-                      onChange={handleChange}
-                      className="bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800 hover:border-zinc-600 focus:border-zinc-500"
-                    />
+                      onValueChange={(value) =>
+                        handleChange({ target: { name: "serviceType", value } })
+                      }
+                    >
+                      <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800 hover:border-zinc-600">
+                        <SelectValue placeholder="Selecione o tipo de serviço" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-800 border-zinc-600 shadow-lg">
+                        <SelectItem
+                          value="Orçamento de Peças"
+                          className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white"
+                        >
+                          Orçamento de Peças
+                        </SelectItem>
+                        <SelectItem
+                          value="Orçamento de Serviços"
+                          className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white"
+                        >
+                          Orçamento de Serviços
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
@@ -708,15 +729,17 @@ const EditPartBudget = () => {
                           <SelectValue placeholder="Selecione um cliente" />
                         </SelectTrigger>
                         <SelectContent className="bg-zinc-800 border-zinc-600 shadow-lg">
-                          {clients.map((client) => (
-                            <SelectItem
-                              key={client.id}
-                              value={client.id}
-                              className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white"
-                            >
-                              {client.name}
-                            </SelectItem>
-                          ))}
+                          {clients
+                            .filter((client) => client.id && client.id.trim() !== "")
+                            .map((client) => (
+                              <SelectItem
+                                key={client.id}
+                                value={client.id}
+                                className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white"
+                              >
+                                {client.name}
+                              </SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -727,12 +750,15 @@ const EditPartBudget = () => {
                       </label>
                       <Select
                         value={formData.equipmentId}
-                        onValueChange={(value) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            equipmentId: value,
-                          }))
-                        }
+                        onValueChange={(value) => {
+                          // ✅ Verificar se value não é vazio ou placeholder
+                          if (value && value !== "no-equipment") {
+                            setFormData((prev) => ({
+                              ...prev,
+                              equipmentId: value,
+                            }));
+                          }
+                        }}
                         disabled={!formData.clientId}
                       >
                         <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800 hover:border-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -752,7 +778,7 @@ const EditPartBudget = () => {
                             ))
                           ) : (
                             <SelectItem
-                              value=""
+                              value="no-equipment"
                               disabled
                               className="text-zinc-400"
                             >
