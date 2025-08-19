@@ -1,6 +1,11 @@
-// App.jsx - COM PARTSCACHE INTEGRADO + Ferramenta de Migração + Pré-Agendamento + SUPORTE PCs ANTIGOS
+// App.jsx - VERSÃO REORGANIZADA E OTIMIZADA
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 📦 IMPORTS DE BIBLIOTECAS EXTERNAS
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import { getAuth, signOut } from "firebase/auth";
 import {
   BrowserRouter as Router,
@@ -11,6 +16,13 @@ import {
   Link,
   useNavigate,
 } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
+import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎨 IMPORTS DE ÍCONES
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import {
   Users,
   Wrench,
@@ -34,17 +46,44 @@ import {
   ShoppingBag,
   Store,
   Shield,
-  Database, // ✅ NOVO: Para migração de imagens
-  RotateCcw, // ✅ NOVO: Para rollback
-  Zap, // ✅ NOVO: Para pré-agendamento
-  Calculator, // ✅ NOVO: Para orçamento de peças
+  Database,
+  RotateCcw,
+  Zap,
+  Calculator,
   Euro,
 } from "lucide-react";
 
-// ✅ NOVO: Suporte para PCs antigos
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🧩 IMPORTS DE COMPONENTES UI
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🏗️ IMPORTS DE COMPONENTES ESSENCIAIS (NÃO LAZY)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import ErrorBoundary from "./components/layout/ErrorBoundary";
+import { CategoriesProvider } from "./context/CategoriesContext.jsx";
+import { PartsCacheProvider } from "./context/PartsCache.jsx";
+import { NotificationProvider } from "./context/NotificationContext.jsx";
+import NotificationsDropdown from "./components/ui/NotificationsDropdown";
+import { useAuth } from "./hooks/useAuth";
 import { initOldBrowserSupport } from "./utils/oldBrowserUtils.js";
 
-// ✅ LAZY LOADING - Componentes principais importados sob demanda
+// ═══════════════════════════════════════════════════════════════════════════════
+// 📄 IMPORTS DE PÁGINAS PRINCIPAIS (LAZY LOADING)
+// ═══════════════════════════════════════════════════════════════════════════════
+
 const InitialPage = React.lazy(() => import("./pages/initial/InitialPage"));
 const LoginPage = React.lazy(() => import("./pages/auth/LoginPage"));
 const DashboardPage = React.lazy(() =>
@@ -52,53 +91,73 @@ const DashboardPage = React.lazy(() =>
 );
 const ProtectedRoute = React.lazy(() => import("./pages/auth/ProtectedRoute"));
 
-// ✅ LAZY LOADING - Features carregadas sob demanda
-const ManageOrders = React.lazy(() => import("./features/orders/ManageOrders"));
-const AddEquipment = React.lazy(() =>
-  import("./features/equipments/AddEquipment")
+// ═══════════════════════════════════════════════════════════════════════════════
+// 👥 IMPORTS DE FEATURES - CLIENTES (LAZY LOADING)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ManageClients = React.lazy(() =>
+  import("./features/clients/ManageClients")
 );
 const AddClient = React.lazy(() =>
   import("./features/clients/components/AddClient")
 );
-const ManageClients = React.lazy(() =>
-  import("./features/clients/ManageClients")
-);
 const ClientDetail = React.lazy(() =>
   import("./features/clients/components/ClientDetail")
-);
-const EquipmentDetail = React.lazy(() =>
-  import("./features/equipments/EquipmentDetail")
 );
 const EditClient = React.lazy(() =>
   import("./features/clients/components/EditClient")
 );
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ⚙️ IMPORTS DE FEATURES - EQUIPAMENTOS (LAZY LOADING)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const AddEquipment = React.lazy(() =>
+  import("./features/equipments/AddEquipment")
+);
+const EquipmentDetail = React.lazy(() =>
+  import("./features/equipments/EquipmentDetail")
+);
 const EditEquipment = React.lazy(() =>
   import("./features/equipments/EditEquipment")
 );
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 📋 IMPORTS DE FEATURES - ORDENS DE SERVIÇO (LAZY LOADING)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ManageOrders = React.lazy(() => import("./features/orders/ManageOrders"));
 const AddOrder = React.lazy(() =>
   import("./features/orders/components/AddOrder")
 );
 const OrderDetail = React.lazy(() =>
   import("./features/orders/components/OrderDetail")
 );
-const AddWorkday = React.lazy(() => import("./features/workdays/AddWorkDay"));
 const EditOrder = React.lazy(() =>
   import("./features/orders/components/EditOrder")
 );
-const EditWorkday = React.lazy(() => import("./features/workdays/EditWorkDay"));
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🗓️ IMPORTS DE FEATURES - AGENDA (LAZY LOADING)
+// ═══════════════════════════════════════════════════════════════════════════════
+
 const ManageAgenda = React.lazy(() =>
   import("./features/agendamentos/ManageAgenda")
 );
 const AddAgendamento = React.lazy(() =>
   import("./features/agendamentos/components/AddAgendamento")
 );
-// ✅ NOVO: Pré-agendamento
 const AddPreAgendamento = React.lazy(() =>
   import("./features/agendamentos/components/AddPreAgendamento")
 );
 const EditAgendamento = React.lazy(() =>
   import("./features/agendamentos/components/EditAgendamento")
 );
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🛠️ IMPORTS DE FEATURES - SERVIÇOS (LAZY LOADING)
+// ═══════════════════════════════════════════════════════════════════════════════
+
 const ManageServices = React.lazy(() =>
   import("./features/services/ManageServices")
 );
@@ -108,8 +167,19 @@ const AddService = React.lazy(() =>
 const EditService = React.lazy(() =>
   import("./features/services/components/EditService")
 );
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 📊 IMPORTS DE FEATURES - ORÇAMENTOS (LAZY LOADING)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ManageBudgets = React.lazy(() =>
+  import("./features/budgets/ManageBudgets")
+);
 const AddBudget = React.lazy(() =>
   import("./features/budgets/components/AddBudget")
+);
+const AddSimpleBudget = React.lazy(() =>
+  import("./features/budgets/components/AddSimpleBudget")
 );
 const EditBudget = React.lazy(() =>
   import("./features/budgets/components/EditBudget")
@@ -117,49 +187,19 @@ const EditBudget = React.lazy(() =>
 const EditSimpleBudget = React.lazy(() =>
   import("./features/budgets/components/EditSimpleBudget")
 );
-const ManageBudgets = React.lazy(() =>
-  import("./features/budgets/ManageBudgets")
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 💰 IMPORTS DE FEATURES - FINANÇAS (LAZY LOADING)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ManageFinances = React.lazy(() =>
+  import("./features/finances/ManageFinances")
 );
-const AddSimpleBudget = React.lazy(() =>
-  import("./features/budgets/components/AddSimpleBudget")
-);
-const PartBudgetDetail = React.lazy(() =>
-  import("./features/partsBudgets/components/PartBudgetDetail")
-);
-const EditPartBudget = React.lazy(() =>
-  import("./features/partsBudgets/components/EditPartBudget")
-);
-const AddPartBudget = React.lazy(() =>
-  import("./features/partsBudgets/components/AddPartBudget")
-);
-const ManageChecklist = React.lazy(() =>
-  import("./features/checklists/ManageCheckList")
-);
-const AddChecklistType = React.lazy(() =>
-  import("./features/checklists/components/AddChecklistType")
-);
-const EditChecklistType = React.lazy(() =>
-  import("./features/checklists/components/EditCheckListType")
-);
-const ManageInspection = React.lazy(() =>
-  import("./features/inspections/ManageInspection")
-);
-const AddInspection = React.lazy(() =>
-  import("./features/inspections/components/AddInspection")
-);
-const EditInspection = React.lazy(() =>
-  import("./features/inspections/components/EditInspection")
-);
-const InspectionDetail = React.lazy(() =>
-  import("./features/inspections/components/InspectionDetail")
-);
-const UserProfile = React.lazy(() =>
-  import("./features/users/components/UserProfile")
-);
-const UserSettings = React.lazy(() =>
-  import("./features/users/components/UserSettings")
-);
-const ManageUsers = React.lazy(() => import("./features/users/ManageUsers"));
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🔧 IMPORTS DE FEATURES - PEÇAS (LAZY LOADING)
+// ═══════════════════════════════════════════════════════════════════════════════
+
 const ManagePartsLibrary = React.lazy(() =>
   import("./features/parts/ManagePartsLibrary")
 );
@@ -183,17 +223,78 @@ const ManageCategories = React.lazy(() =>
   import("./features/parts/ManageCategories")
 );
 
-const ManageFinances = React.lazy(() =>
-  import("./features/finances/ManageFinances")
-);
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🧾 IMPORTS DE FEATURES - ORÇAMENTO DE PEÇAS (LAZY LOADING)
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// ✅ LAZY LOADING - Loja pública
-const PublicShop = React.lazy(() => import("./features/publicShop/PublicShop"));
-// ✅ NOVO: Orçamento de Peças (ordens convertidas com isQuote: true)
 const ManagePartsBudgets = React.lazy(() =>
   import("./features/partsBudgets/ManagePartsBudgets")
 );
-// ✅ MANTER: Gestão de Orçamentos Online (conversões)
+const PartBudgetDetail = React.lazy(() =>
+  import("./features/partsBudgets/components/PartBudgetDetail")
+);
+const EditPartBudget = React.lazy(() =>
+  import("./features/partsBudgets/components/EditPartBudget")
+);
+const AddPartBudget = React.lazy(() =>
+  import("./features/partsBudgets/components/AddPartBudget")
+);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ✅ IMPORTS DE FEATURES - CHECKLISTS (LAZY LOADING)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ManageChecklist = React.lazy(() =>
+  import("./features/checklists/ManageCheckList")
+);
+const AddChecklistType = React.lazy(() =>
+  import("./features/checklists/components/AddChecklistType")
+);
+const EditChecklistType = React.lazy(() =>
+  import("./features/checklists/components/EditCheckListType")
+);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🔍 IMPORTS DE FEATURES - INSPEÇÕES (LAZY LOADING)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ManageInspection = React.lazy(() =>
+  import("./features/inspections/ManageInspection")
+);
+const AddInspection = React.lazy(() =>
+  import("./features/inspections/components/AddInspection")
+);
+const EditInspection = React.lazy(() =>
+  import("./features/inspections/components/EditInspection")
+);
+const InspectionDetail = React.lazy(() =>
+  import("./features/inspections/components/InspectionDetail")
+);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 👤 IMPORTS DE FEATURES - USUÁRIOS (LAZY LOADING)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const UserProfile = React.lazy(() =>
+  import("./features/users/components/UserProfile")
+);
+const UserSettings = React.lazy(() =>
+  import("./features/users/components/UserSettings")
+);
+const ManageUsers = React.lazy(() => import("./features/users/ManageUsers"));
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 📅 IMPORTS DE FEATURES - WORKDAYS (LAZY LOADING)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const AddWorkday = React.lazy(() => import("./features/workdays/AddWorkDay"));
+const EditWorkday = React.lazy(() => import("./features/workdays/EditWorkDay"));
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🛒 IMPORTS DE FEATURES - LOJA PÚBLICA (LAZY LOADING)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const PublicShop = React.lazy(() => import("./features/publicShop/PublicShop"));
 const ManageOnlineQuotes = React.lazy(() =>
   import("./features/onlineQuotes/ManageOnlineQuotes")
 );
@@ -204,87 +305,63 @@ const ShopAccessWrapper = React.lazy(() =>
   import("./features/publicShop/ShopAccessWrapper")
 );
 
-// ✅ NOVO: Ferramenta de migração de imagens
-const ImageMigrationTool = React.lazy(
-  () => import("./context/ImageMigrationTool") // Caminho para src/context/
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🔧 IMPORTS DE FEATURES - ADMINISTRAÇÃO (LAZY LOADING)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ImageMigrationTool = React.lazy(() =>
+  import("./context/ImageMigrationTool")
 );
+const RollbackTool = React.lazy(() => import("./context/RollbackTool"));
 
-// ✅ NOVO: Ferramenta de rollback
-const RollbackTool = React.lazy(
-  () => import("./context/RollbackTool") // Caminho para src/context/
-);
+// ═══════════════════════════════════════════════════════════════════════════════
+// ⚙️ CONSTANTES E CONFIGURAÇÕES
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// ✅ COMPONENTES ESSENCIAIS - Não lazy load para evitar flash
-import ErrorBoundary from "./components/layout/ErrorBoundary";
-import { CategoriesProvider } from "./context/CategoriesContext.jsx";
-import { PartsCacheProvider } from "./context/PartsCache.jsx"; // ✅ NOVO: Cache de peças
-// import CacheDebugTool from "./components/debug/CacheDebugTool.jsx";
-import { NotificationProvider } from "./context/NotificationContext.jsx";
-import NotificationsDropdown from "./components/ui/NotificationsDropdown";
-
-import { useAuth } from "./hooks/useAuth";
-import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
-import { Capacitor } from "@capacitor/core";
-
-// UI Components
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge"; // ✅ NOVO: Para badge admin
-
-// ✅ MEMOIZED NAVIGATION - Evita re-renders desnecessários
+/**
+ * Itens de navegação organizados alfabeticamente dentro de cada seção
+ */
 const NAVIGATION_ITEMS = [
   {
     title: "Cadastro",
     items: [
-      { path: "/app/manage-clients", icon: Users, label: "Clientes" },
-      { path: "/app/manage-services", icon: Wrench, label: "Serviços" },
-      { path: "/app/manage-budgets", icon: FileText, label: "Orçamentos" },
       { path: "/app/parts-library", icon: Book, label: "Biblioteca de Peças" },
+      { path: "/app/manage-clients", icon: Users, label: "Clientes" },
+      { path: "/app/manage-budgets", icon: FileText, label: "Orçamentos" },
+      { path: "/app/manage-services", icon: Wrench, label: "Serviços" },
     ],
   },
   {
     title: "Gestão",
     items: [
+      { path: "/app/manage-agenda", icon: Calendar, label: "Agenda" },
+      { path: "/app/manage-checklist", icon: CheckSquare, label: "Check List" },
+      { path: "/app/manage-finances", icon: Euro, label: "Finanças" },
+      {
+        path: "/app/manage-inspection",
+        icon: ClipboardCheck,
+        label: "Inspeções",
+      },
       {
         path: "/app/manage-orders",
         icon: ClipboardList,
         label: "Ordem de Serviço",
       },
       {
-        path: "/app/manage-finances",
-        icon: Euro,
-        label: "Finanças",
-      },
-      {
         path: "/app/parts-budgets",
         icon: Calculator,
         label: "Orçamento de Peças",
       },
-      { path: "/app/manage-agenda", icon: Calendar, label: "Agenda" },
       { path: "/app/manage-report", icon: BarChart, label: "Relatório" },
-      { path: "/app/manage-checklist", icon: CheckSquare, label: "Check List" },
-      {
-        path: "/app/manage-inspection",
-        icon: ClipboardCheck,
-        label: "Inspeções",
-      },
     ],
   },
   {
     title: "Loja Online",
     items: [
       {
-        path: "/loja",
-        icon: ShoppingBag,
-        label: "Visitar Loja",
-        external: true,
+        path: "/app/manage-shop-access",
+        icon: Shield,
+        label: "Gerenciar Acessos",
       },
       {
         path: "/app/orcamento-online",
@@ -292,13 +369,13 @@ const NAVIGATION_ITEMS = [
         label: "Gestão de Orçamentos Online",
       },
       {
-        path: "/app/manage-shop-access",
-        icon: Shield,
-        label: "Gerenciar Acessos",
+        path: "/loja",
+        icon: ShoppingBag,
+        label: "Visitar Loja",
+        external: true,
       },
     ],
   },
-  // ✅ NOVA SEÇÃO: Administração
   {
     title: "Administração",
     items: [
@@ -318,7 +395,13 @@ const NAVIGATION_ITEMS = [
   },
 ];
 
-// ✅ COMPONENTE OTIMIZADO - Evita re-renders
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🧩 COMPONENTES AUXILIARES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Componente para controle de rotas baseadas em role
+ */
 const RoleRoute = React.memo(({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
 
@@ -337,7 +420,11 @@ const RoleRoute = React.memo(({ children, allowedRoles }) => {
   return children;
 });
 
-// ✅ COMPONENTE OTIMIZADO - Memoizado para evitar re-renders
+RoleRoute.displayName = "RoleRoute";
+
+/**
+ * Componente de navegação do usuário (dropdown)
+ */
 const UserNav = React.memo(() => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -399,7 +486,11 @@ const UserNav = React.memo(() => {
   );
 });
 
-// ✅ SIDEBAR OTIMIZADA - Memoizada e com navegação otimizada
+UserNav.displayName = "UserNav";
+
+/**
+ * Shell principal do dashboard com sidebar e navegação
+ */
 const DashboardShell = React.memo(({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
@@ -415,7 +506,6 @@ const DashboardShell = React.memo(({ children }) => {
     navigate("/app/manage-users");
   }, [navigate]);
 
-  // ✅ MEMOIZED - Evita recalcular toda vez
   const isActiveLink = useCallback(
     (path) => {
       return location.pathname === path;
@@ -423,14 +513,13 @@ const DashboardShell = React.memo(({ children }) => {
     [location.pathname]
   );
 
-  // ✅ EFFECT OTIMIZADO - Só roda quando necessário
+  // Fechar sidebar em mobile quando mudamos de rota
   useEffect(() => {
     if (window.innerWidth < 768) {
       setIsSidebarOpen(false);
     }
   }, [location]);
 
-  // ✅ LOADING OTIMIZADO
   if (loading || !user) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-zinc-900">
@@ -441,7 +530,7 @@ const DashboardShell = React.memo(({ children }) => {
 
   return (
     <div className="min-h-screen bg-zinc-900">
-      {/* Overlay */}
+      {/* Overlay para mobile */}
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-30 md:hidden"
@@ -456,6 +545,7 @@ const DashboardShell = React.memo(({ children }) => {
         } md:translate-x-0`}
       >
         <div className="h-full px-4 py-4 flex flex-col">
+          {/* Header da sidebar */}
           <div className="flex items-center justify-between mb-8 h-16">
             <Link
               to="/app"
@@ -473,9 +563,10 @@ const DashboardShell = React.memo(({ children }) => {
             </Button>
           </div>
 
+          {/* Navegação */}
           <div className="flex-1 space-y-4 overflow-y-auto">
             {NAVIGATION_ITEMS.map((section, idx) => {
-              // ✅ NOVO: Filtrar seções admin para não-admins
+              // Filtrar seções admin para não-admins
               if (section.title === "Administração" && user?.role !== "admin") {
                 return null;
               }
@@ -490,25 +581,11 @@ const DashboardShell = React.memo(({ children }) => {
                     }
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg ${
                       activeSection === section.title
-                        ? "bg-green-700 hover:bg-green-70 text-white"
-                        : section.title === "Cadastro" ||
-                          section.title === "Gestão" ||
-                          section.title === "Loja Online" ||
-                          section.title === "Administração"
-                        ? "text-white font-bold bg-green-700/25 hover:bg-green-700/70 hover:border-green-700/70"
-                        : "text-zinc-400 hover:text-white"
+                        ? "bg-green-700 hover:bg-green-700 text-white"
+                        : "text-white font-bold bg-green-700/25 hover:bg-green-700/70 hover:border-green-700/70"
                     } transition-colors`}
                   >
-                    <span
-                      className={`${
-                        section.title === "Cadastro" ||
-                        section.title === "Gestão" ||
-                        section.title === "Loja Online" ||
-                        section.title === "Administração"
-                          ? "text-base"
-                          : "text-sm"
-                      } font-semibold`}
-                    >
+                    <span className="text-base font-semibold">
                       {section.title}
                     </span>
                     <ChevronDown
@@ -525,7 +602,7 @@ const DashboardShell = React.memo(({ children }) => {
                   >
                     {section.items
                       .filter((item) => {
-                        // ✅ NOVO: Filtrar itens admin-only
+                        // Filtrar itens admin-only
                         if (item.adminOnly && user?.role !== "admin") {
                           return false;
                         }
@@ -559,7 +636,6 @@ const DashboardShell = React.memo(({ children }) => {
                           >
                             <item.icon className="w-4 h-4" />
                             {item.label}
-                            {/* ✅ NOVO: Badge admin */}
                             {item.adminOnly && (
                               <Badge className="ml-auto bg-red-500/20 text-red-400 text-xs">
                                 Admin
@@ -574,14 +650,16 @@ const DashboardShell = React.memo(({ children }) => {
             })}
           </div>
 
+          {/* Footer da sidebar */}
           <div className="mt-auto pt-4 border-t border-zinc-800">
             <UserNav />
           </div>
         </div>
       </aside>
 
-      {/* Main Content */}
+      {/* Conteúdo principal */}
       <main className="transition-[margin] duration-300 md:ml-[280px]">
+        {/* Header */}
         <header className="sticky top-0 z-30 bg-zinc-800/95 backdrop-blur supports-[backdrop-filter]:bg-zinc-800/75 border-b border-zinc-700">
           <div className="flex h-16 items-center gap-4 px-4">
             <Button
@@ -609,6 +687,7 @@ const DashboardShell = React.memo(({ children }) => {
           </div>
         </header>
 
+        {/* Conteúdo das páginas */}
         <div className="p-4 sm:p-6 lg:p-8">
           <ErrorBoundary>
             <React.Suspense
@@ -627,18 +706,26 @@ const DashboardShell = React.memo(({ children }) => {
   );
 });
 
-// ✅ COMPONENTE PRINCIPAL OTIMIZADO COM SUPORTE PCs ANTIGOS
+DashboardShell.displayName = "DashboardShell";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎯 COMPONENTE PRINCIPAL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Componente principal da aplicação
+ */
 const App = () => {
   const { user, loading } = useAuth();
 
-  // ✅ EFEITO OTIMIZADO - Inicialização única
+  // Inicialização única da aplicação
   useEffect(() => {
     let cleanupOldBrowser;
 
-    // ✅ NOVO: Suporte para PCs antigos
+    // Suporte para PCs antigos
     cleanupOldBrowser = initOldBrowserSupport();
 
-    // Configuração Google Auth (já existente)
+    // Configuração Google Auth para mobile
     if (Capacitor.isNativePlatform()) {
       GoogleAuth.initialize({
         clientId:
@@ -648,7 +735,7 @@ const App = () => {
       });
     }
 
-    // ✅ NOVO: Cleanup na desmontagem
+    // Cleanup na desmontagem
     return () => {
       if (cleanupOldBrowser) {
         cleanupOldBrowser();
@@ -656,7 +743,7 @@ const App = () => {
     };
   }, []);
 
-  // ✅ LOADING OTIMIZADO
+  // Loading state
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-zinc-900">
@@ -669,8 +756,6 @@ const App = () => {
     <NotificationProvider>
       <CategoriesProvider>
         <PartsCacheProvider>
-          {" "}
-          {/* ✅ NOVO: Cache inteligente para peças */}
           <Router>
             <React.Suspense
               fallback={
@@ -680,12 +765,15 @@ const App = () => {
               }
             >
               <Routes>
+                {/* Redirecionamentos */}
                 <Route path="/" element={<Navigate to="/app" />} />
                 <Route path="/app" element={<Navigate to="/app/dashboard" />} />
+
+                {/* Páginas públicas */}
                 <Route path="/start" element={<InitialPage />} />
                 <Route path="/login" element={<LoginPage />} />
 
-                {/* ✅ LOJA PÚBLICA - Otimizada com lazy loading */}
+                {/* Loja pública */}
                 <Route
                   path="/loja"
                   element={
@@ -711,141 +799,88 @@ const App = () => {
                   }
                 />
 
-                {/* ✅ ROTAS PROTEGIDAS - Todas com lazy loading */}
+                {/* Rotas protegidas */}
                 <Route
                   path="/app/*"
                   element={
                     <ProtectedRoute>
                       <DashboardShell>
                         <Routes>
-                          {/* ✅ NOVA ROTA: Orçamento de Peças (ordens convertidas) */}
-                          <Route
-                            path="/parts-budgets"
-                            element={<ManagePartsBudgets />}
-                          />
-                          {/* ✅ MANTER: Gestão de Orçamentos Online (conversões) */}
-                          <Route
-                            path="/orcamento-online"
-                            element={<ManageOnlineQuotes />}
-                          />
-                          <Route
-                            path="/manage-finances"
-                            element={<ManageFinances />}
-                          />
-                          <Route
-                            path="/dashboard"
-                            element={<DashboardPage />}
-                          />
-                          <Route path="add-client" element={<AddClient />} />
-                          <Route
-                            path="add-equipment"
-                            element={<AddEquipment />}
-                          />
-                          <Route path="add-order" element={<AddOrder />} />
-                          <Route
-                            path="manage-orders"
-                            element={<ManageOrders />}
-                          />
-                          <Route
-                            path="manage-services"
-                            element={<ManageServices />}
-                          />
-                          <Route path="add-service" element={<AddService />} />
+                          {/* Dashboard */}
+                          <Route path="dashboard" element={<DashboardPage />} />
+
+                          {/* Profile e Settings */}
                           <Route path="profile" element={<UserProfile />} />
                           <Route path="settings" element={<UserSettings />} />
 
-                          {/* ✅ ROTAS PROTEGIDAS POR ROLE - Otimizadas */}
-                          <Route
-                            path="manage-users"
-                            element={
-                              <RoleRoute allowedRoles={["admin"]}>
-                                <ManageUsers />
-                              </RoleRoute>
-                            }
-                          />
-
-                          {/* ✅ NOVA ROTA: Ferramenta de migração (só admin) */}
-                          <Route
-                            path="image-migration"
-                            element={
-                              <RoleRoute allowedRoles={["admin"]}>
-                                <ImageMigrationTool />
-                              </RoleRoute>
-                            }
-                          />
-
-                          {/* ✅ NOVA ROTA: Ferramenta de rollback (só admin) */}
-                          <Route
-                            path="rollback-tool"
-                            element={
-                              <RoleRoute allowedRoles={["admin"]}>
-                                <RollbackTool />
-                              </RoleRoute>
-                            }
-                          />
-
-                          {/* ✅ TODAS AS OUTRAS ROTAS COM LAZY LOADING */}
-                          <Route
-                            path="edit-service/:serviceId"
-                            element={<EditService />}
-                          />
+                          {/* Clientes */}
                           <Route
                             path="manage-clients"
                             element={<ManageClients />}
                           />
+                          <Route path="add-client" element={<AddClient />} />
                           <Route
                             path="client/:clientId"
                             element={<ClientDetail />}
-                          />
-                          <Route
-                            path="equipment/:equipmentId"
-                            element={<EquipmentDetail />}
                           />
                           <Route
                             path="edit-client/:clientId"
                             element={<EditClient />}
                           />
                           <Route
-                            path="edit-equipment/:equipmentId"
-                            element={<EditEquipment />}
-                          />
-                          <Route
                             path="client/:clientId/add-equipment"
                             element={<AddEquipment />}
                           />
+
+                          {/* Equipamentos */}
+                          <Route
+                            path="add-equipment"
+                            element={<AddEquipment />}
+                          />
+                          <Route
+                            path="equipment/:equipmentId"
+                            element={<EquipmentDetail />}
+                          />
+                          <Route
+                            path="edit-equipment/:equipmentId"
+                            element={<EditEquipment />}
+                          />
+
+                          {/* Ordens de Serviço */}
+                          <Route
+                            path="manage-orders"
+                            element={<ManageOrders />}
+                          />
+                          <Route path="add-order" element={<AddOrder />} />
                           <Route
                             path="order-detail/:orderId"
                             element={<OrderDetail />}
-                          />
-                          <Route
-                            path="order/:orderId/add-workday"
-                            element={<AddWorkday />}
                           />
                           <Route
                             path="edit-service-order/:orderId"
                             element={<EditOrder />}
                           />
                           <Route
+                            path="order/:orderId/add-workday"
+                            element={<AddWorkday />}
+                          />
+                          <Route
                             path="edit-workday/:workdayId"
                             element={<EditWorkday />}
                           />
+
+                          {/* Serviços */}
                           <Route
-                            path="manage-agenda"
-                            element={<ManageAgenda />}
+                            path="manage-services"
+                            element={<ManageServices />}
                           />
+                          <Route path="add-service" element={<AddService />} />
                           <Route
-                            path="add-agendamento"
-                            element={<AddAgendamento />}
+                            path="edit-service/:serviceId"
+                            element={<EditService />}
                           />
-                          {/* ✅ NOVA ROTA: Pré-agendamento */}
-                          <Route
-                            path="add-pre-agendamento"
-                            element={<AddPreAgendamento />}
-                          />
-                          <Route
-                            path="edit-agendamento/:agendamentoId"
-                            element={<EditAgendamento />}
-                          />
+
+                          {/* Orçamentos */}
                           <Route
                             path="manage-budgets"
                             element={<ManageBudgets />}
@@ -863,6 +898,50 @@ const App = () => {
                             path="edit-simple-budget/:budgetId"
                             element={<EditSimpleBudget />}
                           />
+
+                          {/* Finanças */}
+                          <Route
+                            path="manage-finances"
+                            element={<ManageFinances />}
+                          />
+
+                          {/* Orçamento de Peças */}
+                          <Route
+                            path="parts-budgets"
+                            element={<ManagePartsBudgets />}
+                          />
+                          <Route
+                            path="add-part-budget"
+                            element={<AddPartBudget />}
+                          />
+                          <Route
+                            path="part-budget-detail/:quoteId"
+                            element={<PartBudgetDetail />}
+                          />
+                          <Route
+                            path="edit-part-budget/:quoteId"
+                            element={<EditPartBudget />}
+                          />
+
+                          {/* Agenda */}
+                          <Route
+                            path="manage-agenda"
+                            element={<ManageAgenda />}
+                          />
+                          <Route
+                            path="add-agendamento"
+                            element={<AddAgendamento />}
+                          />
+                          <Route
+                            path="add-pre-agendamento"
+                            element={<AddPreAgendamento />}
+                          />
+                          <Route
+                            path="edit-agendamento/:agendamentoId"
+                            element={<EditAgendamento />}
+                          />
+
+                          {/* Checklists */}
                           <Route
                             path="manage-checklist"
                             element={<ManageChecklist />}
@@ -875,6 +954,8 @@ const App = () => {
                             path="edit-checklist-type/:typeId"
                             element={<EditChecklistType />}
                           />
+
+                          {/* Inspeções */}
                           <Route
                             path="manage-inspection"
                             element={<ManageInspection />}
@@ -891,6 +972,8 @@ const App = () => {
                             path="inspection-detail/:inspectionId"
                             element={<InspectionDetail />}
                           />
+
+                          {/* Biblioteca de Peças */}
                           <Route
                             path="parts-library"
                             element={<ManagePartsLibrary />}
@@ -917,21 +1000,41 @@ const App = () => {
                             path="manage-categories"
                             element={<ManageCategories />}
                           />
+
+                          {/* Loja Online */}
+                          <Route
+                            path="orcamento-online"
+                            element={<ManageOnlineQuotes />}
+                          />
                           <Route
                             path="manage-shop-access"
                             element={<ManageShopAccess />}
                           />
+
+                          {/* Rotas apenas para Admin */}
                           <Route
-                            path="part-budget-detail/:quoteId"
-                            element={<PartBudgetDetail />}
+                            path="manage-users"
+                            element={
+                              <RoleRoute allowedRoles={["admin"]}>
+                                <ManageUsers />
+                              </RoleRoute>
+                            }
                           />
                           <Route
-                            path="edit-part-budget/:quoteId"
-                            element={<EditPartBudget />}
+                            path="image-migration"
+                            element={
+                              <RoleRoute allowedRoles={["admin"]}>
+                                <ImageMigrationTool />
+                              </RoleRoute>
+                            }
                           />
                           <Route
-                            path="add-part-budget"
-                            element={<AddPartBudget />}
+                            path="rollback-tool"
+                            element={
+                              <RoleRoute allowedRoles={["admin"]}>
+                                <RollbackTool />
+                              </RoleRoute>
+                            }
                           />
                         </Routes>
                       </DashboardShell>
@@ -940,10 +1043,8 @@ const App = () => {
                 />
               </Routes>
             </React.Suspense>
-            {/* <CacheDebugTool /> */}
           </Router>
-        </PartsCacheProvider>{" "}
-        {/* ✅ Fim do novo provider */}
+        </PartsCacheProvider>
       </CategoriesProvider>
     </NotificationProvider>
   );

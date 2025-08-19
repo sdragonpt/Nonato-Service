@@ -1,0 +1,1414 @@
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../../../firebase.jsx";
+
+const generateServiceOrderPDF = async (
+  orderIdForPDF,
+  order,
+  client,
+  equipment,
+  workdays,
+  fileName
+) => {
+  const pdfDoc = await PDFDocument.create();
+  let currentPage = null;
+
+  // ConfiguraÃ§Ãµes gerais
+  const pageWidth = 595.28;
+  const pageHeight = 841.89;
+  const fontSize = 10;
+  const tableFontSize = 8;
+  const smallFontSize = 8;
+  const margin = 50;
+  let yPos = 0;
+  const minBottomMargin = 50;
+
+  // âœ… FUNÃ‡ÃƒO PARA BUSCAR DADOS COMPLETOS DAS PEÃ‡AS
+  const fetchCompletePartData = async (partId) => {
+    try {
+      const partRef = doc(db, "pecas", partId);
+      const partDoc = await getDoc(partRef);
+
+      if (partDoc.exists()) {
+        const partData = partDoc.data();
+        return { id: partId, ...partData };
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error(`Erro ao buscar peÃ§a ${partId}:`, error);
+      return null;
+    }
+  };
+
+  // âœ… ENRIQUECER PEÃ‡AS COM DADOS COMPLETOS
+  const enrichPartsWithData = async (parts) => {
+    if (!parts || parts.length === 0) return [];
+
+    const enrichedParts = [];
+
+    for (const part of parts) {
+      if (part.id) {
+        const completePartData = await fetchCompletePartData(part.id);
+
+        if (completePartData) {
+          const enrichedPart = {
+            ...completePartData,
+            ...part,
+            name: completePartData.name || part.name,
+            code: completePartData.code || part.code,
+          };
+          enrichedParts.push(enrichedPart);
+        } else {
+          enrichedParts.push(part);
+        }
+      } else {
+        enrichedParts.push(part);
+      }
+    }
+
+    return enrichedParts;
+  };
+
+  // âœ… FUNÃ‡ÃƒO PARA BUSCAR IMAGEM DA BIBLIOTECA
+  const loadImageFromLibrary = async (imageHash) => {
+    try {
+      if (!imageHash) return null;
+
+      const imageRef = doc(db, "image_library", imageHash);
+      const imageDoc = await getDoc(imageRef);
+
+      if (imageDoc.exists()) {
+        const data = imageDoc.data();
+        return data.data;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error("Erro ao carregar imagem da biblioteca:", error);
+      return null;
+    }
+  };
+
+  // âœ… FUNÃ‡ÃƒO PARA CARREGAR IMAGEM (BASE64 OU URL)
+  const loadImageData = async (imageSrc) => {
+    try {
+      if (!imageSrc) return null;
+
+      // Se jÃ¡ Ã© base64
+      if (imageSrc.startsWith("data:image/")) {
+        const base64Data = imageSrc.split(",")[1];
+        const isJpeg = imageSrc.includes("jpeg") || imageSrc.includes("jpg");
+        return {
+          data: Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0)),
+          isJpeg,
+        };
+      }
+
+      // Se Ã© URL, fetch
+      const response = await fetch(imageSrc);
+      if (!response.ok) {
+        return null;
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const isJpeg =
+        imageSrc.toLowerCase().includes("jpg") ||
+        imageSrc.toLowerCase().includes("jpeg");
+
+      return {
+        data: new Uint8Array(arrayBuffer),
+        isJpeg,
+      };
+    } catch (error) {
+      console.error("Erro ao carregar dados da imagem:", error);
+      return null;
+    }
+  };
+
+  // âœ… FUNÃ‡ÃƒO PARA QUEBRAR TEXTO LONGO
+  const wrapText = (text, maxWidth, font, fontSize) => {
+    const words = text.split(" ");
+    const lines = [];
+    let currentLine = "";
+
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+
+      if (testWidth <= maxWidth) {
+        currentLine = testLine;
+      } else {
+        if (currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          // Palavra muito longa, truncar
+          lines.push(
+            word.substring(0, Math.floor(maxWidth / (fontSize * 0.6))) + "..."
+          );
+          currentLine = "";
+        }
+      }
+    }
+
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+
+    return lines;
+  };
+
+  // âœ… FUNÃ‡ÃƒO PARA FORMATAR PREÃ‡O (â‚¬ depois do nÃºmero)
+  const formatPrice = (price) => {
+    return `${parseFloat(price).toFixed(2)} â‚¬`;
+  };
+
+  // Carregar fontes
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  // Carregar a imagem do topo
+  const topImageBytes = await fetch("/nonato2.png").then((res) =>
+    res.arrayBuffer()
+  );
+  const topImage = await pdfDoc.embedPng(topImageBytes);
+
+  const response = await fetch("/nonato2.png");
+  const arrayBuffer = await response.arrayBuffer();
+  const image = await pdfDoc.embedPng(arrayBuffer);
+
+  // FunÃ§Ã£o para criar nova pÃ¡gina
+  const createNewPage = () => {
+    currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+    yPos = pageHeight - margin;
+
+    // Calcular dimensÃµes da imagem mantendo proporÃ§Ã£o
+    const imgWidth = 100;
+    const imgHeight = (imgWidth * image.height) / image.width;
+
+    currentPage.drawImage(topImage, {
+      x: margin,
+      y: currentPage.getHeight() - margin - 100,
+      width: imgWidth,
+      height: imgHeight,
+    });
+
+    return currentPage;
+  };
+
+  // FunÃ§Ã£o para verificar espaÃ§o e criar nova pÃ¡gina se necessÃ¡rio
+  const checkAndCreateNewPage = (requiredSpace) => {
+    if (yPos - requiredSpace < minBottomMargin) {
+      createNewPage();
+      return true;
+    }
+    return false;
+  };
+
+  // FunÃ§Ãµes auxiliares
+  const safeText = (text, defaultValue = "N/A") => String(text ?? defaultValue);
+  const formatDate = (date) => {
+    const options = { year: "2-digit", month: "2-digit", day: "2-digit" };
+    return new Date(date).toLocaleDateString("pt-BR", options);
+  };
+
+  // Criar primeira pÃ¡gina
+  createNewPage();
+
+  // FunÃ§Ã£o para desenhar cabeÃ§alho da pÃ¡gina
+  const drawPageHeader = () => {
+    const topOffset = 50;
+
+    // TÃ­tulo
+    currentPage.drawText("RelatÃ³rio de ServiÃ§o", {
+      x: 170,
+      y: pageHeight - 50,
+      size: 16,
+      color: rgb(0, 0, 0),
+      font: boldFont,
+    });
+
+    // NÃºmero do serviÃ§o
+    currentPage.drawText(`NÂº: ${orderIdForPDF}`, {
+      x: 508,
+      y: pageHeight - 50,
+      size: 12,
+      font: boldFont,
+    });
+
+    // RetÃ¢ngulo ao redor do nÃºmero
+    currentPage.drawRectangle({
+      x: 495,
+      y: pageHeight - 53.5,
+      width: 60,
+      height: 16,
+      borderColor: rgb(0, 0, 0),
+      borderWidth: 1,
+    });
+
+    // SubtÃ­tulo
+    currentPage.drawText("ASSISTÃŠNCIA TÃ‰CNICA", {
+      x: 170,
+      y: pageHeight - 70,
+      size: 12,
+      color: rgb(0.0667, 0.4902, 0.2863),
+    });
+
+    // InformaÃ§Ãµes de contato
+    currentPage.drawText(
+      "Tel (SERVIÃ‡O): 911115479 - EMAIL: service.nonato@gmail.com",
+      {
+        x: 303,
+        y: pageHeight - 850,
+        size: 8,
+        font: font,
+      }
+    );
+
+    // Desenhar o retÃ¢ngulo ao redor das informaÃ§Ãµes bÃ¡sicas
+    currentPage.drawRectangle({
+      x: 40,
+      y: 62,
+      width: 515,
+      height: 638,
+      borderColor: rgb(0, 0, 0), // Cor preta para a borda
+      borderWidth: 1, // Largura da borda
+    });
+
+    yPos = pageHeight - (topOffset + 100);
+  };
+
+  // Adiciona nÃºmero de pÃ¡gina em todas as pÃ¡ginas
+  const addPageNumbers = () => {
+    const totalPages = pdfDoc.getPageCount(); // Total de pÃ¡ginas no documento
+
+    for (let i = 0; i < totalPages; i++) {
+      const page = pdfDoc.getPage(i); // ObtÃ©m a pÃ¡gina atual
+
+      // Desenha o nÃºmero da pÃ¡gina no rodapÃ©
+      page.drawText(`PÃ¡gina ${i + 1} / ${totalPages}`, {
+        x: page.getWidth() - margin - 50, // Ajusta a posiÃ§Ã£o para a direita
+        y: margin - 20, // PosiÃ§Ã£o no rodapÃ©
+        size: 10,
+        font: font, // Usa a fonte carregada
+        color: rgb(0, 0, 0), // Cor preta
+      });
+    }
+  };
+
+  // Desenhar cabeÃ§alho na primeira pÃ¡gina
+  drawPageHeader();
+
+  // ... continuaÃ§Ã£o do cÃ³digo anterior ...
+
+  // FunÃ§Ã£o para desenhar texto com retÃ¢ngulo ao redor
+  const drawTextWithBox = (text, x, y, width, textOptions = {}) => {
+    const { size = fontSize, useFont = font } = textOptions;
+    const maxWidth = width - 10; // Margem para o texto dentro do retÃ¢ngulo
+
+    // Quebrar o texto em linhas
+    const words = text.split(" ");
+    let lines = [""];
+    let currentLine = 0;
+
+    for (const word of words) {
+      const testLine =
+        lines[currentLine] + (lines[currentLine] ? " " : "") + word;
+      const testWidth = useFont.widthOfTextAtSize(testLine, size);
+
+      if (testWidth <= maxWidth) {
+        lines[currentLine] = testLine;
+      } else {
+        currentLine++;
+        lines[currentLine] = word;
+      }
+    }
+
+    const lineHeight = size + 4;
+    const boxHeight = lines.length * lineHeight + 6;
+
+    // Desenhar retÃ¢ngulo
+    currentPage.drawRectangle({
+      x: x - 2,
+      y: y - boxHeight + lineHeight,
+      width: width,
+      height: boxHeight,
+      borderColor: rgb(0, 0, 0),
+      borderWidth: 1,
+      opacity: 0.3,
+    });
+
+    // Desenhar cada linha do texto
+    lines.forEach((line, index) => {
+      currentPage.drawText(line, {
+        x,
+        y: y - index * lineHeight,
+        size,
+        font: useFont,
+      });
+    });
+
+    return y - (boxHeight + 2); // Retorna a prÃ³xima posiÃ§Ã£o Y
+  };
+
+  // Desenhar informaÃ§Ãµes bÃ¡sicas
+  const drawBasicInfo = () => {
+    let localYPos = yPos - 40;
+    let startingY = localYPos + 30; // PosiÃ§Ã£o inicial do retÃ¢ngulo exterior
+
+    const countLines = (text, maxWidth) => {
+      const words = text.split(" ");
+      let lines = 1;
+      let currentLine = "";
+
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const width = font.widthOfTextAtSize(testLine, fontSize);
+
+        if (width <= maxWidth) {
+          currentLine = testLine;
+        } else {
+          lines++;
+          currentLine = word;
+        }
+      }
+      return lines;
+    };
+
+    // Arrays para armazenar os textos
+    const leftColumn = [
+      { text: `TÃ©cnico: Nonato` },
+      { text: `Cliente: ${safeText(client.name)}` },
+      { text: `Cidade: ${safeText(client.address)}` },
+      { text: `Telefone: ${safeText(client.phone)}` },
+    ];
+
+    const rightColumn = [
+      { text: `Data: ${safeText(order.date)}` },
+      {
+        text: `MÃ¡quina/Modelo: ${safeText(equipment.brand)} ${safeText(
+          equipment.model
+        )}`,
+      },
+      { text: `NÃºmero da MÃ¡quina: ${safeText(equipment.serialNumber)}` },
+      { text: `Tipo de ServiÃ§o: ${safeText(order.serviceType)}` },
+    ];
+
+    // Desenhar coluna esquerda
+    leftColumn.forEach((item, index) => {
+      localYPos = drawTextWithBox(item.text, 58, localYPos, 230);
+      if (index < leftColumn.length - 1) {
+        localYPos -= 5; // EspaÃ§amento entre boxes
+      }
+    });
+
+    // Resetar posiÃ§Ã£o Y para a coluna direita
+    let rightYPos = yPos - 40;
+
+    // Desenhar coluna direita
+    rightColumn.forEach((item, index) => {
+      rightYPos = drawTextWithBox(item.text, 307, rightYPos, 230);
+      if (index < rightColumn.length - 1) {
+        rightYPos -= 5; // EspaÃ§amento entre boxes
+      }
+    });
+
+    // Usar a posiÃ§Ã£o Y mais baixa entre as duas colunas
+    const lowestY = Math.min(localYPos, rightYPos);
+
+    const addressLines = countLines(safeText(client.address), 210); // 230 - margem
+    const rectangleOffset = addressLines > 1 ? 140 : 127;
+
+    // Desenhar o retÃ¢ngulo ao redor de todas as informaÃ§Ãµes bÃ¡sicas
+    currentPage.drawRectangle({
+      x: 50,
+      y: startingY - rectangleOffset,
+      width: 496,
+      height: startingY - lowestY - 15, // +20 para margem inferior
+      borderColor: rgb(0, 0, 0),
+      borderWidth: 1,
+    });
+
+    return lowestY - 10;
+  };
+
+  // FunÃ§Ã£o para desenhar cabeÃ§alho da tabela
+  const drawTableHeader = () => {
+    const headers = ["DATA", "IDA", "HORAS", "RETORNO", "KM", "PAUSA"];
+    const headerWidths = [44, 105, 101, 105, 101, 40];
+
+    let xPos = 50;
+    headers.forEach((header, index) => {
+      // Desenhar retÃ¢ngulo do cabeÃ§alho
+      currentPage.drawRectangle({
+        x: xPos,
+        y: yPos - 20,
+        width: headerWidths[index],
+        height: 20,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+      });
+
+      // Desenhar texto do cabeÃ§alho
+      const textWidth = boldFont.widthOfTextAtSize(header, tableFontSize);
+      currentPage.drawText(header, {
+        x: xPos + (headerWidths[index] - textWidth) / 2,
+        y: yPos - 15,
+        size: tableFontSize,
+        font: boldFont,
+      });
+
+      xPos += headerWidths[index];
+    });
+
+    return yPos - 20;
+  };
+
+  // Update the table row function's column widths
+  const drawTableRow = (workday) => {
+    const cellHeight = 20;
+    const columnWidths = [
+      44, // DATA
+      40,
+      40,
+      25, // IDA
+      38,
+      38,
+      25, // HORAS
+      40,
+      40,
+      25, // RETORNO
+      38,
+      38,
+      25, // KM
+      40, // PAUSA
+    ];
+
+    // Calcular valores
+    const hoursIda = calculateHours(workday.departureTime, workday.arrivalTime);
+    const hoursRetorno = calculateHours(
+      workday.returnDepartureTime,
+      workday.returnArrivalTime
+    );
+    const hoursWork = calculateHoursWithPause(
+      workday.startHour,
+      workday.endHour,
+      workday.pauseHours
+    );
+    const kmTotal = Number(workday.kmDeparture) + Number(workday.kmReturn);
+
+    const rowData = [
+      formatDate(workday.workDate), // DATA
+      workday.departureTime, // IDA
+      workday.arrivalTime,
+      hoursIda,
+      workday.startHour, // HORAS (trabalho)
+      workday.endHour,
+      hoursWork,
+      workday.returnDepartureTime, // RETORNO
+      workday.returnArrivalTime,
+      hoursRetorno,
+      workday.kmDeparture, // KM
+      workday.kmReturn,
+      kmTotal.toString(),
+      workday.pauseHours, // PAUSA
+    ];
+
+    let xPos = 50;
+    rowData.forEach((data, index) => {
+      // Verificar se precisa de fundo cinza
+      const isGrayColumn =
+        index === 3 || index === 6 || index === 9 || index === 12;
+      if (isGrayColumn) {
+        currentPage.drawRectangle({
+          x: xPos,
+          y: yPos - cellHeight,
+          width: columnWidths[index],
+          height: cellHeight,
+          color: rgb(0.8, 0.8, 0.8),
+        });
+      }
+
+      // Desenhar borda e texto
+      currentPage.drawRectangle({
+        x: xPos,
+        y: yPos - cellHeight,
+        width: columnWidths[index],
+        height: cellHeight,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+      });
+
+      const textWidth = font.widthOfTextAtSize(data, tableFontSize);
+      currentPage.drawText(safeText(data), {
+        x: xPos + (columnWidths[index] - textWidth) / 2,
+        y: yPos - cellHeight + 6,
+        size: tableFontSize,
+        font: font,
+      });
+
+      xPos += columnWidths[index];
+    });
+
+    return yPos - cellHeight;
+  };
+
+  // Desenhar informaÃ§Ãµes bÃ¡sicas
+  yPos = drawBasicInfo();
+
+  // Verificar espaÃ§o e criar nova pÃ¡gina se necessÃ¡rio
+  if (checkAndCreateNewPage(150)) {
+    drawPageHeader();
+  }
+
+  // Desenhar cabeÃ§alho da tabela
+  yPos = drawTableHeader();
+
+  const sortedWorkdays = [...workdays].sort((a, b) => a.workDate - b.workDate);
+
+  // Desenhar linhas da tabela
+  sortedWorkdays.forEach((workday) => {
+    if (checkAndCreateNewPage(40)) {
+      drawPageHeader();
+      yPos = drawTableHeader();
+    }
+    yPos = drawTableRow(workday);
+  });
+
+  // FunÃ§Ã£o para desenhar as descriÃ§Ãµes
+  const drawDescriptions = () => {
+    // Verificar se existem descriÃ§Ãµes vÃ¡lidas
+    const hasValidDescriptions = workdays.some((day) => {
+      const description = safeText(day.description);
+      return (
+        description.trim() !== "" && description.trim().toUpperCase() !== "N/A"
+      );
+    });
+
+    if (!hasValidDescriptions) return yPos;
+
+    // TÃ­tulo da seÃ§Ã£o
+    yPos -= 30;
+    currentPage.drawText("DescriÃ§Ã£o do Trabalho:", {
+      x: 50,
+      y: yPos,
+      size: fontSize,
+      font: boldFont,
+    });
+
+    // Desenhar cada descriÃ§Ã£o
+    sortedWorkdays.forEach((day) => {
+      const description = sanitizeText(safeText(day.description));
+      if (
+        description.trim() !== "" &&
+        description.trim().toUpperCase() !== "N/A"
+      ) {
+        // Verificar espaÃ§o para nova descriÃ§Ã£o
+        if (checkAndCreateNewPage(80)) {
+          drawPageHeader();
+        }
+
+        yPos -= 10;
+
+        // Data do dia - Ajustado para ter mais espaÃ§amento
+        currentPage.drawText(`Dia: ${formatDate(day.workDate)}`, {
+          x: 55,
+          y: yPos - 18, // Aumentado o espaÃ§amento aqui
+          size: fontSize,
+          font: font,
+        });
+
+        // Calcular altura necessÃ¡ria para a descriÃ§Ã£o
+        const maxWidth = 376; // 396 - 20 (margem)
+        const words = description
+          .split(" ")
+          .filter((word) => word.trim() !== "");
+        let lines = [""];
+        let currentLine = 0;
+
+        for (const word of words) {
+          const testLine =
+            lines[currentLine] + (lines[currentLine] ? " " : "") + word;
+          const testWidth = font.widthOfTextAtSize(testLine, 8);
+
+          if (testWidth <= maxWidth) {
+            lines[currentLine] = testLine;
+          } else {
+            currentLine++;
+            lines[currentLine] = word;
+          }
+        }
+
+        const lineHeight = 12;
+        const minHeight = Math.max(
+          fontSize + 20,
+          lines.length * lineHeight + 16
+        );
+        const boxHeight = Math.max(minHeight, fontSize + 20);
+
+        // Ajustando a posiÃ§Ã£o dos retÃ¢ngulos para dar mais espaÃ§o para a data
+        const boxTopY = yPos - 5; // Reduzido para criar mais espaÃ§o entre a data e a caixa
+
+        // RetÃ¢ngulo cinza (fundo)
+        currentPage.drawRectangle({
+          x: 150,
+          y: boxTopY - boxHeight,
+          width: 396,
+          height: boxHeight,
+          borderColor: rgb(0, 0, 0),
+          color: rgb(0.9, 0.9, 0.9),
+        });
+
+        // RetÃ¢ngulo exterior
+        currentPage.drawRectangle({
+          x: 50,
+          y: boxTopY - boxHeight,
+          width: 496,
+          height: boxHeight,
+          borderColor: rgb(0, 0, 0),
+          borderWidth: 1,
+        });
+
+        // Desenhar cada linha do texto com posicionamento correto
+        lines.forEach((line, index) => {
+          if (line.trim()) {
+            currentPage.drawText(line.trim(), {
+              x: 160,
+              y: boxTopY - index * lineHeight - 15,
+              size: 8,
+              font: font,
+            });
+          }
+        });
+
+        yPos -= boxHeight + 20;
+      }
+    });
+
+    return yPos;
+  };
+
+  // âœ… NOVA FUNÃ‡ÃƒO PARA DESENHAR ORÃ‡AMENTO DE PEÃ‡AS (SEM PREÃ‡OS)
+  const drawPartsQuote = async () => {
+    // Verificar se o checkbox de peÃ§as estÃ¡ marcado e se hÃ¡ peÃ§as
+    if (!order.checklist?.pecas || !order.partsQuoteItems?.length) {
+      return yPos;
+    }
+
+    // Verificar espaÃ§o para a seÃ§Ã£o
+    if (checkAndCreateNewPage(200)) {
+      drawPageHeader();
+    }
+
+    yPos -= 40;
+
+    // TÃ­tulo da seÃ§Ã£o
+    currentPage.drawText("OrÃ§amento de PeÃ§as:", {
+      x: 50,
+      y: yPos,
+      size: fontSize + 1,
+      font: boldFont,
+      color: rgb(0, 0, 0),
+    });
+
+    yPos -= 15;
+
+    // âœ… ENRIQUECER PEÃ‡AS COM DADOS COMPLETOS
+    const enrichedParts = await enrichPartsWithData(order.partsQuoteItems);
+
+    // âœ… CABEÃ‡ALHO DA TABELA DE PEÃ‡AS (SEM PREÃ‡OS)
+    const tableHeaders = ["Imagem", "Item", "CÃ³digo", "Qtd"];
+    // âœ… Redistribuir espaÃ§o das colunas (total: 495px)
+    const columnWidths = [55, 280, 100, 60];
+    let xPos = margin;
+
+    // Desenhar cabeÃ§alho
+    tableHeaders.forEach((header, index) => {
+      currentPage.drawRectangle({
+        x: xPos,
+        y: yPos - 25,
+        width: columnWidths[index],
+        height: 25,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+        color: rgb(0.9, 0.9, 0.9),
+      });
+
+      const textWidth = boldFont.widthOfTextAtSize(header, fontSize);
+      currentPage.drawText(header, {
+        x: xPos + (columnWidths[index] - textWidth) / 2,
+        y: yPos - 15,
+        size: fontSize,
+        font: boldFont,
+      });
+
+      xPos += columnWidths[index];
+    });
+
+    yPos -= 25;
+
+    // âœ… DESENHAR ITENS DAS PEÃ‡AS (SEM PREÃ‡OS)
+    for (let idx = 0; idx < enrichedParts.length; idx++) {
+      const part = enrichedParts[idx];
+
+      // Verificar espaÃ§o para o item
+      const itemHeight = 40;
+      if (checkAndCreateNewPage(itemHeight + 10)) {
+        drawPageHeader();
+        // Redesenhar cabeÃ§alho se mudou de pÃ¡gina
+        xPos = margin;
+        tableHeaders.forEach((header, index) => {
+          currentPage.drawRectangle({
+            x: xPos,
+            y: yPos - 25,
+            width: columnWidths[index],
+            height: 25,
+            borderColor: rgb(0, 0, 0),
+            borderWidth: 1,
+            color: rgb(0.9, 0.9, 0.9),
+          });
+
+          const textWidth = boldFont.widthOfTextAtSize(header, fontSize);
+          currentPage.drawText(header, {
+            x: xPos + (columnWidths[index] - textWidth) / 2,
+            y: yPos - 15,
+            size: fontSize,
+            font: boldFont,
+          });
+
+          xPos += columnWidths[index];
+        });
+        yPos -= 25;
+      }
+
+      // âœ… CORES INTERCALADAS (simples: cinzento/branco)
+      const bgColor = idx % 2 === 0 ? rgb(0.9, 0.9, 0.9) : rgb(1, 1, 1);
+
+      // âœ… QUEBRAR NOME DA PEÃ‡A SE FOR MUITO LONGO
+      const nameLines = wrapText(
+        part.name || "Nome nÃ£o disponÃ­vel",
+        columnWidths[1] - 10,
+        font,
+        fontSize
+      );
+      const maxLines = Math.min(nameLines.length, 3);
+      const actualItemHeight = Math.max(itemHeight, maxLines * 12 + 10);
+
+      xPos = margin;
+
+      // âœ… COLUNA 1: IMAGEM
+      currentPage.drawRectangle({
+        x: xPos,
+        y: yPos - actualItemHeight,
+        width: columnWidths[0],
+        height: actualItemHeight,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+        color: bgColor,
+      });
+
+      // Tentar carregar e mostrar imagem
+      try {
+        let imageData = null;
+
+        if (part.imageHash) {
+          const libraryImageData = await loadImageFromLibrary(part.imageHash);
+          if (libraryImageData) {
+            imageData = await loadImageData(libraryImageData);
+          }
+        } else if (part.image) {
+          imageData = await loadImageData(part.image);
+        }
+
+        if (imageData) {
+          const partImage = imageData.isJpeg
+            ? await pdfDoc.embedJpg(imageData.data)
+            : await pdfDoc.embedPng(imageData.data);
+
+          const maxImgWidth = columnWidths[0] - 6;
+          const maxImgHeight = actualItemHeight - 6;
+
+          let imgWidth = maxImgWidth;
+          let imgHeight = (imgWidth * partImage.height) / partImage.width;
+
+          if (imgHeight > maxImgHeight) {
+            imgHeight = maxImgHeight;
+            imgWidth = (imgHeight * partImage.width) / partImage.height;
+          }
+
+          currentPage.drawImage(partImage, {
+            x: xPos + (columnWidths[0] - imgWidth) / 2,
+            y: yPos - actualItemHeight + (actualItemHeight - imgHeight) / 2,
+            width: imgWidth,
+            height: imgHeight,
+          });
+        } else {
+          currentPage.drawText("N/A", {
+            x: xPos + columnWidths[0] / 2 - 8,
+            y: yPos - actualItemHeight / 2 - 4,
+            size: smallFontSize,
+            font: font,
+            color: rgb(0.6, 0.6, 0.6),
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao processar imagem:", error);
+        currentPage.drawText("N/A", {
+          x: xPos + columnWidths[0] / 2 - 8,
+          y: yPos - actualItemHeight / 2 - 4,
+          size: smallFontSize,
+          font: font,
+          color: rgb(0.6, 0.6, 0.6),
+        });
+      }
+
+      xPos += columnWidths[0];
+
+      // âœ… COLUNA 2: NOME DA PEÃ‡A
+      currentPage.drawRectangle({
+        x: xPos,
+        y: yPos - actualItemHeight,
+        width: columnWidths[1],
+        height: actualItemHeight,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+        color: bgColor,
+      });
+
+      nameLines.slice(0, maxLines).forEach((line, lineIndex) => {
+        currentPage.drawText(line, {
+          x: xPos + 3,
+          y: yPos - 12 - lineIndex * 10,
+          size: fontSize,
+          font: font,
+          color: rgb(0, 0, 0),
+        });
+      });
+
+      xPos += columnWidths[1];
+
+      // âœ… COLUNA 3: CÃ“DIGO
+      currentPage.drawRectangle({
+        x: xPos,
+        y: yPos - actualItemHeight,
+        width: columnWidths[2],
+        height: actualItemHeight,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+        color: bgColor,
+      });
+
+      const codeText = part.code || "N/A";
+      const codeTextWidth = font.widthOfTextAtSize(codeText, fontSize);
+
+      currentPage.drawText(codeText, {
+        x: xPos + (columnWidths[2] - codeTextWidth) / 2,
+        y: yPos - actualItemHeight / 2 - 4,
+        size: fontSize,
+        font: font,
+        color: rgb(0, 0, 0),
+      });
+
+      xPos += columnWidths[2];
+
+      // âœ… COLUNA 4: QUANTIDADE
+      currentPage.drawRectangle({
+        x: xPos,
+        y: yPos - actualItemHeight,
+        width: columnWidths[3],
+        height: actualItemHeight,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+        color: bgColor,
+      });
+
+      const qtyText = part.quantity.toString();
+      const qtyTextWidth = font.widthOfTextAtSize(qtyText, fontSize);
+
+      currentPage.drawText(qtyText, {
+        x: xPos + (columnWidths[3] - qtyTextWidth) / 2,
+        y: yPos - actualItemHeight / 2 - 4,
+        size: fontSize,
+        font: font,
+        color: rgb(0, 0, 0),
+      });
+
+      yPos -= actualItemHeight;
+    }
+
+    // âœ… NÃƒO MOSTRAR TOTAL (removido)
+    yPos -= 20; // Apenas espaÃ§o extra no final
+
+    return yPos;
+  };
+
+  // FunÃ§Ã£o para desenhar checkbox
+  const drawCheckbox = (x, y, checked, label) => {
+    // Desenhar caixa
+    currentPage.drawRectangle({
+      x,
+      y,
+      width: 12,
+      height: 12,
+      color: rgb(0.8, 0.8, 0.8),
+      borderWidth: 1,
+    });
+
+    // Desenhar X se estiver marcado
+    if (checked) {
+      currentPage.drawText("X", {
+        x: x + 2.5,
+        y: y + 2,
+        size: fontSize,
+        font: font,
+      });
+    }
+
+    // Desenhar label
+    currentPage.drawText(label, {
+      x: x + 20,
+      y: y + 2,
+      size: fontSize,
+      font: font,
+    });
+  };
+
+  const calculateTotalWorkHours = (workdays) => {
+    let totalMinutes = 0;
+    workdays.forEach((day) => {
+      if (day.startHour && day.endHour) {
+        const workHours = calculateHoursWithPause(
+          day.startHour,
+          day.endHour,
+          day.pauseHours || "0:00"
+        );
+        const [hours, minutes] = workHours.split(":").map(Number);
+        totalMinutes += hours * 60 + minutes;
+      }
+    });
+
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}:${minutes.toString().padStart(2, "0")}`;
+  };
+
+  const calculateTotalKm = (workdays) => {
+    return workdays
+      .reduce((total, day) => {
+        const departure = parseFloat(day.kmDeparture) || 0;
+        const returnKm = parseFloat(day.kmReturn) || 0;
+        return total + departure + returnKm;
+      }, 0)
+      .toFixed(2);
+  };
+
+  const calculateTotalTravelHours = (workdays) => {
+    let totalMinutes = 0;
+    workdays.forEach((day) => {
+      // Calcular tempo de ida apenas se todos os campos estiverem preenchidos
+      if (day.departureTime && day.arrivalTime) {
+        const goingHours = calculateHours(day.departureTime, day.arrivalTime);
+        if (goingHours !== "0") {
+          const [goingH, goingM] = goingHours.split(":").map(Number);
+          totalMinutes += goingH * 60 + goingM;
+        }
+      }
+
+      // Calcular tempo de volta apenas se todos os campos estiverem preenchidos
+      if (day.returnDepartureTime && day.returnArrivalTime) {
+        const returnHours = calculateHours(
+          day.returnDepartureTime,
+          day.returnArrivalTime
+        );
+        if (returnHours !== "0") {
+          const [returnH, returnM] = returnHours.split(":").map(Number);
+          totalMinutes += returnH * 60 + returnM;
+        }
+      }
+    });
+
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}:${minutes.toString().padStart(2, "0")}`;
+  };
+
+  // FunÃ§Ã£o auxiliar para tratar o texto antes de renderizar
+  const sanitizeText = (text) => {
+    if (!text) return "";
+    return text
+      .replace(/\n/g, " ") // Substitui quebras de linha por espaÃ§os
+      .replace(/\r/g, " ") // Substitui retornos de carro por espaÃ§os
+      .replace(/\t/g, " ") // Substitui tabulaÃ§Ãµes por espaÃ§os
+      .replace(/\s+/g, " ") // Substitui mÃºltiplos espaÃ§os por um Ãºnico espaÃ§o
+      .replace(/[^\x20-\x7E]/g, "") // Remove caracteres nÃ£o-ASCII
+      .trim(); // Remove espaÃ§os no inÃ­cio e fim
+  };
+
+  // FunÃ§Ã£o auxiliar para calcular a altura necessÃ¡ria do texto
+  const calculateTextHeight = (text, maxWidth, fontSize, font) => {
+    const sanitizedText = sanitizeText(text);
+    const words = sanitizedText.split(" ");
+    let currentLine = "";
+    let lines = 1;
+
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const width = font.widthOfTextAtSize(testLine, fontSize);
+
+      if (width <= maxWidth) {
+        currentLine = testLine;
+      } else {
+        currentLine = word;
+        lines++;
+      }
+    }
+
+    return lines * (fontSize + 2);
+  };
+
+  // FunÃ§Ã£o para desenhar texto com quebra de linha
+  const drawWrappedText = (page, text, x, y, maxWidth, fontSize, font) => {
+    const sanitizedText = sanitizeText(text);
+    const words = sanitizedText.split(" ");
+    let currentLine = "";
+    let currentY = y;
+    const lineHeight = fontSize + 2;
+
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const width = font.widthOfTextAtSize(testLine, fontSize);
+
+      if (width <= maxWidth) {
+        currentLine = testLine;
+      } else {
+        if (currentLine) {
+          page.drawText(currentLine, {
+            x,
+            y: currentY,
+            size: fontSize,
+            font: font,
+          });
+          currentY -= lineHeight;
+        }
+        currentLine = word;
+      }
+    }
+
+    if (currentLine) {
+      page.drawText(currentLine, {
+        x,
+        y: currentY,
+        size: fontSize,
+        font: font,
+      });
+    }
+
+    return currentY;
+  };
+
+  // FunÃ§Ã£o principal para desenhar a caixa de texto ajustÃ¡vel
+  const drawAdjustableTextBox = (page, label, text, x, y, options = {}) => {
+    const {
+      fontSize = 10,
+      boxWidth = 396,
+      labelWidth = 100,
+      font,
+      minHeight = 30,
+      padding = 10,
+      labelOffset = 6,
+    } = options;
+
+    // Data do dia - Ajustado para ter mais espaÃ§amento
+    currentPage.drawText(label, {
+      x: x + 5,
+      y: y - 12 - labelOffset / 2,
+      size: fontSize,
+      font: boldFont,
+    });
+
+    // Calcular altura necessÃ¡ria para a descriÃ§Ã£o
+    const maxWidth = boxWidth - padding * 2;
+    const words = sanitizeText(safeText(text))
+      .split(" ")
+      .filter((word) => word.trim() !== "");
+    let lines = [""];
+    let currentLine = 0;
+
+    for (const word of words) {
+      const testLine =
+        lines[currentLine] + (lines[currentLine] ? " " : "") + word;
+      const testWidth = font.widthOfTextAtSize(testLine, fontSize - 2);
+
+      if (testWidth <= maxWidth) {
+        lines[currentLine] = testLine;
+      } else {
+        currentLine++;
+        lines[currentLine] = word;
+      }
+    }
+
+    const lineHeight = fontSize + 2;
+    const boxHeight = Math.max(
+      minHeight,
+      lines.length * lineHeight + padding * 2
+    );
+
+    // RetÃ¢ngulo cinza (fundo)
+    page.drawRectangle({
+      x: x + labelWidth,
+      y: y - boxHeight,
+      width: boxWidth,
+      height: boxHeight,
+      borderColor: rgb(0, 0, 0),
+      color: rgb(0.9, 0.9, 0.9),
+    });
+
+    // RetÃ¢ngulo exterior
+    page.drawRectangle({
+      x: x,
+      y: y - boxHeight,
+      width: boxWidth + labelWidth,
+      height: boxHeight,
+      borderColor: rgb(0, 0, 0),
+      borderWidth: 1,
+    });
+
+    // Desenhar cada linha do texto
+    lines.forEach((line, index) => {
+      if (line.trim()) {
+        page.drawText(line.trim(), {
+          x: x + labelWidth + padding,
+          y: y - index * lineHeight - padding - 2,
+          size: fontSize - 2,
+          font: font,
+        });
+      }
+    });
+
+    return y - boxHeight - 10; // Ajustado o espaÃ§amento para prÃ³ximo elemento
+  };
+
+  // FunÃ§Ã£o para desenhar resultados com os checkboxes originais
+  const drawResults = () => {
+    if (checkAndCreateNewPage(300)) {
+      drawPageHeader();
+    }
+
+    yPos -= 40;
+    // SeÃ§Ã£o de totais
+    currentPage.drawText("Total de Horas de Trabalho:", {
+      x: 50,
+      y: yPos,
+      size: fontSize,
+      font: boldFont,
+    });
+    currentPage.drawText(calculateTotalWorkHours(workdays) + "h", {
+      x: 50,
+      y: yPos - 20,
+      size: fontSize,
+      font: font,
+    });
+
+    currentPage.drawText("Total de Km's Percorridos:", {
+      x: 200,
+      y: yPos,
+      size: fontSize,
+      font: boldFont,
+    });
+    currentPage.drawText(calculateTotalKm(workdays) + " km", {
+      x: 200,
+      y: yPos - 20,
+      size: fontSize,
+      font: font,
+    });
+
+    currentPage.drawText("Total de Horas de Viagem:", {
+      x: 350,
+      y: yPos,
+      size: fontSize,
+      font: boldFont,
+    });
+    currentPage.drawText(calculateTotalTravelHours(workdays) + "h", {
+      x: 350,
+      y: yPos - 20,
+      size: fontSize,
+      font: font,
+    });
+
+    // Resultados do trabalho
+    yPos -= 60;
+    currentPage.drawText("Resultados do Trabalho:", {
+      x: 50,
+      y: yPos,
+      size: fontSize,
+      font: boldFont,
+    });
+
+    // Primeira coluna de checkboxes
+    yPos -= 30;
+    drawCheckbox(50, yPos, order.checklist.concluido, "ServiÃ§o ConcluÃ­do");
+    yPos -= 20;
+    drawCheckbox(50, yPos, order.checklist.retorno, "Retorno NecessÃ¡rio");
+
+    // Segunda coluna
+    yPos += 20;
+    drawCheckbox(
+      170,
+      yPos,
+      order.checklist.funcionarios,
+      "InstruÃ§Ã£o dos FuncionÃ¡rios"
+    );
+    yPos -= 20;
+    drawCheckbox(
+      170,
+      yPos,
+      order.checklist.documentacao,
+      "Entrega da DocumentaÃ§Ã£o"
+    );
+
+    // Terceira coluna
+    yPos += 20;
+    drawCheckbox(
+      340,
+      yPos,
+      order.checklist.producao,
+      "LiberaÃ§Ã£o para ProduÃ§Ã£o"
+    );
+    yPos -= 20;
+    drawCheckbox(
+      340,
+      yPos,
+      order.checklist.pecas,
+      "Envio do OrÃ§amento de PeÃ§as"
+    );
+
+    yPos -= 40;
+
+    // Notas com altura ajustÃ¡vel
+    yPos = drawAdjustableTextBox(
+      currentPage,
+      "Notas:",
+      order.resultDescription,
+      50,
+      yPos,
+      {
+        font,
+        fontSize,
+        boxWidth: 396,
+        minHeight: 10,
+        labelOffset: 10,
+      }
+    );
+
+    // Pontos em aberto com altura ajustÃ¡vel
+    yPos = drawAdjustableTextBox(
+      currentPage,
+      "Pontos em Aberto:",
+      order.pontosEmAberto,
+      50,
+      yPos,
+      {
+        font,
+        fontSize,
+        boxWidth: 396,
+        minHeight: 10,
+      }
+    );
+
+    return yPos; // âœ… RETORNAR A POSIÃ‡ÃƒO Y ATUALIZADA
+  };
+
+  // FunÃ§Ã£o para desenhar Ã¡rea de assinaturas
+  const drawSignatures = () => {
+    if (checkAndCreateNewPage(100)) {
+      drawPageHeader();
+    }
+
+    yPos -= 30;
+    currentPage.drawText("Assinatura Cliente e TÃ©cnico:", {
+      x: 50,
+      y: yPos,
+      size: fontSize,
+      font: boldFont,
+    });
+
+    const lineWidth = 150;
+    const gap = 50;
+    const clienteX = (pageWidth - 2 * lineWidth - gap) / 2;
+    const tecnicoX = clienteX + lineWidth + gap;
+
+    yPos -= 40;
+
+    // Linhas de assinatura
+    currentPage.drawLine({
+      start: { x: clienteX, y: yPos },
+      end: { x: clienteX + lineWidth, y: yPos },
+      thickness: 2,
+      color: rgb(0, 0, 0),
+    });
+
+    currentPage.drawLine({
+      start: { x: tecnicoX, y: yPos },
+      end: { x: tecnicoX + lineWidth, y: yPos },
+      thickness: 2,
+      color: rgb(0, 0, 0),
+    });
+
+    // Labels das assinaturas
+    yPos -= 15;
+    currentPage.drawText("(Cliente)", {
+      x: clienteX + lineWidth / 2 - fontSize * 2,
+      y: yPos,
+      size: fontSize,
+      font: font,
+    });
+
+    currentPage.drawText("(TÃ©cnico)", {
+      x: tecnicoX + lineWidth / 2 - fontSize * 2,
+      y: yPos,
+      size: fontSize,
+      font: font,
+    });
+  };
+
+  // âœ… DESENHAR TODAS AS SEÃ‡Ã•ES NA ORDEM CORRETA
+  yPos = drawDescriptions();
+  yPos = drawResults(); // âœ… USAR O yPos RETORNADO
+  yPos = await drawPartsQuote(); // âœ… ORÃ‡AMENTO DE PEÃ‡AS ANTES DAS ASSINATURAS
+  drawSignatures();
+  addPageNumbers();
+
+  // Salvar e fazer download do PDF
+  const pdfBytes = await pdfDoc.save();
+  return { blob: new Blob([pdfBytes], { type: "application/pdf" }), fileName };
+};
+
+// FunÃ§Ãµes auxiliares de cÃ¡lculo
+function calculateHours(start, end) {
+  if (!start || !end) return "0";
+  const startTime = new Date(`1970-01-01T${start}:00`);
+  let endTime = new Date(`1970-01-01T${end}:00`);
+  if (endTime < startTime) endTime.setDate(endTime.getDate() + 1);
+  const diff = (endTime - startTime) / 1000 / 3600;
+  const hours = Math.floor(diff);
+  const minutes = Math.round((diff - hours) * 60);
+  return diff >= 0 ? `${hours}:${minutes.toString().padStart(2, "0")}` : "0";
+}
+
+function calculateHoursWithPause(start, end, pauseHours) {
+  if (!start || !end) return "0";
+  const startTime = new Date(`1970-01-01T${start}:00`);
+  let endTime = new Date(`1970-01-01T${end}:00`);
+  if (endTime < startTime) endTime.setDate(endTime.getDate() + 1);
+  let diff = (endTime - startTime) / 1000 / 3600;
+  const [hours, minutes] = (pauseHours || "0:00").split(":").map(Number);
+  diff -= hours + minutes / 60;
+  const resultHours = Math.floor(diff);
+  const resultMinutes = Math.round((diff - resultHours) * 60);
+  return diff >= 0
+    ? `${resultHours}:${resultMinutes.toString().padStart(2, "0")}`
+    : "0";
+}
+
+export default generateServiceOrderPDF;
