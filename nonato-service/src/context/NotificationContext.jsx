@@ -1,5 +1,5 @@
 // src/context/NotificationContext.jsx
-import React, { createContext, useContext } from "react";
+import { createContext, useContext } from "react";
 import { useNotifications } from "../hooks/useNotifications";
 
 const NotificationContext = createContext();

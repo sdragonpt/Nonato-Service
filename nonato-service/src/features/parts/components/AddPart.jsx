@@ -11,10 +11,8 @@ import {
   Plus,
   X,
   Package,
-  Tag,
   AlertTriangle,
   DollarSign,
-  FileText,
   AlignLeft,
   Brackets,
 } from "lucide-react";

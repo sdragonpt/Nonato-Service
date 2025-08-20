@@ -5,17 +5,14 @@ import {
   collection,
   getDocs,
   addDoc,
-  updateDoc,
-  doc,
   query,
   where,
   limit,
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { getAuth } from "firebase/auth";
 import { useAuth } from "../../hooks/useAuth"; // ✅ NOVO: Importar hook de autenticação
-import { useNavigate } from "react-router-dom";
 import {
   Loader2,
   Store,
@@ -25,10 +22,7 @@ import {
   Phone,
   MessageSquare,
   Clock,
-  CheckCircle2,
   XCircle,
-  AlertTriangle,
-  Shield,
 } from "lucide-react";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";

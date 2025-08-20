@@ -1,5 +1,4 @@
 // src/features/finances/components/TaxReport.jsx
-import React from "react";
 import {
   FileText,
   Download,

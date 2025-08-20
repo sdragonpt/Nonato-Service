@@ -1,17 +1,11 @@
 // src/features/finances/components/FinancialSummaryCards.jsx
-import React from "react";
 import {
   Euro,
   TrendingUp,
-  TrendingDown,
   AlertTriangle,
   Clock,
   CheckCircle,
-  CreditCard,
   FileText,
-  Calendar,
-  Users,
-  Package,
   BarChart3,
   DollarSign,
   Percent,

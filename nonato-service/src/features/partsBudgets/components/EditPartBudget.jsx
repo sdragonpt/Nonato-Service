@@ -15,22 +15,10 @@ import {
   Save,
   AlertTriangle,
   Calendar,
-  User,
-  Printer,
-  UserCheck,
-  UserX,
-  Package,
   Search,
   Plus,
   Trash2,
-  X,
-  ShoppingCart,
-  Euro,
-  Mail,
-  Phone,
-  Building2,
-  Percent, // ✅ NOVO: Para margem
-  Calculator, // ✅ NOVO: Para cálculos
+  Percent, // ✅ NOVO: Para cálculos
 } from "lucide-react";
 
 // UI Components

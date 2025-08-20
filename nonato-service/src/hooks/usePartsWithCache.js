@@ -5,7 +5,7 @@ import {
   cachedGetDocs, 
   invalidateCache 
 } from '../context/UniversalFirestoreCache.js';
-import { where, orderBy, limit, startAfter } from 'firebase/firestore';
+import { where, orderBy, limit } from 'firebase/firestore';
 
 // 🎣 Hook para buscar peça única com cache
 export const usePartWithCache = (partId, options = {}) => {

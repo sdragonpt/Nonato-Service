@@ -10,7 +10,6 @@ import {
   Loader2,
   AlertTriangle,
   User,
-  Settings,
   UserPlus,
   Zap,
   Package,

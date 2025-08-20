@@ -2,7 +2,6 @@ import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import formatEuroNumber from "../../../../utils/formatters/formatEuroNumber";
 import {
   calculateTotalsWithIVA,
-  formatCurrency,
 } from "@/utils/formatters/budgetCalculations";
 
 const generateBudgetPDF = async (

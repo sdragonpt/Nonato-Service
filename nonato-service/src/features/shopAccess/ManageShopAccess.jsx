@@ -24,7 +24,6 @@ import {
   Store,
   RefreshCw,
   Copy,
-  Shield,
   Mail,
   Phone,
   Building2,
@@ -64,7 +63,6 @@ import {
 } from "@/components/ui/collapsible.jsx";
 import {
   Tabs,
-  TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs.jsx";

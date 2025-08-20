@@ -28,7 +28,6 @@ import {
   Building2,
   ShoppingCart,
   Tag,
-  Calendar,
   Trash2,
 } from "lucide-react";
 
@@ -37,7 +36,6 @@ import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";

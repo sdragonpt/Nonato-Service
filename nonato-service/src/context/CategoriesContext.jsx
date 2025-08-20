@@ -1,6 +1,6 @@
 // CategoriesContext.jsx - Cache global para reduzir leituras do Firebase
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { collection, getDocs, query } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 

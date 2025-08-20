@@ -5,8 +5,6 @@ import {
   collection,
   getDocs,
   doc,
-  setDoc,
-  updateDoc,
   getDoc,
   increment,
   writeBatch,
@@ -19,7 +17,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   FileImage,
-  Trash2,
   Download,
 } from "lucide-react";
 

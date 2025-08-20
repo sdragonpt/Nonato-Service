@@ -4,8 +4,7 @@ import {
   getDoc, 
   getDocs, 
   collection, 
-  query,
-  onSnapshot 
+  query 
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 

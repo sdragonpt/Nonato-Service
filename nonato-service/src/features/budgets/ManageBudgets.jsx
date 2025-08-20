@@ -28,7 +28,6 @@ import {
   Receipt,
   FileCheck,
   AlertTriangle,
-  Edit,
   Edit2,
   ChevronLeft,
   ChevronRight,
@@ -46,10 +45,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import {
-  calculateTotalsWithIVA,
-  formatCurrency,
-} from "@/utils/formatters/budgetCalculations";
+
+
 
 const BudgetCard = ({ budget, onDelete, onViewPDF, clientName, navigate }) => {
   const Icon =

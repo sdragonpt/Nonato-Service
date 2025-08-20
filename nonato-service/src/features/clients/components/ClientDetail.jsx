@@ -21,13 +21,10 @@ import {
   Users,
   Printer,
   Phone,
-  Building2,
   MapPin,
   Calendar,
   Hash,
   Euro,
-  Clock,
-  CheckCircle,
   Calculator,
   FileText,
   Package,
@@ -62,7 +59,6 @@ import {
 import {
   PaymentStatusBadge,
   PaymentStatusButtons,
-  VATBreakdown,
 } from "../../../components/financial/FinancialComponents";
 import {
   calculateServiceFinancials,

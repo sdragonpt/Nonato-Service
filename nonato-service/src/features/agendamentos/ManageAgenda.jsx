@@ -32,9 +32,6 @@ import {
   X,
   Zap,
   ArrowRight,
-  User,
-  UserPlus,
-  Settings,
 } from "lucide-react";
 
 // UI Components

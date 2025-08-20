@@ -25,17 +25,14 @@ import {
   Edit2,
   CheckSquare,
   Calendar,
-  User,
   Printer,
   Settings,
   AlertCircle,
   PackageOpen,
-  Edit,
   UserCheck,
   UserX,
   ShoppingCart,
   Package,
-  Euro,
   Receipt,
 } from "lucide-react";
 

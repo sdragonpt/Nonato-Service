@@ -26,7 +26,6 @@ import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
 import {
   Users,
   Wrench,
-  Package,
   Book,
   ClipboardList,
   BarChart,
@@ -39,7 +38,6 @@ import {
   ClipboardCheck,
   Loader2,
   ChevronDown,
-  Bell,
   Settings,
   User,
   UserCog,
@@ -48,7 +46,6 @@ import {
   Shield,
   Database,
   RotateCcw,
-  Zap,
   Calculator,
   Euro,
 } from "lucide-react";

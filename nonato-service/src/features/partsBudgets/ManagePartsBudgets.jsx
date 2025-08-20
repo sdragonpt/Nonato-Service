@@ -1,5 +1,5 @@
 // src/features/partsBudgets/ManagePartsBudgets.jsx - ✅ CORRIGIDO
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   collection,
@@ -22,15 +22,12 @@ import {
   Trash2,
   Clock,
   CheckCircle2,
-  XCircle,
   Calculator,
   AlertTriangle,
-  User,
   Package,
   ChevronLeft,
   ChevronRight,
   FileText,
-  Download,
   ArrowLeft, // ✅ NOVO: Para voltar atrás
   Undo2, // ✅ NOVO: Para voltar atrás
 } from "lucide-react";
@@ -39,8 +36,6 @@ import {
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Input } from "@/components/ui/input.jsx";

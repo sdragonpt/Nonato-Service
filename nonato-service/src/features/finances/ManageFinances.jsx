@@ -6,13 +6,11 @@ import { db } from "../../firebase";
 import {
   TrendingUp,
   TrendingDown,
-  DollarSign,
   Euro,
   PieChart,
   BarChart3,
   Calendar,
   Download,
-  Filter,
   Loader2,
   AlertTriangle,
   Package,
@@ -29,7 +27,6 @@ import {
   CardTitle,
 } from "@/components/ui/card.jsx";
 import { Button } from "@/components/ui/button.jsx";
-import { Badge } from "@/components/ui/badge.jsx";
 import {
   Select,
   SelectContent,
@@ -46,7 +43,6 @@ import {
   groupServicesByType,
   formatPrice,
   formatPercentage,
-  getPaymentStatus,
 } from "../../utils/financialUtils";
 
 const ManageFinances = () => {

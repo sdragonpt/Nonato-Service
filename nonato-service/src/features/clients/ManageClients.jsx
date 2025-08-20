@@ -9,7 +9,6 @@ import {
   Loader2,
   MoreVertical,
   Eye,
-  Edit,
   Trash2,
   Users,
   Building2,
@@ -21,7 +20,6 @@ import {
   CheckCircle,
   CreditCard,
   Euro,
-  Phone,
   MapPin,
   ArrowUpDown,
   ChevronLeft,
@@ -33,7 +31,6 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -56,14 +53,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Financial utils
 import { 
   calculateServiceFinancials, 
   getPaymentStatus, 
-  formatPrice,
-  isServiceOverdue
+  formatPrice
 } from "../../utils/financialUtils";
 
 // ===================================

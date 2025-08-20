@@ -1,5 +1,5 @@
 // src/features/finances/components/MonthlyChart.jsx
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   BarChart3,
   TrendingUp,
@@ -9,7 +9,6 @@ import {
   Info,
   Calendar,
   Euro,
-  Calculator,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

@@ -3,8 +3,6 @@ import {
   collection,
   getDocs,
   doc,
-  deleteDoc,
-  updateDoc,
   query,
   where,
   writeBatch,
@@ -26,22 +24,15 @@ import {
   RefreshCw,
   Folder,
   FolderOpen,
-  Package,
 } from "lucide-react";
 
 // UI Components
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card.jsx";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu.jsx";
+
+
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";

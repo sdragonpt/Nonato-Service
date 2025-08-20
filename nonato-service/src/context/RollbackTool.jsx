@@ -5,12 +5,10 @@ import {
   collection,
   getDocs,
   doc,
-  updateDoc,
   query,
   where,
   writeBatch,
   getDoc,
-  deleteDoc,
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 import {
@@ -18,10 +16,8 @@ import {
   RotateCcw,
   AlertTriangle,
   CheckCircle2,
-  FileImage,
   Trash2,
   Eye,
-  RefreshCw,
   Shield,
   Clock,
   Database,

@@ -18,17 +18,12 @@ import {
   CardTitle,
 } from "@/components/ui/card.jsx";
 import { Button } from "@/components/ui/button.jsx";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar.jsx";
+
+
 import {
   Users,
   ClipboardList,
-  Wrench,
   FileText,
-  CheckSquare,
   Calendar,
   ClipboardCheck,
   Loader2,
@@ -37,16 +32,10 @@ import {
   ArrowRight,
   AlertCircle,
   TrendingUp,
-  TrendingDown,
   Plus,
   Euro,
-  MapPin,
-  Phone,
-  Zap,
   CheckCircle,
-  XCircle,
   Activity,
-  DollarSign,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge.jsx";
 

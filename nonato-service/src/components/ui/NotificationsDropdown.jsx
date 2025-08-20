@@ -1,5 +1,4 @@
 // src/components/ui/NotificationsDropdown.jsx
-import React from "react";
 import { useNotificationContext } from "../../context/NotificationContext";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";

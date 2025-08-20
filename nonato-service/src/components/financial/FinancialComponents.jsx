@@ -1,17 +1,14 @@
 // src/components/financial/FinancialComponents.jsx
-import React from "react";
 import {
-  Euro,
   TrendingUp,
   TrendingDown,
   AlertTriangle,
   Clock,
   CheckCircle,
-  CreditCard,
   FileText,
   Package,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "../../utils/financialUtils";

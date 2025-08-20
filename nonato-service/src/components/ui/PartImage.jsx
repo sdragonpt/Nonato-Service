@@ -1,5 +1,5 @@
 // PartImage.jsx - OTIMIZADO: Componente de imagem com cache inteligente
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Package } from "lucide-react";
 import imageCache from "../../context/ImageCacheManager";
 

@@ -25,7 +25,6 @@ import {
   Search,
   X,
   ShoppingCart,
-  Euro,
 } from "lucide-react";
 
 // UI Components

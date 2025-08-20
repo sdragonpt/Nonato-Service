@@ -5,9 +5,7 @@ import { db } from '../firebase';
 import {
   calculateServiceFinancials,
   getPaymentStatus,
-  calculateFinancialSummary,
-  isServiceOverdue,
-  FINANCIAL_CONSTANTS
+  calculateFinancialSummary
 } from '../utils/financialUtils';
 
 // ===================================

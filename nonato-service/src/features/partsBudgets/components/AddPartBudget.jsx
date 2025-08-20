@@ -10,7 +10,6 @@ import {
   Search,
   Plus,
   Trash2,
-  X,
   Calculator,
   Percent,
   Package,

@@ -8,8 +8,6 @@ import {
   updateDoc,
   collection,
   getDocs,
-  query,
-  where,
   setDoc,
 } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
@@ -31,7 +29,6 @@ import {
   Plus,
   X,
   ShoppingCart,
-  Euro,
 } from "lucide-react";
 
 // UI Components
