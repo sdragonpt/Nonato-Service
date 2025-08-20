@@ -1,4 +1,4 @@
-// App.jsx - VERSÃO REORGANIZADA E OTIMIZADA
+// App.jsx - VERSÃO MODERNA E OTIMIZADA
 
 import React, { useState, useEffect, useCallback } from "react";
 
@@ -18,6 +18,7 @@ import {
 } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
+import { motion, AnimatePresence } from "framer-motion";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🎨 IMPORTS DE ÍCONES
@@ -36,7 +37,6 @@ import {
   Calendar,
   FileText,
   ClipboardCheck,
-  Loader2,
   ChevronDown,
   Settings,
   User,
@@ -48,6 +48,11 @@ import {
   RotateCcw,
   Calculator,
   Euro,
+  Building2,
+  Sparkles,
+  Bell,
+  Search,
+  Home,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -64,6 +69,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🏗️ IMPORTS DE COMPONENTES ESSENCIAIS (NÃO LAZY)
@@ -78,7 +84,7 @@ import { useAuth } from "./hooks/useAuth";
 import { initOldBrowserSupport } from "./utils/oldBrowserUtils.js";
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 📄 IMPORTS DE PÁGINAS PRINCIPAIS (LAZY LOADING)
+// 📄 IMPORTS DE PÁGINAS PRINCIPAIS (LAZY LOADING SIMPLIFICADO)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const InitialPage = React.lazy(() => import("./pages/initial/InitialPage"));
@@ -321,6 +327,7 @@ const RollbackTool = React.lazy(() => import("./context/RollbackTool"));
 const NAVIGATION_ITEMS = [
   {
     title: "Cadastro",
+    icon: Users,
     items: [
       { path: "/app/parts-library", icon: Book, label: "Biblioteca de Peças" },
       { path: "/app/manage-clients", icon: Users, label: "Clientes" },
@@ -330,6 +337,7 @@ const NAVIGATION_ITEMS = [
   },
   {
     title: "Gestão",
+    icon: ClipboardList,
     items: [
       { path: "/app/manage-agenda", icon: Calendar, label: "Agenda" },
       { path: "/app/manage-checklist", icon: CheckSquare, label: "Check List" },
@@ -354,6 +362,7 @@ const NAVIGATION_ITEMS = [
   },
   {
     title: "Loja Online",
+    icon: Store,
     items: [
       {
         path: "/app/manage-shop-access",
@@ -375,6 +384,7 @@ const NAVIGATION_ITEMS = [
   },
   {
     title: "Administração",
+    icon: Settings,
     items: [
       {
         path: "/app/image-migration",
@@ -397,21 +407,21 @@ const NAVIGATION_ITEMS = [
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Componente para controle de rotas baseadas em role
+ * Componente para controle de rotas baseadas em role - CORRIGIDO
  */
 const RoleRoute = React.memo(({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
 
+  // ✅ AGUARDAR LOADING TERMINAR
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen text-white bg-zinc-900">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
+      <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900" />
     );
   }
 
+  // ✅ VERIFICAR ROLE CORRETAMENTE
   if (!user || !allowedRoles.includes(user.role)) {
-    return <Navigate to="/app" replace />;
+    return <Navigate to="/app/dashboard" replace />;
   }
 
   return children;
@@ -420,7 +430,7 @@ const RoleRoute = React.memo(({ children, allowedRoles }) => {
 RoleRoute.displayName = "RoleRoute";
 
 /**
- * Componente de navegação do usuário (dropdown)
+ * Componente de navegação do usuário (dropdown) - MELHORADO
  */
 const UserNav = React.memo(() => {
   const { user } = useAuth();
@@ -442,37 +452,49 @@ const UserNav = React.memo(() => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-          <Avatar className="h-10 w-10">
+        <Button
+          variant="ghost"
+          className="relative h-10 w-10 rounded-full hover:bg-zinc-700/50 transition-all"
+        >
+          <Avatar className="h-10 w-10 ring-2 ring-green-500/20 hover:ring-green-500/50 transition-all">
             <AvatarImage
               src={user?.photoURL || ""}
               alt={user?.displayName || ""}
             />
-            <AvatarFallback>{user?.displayName?.[0] || "U"}</AvatarFallback>
+            <AvatarFallback className="bg-gradient-to-br from-green-500 to-emerald-600 text-white font-semibold">
+              {user?.displayName?.[0] || "U"}
+            </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        className="w-56 bg-zinc-800 border-zinc-700"
+        className="w-56 bg-zinc-800/95 border-zinc-700/50 backdrop-blur-xl"
         align="end"
       >
+        <div className="px-2 py-2">
+          <p className="text-sm font-medium text-white">
+            {user?.displayName || "Usuário"}
+          </p>
+          <p className="text-xs text-zinc-400">{user?.email}</p>
+        </div>
+        <DropdownMenuSeparator className="bg-zinc-700/50" />
         <DropdownMenuItem
-          className="text-white hover:bg-zinc-700 cursor-pointer"
+          className="text-white hover:bg-zinc-700/50 cursor-pointer"
           onClick={handleNavigateProfile}
         >
           <User className="mr-2 h-4 w-4" />
           <span>Perfil</span>
         </DropdownMenuItem>
         <DropdownMenuItem
-          className="text-white hover:bg-zinc-700 cursor-pointer"
+          className="text-white hover:bg-zinc-700/50 cursor-pointer"
           onClick={handleNavigateSettings}
         >
           <Settings className="mr-2 h-4 w-4" />
           <span>Configurações</span>
         </DropdownMenuItem>
-        <DropdownMenuSeparator className="bg-zinc-700" />
+        <DropdownMenuSeparator className="bg-zinc-700/50" />
         <DropdownMenuItem
-          className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
+          className="text-red-400 hover:bg-red-600/20 focus:text-red-400 cursor-pointer"
           onClick={handleSignOut}
         >
           <LogOut className="mr-2 h-4 w-4" />
@@ -486,12 +508,13 @@ const UserNav = React.memo(() => {
 UserNav.displayName = "UserNav";
 
 /**
- * Shell principal do dashboard com sidebar e navegação
+ * Shell principal do dashboard com sidebar e navegação - SEM LOADERS
  */
 const DashboardShell = React.memo(({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState("");
-  const { user, loading } = useAuth();
+  const [activeSection, setActiveSection] = useState("Cadastro"); // ✅ EXPANDIR PRIMEIRA SEÇÃO POR PADRÃO
+  const [searchQuery, setSearchQuery] = useState("");
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -501,6 +524,10 @@ const DashboardShell = React.memo(({ children }) => {
 
   const handleNavigateUsers = useCallback(() => {
     navigate("/app/manage-users");
+  }, [navigate]);
+
+  const handleNavigateHome = useCallback(() => {
+    navigate("/app/dashboard");
   }, [navigate]);
 
   const isActiveLink = useCallback(
@@ -517,163 +544,275 @@ const DashboardShell = React.memo(({ children }) => {
     }
   }, [location]);
 
-  if (loading || !user) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-zinc-900">
-        <Loader2 className="h-12 w-12 animate-spin text-white" />
-      </div>
-    );
-  }
+  // ✅ EXPANDIR SEÇÕES POR PADRÃO NA PRIMEIRA VISITA
+  useEffect(() => {
+    // Se não há seção ativa, expandir a primeira seção disponível
+    if (!activeSection && NAVIGATION_ITEMS.length > 0) {
+      const firstSection = NAVIGATION_ITEMS.find(
+        (section) => section.title !== "Administração" || user?.role === "admin"
+      );
+      if (firstSection) {
+        setActiveSection(firstSection.title);
+      }
+    }
+  }, [activeSection, user?.role]);
 
   return (
-    <div className="min-h-screen bg-zinc-900">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 overflow-x-hidden">
       {/* Overlay para mobile */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-30 md:hidden backdrop-blur-sm"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
-      {/* Sidebar */}
-      <aside
-        className={`fixed top-0 left-0 z-40 h-screen transition-transform duration-300 w-[280px] bg-zinc-900 border-r border-zinc-800 ${
+      {/* Sidebar - SEMPRE VISÍVEL NO DESKTOP */}
+      <motion.aside
+        className={`fixed top-0 left-0 z-40 h-screen w-[280px] bg-gradient-to-b from-zinc-900/95 to-zinc-800/95 border-r border-zinc-700/50 backdrop-blur-xl transform transition-transform duration-300 overflow-hidden ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         } md:translate-x-0`}
       >
-        <div className="h-full px-4 py-4 flex flex-col">
-          {/* Header da sidebar */}
+        <div className="h-full px-4 py-4 flex flex-col overflow-x-hidden">
+          {/* Header da sidebar - MELHORADO */}
           <div className="flex items-center justify-between mb-8 h-16">
-            <Link
-              to="/app"
-              className="text-2xl font-bold text-white hover:text-zinc-200 transition-colors"
+            <motion.div
+              onClick={handleNavigateHome}
+              className="flex items-center gap-3 cursor-pointer group"
+              whileHover={{ opacity: 0.8 }}
+              whileTap={{ scale: 0.98 }}
             >
-              Dashboard
-            </Link>
+              <div className="relative">
+                <Building2 className="h-8 w-8 text-green-500 group-hover:text-emerald-400 transition-colors" />
+                <div className="absolute inset-0 bg-green-500/20 rounded-full blur-xl group-hover:bg-green-500/30 transition-all" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-white group-hover:text-green-100 transition-colors">
+                  Nonato Service
+                </h1>
+                <p className="text-xs text-zinc-400">Sistema de Gestão</p>
+              </div>
+            </motion.div>
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
+              className="md:hidden hover:bg-zinc-700/50"
               onClick={() => setIsSidebarOpen(false)}
             >
               <X className="h-6 w-6 text-zinc-400" />
             </Button>
           </div>
 
-          {/* Navegação */}
-          <div className="flex-1 space-y-4 overflow-y-auto">
+          {/* Barra de pesquisa */}
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+              <Input
+                placeholder="Buscar seções..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-zinc-800/50 border-zinc-700/50 text-white placeholder:text-zinc-500 focus:border-green-500/50 focus:ring-green-500/20"
+              />
+            </div>
+          </div>
+
+          {/* Navegação - SEMPRE VISÍVEL */}
+          <div className="flex-1 space-y-2 overflow-y-auto overflow-x-hidden">
             {NAVIGATION_ITEMS.map((section, idx) => {
               // Filtrar seções admin para não-admins
               if (section.title === "Administração" && user?.role !== "admin") {
                 return null;
               }
 
+              // Filtrar por pesquisa
+              const matchesSearch =
+                searchQuery === "" ||
+                section.title
+                  .toLowerCase()
+                  .includes(searchQuery.toLowerCase()) ||
+                section.items.some((item) =>
+                  item.label.toLowerCase().includes(searchQuery.toLowerCase())
+                );
+
+              if (!matchesSearch) return null;
+
               return (
-                <div key={idx} className="space-y-2">
-                  <button
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="space-y-1"
+                >
+                  <motion.button
                     onClick={() =>
                       setActiveSection(
                         activeSection === section.title ? "" : section.title
                       )
                     }
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg ${
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
                       activeSection === section.title
-                        ? "bg-green-700 hover:bg-green-700 text-white"
-                        : "text-white font-bold bg-green-700/25 hover:bg-green-700/70 hover:border-green-700/70"
-                    } transition-colors`}
-                  >
-                    <span className="text-base font-semibold">
-                      {section.title}
-                    </span>
-                    <ChevronDown
-                      className={`w-4 h-4 transition-transform ${
-                        activeSection === section.title ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-
-                  <div
-                    className={`space-y-1 pl-2 ${
-                      activeSection === section.title ? "block" : "hidden"
+                        ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-500/20"
+                        : "text-zinc-300 hover:bg-zinc-800/50 hover:text-white"
                     }`}
+                    whileHover={{ opacity: 0.9 }}
+                    whileTap={{ scale: 0.98 }}
                   >
-                    {section.items
-                      .filter((item) => {
-                        // Filtrar itens admin-only
-                        if (item.adminOnly && user?.role !== "admin") {
-                          return false;
-                        }
-                        return true;
-                      })
-                      .map((item, itemIdx) => {
-                        if (item.external) {
-                          return (
-                            <a
-                              key={itemIdx}
-                              href={item.path}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={`flex items-center gap-x-3 px-3 py-2 text-sm rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors`}
-                            >
-                              <item.icon className="w-4 h-4" />
-                              {item.label}
-                            </a>
-                          );
-                        }
+                    <div className="flex items-center gap-3">
+                      <section.icon className="w-5 h-5" />
+                      <span className="font-medium">{section.title}</span>
+                    </div>
+                    <motion.div
+                      animate={{
+                        rotate: activeSection === section.title ? 180 : 0,
+                      }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </motion.div>
+                  </motion.button>
 
-                        return (
-                          <Link
-                            key={itemIdx}
-                            to={item.path}
-                            className={`flex items-center gap-x-3 px-3 py-2 text-sm rounded-lg ${
-                              isActiveLink(item.path)
-                                ? "bg-zinc-800 text-white"
-                                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
-                            } transition-colors`}
-                          >
-                            <item.icon className="w-4 h-4" />
-                            {item.label}
-                            {item.adminOnly && (
-                              <Badge className="ml-auto bg-red-500/20 text-red-400 text-xs">
-                                Admin
-                              </Badge>
-                            )}
-                          </Link>
-                        );
-                      })}
-                  </div>
-                </div>
+                  <AnimatePresence>
+                    {activeSection === section.title && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="space-y-1 pl-2 overflow-hidden"
+                      >
+                        {section.items
+                          .filter((item) => {
+                            // Filtrar itens admin-only
+                            if (item.adminOnly && user?.role !== "admin")
+                              return false;
+                            // Filtrar por pesquisa
+                            return (
+                              searchQuery === "" ||
+                              item.label
+                                .toLowerCase()
+                                .includes(searchQuery.toLowerCase())
+                            );
+                          })
+                          .map((item, itemIdx) => {
+                            if (item.external) {
+                              return (
+                                <motion.a
+                                  key={itemIdx}
+                                  href={item.path}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-3 px-4 py-2.5 text-sm rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-all group"
+                                  whileHover={{ opacity: 0.8 }}
+                                  initial={{ opacity: 0, x: -10 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: itemIdx * 0.05 }}
+                                >
+                                  <item.icon className="w-4 h-4 group-hover:text-green-400 transition-colors" />
+                                  {item.label}
+                                </motion.a>
+                              );
+                            }
+
+                            return (
+                              <motion.div
+                                key={itemIdx}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: itemIdx * 0.05 }}
+                              >
+                                <Link
+                                  to={item.path}
+                                  className={`flex items-center gap-3 px-4 py-2.5 text-sm rounded-lg transition-all group ${
+                                    isActiveLink(item.path)
+                                      ? "bg-green-600/20 text-green-400 border border-green-500/30"
+                                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                                  }`}
+                                >
+                                  <item.icon
+                                    className={`w-4 h-4 transition-colors ${
+                                      isActiveLink(item.path)
+                                        ? "text-green-400"
+                                        : "group-hover:text-green-400"
+                                    }`}
+                                  />
+                                  {item.label}
+                                  {item.adminOnly && (
+                                    <Badge className="ml-auto bg-red-500/20 text-red-400 text-xs border-red-500/30">
+                                      Admin
+                                    </Badge>
+                                  )}
+                                </Link>
+                              </motion.div>
+                            );
+                          })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
               );
             })}
           </div>
 
-          {/* Footer da sidebar */}
-          <div className="mt-auto pt-4 border-t border-zinc-800">
+          {/* Footer da sidebar - MELHORADO */}
+          <motion.div
+            className="mt-auto pt-4 border-t border-zinc-700/50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-green-500" />
+                <span className="text-xs text-zinc-400 font-medium">
+                  Sistema Online
+                </span>
+              </div>
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            </div>
             <UserNav />
-          </div>
+          </motion.div>
         </div>
-      </aside>
+      </motion.aside>
 
       {/* Conteúdo principal */}
-      <main className="transition-[margin] duration-300 md:ml-[280px]">
-        {/* Header */}
-        <header className="sticky top-0 z-30 bg-zinc-800/95 backdrop-blur supports-[backdrop-filter]:bg-zinc-800/75 border-b border-zinc-700">
-          <div className="flex h-16 items-center gap-4 px-4">
+      <main className="transition-[margin] duration-300 md:ml-[280px] overflow-x-hidden">
+        {/* Header - DESIGN MODERNO */}
+        <motion.header
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="sticky top-0 z-30 bg-zinc-800/80 backdrop-blur-xl border-b border-zinc-700/50"
+        >
+          <div className="flex h-16 items-center gap-4 px-6">
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
+              className="md:hidden hover:bg-zinc-700/50 transition-all"
               onClick={toggleSidebar}
             >
               <Menu className="h-6 w-6 text-zinc-400" />
             </Button>
 
-            <div className="ml-auto flex items-center gap-4">
+            {/* Breadcrumb melhorado */}
+            <div className="flex items-center gap-2 text-sm text-zinc-400">
+              <Home className="h-4 w-4" />
+              <span>/</span>
+              <span className="text-white font-medium">
+                {location.pathname.split("/").pop() || "dashboard"}
+              </span>
+            </div>
+
+            <div className="ml-auto flex items-center gap-3">
               {user?.role === "admin" && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-zinc-400 hover:text-white hover:bg-zinc-700/50"
+                  className="text-zinc-400 hover:text-white hover:bg-zinc-700/50 transition-all"
                   onClick={handleNavigateUsers}
                 >
                   <UserCog className="h-5 w-5" />
@@ -682,18 +821,12 @@ const DashboardShell = React.memo(({ children }) => {
               <NotificationsDropdown />
             </div>
           </div>
-        </header>
+        </motion.header>
 
-        {/* Conteúdo das páginas */}
-        <div className="p-4 sm:p-6 lg:p-8">
+        {/* Conteúdo das páginas - CARREGAMENTO INSTANTÂNEO */}
+        <div className="p-6 lg:p-8">
           <ErrorBoundary>
-            <React.Suspense
-              fallback={
-                <div className="flex justify-center items-center min-h-[50vh]">
-                  <Loader2 className="h-8 w-8 animate-spin text-white" />
-                </div>
-              }
-            >
+            <React.Suspense fallback={<div className="min-h-[20vh]" />}>
               {children}
             </React.Suspense>
           </ErrorBoundary>
@@ -706,15 +839,13 @@ const DashboardShell = React.memo(({ children }) => {
 DashboardShell.displayName = "DashboardShell";
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🎯 COMPONENTE PRINCIPAL
+// 🎯 COMPONENTE PRINCIPAL - SEM LOADERS DESNECESSÁRIOS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Componente principal da aplicação
+ * Componente principal da aplicação - OTIMIZADO
  */
 const App = () => {
-  const { user, loading } = useAuth();
-
   // Inicialização única da aplicação
   useEffect(() => {
     let cleanupOldBrowser;
@@ -740,30 +871,17 @@ const App = () => {
     };
   }, []);
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-zinc-900">
-        <Loader2 className="h-12 w-12 animate-spin text-white" />
-      </div>
-    );
-  }
-
   return (
     <NotificationProvider>
       <CategoriesProvider>
         <PartsCacheProvider>
           <Router>
             <React.Suspense
-              fallback={
-                <div className="flex justify-center items-center min-h-screen bg-zinc-900">
-                  <Loader2 className="h-12 w-12 animate-spin text-white" />
-                </div>
-              }
+              fallback={<div className="min-h-screen bg-zinc-900" />}
             >
               <Routes>
                 {/* Redirecionamentos */}
-                <Route path="/" element={<Navigate to="/app" />} />
+                <Route path="/" element={<Navigate to="/app/dashboard" />} />
                 <Route path="/app" element={<Navigate to="/app/dashboard" />} />
 
                 {/* Páginas públicas */}
