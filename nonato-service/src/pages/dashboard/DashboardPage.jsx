@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/card.jsx";
 import { Button } from "@/components/ui/button.jsx";
 
-
 import {
   Users,
   ClipboardList,
@@ -163,7 +162,9 @@ const DashboardPage = () => {
           urgentOrdersSnap.docs.map(async (docSnapshot) => {
             const order = { id: docSnapshot.id, ...docSnapshot.data() };
             if (order.clientId) {
-              const clientDoc = await getDoc(doc(db, "clientes", order.clientId));
+              const clientDoc = await getDoc(
+                doc(db, "clientes", order.clientId)
+              );
               order.client = clientDoc.exists() ? clientDoc.data() : null;
             }
             return order;
@@ -175,10 +176,13 @@ const DashboardPage = () => {
           id: docSnapshot.id,
           ...docSnapshot.data(),
         }));
-        const openOrders = allOrders.filter((order) => order.status !== "Fechado");
+        const openOrders = allOrders.filter(
+          (order) => order.status !== "Fechado"
+        );
         const ordersByPriority = {
           high: openOrders.filter((order) => order.priority === "high").length,
-          normal: openOrders.filter((order) => order.priority === "normal").length,
+          normal: openOrders.filter((order) => order.priority === "normal")
+            .length,
           low: openOrders.filter((order) => order.priority === "low").length,
         };
 
@@ -193,14 +197,18 @@ const DashboardPage = () => {
           recentOrdersSnap.docs.map(async (docSnapshot) => {
             const order = { id: docSnapshot.id, ...docSnapshot.data() };
             if (order.clientId) {
-              const clientDoc = await getDoc(doc(db, "clientes", order.clientId));
+              const clientDoc = await getDoc(
+                doc(db, "clientes", order.clientId)
+              );
               order.client = clientDoc.exists() ? clientDoc.data() : null;
             }
             return {
               id: order.id,
               type: "order",
               title: `Nova ordem de serviço`,
-              description: `${order.client?.name || "Cliente"} - ${order.serviceType}`,
+              description: `${order.client?.name || "Cliente"} - ${
+                order.serviceType
+              }`,
               time: order.date,
               priority: order.priority,
             };
@@ -219,7 +227,9 @@ const DashboardPage = () => {
 
         const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
         const newClientsThisMonth = allClients.filter((client) => {
-          const clientDate = new Date(client.createdAt?.toDate?.() || client.createdAt);
+          const clientDate = new Date(
+            client.createdAt?.toDate?.() || client.createdAt
+          );
           return clientDate >= firstDayOfMonth;
         }).length;
 
@@ -234,10 +244,13 @@ const DashboardPage = () => {
         }).length;
 
         // ✅ 7. PERFORMANCE METRICS (SIMULADOS - VOCÊ PODE CALCULAR REAIS)
-        const completedOrders = allOrders.filter((order) => order.status === "Fechado");
-        const completionRate = allOrders.length > 0 
-          ? Math.round((completedOrders.length / allOrders.length) * 100) 
-          : 0;
+        const completedOrders = allOrders.filter(
+          (order) => order.status === "Fechado"
+        );
+        const completionRate =
+          allOrders.length > 0
+            ? Math.round((completedOrders.length / allOrders.length) * 100)
+            : 0;
 
         // Definir dados da dashboard
         setDashboardData({
@@ -291,7 +304,15 @@ const DashboardPage = () => {
     );
   }
 
-  const { stats, todayActivities, financialMetrics, performance, ordersByPriority, recentActivities, quickStats } = dashboardData;
+  const {
+    stats,
+    todayActivities,
+    financialMetrics,
+    performance,
+    ordersByPriority,
+    recentActivities,
+    quickStats,
+  } = dashboardData;
 
   return (
     <div className="space-y-6">
@@ -328,8 +349,12 @@ const DashboardPage = () => {
           <CardContent className="p-4 relative">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-zinc-300 font-medium">Novos Clientes</p>
-                <p className="text-2xl font-bold text-white">{quickStats.newClientsThisMonth}</p>
+                <p className="text-sm text-zinc-300 font-medium">
+                  Novos Clientes
+                </p>
+                <p className="text-2xl font-bold text-white">
+                  {quickStats.newClientsThisMonth}
+                </p>
                 <p className="text-xs text-blue-400">Este mês</p>
               </div>
               <div className="h-10 w-10 rounded-full bg-blue-500/20 flex items-center justify-center">
@@ -345,7 +370,9 @@ const DashboardPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-zinc-300 font-medium">Ordens</p>
-                <p className="text-2xl font-bold text-white">{quickStats.ordersThisWeek}</p>
+                <p className="text-2xl font-bold text-white">
+                  {quickStats.ordersThisWeek}
+                </p>
                 <p className="text-xs text-green-400">Esta semana</p>
               </div>
               <div className="h-10 w-10 rounded-full bg-green-500/20 flex items-center justify-center">
@@ -360,8 +387,12 @@ const DashboardPage = () => {
           <CardContent className="p-4 relative">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-zinc-300 font-medium">Agendamentos</p>
-                <p className="text-2xl font-bold text-white">{quickStats.appointmentsThisWeek}</p>
+                <p className="text-sm text-zinc-300 font-medium">
+                  Agendamentos
+                </p>
+                <p className="text-2xl font-bold text-white">
+                  {quickStats.appointmentsThisWeek}
+                </p>
                 <p className="text-xs text-purple-400">Esta semana</p>
               </div>
               <div className="h-10 w-10 rounded-full bg-purple-500/20 flex items-center justify-center">
@@ -376,8 +407,12 @@ const DashboardPage = () => {
           <CardContent className="p-4 relative">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-zinc-300 font-medium">Taxa Conclusão</p>
-                <p className="text-2xl font-bold text-white">{performance.completionRate}%</p>
+                <p className="text-sm text-zinc-300 font-medium">
+                  Taxa Conclusão
+                </p>
+                <p className="text-2xl font-bold text-white">
+                  {performance.completionRate}%
+                </p>
                 <p className="text-xs text-yellow-400">Geral</p>
               </div>
               <div className="h-10 w-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
@@ -390,7 +425,6 @@ const DashboardPage = () => {
 
       {/* ✅ SEÇÃO PRINCIPAL - ATIVIDADES DO DIA */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
         {/* AGENDAMENTOS DE HOJE */}
         <Card className="bg-zinc-800 border-zinc-700">
           <CardHeader className="flex flex-row items-center justify-between">
@@ -398,7 +432,10 @@ const DashboardPage = () => {
               <Calendar className="h-5 w-5 mr-2 text-blue-400" />
               Agendamentos de Hoje
             </CardTitle>
-            <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/50">
+            <Badge
+              variant="outline"
+              className="bg-blue-500/10 text-blue-400 border-blue-500/50"
+            >
               {todayActivities.appointments.length}
             </Badge>
           </CardHeader>
@@ -408,7 +445,9 @@ const DashboardPage = () => {
                 {todayActivities.appointments.slice(0, 4).map((appointment) => (
                   <div
                     key={appointment.id}
-                    onClick={() => navigate(`/app/edit-agendamento/${appointment.id}`)}
+                    onClick={() =>
+                      navigate(`/app/edit-agendamento/${appointment.id}`)
+                    }
                     className="p-3 bg-zinc-700/50 hover:bg-zinc-700 rounded-lg cursor-pointer transition-colors"
                   >
                     <div className="flex items-center justify-between">
@@ -416,7 +455,9 @@ const DashboardPage = () => {
                         <div className="h-2 w-2 bg-blue-400 rounded-full"></div>
                         <div>
                           <p className="font-medium text-white">
-                            {appointment.client?.name || appointment.newClientName || "Cliente"}
+                            {appointment.client?.name ||
+                              appointment.newClientName ||
+                              "Cliente"}
                           </p>
                           <p className="text-sm text-zinc-400">
                             {appointment.hora} - {appointment.tipoServico}
@@ -444,7 +485,8 @@ const DashboardPage = () => {
                     onClick={() => navigate("/app/manage-agenda")}
                     className="text-blue-400 hover:text-blue-300 w-full"
                   >
-                    Ver todos os agendamentos <ArrowRight className="w-4 h-4 ml-1" />
+                    Ver todos os agendamentos{" "}
+                    <ArrowRight className="w-4 h-4 ml-1" />
                   </Button>
                 )}
               </div>
@@ -471,7 +513,10 @@ const DashboardPage = () => {
               <AlertCircle className="h-5 w-5 mr-2 text-red-400" />
               Ordens Urgentes
             </CardTitle>
-            <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/50">
+            <Badge
+              variant="outline"
+              className="bg-red-500/10 text-red-400 border-red-500/50"
+            >
               {todayActivities.urgentOrders.length}
             </Badge>
           </CardHeader>
@@ -492,7 +537,8 @@ const DashboardPage = () => {
                             {order.client?.name || "Cliente"}
                           </p>
                           <p className="text-sm text-zinc-400">
-                            {order.serviceType} - {new Date(order.date).toLocaleDateString()}
+                            {order.serviceType} -{" "}
+                            {new Date(order.date).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
@@ -521,66 +567,8 @@ const DashboardPage = () => {
         </Card>
       </div>
 
-      {/* ✅ MÉTRICAS DE PERFORMANCE */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-zinc-800 border-zinc-700">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-zinc-400">Receita Mensal</p>
-                <h3 className="text-2xl font-bold text-white mt-2">
-                  €{financialMetrics.monthlyRevenue.toLocaleString()}
-                </h3>
-                <div className="flex items-center mt-1">
-                  <TrendingUp className="h-4 w-4 text-green-400 mr-1" />
-                  <span className="text-sm text-green-400">+{financialMetrics.revenueGrowth}%</span>
-                </div>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center">
-                <Euro className="h-6 w-6 text-green-500" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-zinc-800 border-zinc-700">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-zinc-400">Pagamentos Pendentes</p>
-                <h3 className="text-2xl font-bold text-white mt-2">
-                  €{financialMetrics.pendingPayments.toLocaleString()}
-                </h3>
-                <p className="text-sm text-yellow-400 mt-1">A receber</p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-yellow-500/10 flex items-center justify-center">
-                <Clock className="h-6 w-6 text-yellow-500" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-zinc-800 border-zinc-700">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-zinc-400">Satisfação Cliente</p>
-                <h3 className="text-2xl font-bold text-white mt-2">
-                  {performance.customerSatisfaction}%
-                </h3>
-                <p className="text-sm text-green-400 mt-1">Excelente</p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-purple-500/10 flex items-center justify-center">
-                <Activity className="h-6 w-6 text-purple-500" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* ✅ SEÇÃO INFERIOR - ORDENS POR PRIORIDADE E ATIVIDADES RECENTES */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
         {/* DISTRIBUIÇÃO DE ORDENS POR PRIORIDADE */}
         <Card className="bg-zinc-800 border-zinc-700">
           <CardHeader>
@@ -597,7 +585,7 @@ const DashboardPage = () => {
                   {ordersByPriority.high}
                 </Badge>
               </div>
-              
+
               <div className="flex items-center justify-between p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                 <div className="flex items-center gap-3">
                   <Clock className="h-5 w-5 text-blue-400" />
@@ -607,7 +595,7 @@ const DashboardPage = () => {
                   {ordersByPriority.normal}
                 </Badge>
               </div>
-              
+
               <div className="flex items-center justify-between p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                 <div className="flex items-center gap-3">
                   <CheckCircle className="h-5 w-5 text-green-400" />
@@ -618,7 +606,7 @@ const DashboardPage = () => {
                 </Badge>
               </div>
             </div>
-            
+
             <Button
               variant="outline"
               onClick={() => navigate("/app/manage-orders")}
@@ -633,7 +621,10 @@ const DashboardPage = () => {
         <Card className="bg-zinc-800 border-zinc-700">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-white">Atividades Recentes</CardTitle>
-            <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/50">
+            <Badge
+              variant="outline"
+              className="bg-purple-500/10 text-purple-400 border-purple-500/50"
+            >
               {recentActivities.length}
             </Badge>
           </CardHeader>
@@ -645,13 +636,22 @@ const DashboardPage = () => {
                   className="flex items-center gap-3 p-2 hover:bg-zinc-700/50 rounded-lg cursor-pointer transition-colors"
                   onClick={() => navigate(`/app/order-detail/${activity.id}`)}
                 >
-                  <div className={`h-2 w-2 rounded-full ${
-                    activity.priority === 'high' ? 'bg-red-400' :
-                    activity.priority === 'normal' ? 'bg-blue-400' : 'bg-green-400'
-                  }`}></div>
+                  <div
+                    className={`h-2 w-2 rounded-full ${
+                      activity.priority === "high"
+                        ? "bg-red-400"
+                        : activity.priority === "normal"
+                        ? "bg-blue-400"
+                        : "bg-green-400"
+                    }`}
+                  ></div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-white">{activity.title}</p>
-                    <p className="text-xs text-zinc-400">{activity.description}</p>
+                    <p className="text-sm font-medium text-white">
+                      {activity.title}
+                    </p>
+                    <p className="text-xs text-zinc-400">
+                      {activity.description}
+                    </p>
                   </div>
                   <p className="text-xs text-zinc-500">
                     {new Date(activity.time).toLocaleDateString()}
@@ -669,8 +669,12 @@ const DashboardPage = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-zinc-400">Total Clientes</p>
-                <h3 className="text-xl font-bold text-white mt-1">{stats.clients}</h3>
+                <p className="text-sm font-medium text-zinc-400">
+                  Total Clientes
+                </p>
+                <h3 className="text-xl font-bold text-white mt-1">
+                  {stats.clients}
+                </h3>
               </div>
               <Users className="h-5 w-5 text-blue-500" />
             </div>
@@ -681,8 +685,12 @@ const DashboardPage = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-zinc-400">Total Ordens</p>
-                <h3 className="text-xl font-bold text-white mt-1">{stats.orders}</h3>
+                <p className="text-sm font-medium text-zinc-400">
+                  Total Ordens
+                </p>
+                <h3 className="text-xl font-bold text-white mt-1">
+                  {stats.orders}
+                </h3>
               </div>
               <ClipboardList className="h-5 w-5 text-green-500" />
             </div>
@@ -694,7 +702,9 @@ const DashboardPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-zinc-400">Orçamentos</p>
-                <h3 className="text-xl font-bold text-white mt-1">{stats.budgets}</h3>
+                <h3 className="text-xl font-bold text-white mt-1">
+                  {stats.budgets}
+                </h3>
               </div>
               <FileText className="h-5 w-5 text-yellow-500" />
             </div>
@@ -706,7 +716,9 @@ const DashboardPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-zinc-400">Inspeções</p>
-                <h3 className="text-xl font-bold text-white mt-1">{stats.inspections}</h3>
+                <h3 className="text-xl font-bold text-white mt-1">
+                  {stats.inspections}
+                </h3>
               </div>
               <ClipboardCheck className="h-5 w-5 text-purple-500" />
             </div>
