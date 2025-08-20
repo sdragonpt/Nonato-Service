@@ -1,156 +1,118 @@
-import { useState, useEffect } from "react";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc, arrayUnion } from "firebase/firestore";
-import { db, firebaseApp } from "../firebase";
+import { useState, useEffect } from 'react';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc, setDoc, arrayUnion } from 'firebase/firestore';
+import { db } from '../firebase';
 
 export class AuthorizationError extends Error {
   constructor(message) {
     super(message);
-    this.name = "AuthorizationError";
+    this.name = 'AuthorizationError';
   }
 }
 
 export function useAuth() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [initialLoad, setInitialLoad] = useState(true);
+  const auth = getAuth();
 
   useEffect(() => {
-    const auth = getAuth(firebaseApp);
-
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      try {
-        if (firebaseUser) {
+      if (firebaseUser) {
+        try {
           // Verificar se é um usuário anônimo
           if (firebaseUser.isAnonymous) {
+            // Usuários anônimos são permitidos, mas não são considerados autenticados
+            // para fins de acesso à plataforma
             setUser(null);
             setLoading(false);
             return;
           }
 
-          // ✅ OTIMIZADO: Verificação rápida de autorização
-          const configRef = doc(db, "config", "authorizedEmails");
-          const configDoc = await getDoc(configRef);
-
+          // Verificar configuração de emails autorizados
+          const configDoc = await getDoc(doc(db, 'config', 'authorizedEmails'));
+          
           if (!configDoc.exists()) {
-            await setDoc(configRef, {
-              emails: [
-                "sergionunoribeiro@gmail.com",
-                "service.nonato@gmail.com",
-              ],
+            // Criar documento de configuração se não existir
+            await setDoc(doc(db, 'config', 'authorizedEmails'), {
+              emails: ["sergionunoribeiro@gmail.com", "service.nonato@gmail.com"]
             });
           }
 
-          const authorizedEmails = configDoc.exists()
-            ? configDoc.data()?.emails || []
-            : [];
+          const authorizedEmails = configDoc.exists() ? configDoc.data()?.emails || [] : [];
 
+          // Verificar se o email está autorizado
           if (!authorizedEmails.includes(firebaseUser.email)) {
             await auth.signOut();
-            throw new AuthorizationError(
-              "Usuário não autorizado para acessar o sistema."
-            );
+            throw new AuthorizationError("Usuário não autorizado para acessar o sistema.");
           }
 
-          // ✅ OTIMIZADO: Busca dados do usuário rapidamente
-          const userDoc = doc(db, "users", firebaseUser.uid);
+          // Verificar/criar documento do usuário
+          const userDoc = doc(db, 'users', firebaseUser.uid);
           const userSnapshot = await getDoc(userDoc);
 
           let userData;
-
           if (!userSnapshot.exists()) {
-            // ✅ Criar usuário se não existir (primeira vez)
+            // Criar novo documento de usuário
             userData = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
-              displayName: firebaseUser.displayName || "",
-              photoURL: firebaseUser.photoURL || "",
+              displayName: firebaseUser.displayName || '',
+              photoURL: firebaseUser.photoURL || '',
               createdAt: new Date(),
               lastLogin: new Date(),
-              role:
-                firebaseUser.email === "sergionunoribeiro@gmail.com" ||
-                firebaseUser.email === "service.nonato@gmail.com"
-                  ? "admin"
-                  : "client",
-              authProvider:
-                firebaseUser.providerData[0]?.providerId || "password",
+              role: firebaseUser.email === "sergionunoribeiro@gmail.com" ? "admin" : "client",
+              // Adicionar campo para indicar método de login
+              authProvider: firebaseUser.providerData[0]?.providerId || 'password'
             };
             await setDoc(userDoc, userData);
           } else {
             userData = userSnapshot.data();
-            // ✅ OTIMIZADO: Update mínimo e async (não bloqueia UI)
-            setDoc(
-              userDoc,
-              {
-                lastLogin: new Date(),
-                displayName: firebaseUser.displayName || userData.displayName,
-                photoURL: firebaseUser.photoURL || userData.photoURL,
-              },
-              { merge: true }
-            ).catch(console.error); // Fire and forget
+            // Atualizar último login
+            await setDoc(userDoc, { 
+              lastLogin: new Date(),
+              // Atualizar informações que podem ter mudado
+              displayName: firebaseUser.displayName || userData.displayName,
+              photoURL: firebaseUser.photoURL || userData.photoURL
+            }, { merge: true });
           }
 
           setUser({ ...firebaseUser, ...userData });
-        } else {
+        } catch (error) {
+          console.error('Erro ao processar usuário:', error);
           setUser(null);
         }
-      } catch (error) {
-        console.error("Erro ao processar usuário:", error);
+      } else {
         setUser(null);
-
-        // Se for erro de autorização, não faz mais tentativas
-        if (error instanceof AuthorizationError) {
-          // Usuário será redirecionado pelo ProtectedRoute
-        }
-      } finally {
-        // ✅ OTIMIZADO: Loading muito mais rápido
-        if (initialLoad) {
-          setInitialLoad(false);
-          // Primeiro load: delay mínimo para evitar flash
-          setTimeout(() => setLoading(false), 100);
-        } else {
-          // Subsequent loads: instantâneo
-          setLoading(false);
-        }
       }
+      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [initialLoad]);
+  }, [auth]);
 
-  return {
-    user,
-    loading: initialLoad || loading, // Só mostra loading no primeiro carregamento
-    isAuthenticated: !!user,
-    isAdmin: user?.role === "admin",
-  };
+
+  return { user, loading };
 }
 
 // Função para adicionar um email autorizado
 export async function addAuthorizedEmail(email) {
   try {
-    const configRef = doc(db, "config", "authorizedEmails");
+    const configRef = doc(db, 'config', 'authorizedEmails');
     const configDoc = await getDoc(configRef);
-
+    
     if (!configDoc.exists()) {
+      // Se o documento não existir, criar com o array inicial
       await setDoc(configRef, {
-        emails: [
-          email,
-          "sergionunoribeiro@gmail.com",
-          "service.nonato@gmail.com",
-        ],
+        emails: [email, "sergionunoribeiro@gmail.com", "service.nonato@gmail.com"]
       });
     } else {
-      await setDoc(
-        configRef,
-        {
-          emails: arrayUnion(email),
-        },
-        { merge: true }
-      );
+      // Se existir, adicionar o novo email
+      await setDoc(configRef, {
+        emails: arrayUnion(email)
+      }, { merge: true });
     }
   } catch (error) {
-    console.error("Erro ao adicionar email autorizado:", error);
+    console.error('Erro ao adicionar email autorizado:', error);
     throw error;
   }
 }
