@@ -11,9 +11,9 @@
   },
   "dependencies": {
     "@capacitor-community/file-opener": "^6.0.1",
-    "@capacitor/android": "^6.2.0",
-    "@capacitor/cli": "^6.2.0",
-    "@capacitor/core": "^7.0.1",
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/cli": "^6.2.1",
+    "@capacitor/core": "^6.2.1",
     "@capacitor/filesystem": "^6.0.3",
     "@capacitor/haptics": "^6.0.2",
     "@capacitor/keyboard": "^6.0.3",
@@ -70,6 +70,7 @@
     "eslint-plugin-unused-imports": "^4.1.4",
     "globals": "^15.14.0",
     "postcss": "^8.5.1",
+    "rollup-plugin-visualizer": "^6.0.3",
     "tailwindcss": "^3.4.17",
     "vite": "^6.0.11"
   }
