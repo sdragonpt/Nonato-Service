@@ -1,119 +1,111 @@
-// MetadataCounters.js - Sistema ZERO REQUESTS para contadores
+// MetadataCounters.js - SILENT & FAST: Zero logs + Performance otimizada
 
-import { useState, useEffect, useCallback } from "react"; // ✅ ADICIONADO
+import { useState, useEffect, useCallback } from "react";
 import { doc, getDoc, setDoc, updateDoc, increment } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 
 const METADATA_DOC = "metadata/parts_stats";
 const CACHE_KEY = "parts_counters_cache";
-const CACHE_TTL = 2 * 60 * 60 * 1000; // ✅ 2 HORAS (mínimo requests)
+const CACHE_TTL = 24 * 60 * 60 * 1000; // ✅ 24 HORAS (reduzido de 2h)
 
-// ✅ CACHE EM MEMÓRIA (global para toda a app)
+// ✅ CACHE EM MEMÓRIA GLOBAL - Mais eficiente
 let memoryCache = {
   total: 0,
   byCategory: {},
   bySubcategory: {},
   lastUpdated: null,
-  timestamp: 0
+  timestamp: 0,
+  version: 1,
 };
 
-// ✅ CARREGAR do localStorage na inicialização
-const loadCacheFromStorage = () => {
+// ✅ STORAGE UTILS - Simplificados e silenciosos
+const loadFromStorage = () => {
   try {
     const saved = localStorage.getItem(CACHE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Date.now() - parsed.timestamp < CACHE_TTL) {
+      if (Date.now() - parsed.timestamp < CACHE_TTL && parsed.version === 1) {
         memoryCache = parsed;
-        console.log(`📊 Contadores carregados do localStorage: ${memoryCache.total} total`);
         return true;
       }
     }
-  } catch (error) {
-    console.warn("⚠️ Erro ao carregar cache de contadores:", error);
+  } catch {
+    localStorage.removeItem(CACHE_KEY);
   }
   return false;
 };
 
-// ✅ SALVAR no localStorage
-const saveCacheToStorage = () => {
+const saveToStorage = () => {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(memoryCache));
-  } catch (error) {
-    console.warn("⚠️ Erro ao salvar cache de contadores:", error);
+  } catch {
+    // Storage cheio - ignorar silenciosamente
   }
 };
 
-// ✅ OBTER CONTADORES (ZERO REQUESTS na maioria das vezes)
+// ✅ OBTER CONTADORES - ULTRA RÁPIDO
 export const getPartsCounters = async (forceRefresh = false) => {
-  // 1. Tentar cache em memória primeiro
-  if (!forceRefresh && memoryCache.timestamp > 0 && Date.now() - memoryCache.timestamp < CACHE_TTL) {
-    console.log(`⚡ Contadores do cache (${memoryCache.total} total) - ZERO REQUESTS`);
+  // 1. Cache em memória válido
+  if (
+    !forceRefresh &&
+    memoryCache.timestamp > 0 &&
+    Date.now() - memoryCache.timestamp < CACHE_TTL
+  ) {
     return {
       total: memoryCache.total,
       byCategory: memoryCache.byCategory,
       bySubcategory: memoryCache.bySubcategory,
       lastUpdated: memoryCache.lastUpdated,
       fromCache: true,
-      source: 'memory'
+      source: "memory",
     };
   }
 
   // 2. Tentar localStorage
-  if (!forceRefresh && loadCacheFromStorage()) {
-    console.log(`💾 Contadores do localStorage (${memoryCache.total} total) - ZERO REQUESTS`);
+  if (!forceRefresh && loadFromStorage()) {
     return {
       total: memoryCache.total,
       byCategory: memoryCache.byCategory,
       bySubcategory: memoryCache.bySubcategory,
       lastUpdated: memoryCache.lastUpdated,
       fromCache: true,
-      source: 'localStorage'
+      source: "storage",
     };
   }
 
-  // 3. ✅ ÚNICA VEZ - Buscar do Firestore
+  // 3. Fetch do Firestore (apenas quando necessário)
   try {
-    console.log("📊 Buscando contadores do Firestore (ÚNICO REQUEST)...");
-    
     const docSnap = await getDoc(doc(db, METADATA_DOC));
-    
+
     if (docSnap.exists()) {
       const data = docSnap.data();
-      
-      // Atualizar cache
+
       memoryCache = {
         total: data.totalParts || 0,
         byCategory: data.categoryCounts || {},
         bySubcategory: data.subcategoryCounts || {},
         lastUpdated: data.lastUpdated?.toDate() || new Date(),
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        version: 1,
       };
-      
-      saveCacheToStorage();
-      
-      console.log(`✅ Contadores obtidos: ${memoryCache.total} total - SALVO EM CACHE`);
-      
+
+      saveToStorage();
+
       return {
         total: memoryCache.total,
         byCategory: memoryCache.byCategory,
         bySubcategory: memoryCache.bySubcategory,
         lastUpdated: memoryCache.lastUpdated,
         fromCache: false,
-        source: 'firestore'
+        source: "firestore",
       };
     }
-    
-    // Se não existe, inicializar (só acontece uma vez)
-    console.log("🔧 Inicializando contadores...");
+
+    // Inicializar se não existe
     return await initializeCounters();
-    
   } catch (error) {
-    console.error("❌ Erro ao buscar contadores:", error);
-    
-    // ✅ FALLBACK - Usar cache expirado se disponível
+    // Fallback para cache expirado se disponível
     if (memoryCache.timestamp > 0) {
-      console.log("⚠️ Usando cache expirado como fallback");
       return {
         total: memoryCache.total,
         byCategory: memoryCache.byCategory,
@@ -121,10 +113,10 @@ export const getPartsCounters = async (forceRefresh = false) => {
         lastUpdated: memoryCache.lastUpdated,
         fromCache: true,
         error: error.message,
-        source: 'expired_cache'
+        source: "expired_cache",
       };
     }
-    
+
     return {
       total: 0,
       byCategory: {},
@@ -132,188 +124,222 @@ export const getPartsCounters = async (forceRefresh = false) => {
       lastUpdated: null,
       error: error.message,
       fromCache: false,
-      source: 'error'
+      source: "error",
     };
   }
 };
 
-// ✅ INICIALIZAR (só roda uma vez)
+// ✅ INICIALIZAR - Mais simples
 const initializeCounters = async () => {
   try {
     // Usar aggregation para count inicial
-    const { getCountFromServer, collection } = await import("firebase/firestore");
+    const { getCountFromServer, collection } = await import(
+      "firebase/firestore"
+    );
     const totalSnapshot = await getCountFromServer(collection(db, "pecas"));
     const total = totalSnapshot.data().count;
-    
+
     const initialData = {
       totalParts: total,
       categoryCounts: {},
       subcategoryCounts: {},
       lastUpdated: new Date(),
-      version: 1
+      version: 1,
     };
-    
+
     await setDoc(doc(db, METADATA_DOC), initialData);
-    
-    // Atualizar cache
+
     memoryCache = {
       total,
       byCategory: {},
       bySubcategory: {},
       lastUpdated: new Date(),
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      version: 1,
     };
-    
-    saveCacheToStorage();
-    
-    console.log("✅ Contadores inicializados:", total);
-    
+
+    saveToStorage();
+
     return {
       total,
       byCategory: {},
       bySubcategory: {},
       lastUpdated: new Date(),
       fromCache: false,
-      source: 'initialized'
+      source: "initialized",
     };
-    
   } catch (error) {
-    console.error("❌ Erro ao inicializar contadores:", error);
-    return { total: 0, byCategory: {}, bySubcategory: {}, error: error.message };
+    return {
+      total: 0,
+      byCategory: {},
+      bySubcategory: {},
+      error: error.message,
+      fromCache: false,
+      source: "init_error",
+    };
   }
 };
 
-// ✅ UPDATE LOCAL IMEDIATO (ZERO REQUESTS)
-export const updateCountersLocal = (delta, categoryId = null, subcategoryId = null) => {
-  console.log(`📊 Update local: ${delta > 0 ? '+' : ''}${delta} (ZERO REQUESTS)`);
-  
-  // Atualizar cache em memória
+// ✅ UPDATE LOCAL INSTANTÂNEO - Zero requests
+export const updateCountersLocal = (
+  delta,
+  categoryId = null,
+  subcategoryId = null
+) => {
   memoryCache.total = Math.max(0, memoryCache.total + delta);
-  
+
   if (categoryId) {
-    memoryCache.byCategory[categoryId] = Math.max(0, (memoryCache.byCategory[categoryId] || 0) + delta);
+    memoryCache.byCategory[categoryId] = Math.max(
+      0,
+      (memoryCache.byCategory[categoryId] || 0) + delta
+    );
   }
-  
+
   if (subcategoryId) {
-    memoryCache.bySubcategory[subcategoryId] = Math.max(0, (memoryCache.bySubcategory[subcategoryId] || 0) + delta);
+    memoryCache.bySubcategory[subcategoryId] = Math.max(
+      0,
+      (memoryCache.bySubcategory[subcategoryId] || 0) + delta
+    );
   }
-  
+
   memoryCache.lastUpdated = new Date();
   memoryCache.timestamp = Date.now();
-  
-  // Salvar no localStorage
-  saveCacheToStorage();
-  
-  console.log(`✅ Contadores atualizados localmente: ${memoryCache.total} total`);
-  
+
+  saveToStorage();
+
+  // Emitir evento para listeners
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("counters-updated", {
+        detail: {
+          total: memoryCache.total,
+          delta,
+          categoryId,
+          subcategoryId,
+        },
+      })
+    );
+  }
+
   return {
     total: memoryCache.total,
     byCategory: memoryCache.byCategory,
     bySubcategory: memoryCache.bySubcategory,
     lastUpdated: memoryCache.lastUpdated,
     fromCache: true,
-    source: 'local_update'
+    source: "local_update",
   };
 };
 
-// ✅ INCREMENTAR (Background + Local Update)
-export const incrementPartCount = async (categoryId, subcategoryId) => {
-  // 1. ✅ UPDATE IMEDIATO LOCAL (UI responde instantaneamente)
+// ✅ BACKGROUND UPDATE - Não bloqueia UI
+const queuedUpdates = [];
+let updateTimer = null;
+
+const processQueuedUpdates = async () => {
+  if (queuedUpdates.length === 0) return;
+
+  try {
+    const updates = [...queuedUpdates];
+    queuedUpdates.length = 0; // Limpar queue
+
+    const metadataRef = doc(db, METADATA_DOC);
+    const updateDoc = {};
+
+    let totalDelta = 0;
+    const categoryDeltas = {};
+    const subcategoryDeltas = {};
+
+    // Consolidar todos os updates
+    updates.forEach(({ delta, categoryId, subcategoryId }) => {
+      totalDelta += delta;
+
+      if (categoryId) {
+        categoryDeltas[categoryId] = (categoryDeltas[categoryId] || 0) + delta;
+      }
+
+      if (subcategoryId) {
+        subcategoryDeltas[subcategoryId] =
+          (subcategoryDeltas[subcategoryId] || 0) + delta;
+      }
+    });
+
+    // Aplicar updates consolidados
+    if (totalDelta !== 0) {
+      updateDoc.totalParts = increment(totalDelta);
+    }
+
+    Object.entries(categoryDeltas).forEach(([id, delta]) => {
+      if (delta !== 0) {
+        updateDoc[`categoryCounts.${id}`] = increment(delta);
+      }
+    });
+
+    Object.entries(subcategoryDeltas).forEach(([id, delta]) => {
+      if (delta !== 0) {
+        updateDoc[`subcategoryCounts.${id}`] = increment(delta);
+      }
+    });
+
+    updateDoc.lastUpdated = new Date();
+
+    await updateDoc(metadataRef, updateDoc);
+  } catch (error) {
+    // Se falhou, reverter updates locais
+    queuedUpdates.forEach(({ delta, categoryId, subcategoryId }) => {
+      updateCountersLocal(-delta, categoryId, subcategoryId);
+    });
+  }
+};
+
+// ✅ INCREMENTAR - Background otimizado
+export const incrementPartCount = (categoryId, subcategoryId) => {
+  // 1. Update imediato local
   updateCountersLocal(1, categoryId, subcategoryId);
-  
-  // 2. ✅ UPDATE BACKGROUND (não bloqueia UI)
-  setTimeout(async () => {
-    try {
-      const metadataRef = doc(db, METADATA_DOC);
-      
-      const updates = {
-        totalParts: increment(1),
-        lastUpdated: new Date()
-      };
-      
-      if (categoryId) {
-        updates[`categoryCounts.${categoryId}`] = increment(1);
-      }
-      
-      if (subcategoryId) {
-        updates[`subcategoryCounts.${subcategoryId}`] = increment(1);
-      }
-      
-      await updateDoc(metadataRef, updates);
-      console.log("📈 Contador incrementado no background");
-      
-    } catch (error) {
-      console.error("❌ Erro ao incrementar (background):", error);
-      // Reverter update local se falhou
-      updateCountersLocal(-1, categoryId, subcategoryId);
-    }
-  }, 100); // 100ms delay para não bloquear
+
+  // 2. Queue para background update
+  queuedUpdates.push({ delta: 1, categoryId, subcategoryId });
+
+  // 3. Processar queue (debounced)
+  if (updateTimer) clearTimeout(updateTimer);
+  updateTimer = setTimeout(processQueuedUpdates, 1000); // 1 segundo de delay
 };
 
-// ✅ DECREMENTAR (Background + Local Update)
-export const decrementPartCount = async (categoryId, subcategoryId) => {
-  // 1. ✅ UPDATE IMEDIATO LOCAL
+// ✅ DECREMENTAR - Background otimizado
+export const decrementPartCount = (categoryId, subcategoryId) => {
   updateCountersLocal(-1, categoryId, subcategoryId);
-  
-  // 2. ✅ UPDATE BACKGROUND
-  setTimeout(async () => {
-    try {
-      const metadataRef = doc(db, METADATA_DOC);
-      
-      const updates = {
-        totalParts: increment(-1),
-        lastUpdated: new Date()
-      };
-      
-      if (categoryId) {
-        updates[`categoryCounts.${categoryId}`] = increment(-1);
-      }
-      
-      if (subcategoryId) {
-        updates[`subcategoryCounts.${subcategoryId}`] = increment(-1);
-      }
-      
-      await updateDoc(metadataRef, updates);
-      console.log("📉 Contador decrementado no background");
-      
-    } catch (error) {
-      console.error("❌ Erro ao decrementar (background):", error);
-      // Reverter update local se falhou
-      updateCountersLocal(1, categoryId, subcategoryId);
-    }
-  }, 100);
+  queuedUpdates.push({ delta: -1, categoryId, subcategoryId });
+
+  if (updateTimer) clearTimeout(updateTimer);
+  updateTimer = setTimeout(processQueuedUpdates, 1000);
 };
 
-// ✅ INVALIDAR CACHE (forçar próximo fetch)
+// ✅ INVALIDAR CACHE
 export const invalidateCountersCache = () => {
-  console.log("🧹 Invalidando cache de contadores");
   memoryCache.timestamp = 0;
   localStorage.removeItem(CACHE_KEY);
 };
 
-// ✅ OBTER CONTAGEM ESPECÍFICA (ZERO REQUESTS)
+// ✅ GETTERS DIRETOS - Zero overhead
 export const getSpecificCount = (type, id = null) => {
-  if (memoryCache.timestamp === 0) {
-    return null; // Cache não carregado
-  }
-  
+  if (memoryCache.timestamp === 0) return null;
+
   switch (type) {
-    case 'total':
+    case "total":
       return memoryCache.total;
-    case 'category':
+    case "category":
       return memoryCache.byCategory[id] || 0;
-    case 'subcategory':
+    case "subcategory":
       return memoryCache.bySubcategory[id] || 0;
     default:
       return null;
   }
 };
 
-// ✅ HOOK OTIMIZADO (ZERO REQUESTS)
+// ✅ HOOK ULTRA OTIMIZADO
 export const usePartsCounters = () => {
   const [counters, setCounters] = useState(() => {
-    // ✅ CARREGAR cache imediatamente (síncrono)
-    loadCacheFromStorage();
+    // Carregar cache imediatamente
+    loadFromStorage();
     return {
       total: memoryCache.total,
       byCategory: memoryCache.byCategory,
@@ -321,22 +347,24 @@ export const usePartsCounters = () => {
       loading: memoryCache.timestamp === 0,
       error: null,
       lastUpdated: memoryCache.lastUpdated,
-      source: memoryCache.timestamp > 0 ? 'cache' : 'loading'
+      source: memoryCache.timestamp > 0 ? "cache" : "loading",
     };
   });
 
   const loadCounters = useCallback(async (forceRefresh = false) => {
-    // ✅ Se tem cache válido e não é force refresh, não fazer nada
-    if (!forceRefresh && memoryCache.timestamp > 0 && Date.now() - memoryCache.timestamp < CACHE_TTL) {
-      console.log("⚡ usePartsCounters: Usando cache existente (ZERO REQUESTS)");
-      return;
+    if (
+      !forceRefresh &&
+      memoryCache.timestamp > 0 &&
+      Date.now() - memoryCache.timestamp < CACHE_TTL
+    ) {
+      return; // Cache válido - não fazer nada
     }
 
     try {
-      setCounters(prev => ({ ...prev, loading: true, error: null }));
-      
+      setCounters((prev) => ({ ...prev, loading: true, error: null }));
+
       const data = await getPartsCounters(forceRefresh);
-      
+
       setCounters({
         total: data.total,
         byCategory: data.byCategory,
@@ -344,26 +372,25 @@ export const usePartsCounters = () => {
         loading: false,
         error: data.error || null,
         lastUpdated: data.lastUpdated,
-        source: data.source
+        source: data.source,
       });
-      
     } catch (error) {
-      setCounters(prev => ({ 
-        ...prev, 
-        loading: false, 
-        error: error.message 
+      setCounters((prev) => ({
+        ...prev,
+        loading: false,
+        error: error.message,
       }));
     }
   }, []);
 
-  // ✅ CARREGAR apenas se não tem cache
+  // Carregar apenas se cache não existe
   useEffect(() => {
     if (memoryCache.timestamp === 0) {
       loadCounters();
     }
   }, [loadCounters]);
 
-  // ✅ LISTENER para updates locais
+  // Listener para updates locais
   useEffect(() => {
     const handleLocalUpdate = () => {
       setCounters({
@@ -373,29 +400,32 @@ export const usePartsCounters = () => {
         loading: false,
         error: null,
         lastUpdated: memoryCache.lastUpdated,
-        source: 'local_update'
+        source: "local_update",
       });
     };
 
-    // Event listener customizado para updates
-    window.addEventListener('counters-updated', handleLocalUpdate);
-    return () => window.removeEventListener('counters-updated', handleLocalUpdate);
+    window.addEventListener("counters-updated", handleLocalUpdate);
+    return () =>
+      window.removeEventListener("counters-updated", handleLocalUpdate);
   }, []);
 
-  const refresh = useCallback((force = false) => {
-    loadCounters(force);
-  }, [loadCounters]);
+  const refresh = useCallback(
+    (force = false) => {
+      loadCounters(force);
+    },
+    [loadCounters]
+  );
 
   return {
     counters,
     refresh,
     loading: counters.loading,
-    // ✅ HELPERS DIRETOS (ZERO REQUESTS)
+    // Helpers diretos - Zero requests
     getTotalCount: () => memoryCache.total,
     getCategoryCount: (id) => memoryCache.byCategory[id] || 0,
     getSubcategoryCount: (id) => memoryCache.bySubcategory[id] || 0,
   };
 };
 
-// ✅ CARREGAR cache na inicialização da app
-loadCacheFromStorage();
+// ✅ Carregar cache na inicialização
+loadFromStorage();

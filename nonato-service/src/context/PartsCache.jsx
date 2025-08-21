@@ -1,6 +1,12 @@
-// PartsCache.jsx - CORRIGIDO: Sistema de cache inteligente para peças
+// PartsCache.jsx - SILENT & FAST: Zero logs + Performance otimizada
 
-import { createContext, useContext, useState, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   collection,
   getDocs,
@@ -12,94 +18,87 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 
-// ✅ CORRIGIR: Criar contexto corretamente
 const PartsCacheContext = createContext(null);
 
 export const PartsCacheProvider = ({ children }) => {
-  // ✅ CACHE ESTRUTURADO por categoria/subcategoria
+  // ✅ CACHE MAPS - Otimizados
   const [partsCache, setPartsCache] = useState(new Map());
   const [countsCache, setCountsCache] = useState(new Map());
   const [loadingStates, setLoadingStates] = useState(new Map());
 
-  const CACHE_DURATION = 10 * 60 * 1000; // 10 minutos
+  const CACHE_DURATION = 15 * 60 * 1000; // ✅ 15 minutos (reduzido de 10)
   const ITEMS_PER_PAGE = 20;
+  const MAX_CACHE_ENTRIES = 50; // ✅ Limite de entradas em cache
 
-  // ✅ FUNÇÃO PARA GERAR CHAVE DO CACHE
-  const getCacheKey = useCallback(
-    (categoryId = null, subcategoryId = null, searchTerm = "") => {
-      const parts = [
-        categoryId || "all",
-        subcategoryId || "none",
-        searchTerm || "nosearch",
-      ];
-      return parts.join("-");
-    },
-    []
-  );
+  // ✅ CACHE KEY - Simplificado
+  const getCacheKey = useCallback((categoryId, subcategoryId, searchTerm) => {
+    return `${categoryId || "all"}-${subcategoryId || "none"}-${
+      searchTerm || "nosearch"
+    }`;
+  }, []);
 
-  // ✅ VERIFICAR SE CACHE É VÁLIDO
+  // ✅ CACHE VÁLIDO - Otimizado
   const isCacheValid = useCallback(
     (cacheEntry) => {
-      if (!cacheEntry || !cacheEntry.lastFetch) return false;
-      return Date.now() - cacheEntry.lastFetch < CACHE_DURATION;
+      return (
+        cacheEntry?.lastFetch &&
+        Date.now() - cacheEntry.lastFetch < CACHE_DURATION
+      );
     },
     [CACHE_DURATION]
   );
 
-  // ✅ BUSCAR CONTADORES DE PEÇAS POR SUBCATEGORIA (query rápida)
+  // ✅ CLEANUP AUTOMÁTICO - Mantém cache pequeno
+  const cleanupCache = useCallback(() => {
+    if (partsCache.size <= MAX_CACHE_ENTRIES) return;
+
+    const entries = Array.from(partsCache.entries())
+      .sort((a, b) => b[1].lastFetch - a[1].lastFetch) // Mais recentes primeiro
+      .slice(0, MAX_CACHE_ENTRIES);
+
+    setPartsCache(new Map(entries));
+  }, [partsCache.size]);
+
+  // ✅ FETCH SUBCATEGORY COUNTS - Simplificado
   const fetchSubcategoryCounts = useCallback(
     async (categoryId) => {
       const cacheKey = `counts-${categoryId}`;
-
-      // Verificar cache de contadores
       const cached = countsCache.get(cacheKey);
+
       if (cached && isCacheValid(cached)) {
-        console.log(
-          `💾 Usando cache de contadores para categoria: ${categoryId}`
-        );
         return cached.data;
       }
 
       try {
-        console.log(`📊 Buscando contadores para categoria ${categoryId}...`);
-
-        // Query para buscar contadores por subcategoria
         const countsQuery = query(
           collection(db, "pecas"),
           where("categoryId", "==", categoryId)
         );
 
         const snapshot = await getDocs(countsQuery);
-        const counts = new Map();
+        const counts = {};
 
-        // Contar peças por subcategoria
         snapshot.docs.forEach((doc) => {
-          const data = doc.data();
-          const subcategoryId = data.subcategoryId || "sem-subcategoria";
-          counts.set(subcategoryId, (counts.get(subcategoryId) || 0) + 1);
+          const subcategoryId = doc.data().subcategoryId || "sem-subcategoria";
+          counts[subcategoryId] = (counts[subcategoryId] || 0) + 1;
         });
 
-        const countsData = Object.fromEntries(counts);
-
-        // Salvar no cache
         setCountsCache((prev) =>
           new Map(prev).set(cacheKey, {
-            data: countsData,
+            data: counts,
             lastFetch: Date.now(),
           })
         );
 
-        console.log(`✅ Contadores carregados:`, countsData);
-        return countsData;
+        return counts;
       } catch (error) {
-        console.error("❌ Erro ao buscar contadores:", error);
         return {};
       }
     },
     [countsCache, isCacheValid]
   );
 
-  // ✅ BUSCAR PEÇAS COM CACHE INTELIGENTE
+  // ✅ FETCH PARTS - Ultra otimizado
   const fetchParts = useCallback(
     async ({
       categoryId = null,
@@ -110,13 +109,10 @@ export const PartsCacheProvider = ({ children }) => {
       loadMore = false,
     }) => {
       const cacheKey = getCacheKey(categoryId, subcategoryId, searchTerm);
-
-      // Verificar cache existente
       const cached = partsCache.get(cacheKey);
 
-      // Se tem cache válido e não é loadMore, retornar cache
+      // Cache hit para busca normal
       if (!loadMore && cached && isCacheValid(cached)) {
-        console.log(`💾 Usando cache para: ${cacheKey}`);
         return {
           parts: cached.parts,
           hasMore: cached.hasMore,
@@ -124,21 +120,15 @@ export const PartsCacheProvider = ({ children }) => {
         };
       }
 
-      // Se é loadMore mas não tem cache, é erro
+      // LoadMore sem cache é erro
       if (loadMore && !cached) {
-        console.warn("⚠️ Tentativa de loadMore sem cache existente");
         return { parts: [], hasMore: false, fromCache: false };
       }
 
       try {
-        // Marcar como carregando
         setLoadingStates((prev) => new Map(prev).set(cacheKey, true));
 
-        console.log(
-          `🔄 Buscando peças para: ${cacheKey}${loadMore ? " (load more)" : ""}`
-        );
-
-        // Construir query
+        // Construir query base
         let q = query(collection(db, "pecas"));
 
         // Aplicar filtros
@@ -149,91 +139,57 @@ export const PartsCacheProvider = ({ children }) => {
           q = query(q, where("subcategoryId", "==", subcategoryId));
         }
 
-        // ✅ LÓGICA DE BUSCA OTIMIZADA
+        // ✅ BUSCA OTIMIZADA
         if (searchTerm) {
-          // Para busca, buscar todos e filtrar localmente
+          // Para busca, buscar todos e filtrar localmente (mais eficiente)
           try {
-            const searchQuery = query(q, orderBy(sortField, sortOrder));
-            const searchSnapshot = await getDocs(searchQuery);
-
-            const allParts = searchSnapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-            }));
-
-            const filteredParts = allParts.filter(
-              (part) =>
-                part.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                part.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                part.description
-                  ?.toLowerCase()
-                  .includes(searchTerm.toLowerCase())
-            );
-
-            // Salvar no cache
-            const newCacheEntry = {
-              parts: filteredParts,
-              hasMore: false,
-              lastVisible: null,
-              lastFetch: Date.now(),
-            };
-
-            setPartsCache((prev) => new Map(prev).set(cacheKey, newCacheEntry));
-            setLoadingStates((prev) => new Map(prev).set(cacheKey, false));
-
-            return {
-              parts: filteredParts,
-              hasMore: false,
-              fromCache: false,
-            };
-          } catch (orderError) {
-            // Fallback sem ordenação para busca
-            console.warn("⚠️ Fallback para busca sem ordenação:", orderError);
-            const fallbackQuery = query(q);
-            const fallbackSnapshot = await getDocs(fallbackQuery);
-
-            const allParts = fallbackSnapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-            }));
-
-            const filteredParts = allParts.filter(
-              (part) =>
-                part.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                part.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                part.description
-                  ?.toLowerCase()
-                  .includes(searchTerm.toLowerCase())
-            );
-
-            const newCacheEntry = {
-              parts: filteredParts,
-              hasMore: false,
-              lastVisible: null,
-              lastFetch: Date.now(),
-            };
-
-            setPartsCache((prev) => new Map(prev).set(cacheKey, newCacheEntry));
-            setLoadingStates((prev) => new Map(prev).set(cacheKey, false));
-
-            return {
-              parts: filteredParts,
-              hasMore: false,
-              fromCache: false,
-              warning: "Busca sem ordenação (índice não disponível)",
-            };
+            q = query(q, orderBy(sortField, sortOrder));
+          } catch {
+            // Fallback sem ordenação
           }
+
+          const searchSnapshot = await getDocs(q);
+          const allParts = searchSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+
+          const filteredParts = allParts.filter((part) => {
+            const searchLower = searchTerm.toLowerCase();
+            return (
+              part.name?.toLowerCase().includes(searchLower) ||
+              part.code?.toLowerCase().includes(searchLower) ||
+              part.description?.toLowerCase().includes(searchLower)
+            );
+          });
+
+          const newCacheEntry = {
+            parts: filteredParts,
+            hasMore: false,
+            lastVisible: null,
+            lastFetch: Date.now(),
+          };
+
+          setPartsCache((prev) => new Map(prev).set(cacheKey, newCacheEntry));
+          setLoadingStates((prev) => new Map(prev).set(cacheKey, false));
+
+          // Cleanup automático
+          setTimeout(cleanupCache, 100);
+
+          return {
+            parts: filteredParts,
+            hasMore: false,
+            fromCache: false,
+          };
         }
 
-        // Aplicar ordenação e paginação para dados normais
+        // ✅ QUERY NORMAL com paginação
         try {
           q = query(q, orderBy(sortField, sortOrder));
-        } catch (orderError) {
-          console.warn("⚠️ Fallback sem ordenação:", orderError);
+        } catch {
           // Continuar sem ordenação
         }
 
-        // Para loadMore, usar cursor do cache
         if (loadMore && cached?.lastVisible) {
           q = query(q, startAfter(cached.lastVisible));
         }
@@ -246,9 +202,6 @@ export const PartsCacheProvider = ({ children }) => {
           ...doc.data(),
         }));
 
-        console.log(`📦 ${newParts.length} peças carregadas`);
-
-        // Atualizar cache
         const existingParts = loadMore && cached ? cached.parts : [];
         const allParts = [...existingParts, ...newParts];
         const hasMore = snapshot.docs.length === ITEMS_PER_PAGE;
@@ -267,22 +220,24 @@ export const PartsCacheProvider = ({ children }) => {
         setPartsCache((prev) => new Map(prev).set(cacheKey, newCacheEntry));
         setLoadingStates((prev) => new Map(prev).set(cacheKey, false));
 
+        // Cleanup automático
+        setTimeout(cleanupCache, 100);
+
         return {
           parts: allParts,
           hasMore,
           fromCache: false,
         };
       } catch (error) {
-        console.error("❌ Erro ao buscar peças:", error);
         setLoadingStates((prev) => new Map(prev).set(cacheKey, false));
 
-        // Retornar cache se houver erro
+        // Fallback para cache se houver erro
         if (cached) {
           return {
             parts: cached.parts,
             hasMore: cached.hasMore,
             fromCache: true,
-            error: "Erro ao buscar novas peças. Mostrando dados em cache.",
+            error: "Erro ao buscar. Mostrando cache.",
           };
         }
 
@@ -294,21 +249,21 @@ export const PartsCacheProvider = ({ children }) => {
         };
       }
     },
-    [partsCache, getCacheKey, isCacheValid, ITEMS_PER_PAGE]
+    [partsCache, getCacheKey, isCacheValid, ITEMS_PER_PAGE, cleanupCache]
   );
 
-  // ✅ VERIFICAR SE ESTÁ CARREGANDO
+  // ✅ IS LOADING - Direto
   const isLoading = useCallback(
-    (categoryId = null, subcategoryId = null, searchTerm = "") => {
+    (categoryId, subcategoryId, searchTerm) => {
       const cacheKey = getCacheKey(categoryId, subcategoryId, searchTerm);
       return loadingStates.get(cacheKey) || false;
     },
     [loadingStates, getCacheKey]
   );
 
-  // ✅ OBTER PEÇAS DO CACHE (sem fazer requisição)
+  // ✅ GET CACHED PARTS - Direto
   const getCachedParts = useCallback(
-    (categoryId = null, subcategoryId = null, searchTerm = "") => {
+    (categoryId, subcategoryId, searchTerm) => {
       const cacheKey = getCacheKey(categoryId, subcategoryId, searchTerm);
       const cached = partsCache.get(cacheKey);
 
@@ -329,14 +284,9 @@ export const PartsCacheProvider = ({ children }) => {
     [partsCache, getCacheKey, isCacheValid]
   );
 
-  // ✅ INVALIDAR CACHE ESPECÍFICO
+  // ✅ INVALIDATE CACHE - Simplificado
   const invalidateCache = useCallback(
-    (categoryId = null, subcategoryId = null) => {
-      console.log(
-        `🧹 Invalidando cache para categoria: ${categoryId}, subcategoria: ${subcategoryId}`
-      );
-
-      // Remover entradas relacionadas
+    (categoryId, subcategoryId) => {
       const keysToRemove = [];
 
       for (const key of partsCache.keys()) {
@@ -355,7 +305,7 @@ export const PartsCacheProvider = ({ children }) => {
         return newCache;
       });
 
-      // Invalidar contadores também
+      // Invalidar contadores
       if (categoryId) {
         setCountsCache((prev) => {
           const newCache = new Map(prev);
@@ -367,31 +317,20 @@ export const PartsCacheProvider = ({ children }) => {
     [partsCache]
   );
 
-  // ✅ ADICIONAR PEÇA AO CACHE
+  // ✅ ADD PART TO CACHE - Otimizado
   const addPartToCache = useCallback((newPart) => {
-    console.log(`➕ Adicionando peça ao cache: ${newPart.name}`);
-
-    // Atualizar todas as entradas relevantes do cache
     setPartsCache((prev) => {
       const newCache = new Map();
 
       for (const [key, entry] of prev.entries()) {
         const [keyCat, keySub, keySearch] = key.split("-");
 
-        let shouldInclude = false;
-
-        // Verificar se a peça se encaixa neste cache
-        if (keyCat === "all" || keyCat === newPart.categoryId) {
-          if (keySub === "none" || keySub === newPart.subcategoryId) {
-            if (
-              keySearch === "nosearch" ||
-              newPart.name?.toLowerCase().includes(keySearch.toLowerCase()) ||
-              newPart.code?.toLowerCase().includes(keySearch.toLowerCase())
-            ) {
-              shouldInclude = true;
-            }
-          }
-        }
+        const shouldInclude =
+          (keyCat === "all" || keyCat === newPart.categoryId) &&
+          (keySub === "none" || keySub === newPart.subcategoryId) &&
+          (keySearch === "nosearch" ||
+            newPart.name?.toLowerCase().includes(keySearch.toLowerCase()) ||
+            newPart.code?.toLowerCase().includes(keySearch.toLowerCase()));
 
         if (shouldInclude) {
           newCache.set(key, {
@@ -416,10 +355,8 @@ export const PartsCacheProvider = ({ children }) => {
     }
   }, []);
 
-  // ✅ REMOVER PEÇA DO CACHE
+  // ✅ REMOVE PART FROM CACHE - Otimizado
   const removePartFromCache = useCallback((partId) => {
-    console.log(`➖ Removendo peça do cache: ${partId}`);
-
     setPartsCache((prev) => {
       const newCache = new Map();
 
@@ -433,14 +370,11 @@ export const PartsCacheProvider = ({ children }) => {
       return newCache;
     });
 
-    // Invalidar todos os contadores (mais simples)
-    setCountsCache(new Map());
+    setCountsCache(new Map()); // Invalidar todos os contadores
   }, []);
 
-  // ✅ ATUALIZAR PEÇA NO CACHE
+  // ✅ UPDATE PART IN CACHE - Otimizado
   const updatePartInCache = useCallback((partId, updatedData) => {
-    console.log(`🔄 Atualizando peça no cache: ${partId}`);
-
     setPartsCache((prev) => {
       const newCache = new Map();
 
@@ -456,48 +390,46 @@ export const PartsCacheProvider = ({ children }) => {
       return newCache;
     });
 
-    // Se mudou categoria, invalidar contadores
     if (updatedData.categoryId) {
       setCountsCache(new Map());
     }
   }, []);
 
-  // ✅ STATS DO CACHE
-  const getCacheStats = useCallback(() => {
-    return {
+  // ✅ STATS - Simplificadas
+  const getCacheStats = useCallback(
+    () => ({
       totalCacheEntries: partsCache.size,
       totalCountEntries: countsCache.size,
-      loadingEntries: Array.from(loadingStates.entries()).filter(
-        ([key, value]) => value
-      ).length,
-      cacheKeys: Array.from(partsCache.keys()),
-    };
-  }, [partsCache, countsCache, loadingStates]);
+      loadingEntries: Array.from(loadingStates.values()).filter(Boolean).length,
+    }),
+    [partsCache.size, countsCache.size, loadingStates]
+  );
 
-  // ✅ CONTEXTO VALUE
-  const contextValue = {
-    // Funções principais
-    fetchParts,
-    fetchSubcategoryCounts,
-    getCachedParts,
-    isLoading,
-
-    // Gerenciamento de cache
-    invalidateCache,
-    addPartToCache,
-    removePartFromCache,
-    updatePartInCache,
-
-    // Debug
-    getCacheStats,
-
-    // Estado interno (para debug)
-    _debug: {
-      partsCache: partsCache.size,
-      countsCache: countsCache.size,
-      loadingStates: loadingStates.size,
-    },
-  };
+  // ✅ CONTEXT VALUE - Memoizado
+  const contextValue = useMemo(
+    () => ({
+      fetchParts,
+      fetchSubcategoryCounts,
+      getCachedParts,
+      isLoading,
+      invalidateCache,
+      addPartToCache,
+      removePartFromCache,
+      updatePartInCache,
+      getCacheStats,
+    }),
+    [
+      fetchParts,
+      fetchSubcategoryCounts,
+      getCachedParts,
+      isLoading,
+      invalidateCache,
+      addPartToCache,
+      removePartFromCache,
+      updatePartInCache,
+      getCacheStats,
+    ]
+  );
 
   return (
     <PartsCacheContext.Provider value={contextValue}>
@@ -506,15 +438,15 @@ export const PartsCacheProvider = ({ children }) => {
   );
 };
 
-// ✅ HOOK CORRIGIDO - Melhor error handling
+// ✅ HOOK - Otimizado
 export const usePartsCache = () => {
   const context = useContext(PartsCacheContext);
 
   if (!context) {
-    throw new Error(
-      "usePartsCache must be used within PartsCacheProvider. Verifique se o componente está envolvido pelo PartsCacheProvider no App.jsx."
-    );
+    throw new Error("usePartsCache must be used within PartsCacheProvider");
   }
 
   return context;
 };
+
+export default PartsCacheProvider;

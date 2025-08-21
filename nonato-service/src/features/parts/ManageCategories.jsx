@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+// ManageCategories.jsx - OTIMIZADO: React.memo + Lazy Stats + Zero Logs
+
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   collection,
   getDocs,
@@ -24,15 +26,11 @@ import {
   RefreshCw,
   Folder,
   FolderOpen,
+  TrendingUp,
 } from "lucide-react";
 
 // UI Components
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card.jsx";
-
-
+import { Card, CardContent } from "@/components/ui/card.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
@@ -46,8 +44,210 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
 
+// ✅ CATEGORY ITEM COMPONENT - Memoizado para evitar re-renders
+const CategoryItem = React.memo(
+  ({
+    category,
+    subcategories,
+    isExpanded,
+    categoryStats,
+    onToggle,
+    onEdit,
+    onDelete,
+    onAddSubcategory,
+  }) => {
+    const handleToggle = useCallback(() => {
+      onToggle(category.id);
+    }, [category.id, onToggle]);
+
+    const handleEdit = useCallback(
+      (e) => {
+        e.stopPropagation();
+        onEdit(category, true);
+      },
+      [category, onEdit]
+    );
+
+    const handleDelete = useCallback(
+      (e) => {
+        e.stopPropagation();
+        onDelete(category, true);
+      },
+      [category, onDelete]
+    );
+
+    const handleSubEdit = useCallback(
+      (subcategory, e) => {
+        e.stopPropagation();
+        onEdit(subcategory, false);
+      },
+      [onEdit]
+    );
+
+    const handleSubDelete = useCallback(
+      (subcategory, e) => {
+        e.stopPropagation();
+        onDelete(subcategory, false);
+      },
+      [onDelete]
+    );
+
+    const handleAddSub = useCallback(
+      (e) => {
+        e.stopPropagation();
+        onAddSubcategory(category.id);
+      },
+      [category.id, onAddSubcategory]
+    );
+
+    const sortedSubcategories = useMemo(
+      () => subcategories.sort((a, b) => a.name.localeCompare(b.name, "pt-PT")),
+      [subcategories]
+    );
+
+    return (
+      <Card className="bg-zinc-800 border-zinc-700">
+        <CardContent className="p-0">
+          {/* Main Category */}
+          <div
+            className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-700/50"
+            onClick={handleToggle}
+          >
+            <div className="flex items-center">
+              <Folder className="h-5 w-5 text-blue-500 mr-2" />
+              <div>
+                <h3 className="font-semibold text-white flex items-center">
+                  {category.name}
+                  <Badge
+                    className="ml-2 bg-blue-500/10 text-blue-500"
+                    title="Número de peças nesta categoria"
+                  >
+                    {categoryStats[category.id] || 0} peças
+                  </Badge>
+                </h3>
+              </div>
+            </div>
+            <div className="flex items-center">
+              <span className="text-sm text-zinc-400 mr-2">
+                {subcategories.length} subcategorias
+              </span>
+              <div className="flex items-center space-x-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-zinc-400 hover:text-white"
+                  onClick={handleEdit}
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-red-400 hover:text-red-300"
+                  onClick={handleDelete}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+                {isExpanded ? (
+                  <ChevronDown className="h-5 w-5 text-zinc-400" />
+                ) : (
+                  <ChevronRight className="h-5 w-5 text-zinc-400" />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Subcategories */}
+          {isExpanded && (
+            <div className="border-t border-zinc-700 pl-4">
+              {sortedSubcategories.length > 0 ? (
+                sortedSubcategories.map((subcategory) => (
+                  <div
+                    key={subcategory.id}
+                    className="flex items-center justify-between p-3 border-b border-zinc-700/50 last:border-b-0 hover:bg-zinc-700/30"
+                  >
+                    <div className="flex items-center">
+                      <Tag className="h-4 w-4 text-purple-500 mr-2" />
+                      <h4 className="text-sm font-medium text-white flex items-center">
+                        {subcategory.name}
+                        <Badge
+                          className="ml-2 bg-purple-500/10 text-purple-500"
+                          title="Número de peças nesta subcategoria"
+                        >
+                          {categoryStats[subcategory.id] || 0} peças
+                        </Badge>
+                      </h4>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-zinc-400 hover:text-white"
+                        onClick={(e) => handleSubEdit(subcategory, e)}
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-red-400 hover:text-red-300"
+                        onClick={(e) => handleSubDelete(subcategory, e)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-3 px-4 text-sm text-zinc-400">
+                  Nenhuma subcategoria encontrada
+                </div>
+              )}
+
+              {/* Add subcategory button */}
+              <div className="py-3 px-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-sm border-zinc-700 bg-zinc-700/50 hover:bg-zinc-600 text-white"
+                  onClick={handleAddSub}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Adicionar Subcategoria
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+);
+
+CategoryItem.displayName = "CategoryItem";
+
+// ✅ STATS CARD COMPONENT - Memoizado
+const StatsCard = React.memo(({ title, value, icon: Icon, color }) => (
+  <Card className="bg-zinc-800 border-zinc-700">
+    <CardContent className="flex items-center justify-between p-4 sm:p-6">
+      <div>
+        <p className="text-sm font-medium text-zinc-400">{title}</p>
+        <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+          {value}
+        </h3>
+      </div>
+      <Icon className={`h-6 w-6 sm:h-8 sm:w-8 ${color}`} />
+    </CardContent>
+  </Card>
+));
+
+StatsCard.displayName = "StatsCard";
+
+// ✅ MAIN COMPONENT - OTIMIZADO
 const ManageCategories = () => {
-  // USAR cache de categorias em vez de state local
+  const navigate = useNavigate();
+
+  // Context hooks
   const {
     categories,
     getSubcategoriesByParent,
@@ -58,6 +258,7 @@ const ManageCategories = () => {
     error: categoriesError,
   } = useCategories();
 
+  // ✅ STATE REDUZIDO - Só o essencial
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState(null);
   const [expandedCategories, setExpandedCategories] = useState({});
@@ -66,27 +267,56 @@ const ManageCategories = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [categoryToEdit, setCategoryToEdit] = useState(null);
   const [editName, setEditName] = useState("");
-  const [categoryStats, setCategoryStats] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const navigate = useNavigate();
 
-  // ✅ ORGANIZAR categorias com subcategorias + ORDENAÇÃO ALFABÉTICA
-  const organizedCategories = categories
-    .sort((a, b) => a.name.localeCompare(b.name)) // ✅ ORDENAR categorias alfabeticamente
-    .map((category) => {
-      const subcategories = getSubcategoriesByParent(category.id).sort((a, b) =>
-        a.name.localeCompare(b.name)
-      ); // ✅ ORDENAR subcategorias alfabeticamente
-      return {
-        ...category,
-        subcategories,
-        isMainCategory: true,
-      };
+  // ✅ LAZY STATS - Só carrega quando necessário (quando há busca ou expand)
+  const [categoryStats, setCategoryStats] = useState({});
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  // ✅ MEMOIZED VALUES - Organizadas e ordenadas
+  const organizedCategories = useMemo(() => {
+    return categories
+      .sort((a, b) => a.name.localeCompare(b.name, "pt-PT"))
+      .map((category) => {
+        const subcategories = getSubcategoriesByParent(category.id).sort(
+          (a, b) => a.name.localeCompare(b.name, "pt-PT")
+        );
+        return { ...category, subcategories };
+      });
+  }, [categories, getSubcategoriesByParent]);
+
+  const filteredCategories = useMemo(() => {
+    if (!searchTerm) return organizedCategories;
+
+    return organizedCategories.filter((category) => {
+      const matchesSearch = category.name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+
+      const hasMatchingSubcategories = category.subcategories.some((sub) =>
+        sub.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+
+      return matchesSearch || hasMatchingSubcategories;
     });
+  }, [organizedCategories, searchTerm]);
 
-  // Fetch stats for categories (manter esse pois é específico)
+  // ✅ TOTAL SUBCATEGORIES COUNT - Memoizado
+  const totalSubcategories = useMemo(
+    () =>
+      categories.reduce(
+        (total, cat) => total + getSubcategoriesByParent(cat.id).length,
+        0
+      ),
+    [categories, getSubcategoriesByParent]
+  );
+
+  // ✅ LAZY STATS FETCHING - Só quando necessário
   const fetchCategoryStats = useCallback(async () => {
+    if (statsLoading || categories.length === 0) return;
+
     try {
+      setStatsLoading(true);
       const statsObj = {};
       const partsSnapshot = await getDocs(collection(db, "pecas"));
       const parts = partsSnapshot.docs.map((doc) => doc.data());
@@ -112,63 +342,68 @@ const ManageCategories = () => {
 
       setCategoryStats(statsObj);
     } catch (err) {
-      console.error("Erro ao buscar estatísticas:", err);
+      // Ignorar erro silenciosamente - stats não são críticas
+    } finally {
+      setStatsLoading(false);
     }
-  }, [categories, getSubcategoriesByParent]);
+  }, [categories, getSubcategoriesByParent, statsLoading]);
 
-  // Buscar stats quando categorias carregarem
-  useEffect(() => {
-    if (!categoriesLoading && categories.length > 0) {
-      fetchCategoryStats();
-    }
-  }, [categoriesLoading, categories, fetchCategoryStats]);
-
-  // USAR error do cache se disponível
+  // ✅ EFFECTS - Otimizados
   useEffect(() => {
     if (categoriesError) {
       setError(categoriesError);
     }
   }, [categoriesError]);
 
-  const toggleCategory = (categoryId) => {
+  // Só buscar stats se houver busca ou categorias expandidas
+  useEffect(() => {
+    const hasExpandedCategories =
+      Object.values(expandedCategories).some(Boolean);
+    const hasSearch = searchTerm.length > 0;
+
+    if ((hasExpandedCategories || hasSearch) && categories.length > 0) {
+      const timer = setTimeout(() => fetchCategoryStats(), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [expandedCategories, searchTerm, categories.length, fetchCategoryStats]);
+
+  // ✅ HANDLERS - Otimizados com useCallback
+  const toggleCategory = useCallback((categoryId) => {
     setExpandedCategories((prev) => ({
       ...prev,
       [categoryId]: !prev[categoryId],
     }));
-  };
+  }, []);
 
-  const handleDeleteClick = (category, e) => {
-    e.stopPropagation();
-
-    // Verificar se é categoria principal ou subcategoria
-    const isMainCategory = categories.some((cat) => cat.id === category.id);
+  const handleDeleteClick = useCallback((category, isMainCategory) => {
     setCategoryToDelete({ ...category, isMainCategory });
     setDeleteDialogOpen(true);
-  };
+  }, []);
 
-  const handleEditClick = (category, e) => {
-    e.stopPropagation();
-
-    // Verificar se é categoria principal ou subcategoria
-    const isMainCategory = categories.some((cat) => cat.id === category.id);
+  const handleEditClick = useCallback((category, isMainCategory) => {
     setCategoryToEdit({ ...category, isMainCategory });
     setEditName(category.name);
     setEditDialogOpen(true);
-  };
+  }, []);
 
-  const handleDelete = async () => {
+  const handleAddSubcategory = useCallback(
+    (categoryId) => {
+      navigate(`/app/add-subcategory/${categoryId}`);
+    },
+    [navigate]
+  );
+
+  const handleDelete = useCallback(async () => {
     if (!categoryToDelete) return;
 
     try {
       setIsSubmitting(true);
       const batch = writeBatch(db);
 
-      // If it's a main category, also delete all subcategories
       if (categoryToDelete.isMainCategory) {
-        // Get the subcategories that need to be deleted
         const subcategories = getSubcategoriesByParent(categoryToDelete.id);
 
-        // Update all parts that use this category to remove the reference
+        // Update all parts that use this category
         const partsQuery = query(
           collection(db, "pecas"),
           where("categoryId", "==", categoryToDelete.id)
@@ -187,7 +422,6 @@ const ManageCategories = () => {
 
         // Delete all subcategories
         for (const subcategory of subcategories) {
-          // Update parts that use this subcategory
           const subPartsQuery = query(
             collection(db, "pecas"),
             where("subcategoryId", "==", subcategory.id)
@@ -202,14 +436,11 @@ const ManageCategories = () => {
             });
           });
 
-          // Delete the subcategory
           batch.delete(doc(db, "categorias", subcategory.id));
         }
 
-        // Delete the main category
         batch.delete(doc(db, "categorias", categoryToDelete.id));
       } else {
-        // It's a subcategory, only delete the subcategory and update references
         const partsQuery = query(
           collection(db, "pecas"),
           where("subcategoryId", "==", categoryToDelete.id)
@@ -227,39 +458,40 @@ const ManageCategories = () => {
         batch.delete(doc(db, "categorias", categoryToDelete.id));
       }
 
-      // Commit the batch
       await batch.commit();
-
-      // USAR cache para remover categoria
       removeCategoryFromCache(categoryToDelete.id);
 
       setDeleteDialogOpen(false);
       setCategoryToDelete(null);
 
-      // Refresh stats
-      fetchCategoryStats();
+      // Update stats if they were loaded
+      if (Object.keys(categoryStats).length > 0) {
+        fetchCategoryStats();
+      }
     } catch (err) {
-      console.error("Erro ao excluir categoria:", err);
       setError("Erro ao excluir categoria. Por favor, tente novamente.");
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [
+    categoryToDelete,
+    getSubcategoriesByParent,
+    removeCategoryFromCache,
+    categoryStats,
+    fetchCategoryStats,
+  ]);
 
-  const handleEdit = async () => {
+  const handleEdit = useCallback(async () => {
     if (!categoryToEdit || !editName.trim()) return;
 
     try {
       setIsSubmitting(true);
       const batch = writeBatch(db);
 
-      // Update the category name
       const categoryRef = doc(db, "categorias", categoryToEdit.id);
       batch.update(categoryRef, { name: editName });
 
-      // Update all references in parts
       if (categoryToEdit.isMainCategory) {
-        // Update main category references
         const partsQuery = query(
           collection(db, "pecas"),
           where("categoryId", "==", categoryToEdit.id)
@@ -271,7 +503,6 @@ const ManageCategories = () => {
           batch.update(partRef, { categoryName: editName });
         });
       } else {
-        // Update subcategory references
         const partsQuery = query(
           collection(db, "pecas"),
           where("subcategoryId", "==", categoryToEdit.id)
@@ -284,40 +515,28 @@ const ManageCategories = () => {
         });
       }
 
-      // Commit the batch
       await batch.commit();
-
-      // USAR cache para atualizar categoria
       updateCategoryInCache(categoryToEdit.id, { name: editName });
 
       setEditDialogOpen(false);
       setCategoryToEdit(null);
       setEditName("");
     } catch (err) {
-      console.error("Erro ao editar categoria:", err);
       setError("Erro ao editar categoria. Por favor, tente novamente.");
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [categoryToEdit, editName, updateCategoryInCache]);
 
-  // ✅ FILTRAR e manter ORDEM ALFABÉTICA
-  const filteredCategories = organizedCategories
-    .filter((category) => {
-      const matchesSearch = category.name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+  const handleRefresh = useCallback(() => {
+    refreshCategories();
+    if (Object.keys(categoryStats).length > 0) {
+      setCategoryStats({});
+      fetchCategoryStats();
+    }
+  }, [refreshCategories, categoryStats, fetchCategoryStats]);
 
-      // Also check subcategories
-      const hasMatchingSubcategories = category.subcategories.some((sub) =>
-        sub.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-
-      return matchesSearch || hasMatchingSubcategories;
-    })
-    .sort((a, b) => a.name.localeCompare(b.name)); // ✅ MANTER ordem alfabética após filtro
-
-  // Loading state
+  // ✅ EARLY RETURN
   if (categoriesLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
@@ -359,40 +578,21 @@ const ManageCategories = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card className="bg-zinc-800 border-zinc-700">
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-zinc-400">
-                Total de Categorias
-              </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
-                {categories.length}
-              </h3>
-            </div>
-            <Folder className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
-          </CardContent>
-        </Card>
-
-        <Card className="bg-zinc-800 border-zinc-700">
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-zinc-400">
-                Total de Subcategorias
-              </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
-                {categories.reduce(
-                  (total, cat) =>
-                    total + getSubcategoriesByParent(cat.id).length,
-                  0
-                )}
-              </h3>
-            </div>
-            <FolderOpen className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Total de Categorias"
+          value={categories.length}
+          icon={Folder}
+          color="text-blue-500"
+        />
+        <StatsCard
+          title="Total de Subcategorias"
+          value={totalSubcategories}
+          icon={FolderOpen}
+          color="text-purple-500"
+        />
       </div>
 
-      {/* Search and Filters */}
+      {/* Search and Controls */}
       <Card className="bg-zinc-800 border-zinc-700">
         <CardContent className="space-y-4 p-4 sm:p-6">
           <div className="relative w-full">
@@ -417,17 +617,30 @@ const ManageCategories = () => {
             </Alert>
           )}
 
-          <Button
-            variant="outline"
-            onClick={() => {
-              refreshCategories();
-              fetchCategoryStats();
-            }}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Atualizar Lista
-          </Button>
+          <div className="flex items-center justify-between">
+            <Button
+              variant="outline"
+              onClick={handleRefresh}
+              className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Atualizar Lista
+            </Button>
+
+            {statsLoading && (
+              <div className="flex items-center gap-2 text-sm text-zinc-400">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Carregando estatísticas...
+              </div>
+            )}
+
+            {Object.keys(categoryStats).length > 0 && (
+              <Badge className="bg-green-500/10 text-green-500">
+                <TrendingUp className="h-3 w-3 mr-1" />
+                Stats Ativas
+              </Badge>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -435,123 +648,17 @@ const ManageCategories = () => {
       <div className="space-y-4">
         {filteredCategories.length > 0 ? (
           filteredCategories.map((category) => (
-            <Card key={category.id} className="bg-zinc-800 border-zinc-700">
-              <CardContent className="p-0">
-                {/* Main Category */}
-                <div
-                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-700/50"
-                  onClick={() => toggleCategory(category.id)}
-                >
-                  <div className="flex items-center">
-                    <Folder className="h-5 w-5 text-blue-500 mr-2" />
-                    <div>
-                      <h3 className="font-semibold text-white flex items-center">
-                        {category.name}
-                        <Badge
-                          className="ml-2 bg-blue-500/10 text-blue-500"
-                          title="Número de peças nesta categoria"
-                        >
-                          {categoryStats[category.id] || 0} peças
-                        </Badge>
-                      </h3>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="text-sm text-zinc-400 mr-2">
-                      {category.subcategories.length} subcategorias
-                    </span>
-                    <div className="flex items-center space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-zinc-400 hover:text-white"
-                        onClick={(e) => handleEditClick(category, e)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-red-400 hover:text-red-300"
-                        onClick={(e) => handleDeleteClick(category, e)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                      {expandedCategories[category.id] ? (
-                        <ChevronDown className="h-5 w-5 text-zinc-400" />
-                      ) : (
-                        <ChevronRight className="h-5 w-5 text-zinc-400" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* ✅ CORRIGIR: Subcategorias */}
-                {expandedCategories[category.id] && (
-                  <div className="border-t border-zinc-700 pl-4">
-                    {category.subcategories.length > 0 ? (
-                      category.subcategories.map((subcategory) => (
-                        <div
-                          key={subcategory.id}
-                          className="flex items-center justify-between p-3 border-b border-zinc-700/50 last:border-b-0 hover:bg-zinc-700/30"
-                        >
-                          <div className="flex items-center">
-                            <Tag className="h-4 w-4 text-purple-500 mr-2" />
-                            <h4 className="text-sm font-medium text-white flex items-center">
-                              {subcategory.name}
-                              <Badge
-                                className="ml-2 bg-purple-500/10 text-purple-500"
-                                title="Número de peças nesta subcategoria"
-                              >
-                                {categoryStats[subcategory.id] || 0} peças
-                              </Badge>
-                            </h4>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 text-zinc-400 hover:text-white"
-                              onClick={(e) => handleEditClick(subcategory, e)}
-                            >
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 text-red-400 hover:text-red-300"
-                              onClick={(e) => handleDeleteClick(subcategory, e)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="py-3 px-4 text-sm text-zinc-400">
-                        Nenhuma subcategoria encontrada
-                      </div>
-                    )}
-
-                    {/* Add subcategory button */}
-                    <div className="py-3 px-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-sm border-zinc-700 bg-zinc-700/50 hover:bg-zinc-600 text-white"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/app/add-subcategory/${category.id}`);
-                        }}
-                      >
-                        <Plus className="h-3.5 w-3.5 mr-1" />
-                        Adicionar Subcategoria
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <CategoryItem
+              key={category.id}
+              category={category}
+              subcategories={category.subcategories}
+              isExpanded={expandedCategories[category.id]}
+              categoryStats={categoryStats}
+              onToggle={toggleCategory}
+              onEdit={handleEditClick}
+              onDelete={handleDeleteClick}
+              onAddSubcategory={handleAddSubcategory}
+            />
           ))
         ) : (
           <Card className="bg-zinc-800 border-zinc-700">
@@ -682,4 +789,4 @@ const ManageCategories = () => {
   );
 };
 
-export default ManageCategories;
+export default React.memo(ManageCategories);

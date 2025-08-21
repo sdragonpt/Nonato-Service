@@ -1,5 +1,6 @@
-// PartImage.jsx - OTIMIZADO: Componente de imagem com cache inteligente
-import { useState, useEffect, useRef, useCallback } from "react";
+// PartImage.jsx - CONSERVADOR: Funcionalidade original + zero logs
+
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Package } from "lucide-react";
 import imageCache from "../../context/ImageCacheManager";
 
@@ -11,8 +12,8 @@ const PartImage = ({
   defaultImage = null,
   onLoad,
   onError,
-  lazy = true, // Lazy loading por padrão
-  priority = false, // Para imagens importantes
+  lazy = true,
+  priority = false,
 }) => {
   const [imageSrc, setImageSrc] = useState(defaultImage);
   const [isLoading, setIsLoading] = useState(!!imageHash);
@@ -23,7 +24,7 @@ const PartImage = ({
   const observerRef = useRef(null);
   const loadAttemptRef = useRef(0);
 
-  // 👁️ Intersection Observer para lazy loading
+  // Intersection Observer para lazy loading
   useEffect(() => {
     if (!lazy || priority || isInView) return;
 
@@ -37,7 +38,7 @@ const PartImage = ({
         });
       },
       {
-        rootMargin: "50px", // Carrega 50px antes de aparecer
+        rootMargin: "50px",
         threshold: 0.1,
       }
     );
@@ -51,15 +52,12 @@ const PartImage = ({
     };
   }, [lazy, priority, isInView]);
 
-  // 🖼️ Carrega imagem quando entra na viewport
+  // Carrega imagem quando entra na viewport
   const loadImage = useCallback(async () => {
     if (!isInView || (!imageHash && !src) || hasError) return;
 
     // Evita múltiplas tentativas
     if (loadAttemptRef.current > 2) {
-      console.warn(
-        `⚠️ Muitas tentativas para carregar imagem: ${imageHash || src}`
-      );
       setHasError(true);
       setIsLoading(false);
       return;
@@ -74,7 +72,6 @@ const PartImage = ({
 
       // 1. Prioridade: Nova estrutura com hash (biblioteca)
       if (imageHash) {
-        console.log(`🔍 Carregando imagem da biblioteca: ${imageHash}`);
         imageData = await imageCache.loadImage(imageHash);
 
         if (imageData) {
@@ -82,15 +79,11 @@ const PartImage = ({
           setIsLoading(false);
           onLoad?.();
           return;
-        } else {
-          console.warn(`❌ Imagem não encontrada na biblioteca: ${imageHash}`);
         }
       }
 
       // 2. Fallback: Estrutura legacy (src direto)
       if (src && src !== defaultImage) {
-        console.log(`📷 Usando imagem legacy direta`);
-
         // Verifica se é base64 válido
         if (src.startsWith("data:image/")) {
           setImageSrc(src);
@@ -101,11 +94,9 @@ const PartImage = ({
       }
 
       // 3. Nenhuma imagem encontrada
-      console.log(`🚫 Nenhuma imagem disponível para: ${alt}`);
       setImageSrc(defaultImage);
       setIsLoading(false);
     } catch (error) {
-      console.error(`❌ Erro ao carregar imagem:`, error);
       setHasError(true);
       setIsLoading(false);
       setImageSrc(defaultImage);
@@ -113,7 +104,7 @@ const PartImage = ({
     }
   }, [isInView, imageHash, src, defaultImage, alt, hasError, onLoad, onError]);
 
-  // ⚡ Effect para carregar imagem
+  // Effect para carregar imagem
   useEffect(() => {
     let timeoutId;
 
@@ -127,7 +118,7 @@ const PartImage = ({
     };
   }, [loadImage, isInView]);
 
-  // 🔄 Reset quando props mudam
+  // Reset quando props mudam
   useEffect(() => {
     loadAttemptRef.current = 0;
     setHasError(false);
@@ -135,22 +126,21 @@ const PartImage = ({
     setIsLoading(!!imageHash || !!src);
   }, [imageHash, src, defaultImage]);
 
-  // 🎨 Handler para erro da tag img
+  // Handler para erro da tag img
   const handleImageError = useCallback(() => {
-    console.warn(`🖼️ Erro ao renderizar imagem: ${imageSrc}`);
     setHasError(true);
     setIsLoading(false);
     setImageSrc(defaultImage);
     onError?.();
   }, [imageSrc, defaultImage, onError]);
 
-  // 📸 Handler para sucesso da tag img
+  // Handler para sucesso da tag img
   const handleImageLoad = useCallback(() => {
     setIsLoading(false);
     onLoad?.();
   }, [onLoad]);
 
-  // 🖼️ Renderização
+  // Renderização
   return (
     <div
       ref={imgRef}
@@ -197,12 +187,11 @@ const PartImage = ({
   );
 };
 
-// 🚀 Hook para pré-carregar imagens
+// ✅ HOOK PARA PRELOAD - Simplificado
 export const usePreloadImages = () => {
   const preloadImages = useCallback(async (imageHashes) => {
     if (!imageHashes?.length) return;
 
-    // Filtra apenas hashes válidos
     const validHashes = imageHashes.filter(
       (hash) => hash && typeof hash === "string" && hash.length > 0
     );
@@ -215,14 +204,14 @@ export const usePreloadImages = () => {
   return { preloadImages };
 };
 
-// 📊 Hook para estatísticas do cache
+// ✅ HOOK PARA STATS - Otimizado
 export const useImageCacheStats = () => {
-  const [stats, setStats] = useState(imageCache.getStats());
+  const [stats, setStats] = useState(() => imageCache.getStats());
 
   useEffect(() => {
     const interval = setInterval(() => {
       setStats(imageCache.getStats());
-    }, 5000); // Atualiza a cada 5 segundos
+    }, 10000); // ✅ 10 segundos (menos frequente)
 
     return () => clearInterval(interval);
   }, []);
@@ -230,17 +219,32 @@ export const useImageCacheStats = () => {
   return stats;
 };
 
-// 🧹 Hook para limpeza de cache
+// ✅ HOOK PARA CONTROLE - Simplificado
 export const useImageCacheControl = () => {
   const clearCache = useCallback(() => {
     imageCache.clearAllCache();
   }, []);
 
   const clearImageFromCache = useCallback((imageHash) => {
-    imageCache.removeFromCache(imageHash);
+    if (imageHash) {
+      imageCache.removeFromCache(imageHash);
+    }
   }, []);
 
-  return { clearCache, clearImageFromCache };
+  const getCacheSize = useCallback(() => {
+    return imageCache.getCacheSizeFormatted();
+  }, []);
+
+  const getCacheStats = useCallback(() => {
+    return imageCache.getStats();
+  }, []);
+
+  return {
+    clearCache,
+    clearImageFromCache,
+    getCacheSize,
+    getCacheStats,
+  };
 };
 
 export default PartImage;
