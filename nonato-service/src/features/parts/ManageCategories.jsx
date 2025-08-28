@@ -60,14 +60,6 @@ const CategoryItem = React.memo(
       onToggle(category.id);
     }, [category.id, onToggle]);
 
-    const handleEdit = useCallback(
-      (e) => {
-        e.stopPropagation();
-        onEdit(category, true);
-      },
-      [category, onEdit]
-    );
-
     const handleDelete = useCallback(
       (e) => {
         e.stopPropagation();
@@ -383,7 +375,7 @@ const ManageCategories = () => {
   // Encontrar onde chama navigate para editar categoria - adicionar contexto:
   // Se já tens este padrão, alterar para incluir os params de retorno baseados no contexto atual
 
-  const handleEdit = useCallback(
+  const handleEditClick = useCallback(
     (category, isMainCategory) => {
       const params = new URLSearchParams();
       // Se estás a editar uma subcategoria, incluir o contexto da categoria pai

@@ -757,7 +757,7 @@ const generateServiceOrderPDF = async (
     // Título da seção
     drawRect(margin, yPos - 25, pageWidth - 2 * margin, 25, colors.lightGray);
 
-    currentPage.drawText("PEDIDO DE PEÇAS", {
+    currentPage.drawText("PEÇAS QUE NECESSITAM DE SER SUBSTITUIDAS", {
       x: margin + 10,
       y: yPos - 18,
       size: fontSize + 1,
@@ -1240,7 +1240,7 @@ const generateServiceOrderPDF = async (
       { key: "retorno", label: "Retorno Necessário" },
       { key: "funcionarios", label: "Instrução dos Funcionários" },
       { key: "documentacao", label: "Entrega da Documentação" },
-      { key: "pecas", label: "Pedido de Peças" }, // ✅ ALTERADO DE "ORÇAMENTO" PARA "PEDIDO"
+      { key: "pecas", label: "Necessário troca de Peças" }, // ✅ ALTERADO DE "ORÇAMENTO" PARA "PEDIDO"
     ];
 
     const cols = 2;
@@ -1390,10 +1390,8 @@ const generateServiceOrderPDF = async (
 
   yPos = drawDescriptions();
 
-  // ✅ ADICIONAR PEDIDO DE PEÇAS AQUI (ANTES DOS RESULTADOS)
-  yPos = await drawPartsRequest();
-
   yPos = drawResults();
+  yPos = await drawPartsRequest();
   drawSignatures();
   addPageNumbers();
 
