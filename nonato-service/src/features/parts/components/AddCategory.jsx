@@ -90,7 +90,21 @@ const AddCategory = () => {
       // NOVO: Adicionar categoria ao cache para evitar nova leitura
       addCategoryToCache(newCategory);
 
-      navigate("/app/parts-library");
+      const urlParams = new URLSearchParams(window.location.search);
+      const returnCategoryId = urlParams.get("returnCategoryId");
+      const returnSubcategoryId = urlParams.get("returnSubcategoryId");
+
+      if (returnSubcategoryId) {
+        navigate(
+          `/app/parts-library?tab=categories&categoryId=${returnCategoryId}&subcategoryId=${returnSubcategoryId}`
+        );
+      } else if (returnCategoryId) {
+        navigate(
+          `/app/parts-library?tab=categories&categoryId=${returnCategoryId}`
+        );
+      } else {
+        navigate("/app/parts-library");
+      }
     } catch (err) {
       console.error("Erro ao adicionar categoria:", err);
       setError("Erro ao adicionar categoria. Por favor, tente novamente.");

@@ -380,15 +380,32 @@ const ManageCategories = () => {
     setDeleteDialogOpen(true);
   }, []);
 
-  const handleEditClick = useCallback((category, isMainCategory) => {
-    setCategoryToEdit({ ...category, isMainCategory });
-    setEditName(category.name);
-    setEditDialogOpen(true);
-  }, []);
+  // Encontrar onde chama navigate para editar categoria - adicionar contexto:
+  // Se já tens este padrão, alterar para incluir os params de retorno baseados no contexto atual
+
+  const handleEdit = useCallback(
+    (category, isMainCategory) => {
+      const params = new URLSearchParams();
+      // Se estás a editar uma subcategoria, incluir o contexto da categoria pai
+      if (!isMainCategory && category.parentId) {
+        params.set("returnCategoryId", category.parentId);
+        params.set("returnSubcategoryId", category.id);
+      }
+
+      const url = `/app/edit-category/${category.id}${
+        params.toString() ? `?${params.toString()}` : ""
+      }`;
+      navigate(url);
+    },
+    [navigate]
+  );
 
   const handleAddSubcategory = useCallback(
     (categoryId) => {
-      navigate(`/app/add-subcategory/${categoryId}`);
+      const params = new URLSearchParams();
+      params.set("returnCategoryId", categoryId);
+
+      navigate(`/app/add-subcategory/${categoryId}?${params.toString()}`);
     },
     [navigate]
   );

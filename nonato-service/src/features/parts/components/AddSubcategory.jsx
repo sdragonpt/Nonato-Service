@@ -117,7 +117,22 @@ const AddSubcategory = () => {
       // NOVO: Adicionar subcategoria ao cache para evitar nova leitura
       addCategoryToCache(newSubcategory);
 
-      navigate("/app/parts-library?tab=categories");
+      const urlParams = new URLSearchParams(window.location.search);
+      const returnCategoryId = urlParams.get("returnCategoryId");
+      const returnSubcategoryId = urlParams.get("returnSubcategoryId");
+
+      if (returnSubcategoryId) {
+        navigate(
+          `/app/parts-library?tab=categories&categoryId=${returnCategoryId}&subcategoryId=${returnSubcategoryId}`
+        );
+      } else if (returnCategoryId) {
+        navigate(
+          `/app/parts-library?tab=categories&categoryId=${returnCategoryId}`
+        );
+      } else {
+        // Como é uma subcategoria, sempre volta para a categoria pai
+        navigate(`/app/parts-library?tab=categories&categoryId=${categoryId}`);
+      }
     } catch (err) {
       console.error("Erro ao adicionar subcategoria:", err);
       setError("Erro ao adicionar subcategoria. Por favor, tente novamente.");

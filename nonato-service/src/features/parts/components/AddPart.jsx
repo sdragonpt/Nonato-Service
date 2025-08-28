@@ -448,7 +448,30 @@ const AddPart = () => {
       console.log("✅ Peça criada com sucesso, navegando de forma segura...");
 
       // Aguardar um pouco e navegar de forma segura
-      await safeNavigate(navigate, "/app/parts-library", 1000);
+      const returnCategoryId = preSelectedCategoryId || formData.categoryId;
+      const returnSubcategoryId =
+        preSelectedSubcategoryId || formData.subcategoryId;
+
+      if (
+        returnSubcategoryId &&
+        returnSubcategoryId !== "none" &&
+        returnCategoryId &&
+        returnCategoryId !== "none"
+      ) {
+        await safeNavigate(
+          navigate,
+          `/app/parts-library?tab=categories&categoryId=${returnCategoryId}&subcategoryId=${returnSubcategoryId}`,
+          1000
+        );
+      } else if (returnCategoryId && returnCategoryId !== "none") {
+        await safeNavigate(
+          navigate,
+          `/app/parts-library?tab=categories&categoryId=${returnCategoryId}`,
+          1000
+        );
+      } else {
+        await safeNavigate(navigate, "/app/parts-library", 1000);
+      }
     } catch (err) {
       console.error("Erro ao adicionar peça:", err);
       setError("Erro ao adicionar peça. Por favor, tente novamente.");

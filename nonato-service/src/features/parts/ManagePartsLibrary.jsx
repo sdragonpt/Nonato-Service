@@ -1,11 +1,12 @@
-// ManagePartsLibrary.jsx - OTIMIZADO: Lazy Loading + React.memo + Zero Logs
+// ManagePartsLibrary.jsx - OTIMIZADO: Lazy Loading + React.memo + Zero Logs + URL Navigation
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { doc, deleteDoc } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom"; // ✅ NOVO: Adicionado useSearchParams
 import { useCategories } from "../../context/CategoriesContext.jsx";
 import { usePartsCache } from "../../context/PartsCache.jsx";
+import { invalidateCache } from "../../context/UniversalFirestoreCache.js";
 import {
   usePartsCounters,
   decrementPartCount,
@@ -282,6 +283,7 @@ StatsCard.displayName = "StatsCard";
 // ✅ MAIN COMPONENT - OTIMIZADO
 const ManagePartsLibrary = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams(); // ✅ NOVO: Adicionado useSearchParams
 
   // Context hooks
   const {
@@ -335,6 +337,34 @@ const ManagePartsLibrary = () => {
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [subcategoryCounts, setSubcategoryCounts] = useState({});
 
+  // ✅ NOVO: useEffect para ler a URL e restaurar o estado
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    const categoryId = searchParams.get("categoryId");
+    const subcategoryId = searchParams.get("subcategoryId");
+
+    if (tab) {
+      setActiveTab(tab);
+    }
+
+    if (tab === "categories" && categoryId && categories.length > 0) {
+      const category = categories.find((cat) => cat.id === categoryId);
+      if (category) {
+        setSelectedCategory(category);
+
+        if (subcategoryId) {
+          const subcategories = getSubcategoriesByParent(categoryId);
+          const subcategory = subcategories.find(
+            (sub) => sub.id === subcategoryId
+          );
+          if (subcategory) {
+            setSelectedSubcategory(subcategory);
+          }
+        }
+      }
+    }
+  }, [searchParams, categories, getSubcategoriesByParent]);
+
   // ✅ PERSIST STATE EFFECTS - Otimizados
   useEffect(
     () => saveToStorage(STORAGE_KEYS.SEARCH_TERM, searchTerm),
@@ -372,11 +402,16 @@ const ManagePartsLibrary = () => {
   // ✅ LOAD PARTS - Otimizado com lazy loading
   const loadParts = useCallback(
     async (loadMore = false) => {
+      console.log("📥 loadParts chamado:", { loadMore, shouldLoadParts });
+
       if (!shouldLoadParts && !loadMore) {
+        console.log("❌ loadParts: shouldLoadParts = false, saindo");
         setDisplayParts([]);
         setHasMore(true);
         return;
       }
+
+      console.log("✅ loadParts: buscando peças do Firebase...");
 
       try {
         setError(null);
@@ -390,12 +425,19 @@ const ManagePartsLibrary = () => {
           loadMore,
         });
 
+        console.log("📦 loadParts: resultado recebido:", {
+          partsCount: result.parts?.length,
+          hasMore: result.hasMore,
+          error: result.error,
+        });
+
         if (result.error) setError(result.error);
         if (result.warning) setError(result.warning);
 
         setDisplayParts(result.parts);
         setHasMore(result.hasMore);
       } catch (err) {
+        console.error("❌ loadParts: erro:", err);
         setError("Erro ao carregar peças. Tente novamente.");
       }
     },
@@ -441,14 +483,11 @@ const ManagePartsLibrary = () => {
   }, []);
 
   const handleRefresh = useCallback(() => {
-    loadParts(false);
-  }, [loadParts]);
+    console.log("🔄 HandleRefresh chamado!");
 
-  const handleLoadMore = useCallback(() => {
-    if (hasMore && !isCacheLoading()) {
-      loadParts(true);
-    }
-  }, [hasMore, isCacheLoading, loadParts]);
+    // Solução temporária: recarregar a página
+    window.location.reload();
+  }, []);
 
   // ✅ DELETE HANDLER - Otimizado
   const handleDelete = useCallback(
@@ -485,53 +524,100 @@ const ManagePartsLibrary = () => {
 
   const handleViewPart = useCallback(
     (partId) => {
-      navigate(`/app/part/${partId}`);
+      const params = new URLSearchParams();
+      if (selectedCategory) params.set("categoryId", selectedCategory.id);
+      if (selectedSubcategory)
+        params.set("subcategoryId", selectedSubcategory.id);
+
+      const url = `/app/part/${partId}${
+        params.toString() ? `?${params.toString()}` : ""
+      }`;
+      navigate(url);
     },
-    [navigate]
+    [navigate, selectedCategory, selectedSubcategory]
   );
 
   const handleAddPart = useCallback(() => {
-    const searchParams = new URLSearchParams();
-    if (selectedCategory) searchParams.set("categoryId", selectedCategory.id);
+    const searchParamsUrl = new URLSearchParams();
+    if (selectedCategory)
+      searchParamsUrl.set("categoryId", selectedCategory.id);
     if (selectedSubcategory)
-      searchParams.set("subcategoryId", selectedSubcategory.id);
+      searchParamsUrl.set("subcategoryId", selectedSubcategory.id);
 
     const url = `/app/add-part${
-      searchParams.toString() ? `?${searchParams.toString()}` : ""
+      searchParamsUrl.toString() ? `?${searchParamsUrl.toString()}` : ""
     }`;
     navigate(url);
   }, [navigate, selectedCategory, selectedSubcategory]);
 
-  // ✅ CATEGORY NAVIGATION HANDLERS
-  const handleTabChange = useCallback((value) => {
-    setActiveTab(value);
-    setError(null);
-    if (value === "all") {
-      setSelectedCategory(null);
+  // ✅ CATEGORY NAVIGATION HANDLERS - MODIFICADOS para atualizar URL
+  const handleTabChange = useCallback(
+    (value) => {
+      setActiveTab(value);
+      setError(null);
+
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.set("tab", value);
+
+      if (value === "all") {
+        setSelectedCategory(null);
+        setSelectedSubcategory(null);
+        newSearchParams.delete("categoryId");
+        newSearchParams.delete("subcategoryId");
+      }
+
+      setSearchParams(newSearchParams);
+    },
+    [searchParams, setSearchParams]
+  );
+
+  const handleCategoryClick = useCallback(
+    (category) => {
+      setSelectedCategory(category);
       setSelectedSubcategory(null);
-    }
-  }, []);
+      setError(null);
 
-  const handleCategoryClick = useCallback((category) => {
-    setSelectedCategory(category);
-    setSelectedSubcategory(null);
-    setError(null);
-  }, []);
+      // ✅ NOVO: Atualizar URL
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.set("tab", "categories");
+      newSearchParams.set("categoryId", category.id);
+      newSearchParams.delete("subcategoryId");
+      setSearchParams(newSearchParams);
+    },
+    [searchParams, setSearchParams]
+  );
 
-  const handleSubcategoryClick = useCallback((subcategory) => {
-    setSelectedSubcategory(subcategory);
-    setError(null);
-  }, []);
+  const handleSubcategoryClick = useCallback(
+    (subcategory) => {
+      setSelectedSubcategory(subcategory);
+      setError(null);
+
+      // ✅ NOVO: Atualizar URL
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.set("tab", "categories");
+      newSearchParams.set("categoryId", selectedCategory.id);
+      newSearchParams.set("subcategoryId", subcategory.id);
+      setSearchParams(newSearchParams);
+    },
+    [selectedCategory, searchParams, setSearchParams]
+  );
 
   const handleBackToCategories = useCallback(() => {
     setError(null);
+    const newSearchParams = new URLSearchParams(searchParams);
+
     if (selectedSubcategory) {
       setSelectedSubcategory(null);
+      newSearchParams.delete("subcategoryId");
     } else {
       setSelectedCategory(null);
       setSubcategoryCounts({});
+      newSearchParams.delete("categoryId");
+      newSearchParams.delete("subcategoryId");
     }
-  }, [selectedSubcategory]);
+
+    setSearchParams(newSearchParams);
+  }, [selectedSubcategory, searchParams, setSearchParams]);
 
   // ✅ LOAD SUBCATEGORY COUNTS
   const loadSubcategoryCounts = useCallback(
@@ -1183,10 +1269,31 @@ const ManagePartsLibrary = () => {
             {/* ✅ 3. PEÇAS DA SUBCATEGORIA */}
             {selectedSubcategory && (
               <>
+                {/* ✅ NOVO: Botão refresh para peças da subcategoria */}
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-white">
+                    Peças em {selectedSubcategory.name}
+                  </h3>
+                  <Button
+                    onClick={handleRefresh}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 text-white border-zinc-700 hover:bg-zinc-700 bg-zinc-600"
+                    disabled={isCacheLoading()}
+                  >
+                    <RefreshCw
+                      className={`w-4 h-4 ${
+                        isCacheLoading() ? "animate-spin" : ""
+                      }`}
+                    />
+                    Atualizar Peças
+                  </Button>
+                </div>
+
                 {isCacheLoading() && displayParts.length === 0 ? (
                   <Card className="bg-zinc-800 border-zinc-700">
                     <CardContent className="p-8 text-center">
-                      <Loader2 className="w-8 h-8 animate-spin text-white mx-auto mb-4" />
+                      <Loader2 className="w-8 w-8 animate-spin text-white mx-auto mb-4" />
                       <p className="text-white">
                         Carregando peças da subcategoria...
                       </p>
@@ -1211,7 +1318,21 @@ const ManagePartsLibrary = () => {
                         .map((part) => (
                           <Card
                             key={part.id}
-                            onClick={() => navigate(`/app/part/${part.id}`)}
+                            onClick={() => {
+                              const params = new URLSearchParams();
+                              if (selectedCategory)
+                                params.set("categoryId", selectedCategory.id);
+                              if (selectedSubcategory)
+                                params.set(
+                                  "subcategoryId",
+                                  selectedSubcategory.id
+                                );
+
+                              const url = `/app/part/${part.id}${
+                                params.toString() ? `?${params.toString()}` : ""
+                              }`;
+                              navigate(url);
+                            }}
                             className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
                           >
                             <CardContent className="p-4">

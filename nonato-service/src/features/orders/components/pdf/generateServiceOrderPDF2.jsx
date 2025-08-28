@@ -741,15 +741,15 @@ const generateServiceOrderPDF = async (
     return yPos;
   };
 
-  // ✅ NOVA FUNÇÃO PARA DESENHAR PEDIDO DE PEÇAS (SEM PREÇOS)
-  const drawPartsRequest = async () => {
+  // FUNÇÃO PARA DESENHAR ORÇAMENTO DE PEÇAS
+  const drawPartsQuote = async () => {
     if (!order.checklist?.pecas || !order.partsQuoteItems?.length) {
       return yPos;
     }
 
     if (checkAndCreateNewPage(200)) {
       drawPageHeader();
-      yPos -= 40;
+      yPos -= 40; // ✅ MAIS ESPAÇO APÓS A IMAGEM EM NOVA PÁGINA
     }
 
     yPos -= 30;
@@ -757,7 +757,7 @@ const generateServiceOrderPDF = async (
     // Título da seção
     drawRect(margin, yPos - 25, pageWidth - 2 * margin, 25, colors.lightGray);
 
-    currentPage.drawText("PEDIDO DE PEÇAS", {
+    currentPage.drawText("ORÇAMENTO DE PEÇAS SOLICITADAS", {
       x: margin + 10,
       y: yPos - 18,
       size: fontSize + 1,
@@ -769,7 +769,6 @@ const generateServiceOrderPDF = async (
 
     const enrichedParts = await enrichPartsWithData(order.partsQuoteItems);
 
-    // ✅ TABELA SEM COLUNAS DE PREÇO
     const tableHeaders = ["Imagem", "Descrição do Item", "Código", "Qtd"];
     const columnWidths = [60, 275, 105, 55];
     let xPos = margin;
@@ -814,7 +813,7 @@ const generateServiceOrderPDF = async (
 
       if (checkAndCreateNewPage(actualItemHeight + 10)) {
         drawPageHeader();
-        yPos -= 40;
+        yPos -= 40; // ✅ MAIS ESPAÇO APÓS A IMAGEM EM NOVA PÁGINA
         // Redesenhar cabeçalho
         xPos = margin;
         tableHeaders.forEach((header, index) => {
@@ -1240,7 +1239,7 @@ const generateServiceOrderPDF = async (
       { key: "retorno", label: "Retorno Necessário" },
       { key: "funcionarios", label: "Instrução dos Funcionários" },
       { key: "documentacao", label: "Entrega da Documentação" },
-      { key: "pecas", label: "Pedido de Peças" }, // ✅ ALTERADO DE "ORÇAMENTO" PARA "PEDIDO"
+      { key: "pecas", label: "Envio do Orçamento de Peças" },
     ];
 
     const cols = 2;
@@ -1389,11 +1388,8 @@ const generateServiceOrderPDF = async (
   });
 
   yPos = drawDescriptions();
-
-  // ✅ ADICIONAR PEDIDO DE PEÇAS AQUI (ANTES DOS RESULTADOS)
-  yPos = await drawPartsRequest();
-
   yPos = drawResults();
+  yPos = await drawPartsQuote();
   drawSignatures();
   addPageNumbers();
 

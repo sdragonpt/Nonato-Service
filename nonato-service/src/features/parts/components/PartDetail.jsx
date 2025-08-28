@@ -117,7 +117,7 @@ const PartDetail = () => {
     }
   }, [part, categoriesLoading, getCategoryById, getSubcategoryById]);
 
-  // ✅ Delete com invalidação de cache
+  // ✅ DELETE com navegação contextual
   const handleDeletePart = async () => {
     try {
       setIsSubmitting(true);
@@ -129,7 +129,24 @@ const PartDetail = () => {
       invalidatePart(partId);
 
       console.log(`🗑️ Peça ${partId} deletada e cache invalidado`);
-      navigate("/app/parts-library");
+
+      // ✅ NOVO: Navegar de volta para o contexto (categoria/subcategoria)
+      const urlParams = new URLSearchParams(window.location.search);
+      const returnCategoryId = urlParams.get("categoryId") || part?.categoryId;
+      const returnSubcategoryId =
+        urlParams.get("subcategoryId") || part?.subcategoryId;
+
+      if (returnSubcategoryId && returnCategoryId) {
+        navigate(
+          `/app/parts-library?tab=categories&categoryId=${returnCategoryId}&subcategoryId=${returnSubcategoryId}`
+        );
+      } else if (returnCategoryId) {
+        navigate(
+          `/app/parts-library?tab=categories&categoryId=${returnCategoryId}`
+        );
+      } else {
+        navigate("/app/parts-library");
+      }
     } catch (err) {
       console.error("❌ Erro ao apagar peça:", err);
       setError("Erro ao apagar peça. Por favor, tente novamente.");

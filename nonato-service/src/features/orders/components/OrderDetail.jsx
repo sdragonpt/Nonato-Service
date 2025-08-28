@@ -226,6 +226,7 @@ const OrderDetail = () => {
           ...workday,
           workDate: new Date(workday.workDate).toLocaleDateString(),
         })),
+        partsQuoteItems: order.partsQuoteItems || [],
       };
 
       const pdfResult = await generateServiceOrderPDF(

@@ -158,7 +158,21 @@ const EditCategory = () => {
       // NOVO: Atualizar cache em vez de forçar refresh
       updateCategoryInCache(categoryId, formData);
 
-      navigate("/app/parts-library?tab=categories");
+      const urlParams = new URLSearchParams(window.location.search);
+      const returnCategoryId = urlParams.get("returnCategoryId");
+      const returnSubcategoryId = urlParams.get("returnSubcategoryId");
+
+      if (returnSubcategoryId) {
+        navigate(
+          `/app/parts-library?tab=categories&categoryId=${returnCategoryId}&subcategoryId=${returnSubcategoryId}`
+        );
+      } else if (returnCategoryId) {
+        navigate(
+          `/app/parts-library?tab=categories&categoryId=${returnCategoryId}`
+        );
+      } else {
+        navigate("/app/parts-library?tab=categories");
+      }
     } catch (err) {
       console.error("Erro ao atualizar categoria:", err);
       setError("Erro ao salvar alterações. Por favor, tente novamente.");
