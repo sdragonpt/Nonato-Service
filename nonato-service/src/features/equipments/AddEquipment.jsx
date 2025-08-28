@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { doc, getDoc, setDoc, increment } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   Camera,
@@ -28,7 +28,8 @@ import { Button } from "@/components/ui/button.jsx";
 
 const AddEquipment = () => {
   const navigate = useNavigate();
-  const { clientId } = useParams();
+  const [searchParams] = useSearchParams();
+  const clientId = searchParams.get("clientId");
 
   const [formData, setFormData] = useState({
     type: "",
@@ -41,6 +42,12 @@ const AddEquipment = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [touched, setTouched] = useState({});
+
+  useEffect(() => {
+    if (!clientId) {
+      setError("ID do cliente não encontrado na URL.");
+    }
+  }, [clientId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -57,7 +64,7 @@ const AddEquipment = () => {
       const counterSnapshot = await getDoc(counterRef);
 
       if (counterSnapshot.exists()) {
-        const currentCounter = counterSnapshot.data().count;
+        const currentCounter = counterSnapshot.data().count || 0;
         await setDoc(counterRef, { count: increment(1) }, { merge: true });
         return currentCounter + 1;
       } else {
@@ -66,7 +73,7 @@ const AddEquipment = () => {
       }
     } catch (error) {
       console.error("Erro ao gerar ID:", error);
-      throw new Error("Falha ao gerar ID do equipamento");
+      throw error;
     }
   };
 
@@ -107,23 +114,36 @@ const AddEquipment = () => {
       return;
     }
 
+    if (!clientId) {
+      setError("ID do cliente não encontrado.");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setError(null);
 
       const newEquipmentId = await getNextEquipmentId();
-      await setDoc(doc(db, "equipamentos", newEquipmentId.toString()), {
-        clientId,
-        ...formData,
+
+      const equipmentData = {
+        clientId: clientId,
+        type: formData.type,
+        brand: formData.brand,
+        model: formData.model,
         serialNumber: formData.serialNumber.toUpperCase(),
         createdAt: new Date(),
-        equipmentPic: equipmentPicPreview,
-      });
+        equipmentPic: equipmentPicPreview || "",
+      };
 
-      navigate(-1);
+      await setDoc(
+        doc(db, "equipamentos", newEquipmentId.toString()),
+        equipmentData
+      );
+
+      navigate(`/app/client/${clientId}`);
     } catch (err) {
       console.error("Erro ao adicionar equipamento:", err);
-      setError("Erro ao adicionar equipamento. Por favor, tente novamente.");
+      setError(`Erro ao adicionar equipamento: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -282,7 +302,7 @@ const AddEquipment = () => {
         {/* Submit Button */}
         <Button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || !clientId}
           className="w-full bg-green-600 hover:bg-green-700"
         >
           {isSubmitting ? (

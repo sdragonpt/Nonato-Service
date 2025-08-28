@@ -29,6 +29,7 @@ import {
   FileText,
   Package,
   CreditCard,
+  Plus,
 } from "lucide-react";
 
 // UI Components
@@ -681,10 +682,21 @@ const ClientDetail = () => {
       {/* Equipment List */}
       <Card className="bg-zinc-800 border-zinc-700">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Printer className="h-5 w-5" />
-            Equipamentos ({equipments.length})
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-white flex items-center gap-2">
+              <Printer className="h-5 w-5" />
+              Equipamentos ({equipments.length})
+            </CardTitle>
+            <Button
+              onClick={() =>
+                navigate(`/app/add-equipment?clientId=${clientId}`)
+              }
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar Equipamento
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {equipments.length > 0 ? (
@@ -716,14 +728,9 @@ const ClientDetail = () => {
             <div className="text-center py-8">
               <Printer className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
               <p className="text-zinc-400">Nenhum equipamento cadastrado</p>
-              <Button
-                onClick={() =>
-                  navigate(`/app/add-equipment?clientId=${clientId}`)
-                }
-                className="mt-4 bg-green-600 hover:bg-green-700"
-              >
-                Adicionar Equipamento
-              </Button>
+              <p className="text-sm text-zinc-500 mt-2">
+                Use o botão "Adicionar Equipamento" acima para começar
+              </p>
             </div>
           )}
         </CardContent>
@@ -732,7 +739,7 @@ const ClientDetail = () => {
       {/* Financial Section */}
       <ClientFinancialSection clientId={clientId} />
 
-      {/* Service History - CORRIGIDO: Mostrar ID completo */}
+      {/* Service History */}
       <Card className="bg-zinc-800 border-zinc-700">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
