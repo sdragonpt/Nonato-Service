@@ -1062,29 +1062,6 @@ const ManagePartsLibrary = () => {
                       ))}
                     </div>
                   )}
-
-                  {/* Load More Button */}
-                  {hasMore && (
-                    <div className="flex justify-center mt-8">
-                      <Button
-                        onClick={handleLoadMore}
-                        disabled={isCacheLoading()}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        {isCacheLoading() ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Carregando...
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="w-4 h-4 mr-2" />
-                            Carregar Mais (20 itens)
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  )}
                 </>
               )}
 
@@ -1368,28 +1345,6 @@ const ManagePartsLibrary = () => {
                           </Card>
                         ))}
                     </div>
-
-                    {hasMore && (
-                      <div className="flex justify-center mt-8">
-                        <Button
-                          onClick={handleLoadMore}
-                          disabled={isCacheLoading()}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          {isCacheLoading() ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Carregando...
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="w-4 h-4 mr-2" />
-                              Carregar Mais
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    )}
                   </>
                 ) : (
                   <Card className="bg-zinc-800 border-zinc-700">
