@@ -60,6 +60,15 @@ const CategoryItem = React.memo(
       onToggle(category.id);
     }, [category.id, onToggle]);
 
+    // ✅ CORREÇÃO: Adicionar handleEdit que estava faltando
+    const handleEdit = useCallback(
+      (e) => {
+        e.stopPropagation();
+        onEdit(category, true); // true indica que é uma categoria principal
+      },
+      [category, onEdit]
+    );
+
     const handleDelete = useCallback(
       (e) => {
         e.stopPropagation();
@@ -128,7 +137,7 @@ const CategoryItem = React.memo(
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0 text-zinc-400 hover:text-white"
-                  onClick={handleEdit}
+                  onClick={handleEdit} // ✅ Agora handleEdit está definido
                 >
                   <Edit2 className="h-4 w-4" />
                 </Button>
