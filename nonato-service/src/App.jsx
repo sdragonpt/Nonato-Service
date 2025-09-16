@@ -53,6 +53,7 @@ import {
   Bell,
   Search,
   Home,
+  FileSpreadsheet,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -316,6 +317,7 @@ const ImageMigrationTool = React.lazy(() =>
   import("./context/ImageMigrationTool")
 );
 const RollbackTool = React.lazy(() => import("./context/RollbackTool"));
+const PartsExportTool = React.lazy(() => import("./context/PartsExportTool"));
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ⚙️ CONSTANTES E CONFIGURAÇÕES
@@ -397,6 +399,11 @@ const NAVIGATION_ITEMS = [
         icon: RotateCcw,
         label: "Rollback de Migração",
         adminOnly: true,
+      },
+      {
+        path: "/app/parts-export",
+        icon: FileSpreadsheet,
+        label: "Exportar Peças CSV",
       },
     ],
   },
@@ -1148,6 +1155,14 @@ const App = () => {
                             element={
                               <RoleRoute allowedRoles={["admin"]}>
                                 <RollbackTool />
+                              </RoleRoute>
+                            }
+                          />
+                          <Route
+                            path="parts-export"
+                            element={
+                              <RoleRoute allowedRoles={["admin"]}>
+                                <PartsExportTool />
                               </RoleRoute>
                             }
                           />
