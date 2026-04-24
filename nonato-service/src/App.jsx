@@ -318,6 +318,9 @@ const ImageMigrationTool = React.lazy(() =>
 );
 const RollbackTool = React.lazy(() => import("./context/RollbackTool"));
 const PartsExportTool = React.lazy(() => import("./context/PartsExportTool"));
+const ManageCompanyProfile = React.lazy(() =>
+  import("./features/companyProfile/ManageCompanyProfile")
+);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ⚙️ CONSTANTES E CONFIGURAÇÕES
@@ -388,6 +391,11 @@ const NAVIGATION_ITEMS = [
     title: "Administração",
     icon: Settings,
     items: [
+      {
+        path: "/app/company-profile",
+        icon: Building2,
+        label: "Papel Timbrado",
+      },
       {
         path: "/app/image-migration",
         icon: Database,
@@ -1165,6 +1173,10 @@ const App = () => {
                                 <PartsExportTool />
                               </RoleRoute>
                             }
+                          />
+                          <Route
+                            path="company-profile"
+                            element={<ManageCompanyProfile />}
                           />
                         </Routes>
                       </DashboardShell>
