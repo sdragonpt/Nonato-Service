@@ -38,4 +38,6 @@ next-env.d.ts
 
 # pastas que eram usadas pelo modelo filesystem da versão original do
 # cliente — a base de dados é agora Firebase, estas pastas não são
-# usadas pela app-v2 
+# usadas pela app-v2 mas ficam ignoradas para casos de teste local.
+/data
+/backups
