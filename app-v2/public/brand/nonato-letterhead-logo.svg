@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 56" role="img" aria-label="NONATO SERVICE">
+  <defs>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#4ade80"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="54" height="54" rx="12" fill="#0f172a" stroke="url(#accent)" stroke-width="2"/>
+  <circle cx="28" cy="28" r="8" fill="#86efac" opacity="0.95"/>
+  <circle cx="38" cy="28" r="11" fill="#22c55e" opacity="0.9"/>
+  <text x="72" y="36" font-family="Segoe UI, system-ui, sans-serif" font-size="22" font-weight="800" fill="#0f172a">NONATO</text>
+  <text x="72" y="52" font-family="Segoe UI, system-ui, sans-serif" font-size="9" font-weight="700" fill="#15803d" letter-spacing="0.35em">SERVICE</text>
+</svg>

@@ -1,0 +1,91 @@
+================================================================================
+  LOGO NONATO + ÍCONE DA APP (favicon, telemóvel, PWA)
+================================================================================
+
+O sistema usa UM ÚNICO ficheiro de imagem para:
+  • O logo na interface (componente NonatoBrandLogo)
+  • O ícone do separador do browser (favicon)
+  • O ícone ao instalar a app no telemóvel / tablet (PWA), via SVG em public/
+
+FICHEIRO OBRIGATÓRIO (nome fixo)
+--------------------------------
+  public/brand/nonato-logo-original.png
+
+  • Formato: PNG (fundo transparente recomendado)
+  • Proporção: livre; o ícone recorta/encaixa com margem segura no SVG
+  • Tamanho sugerido: pelo menos 512×512 px para boa qualidade em ecrãs HiDPI
+
+PASSO A PASSO — PRIMEIRA VEZ (colocar o teu logo)
+-------------------------------------------------
+  1. Exporta o teu logo da Nonato Service em PNG (fundo transparente se possível).
+
+  2. Grava o ficheiro com o nome EXATAMENTE:
+       nonato-logo-original.png
+
+  3. Copia esse ficheiro para esta pasta do projeto:
+       gestao-tecnica-nonato-service/public/brand/
+
+  4. Confirma que o caminho final é:
+       public/brand/nonato-logo-original.png
+
+  5. Reinicia o servidor de desenvolvimento (npm run dev) ou faz novo deploy.
+
+  6. No browser: faz um “hard refresh” (Ctrl+F5) ou limpa cache do separador.
+     No telemóvel: fecha o separador e volta a abrir o site, ou reinstala o PWA
+     se já tinhas instalado antes.
+
+O que foi ligado no código
+---------------------------
+  • app/icon.svg e public/icon.svg — mostram o mesmo PNG em fundo escuro.
+  • manifest.json — usa /icon.svg (que referencia o PNG acima).
+  • app/layout.tsx — metadados Apple / ícones apontam para o mesmo PNG quando
+    existir.
+
+PASSO A PASSO — TROCAR O LOGO MAIS TARDE
+----------------------------------------
+  1. Substitui o ficheiro public/brand/nonato-logo-original.png pelo novo
+     (mantém o mesmo nome), OU
+     coloca um novo PNG e, se mudares o nome, atualiza também:
+       - app/components/NonatoBrandLogo.tsx  (src="/brand/...")
+       - app/icon.svg e public/icon.svg      (href="/brand/...")
+
+  2. (Opcional) Ícones PNG fixos 192×192 e 512×512 para alguns Android antigos:
+     - Exporta a partir do teu logo (Figma, Canva, Photoshop, etc.)
+     - Grava como:
+         public/icon-192.png
+         public/icon-512.png
+     - Se estes ficheiros existirem, podes adicionar de volta as entradas
+       correspondentes em public/manifest.json (ver comentário no próprio JSON).
+
+  3. Apple (iPhone): o ícone ao “Adicionar ao ecrã inicial” usa o mesmo PNG
+     referenciado nos metadados. Se quiseres um ícone só para iOS,
+     podes criar public/apple-touch-icon.png (180×180) e adicionar
+     <link rel="apple-touch-icon" href="/apple-touch-icon.png" /> em layout.tsx.
+
+FICHEIROS A NÃO APAGAR SEM SUBSTITUIR
+-------------------------------------
+  • app/icon.svg
+  • public/icon.svg
+
+  (Contêm a referência ao logo; se apagares, recria conforme o repositório.)
+
+PAPEL TIMBRADO (A4)
+-------------------
+  • Página: /papel-timbrado (atalho no Administrador, item 07 da grelha de atalhos)
+  • Logo vertical da marca (engrenagens + NONATO + SERVICE) em ficheiro PNG:
+        public/brand/nonato-logo-papel-timbrado.png
+    — Formato oficial do papel timbrado: PNG (.png).
+    — Se o teu PNG tiver fundo preto (marca «neon em preto»), no papel branco
+      aparece um bloco preto com o logo — é correcto. Com fundo transparente,
+      lembra-te: texto branco desaparece no papel branco; nesse caso mantém
+      fundo escuro no PNG ou usa variante com texto escuro para impressão.
+  • Para usar a tua arte oficial:
+        substitui o ficheiro acima mantendo o MESMO nome, OU
+        coloca outro PNG em public/brand/ e na página Papel timbrado altera
+        o campo «URL do logo» para /brand/nome-do-ficheiro.png
+  • Reserva vectorial (fallback se o URL falhar): public/brand/nonato-letterhead-logo.svg
+  • Interface da app / favicon: continuam a usar public/brand/nonato-logo-original.png
+    quando existir (independente do logo do papel timbrado).
+  • Pode «Puxar dados do Cadastro Nonato Service»: lê nonato-ficha-cadastral (nome, morada, telefone, logo).
+
+================================================================================
