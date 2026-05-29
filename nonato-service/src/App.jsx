@@ -531,7 +531,18 @@ UserNav.displayName = "UserNav";
  */
 const DashboardShell = React.memo(({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState("Cadastro"); // ✅ EXPANDIR PRIMEIRA SEÇÃO POR PADRÃO
+
+  // Detect which section contains the current route so it opens on refresh
+  const getSectionForPath = useCallback((pathname) => {
+    for (const section of NAVIGATION_ITEMS) {
+      if (section.items.some((item) => pathname.startsWith(item.path))) {
+        return section.title;
+      }
+    }
+    return "Cadastro";
+  }, []);
+
+  const [activeSection, setActiveSection] = useState(() => getSectionForPath(window.location.pathname));
   const [searchQuery, setSearchQuery] = useState("");
   const { user } = useAuth();
   const location = useLocation();
@@ -563,18 +574,11 @@ const DashboardShell = React.memo(({ children }) => {
     }
   }, [location]);
 
-  // ✅ EXPANDIR SEÇÕES POR PADRÃO NA PRIMEIRA VISITA
+  // Update active section when route changes (e.g. navigating via links)
   useEffect(() => {
-    // Se não há seção ativa, expandir a primeira seção disponível
-    if (!activeSection && NAVIGATION_ITEMS.length > 0) {
-      const firstSection = NAVIGATION_ITEMS.find(
-        (section) => section.title !== "Administração" || user?.role === "admin"
-      );
-      if (firstSection) {
-        setActiveSection(firstSection.title);
-      }
-    }
-  }, [activeSection, user?.role]);
+    const section = getSectionForPath(location.pathname);
+    setActiveSection(section);
+  }, [location.pathname, getSectionForPath]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 overflow-x-hidden">
