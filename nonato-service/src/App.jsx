@@ -54,6 +54,7 @@ import {
   Search,
   Home,
   FileSpreadsheet,
+  FolderOpen,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -313,6 +314,10 @@ const ShopAccessWrapper = React.lazy(() =>
 // 🔧 IMPORTS DE FEATURES - ADMINISTRAÇÃO (LAZY LOADING)
 // ═══════════════════════════════════════════════════════════════════════════════
 
+const ManageDocuments = React.lazy(() =>
+  import("./features/documents/ManageDocuments")
+);
+
 const ImageMigrationTool = React.lazy(() =>
   import("./context/ImageMigrationTool")
 );
@@ -335,6 +340,13 @@ const NAVIGATION_ITEMS = [
       { path: "/app/manage-clients", icon: Users, label: "Clientes" },
       { path: "/app/manage-budgets", icon: FileText, label: "Orçamentos" },
       { path: "/app/manage-services", icon: Wrench, label: "Serviços" },
+    ],
+  },
+  {
+    title: "Documentos",
+    icon: FolderOpen,
+    items: [
+      { path: "/app/documents", icon: FolderOpen, label: "Documentos de Máquinas" },
     ],
   },
   {
@@ -930,6 +942,9 @@ const App = () => {
                         <Routes>
                           {/* Dashboard */}
                           <Route path="dashboard" element={<DashboardPage />} />
+
+                          {/* Documentos */}
+                          <Route path="documents" element={<ManageDocuments />} />
 
                           {/* Profile e Settings */}
                           <Route path="profile" element={<UserProfile />} />
