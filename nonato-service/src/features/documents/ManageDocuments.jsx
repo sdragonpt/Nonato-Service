@@ -175,6 +175,19 @@ const ManageDocuments = () => {
     }
   }, []);
 
+  const [recentDocs, setRecentDocs] = useState([]);
+
+  const fetchRecent = useCallback(async () => {
+    try {
+      const snap = await getDocs(
+        query(collection(db, "doc_files"), orderBy("createdAt", "desc"))
+      );
+      setRecentDocs(snap.docs.slice(0, 12).map((d) => ({ id: d.id, ...d.data() })));
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
   const fetchDocuments = useCallback(async (machineTypeId) => {
     setLoadingDocs(true);
     try {
@@ -193,7 +206,7 @@ const ManageDocuments = () => {
     }
   }, []);
 
-  useEffect(() => { fetchFamilies(); }, [fetchFamilies]);
+  useEffect(() => { fetchFamilies(); fetchRecent(); }, [fetchFamilies, fetchRecent]);
 
   // ── NAVIGATION ──────────────────────────────────────────────────────────────
   const goHome = () => {
@@ -304,8 +317,9 @@ const ManageDocuments = () => {
           createdAt: serverTimestamp(),
           uploadedBy: user?.uid || "",
         });
-        // Refresh if we're viewing this machine
+        // Refresh docs and recents
         if (selectedMachine?.id === uploadMachine) fetchDocuments(uploadMachine);
+        fetchRecent();
         setUploading(false);
         setShowUpload(false);
         setUploadFile(null);
@@ -376,21 +390,21 @@ const ManageDocuments = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
           {view !== "home" && (
             <Button
               variant="ghost"
               size="icon"
-              onClick={view === "machine" ? () => { setView("family"); setSelectedMachine(null); } : goHome}
-              className="text-zinc-400 hover:text-white hover:bg-zinc-700/50"
+              onClick={view === "machine" ? () => { setView("family"); setSelectedMachine(null); setSearch(""); } : goHome}
+              className="text-zinc-400 hover:text-white hover:bg-zinc-700/50 flex-shrink-0"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
           )}
-          <div>
-            <h1 className="text-2xl font-bold text-white">
-              {view === "home" && "Documentos"}
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-white truncate">
+              {view === "home" && "Bíblia"}
               {view === "family" && selectedFamily?.name}
               {view === "machine" && selectedMachine?.name}
             </h1>
@@ -403,19 +417,51 @@ const ManageDocuments = () => {
         </div>
         <Button
           onClick={openUpload}
-          className="bg-green-600 hover:bg-green-500 text-white"
+          className="bg-green-600 hover:bg-green-500 text-white flex-shrink-0"
         >
           <Upload className="w-4 h-4 mr-2" />
           Adicionar
         </Button>
       </div>
 
+      {/* Search bar — visible on all views */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+        <Input
+          placeholder={
+            view === "home" ? "Pesquisar famílias..." :
+            view === "family" ? "Pesquisar tipos de máquina..." :
+            "Pesquisar documentos..."
+          }
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-10 bg-zinc-800/50 border-zinc-700/50 text-white placeholder:text-zinc-500 focus:border-green-500/50"
+        />
+        {search && (
+          <button
+            onClick={() => setSearch("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
       {/* HOME VIEW */}
       {view === "home" && (
         <HomeView
-          families={families}
+          families={families.filter(f =>
+            !search || f.name.toLowerCase().includes(search.toLowerCase())
+          )}
+          recentDocs={recentDocs.filter(d =>
+            !search || d.name.toLowerCase().includes(search.toLowerCase()) ||
+            d.familyName?.toLowerCase().includes(search.toLowerCase()) ||
+            d.machineTypeName?.toLowerCase().includes(search.toLowerCase())
+          )}
           loading={loadingFamilies}
+          search={search}
           onSelectFamily={goFamily}
+          onOpenDoc={setViewerDoc}
           onNewFamily={() => { setShowNewFamily(true); setNewMachineFamilyId(""); }}
           onDeleteFamily={(f) => setDeleteTarget({ type: "family", id: f.id })}
         />
@@ -425,8 +471,11 @@ const ManageDocuments = () => {
       {view === "family" && (
         <FamilyView
           family={selectedFamily}
-          machines={machineTypes}
+          machines={machineTypes.filter(m =>
+            !search || m.name.toLowerCase().includes(search.toLowerCase())
+          )}
           loading={loadingMachines}
+          search={search}
           familyColor={familyColor(families, selectedFamily?.id)}
           onSelectMachine={goMachine}
           onNewMachine={() => {
@@ -446,10 +495,8 @@ const ManageDocuments = () => {
           filteredDocs={filteredDocs}
           loading={loadingDocs}
           activeCategory={activeCategory}
-          search={search}
           familyColor={familyColor(families, selectedFamily?.id)}
-          onCategoryChange={setActiveCategory}
-          onSearch={setSearch}
+          onCategoryChange={(cat) => { setActiveCategory(cat); setSearch(""); }}
           onOpen={setViewerDoc}
           onDelete={(d) => setDeleteTarget({ type: "doc", id: d.id, storagePath: d.storagePath })}
         />
@@ -595,7 +642,7 @@ const ManageDocuments = () => {
 
 // ─── HOME VIEW ────────────────────────────────────────────────────────────────
 
-const HomeView = ({ families, loading, onSelectFamily, onNewFamily, onDeleteFamily }) => {
+const HomeView = ({ families, recentDocs, loading, search, onSelectFamily, onOpenDoc, onNewFamily, onDeleteFamily }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -662,6 +709,88 @@ const HomeView = ({ families, loading, onSelectFamily, onNewFamily, onDeleteFami
             <Plus className="w-6 h-6" />
             <span className="text-xs">Nova família</span>
           </motion.div>
+        </div>
+      )}
+
+      {/* Recentes */}
+      {!search && recentDocs.length > 0 && (
+        <div className="mt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-sm font-semibold text-zinc-300">Adicionados Recentemente</h2>
+            <Badge variant="secondary" className="text-xs bg-zinc-700 text-zinc-400">
+              {recentDocs.length}
+            </Badge>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+            {recentDocs.map((d, i) => {
+              const cat = CATEGORIES.find((c) => c.id === d.category);
+              const isImg = isImage(d.fileName);
+              return (
+                <motion.div
+                  key={d.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.03 }}
+                  className="group bg-zinc-800/50 border border-zinc-700/50 rounded-xl overflow-hidden cursor-pointer hover:border-zinc-600 transition-all hover:-translate-y-0.5"
+                  onClick={() => onOpenDoc(d)}
+                >
+                  <div className="h-[68px] flex items-center justify-center relative overflow-hidden"
+                    style={{ background: (cat?.color || "#fff") + "0d" }}>
+                    {isImg && d.fileUrl
+                      ? <img src={d.fileUrl} alt={d.name} className="h-full w-full object-cover opacity-80" />
+                      : <div className="relative w-8 h-8 rounded-lg bg-zinc-900/80 border border-zinc-700/60 flex items-center justify-center">
+                          {cat ? <cat.icon className="w-4 h-4" style={{ color: cat.color }} /> : <FileText className="w-4 h-4 text-zinc-400" />}
+                        </div>
+                    }
+                    <span className="absolute top-1.5 right-1.5 text-[8px] font-bold px-1 py-0.5 rounded"
+                      style={{ background: (cat?.color || "#fff") + "25", color: cat?.color || "#fff" }}>
+                      {d.fileName?.split(".").pop()?.toUpperCase() || "—"}
+                    </span>
+                  </div>
+                  <div className="p-2.5">
+                    <div className="text-[11px] font-semibold text-white truncate mb-0.5" title={d.name}>{d.name}</div>
+                    <div className="text-[10px] text-zinc-500 truncate">{d.familyName} › {d.machineTypeName}</div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Resultados de pesquisa global */}
+      {search && recentDocs.length > 0 && (
+        <div className="mt-2">
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-sm font-semibold text-zinc-300">Documentos encontrados</h2>
+            <Badge variant="secondary" className="text-xs bg-zinc-700 text-zinc-400">{recentDocs.length}</Badge>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+            {recentDocs.map((d, i) => {
+              const cat = CATEGORIES.find((c) => c.id === d.category);
+              const isImg = isImage(d.fileName);
+              return (
+                <motion.div key={d.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.03 }}
+                  className="group bg-zinc-800/50 border border-zinc-700/50 rounded-xl overflow-hidden cursor-pointer hover:border-zinc-600 transition-all hover:-translate-y-0.5"
+                  onClick={() => onOpenDoc(d)}>
+                  <div className="h-[68px] flex items-center justify-center relative overflow-hidden"
+                    style={{ background: (cat?.color || "#fff") + "0d" }}>
+                    {isImg && d.fileUrl
+                      ? <img src={d.fileUrl} alt={d.name} className="h-full w-full object-cover opacity-80" />
+                      : <div className="relative w-8 h-8 rounded-lg bg-zinc-900/80 border border-zinc-700/60 flex items-center justify-center">
+                          {cat ? <cat.icon className="w-4 h-4" style={{ color: cat.color }} /> : <FileText className="w-4 h-4 text-zinc.400" />}
+                        </div>
+                    }
+                  </div>
+                  <div className="p-2.5">
+                    <div className="text-[11px] font-semibold text-white truncate mb-0.5">{d.name}</div>
+                    <div className="text-[10px] text-zinc-500 truncate">{d.familyName} › {d.machineTypeName}</div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -748,8 +877,8 @@ const FamilyView = ({ family, machines, loading, familyColor: color, onSelectMac
 
 const MachineView = ({
   machine, family, documents, filteredDocs, loading,
-  activeCategory, search, familyColor: color,
-  onCategoryChange, onSearch, onOpen, onDelete,
+  activeCategory, familyColor: color,
+  onCategoryChange, onOpen, onDelete,
 }) => {
   const cat = CATEGORIES.find((c) => c.id === activeCategory);
 
@@ -782,17 +911,6 @@ const MachineView = ({
             </button>
           );
         })}
-      </div>
-
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-        <Input
-          placeholder={`Pesquisar ${cat?.label?.toLowerCase()}...`}
-          value={search}
-          onChange={(e) => onSearch(e.target.value)}
-          className="pl-10 bg-zinc-800/50 border-zinc-700/50 text-white placeholder:text-zinc-500"
-        />
       </div>
 
       {/* Documents */}

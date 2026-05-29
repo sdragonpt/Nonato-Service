@@ -343,10 +343,10 @@ const NAVIGATION_ITEMS = [
     ],
   },
   {
-    title: "Documentos",
+    title: "Bíblia",
     icon: FolderOpen,
     items: [
-      { path: "/app/documents", icon: FolderOpen, label: "Documentos de Máquinas" },
+      { path: "/app/documents", icon: FolderOpen, label: "Bíblia de Máquinas" },
     ],
   },
   {
