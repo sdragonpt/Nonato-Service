@@ -3,13 +3,13 @@ import {
   collection,
   getDocs,
   doc,
-  deleteDoc,
+  updateDoc,
   query,
   orderBy,
   getDoc,
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { FileOpener } from "@capacitor-community/file-opener";
 
@@ -165,6 +165,9 @@ const InspectionCard = ({
 
 const ManageInspection = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const clientIdFilter = searchParams.get("clientId") || "";
+  const equipmentIdFilter = searchParams.get("equipmentId") || "";
   const [inspections, setInspections] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -211,7 +214,8 @@ const ManageInspection = () => {
       });
 
       const inspectionsData = await Promise.all(inspectionPromises);
-      setInspections(inspectionsData);
+      // Filtrar excluídas (soft-delete) client-side, evitando índice composto
+      setInspections(inspectionsData.filter((i) => !i.eliminadoEm));
       setError(null);
     } catch (err) {
       console.error("Erro ao carregar inspeções:", err);
@@ -227,15 +231,18 @@ const ManageInspection = () => {
 
   const handleDelete = async (inspectionId) => {
     try {
-      await deleteDoc(doc(db, "inspections", inspectionId));
+      // Soft-delete: move para a Reciclagem em vez de apagar definitivamente
+      await updateDoc(doc(db, "inspections", inspectionId), {
+        eliminadoEm: new Date(),
+      });
       setInspections((prev) =>
         prev.filter((inspection) => inspection.id !== inspectionId)
       );
       setDeleteDialogOpen(false);
       setInspectionToDelete(null);
     } catch (error) {
-      console.error("Erro ao deletar inspeção:", error);
-      setError("Erro ao deletar inspeção. Por favor, tente novamente.");
+      console.error("Erro ao excluir inspeção:", error);
+      setError("Erro ao excluir inspeção. Por favor, tente novamente.");
     }
   };
 
@@ -322,14 +329,17 @@ const ManageInspection = () => {
     }
   };
 
-  const filteredInspections = inspections.filter(
-    (inspection) =>
+  const filteredInspections = inspections.filter((inspection) => {
+    if (clientIdFilter && inspection.clientId !== clientIdFilter) return false;
+    if (equipmentIdFilter && inspection.equipmentId !== equipmentIdFilter) return false;
+    return (
       inspection.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       inspection.equipmentType
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
       inspection.checklistType.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    );
+  });
 
   // Calcular dados da paginação
   const indexOfLastInspection = currentPage * itemsPerPage;
@@ -381,13 +391,23 @@ const ManageInspection = () => {
             Gerencie todas as suas inspeções em um só lugar
           </p>
         </div>
-        <Button
-          onClick={() => navigate("/app/add-inspection")}
-          className="hidden sm:flex bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Inspeção
-        </Button>
+        <div className="hidden sm:flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate("/app/recycle-bin")}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Reciclagem
+          </Button>
+          <Button
+            onClick={() => navigate("/app/add-inspection")}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Inspeção
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -432,6 +452,21 @@ const ManageInspection = () => {
       {/* Filters Card */}
       <Card className="bg-zinc-800 border-zinc-700">
         <CardContent className="space-y-4 p-4 sm:p-6">
+          {(clientIdFilter || equipmentIdFilter) && (
+            <div className="flex items-center justify-between bg-blue-500/10 border border-blue-500/30 rounded-lg px-3 py-2">
+              <span className="text-sm text-blue-300">
+                Filtrado por {clientIdFilter ? "cliente" : "equipamento"} específico
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSearchParams({})}
+                className="text-blue-300 hover:text-white hover:bg-blue-500/20 h-7"
+              >
+                Limpar filtro
+              </Button>
+            </div>
+          )}
           {/* Search */}
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -611,7 +646,8 @@ const ManageInspection = () => {
               <span className="font-semibold text-white">
                 {inspectionToDelete?.clientName}
               </span>
-              ? Esta ação não pode ser desfeita.
+              ? A inspeção será movida para a Reciclagem e pode ser restaurada
+              mais tarde.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">

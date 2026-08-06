@@ -1,17 +1,17 @@
 // ManageCategories.jsx - OTIMIZADO: React.memo + Lazy Stats + Zero Logs
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import {
-  collection,
-  getDocs,
-  doc,
-  query,
-  where,
-  writeBatch,
-} from "firebase/firestore";
+import { doc, updateDoc, writeBatch } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useNavigate } from "react-router-dom";
 import { useCategories } from "../../context/CategoriesContext.jsx";
+import {
+  loadPartAssignments,
+  clearCategoryFromAssignments,
+  clearSubcategoryFromAssignments,
+  renameCategoryInAssignments,
+  renameSubcategoryInAssignments,
+} from "../../services/partCategoryAssignments.js";
 import {
   Search,
   Plus,
@@ -313,31 +313,29 @@ const ManageCategories = () => {
   );
 
   // ✅ LAZY STATS FETCHING - Só quando necessário
+  // Conta quantas peças do catálogo HOMAG têm cada categoria/subcategoria
+  // atribuída (ver src/services/partCategoryAssignments.js).
   const fetchCategoryStats = useCallback(async () => {
     if (statsLoading || categories.length === 0) return;
 
     try {
       setStatsLoading(true);
       const statsObj = {};
-      const partsSnapshot = await getDocs(collection(db, "pecas"));
-      const parts = partsSnapshot.docs.map((doc) => doc.data());
+      const assignments = await loadPartAssignments();
+      const allAssignments = Array.from(assignments.values());
 
-      // Count for main categories
       for (const category of categories) {
-        const mainCategoryParts = parts.filter(
-          (part) => part.categoryId === category.id
-        );
-        statsObj[category.id] = mainCategoryParts.length;
+        statsObj[category.id] = allAssignments.filter(
+          (a) => a.categoryId === category.id
+        ).length;
       }
 
-      // Count for subcategories
       for (const category of categories) {
         const subcategories = getSubcategoriesByParent(category.id);
         for (const subcategory of subcategories) {
-          const subcategoryParts = parts.filter(
-            (part) => part.subcategoryId === subcategory.id
-          );
-          statsObj[subcategory.id] = subcategoryParts.length;
+          statsObj[subcategory.id] = allAssignments.filter(
+            (a) => a.subcategoryId === subcategory.id
+          ).length;
         }
       }
 
@@ -421,58 +419,18 @@ const ManageCategories = () => {
       if (categoryToDelete.isMainCategory) {
         const subcategories = getSubcategoriesByParent(categoryToDelete.id);
 
-        // Update all parts that use this category
-        const partsQuery = query(
-          collection(db, "pecas"),
-          where("categoryId", "==", categoryToDelete.id)
-        );
-        const partsSnapshot = await getDocs(partsQuery);
+        // Desclassificar peças do catálogo que tinham esta categoria atribuída
+        await clearCategoryFromAssignments(categoryToDelete.id);
 
-        partsSnapshot.docs.forEach((partDoc) => {
-          const partRef = doc(db, "pecas", partDoc.id);
-          batch.update(partRef, {
-            categoryId: "",
-            categoryName: "",
-            subcategoryId: "",
-            subcategoryName: "",
-          });
-        });
-
-        // Delete all subcategories
+        // Apagar todas as subcategorias (e desclassificar as peças de cada uma)
         for (const subcategory of subcategories) {
-          const subPartsQuery = query(
-            collection(db, "pecas"),
-            where("subcategoryId", "==", subcategory.id)
-          );
-          const subPartsSnapshot = await getDocs(subPartsQuery);
-
-          subPartsSnapshot.docs.forEach((partDoc) => {
-            const partRef = doc(db, "pecas", partDoc.id);
-            batch.update(partRef, {
-              subcategoryId: "",
-              subcategoryName: "",
-            });
-          });
-
+          await clearSubcategoryFromAssignments(subcategory.id);
           batch.delete(doc(db, "categorias", subcategory.id));
         }
 
         batch.delete(doc(db, "categorias", categoryToDelete.id));
       } else {
-        const partsQuery = query(
-          collection(db, "pecas"),
-          where("subcategoryId", "==", categoryToDelete.id)
-        );
-        const partsSnapshot = await getDocs(partsQuery);
-
-        partsSnapshot.docs.forEach((partDoc) => {
-          const partRef = doc(db, "pecas", partDoc.id);
-          batch.update(partRef, {
-            subcategoryId: "",
-            subcategoryName: "",
-          });
-        });
-
+        await clearSubcategoryFromAssignments(categoryToDelete.id);
         batch.delete(doc(db, "categorias", categoryToDelete.id));
       }
 
@@ -504,36 +462,17 @@ const ManageCategories = () => {
 
     try {
       setIsSubmitting(true);
-      const batch = writeBatch(db);
 
       const categoryRef = doc(db, "categorias", categoryToEdit.id);
-      batch.update(categoryRef, { name: editName });
+      await updateDoc(categoryRef, { name: editName });
 
+      // Atualizar o nome já guardado nas atribuições de categoria das peças do catálogo
       if (categoryToEdit.isMainCategory) {
-        const partsQuery = query(
-          collection(db, "pecas"),
-          where("categoryId", "==", categoryToEdit.id)
-        );
-        const partsSnapshot = await getDocs(partsQuery);
-
-        partsSnapshot.docs.forEach((partDoc) => {
-          const partRef = doc(db, "pecas", partDoc.id);
-          batch.update(partRef, { categoryName: editName });
-        });
+        await renameCategoryInAssignments(categoryToEdit.id, editName);
       } else {
-        const partsQuery = query(
-          collection(db, "pecas"),
-          where("subcategoryId", "==", categoryToEdit.id)
-        );
-        const partsSnapshot = await getDocs(partsQuery);
-
-        partsSnapshot.docs.forEach((partDoc) => {
-          const partRef = doc(db, "pecas", partDoc.id);
-          batch.update(partRef, { subcategoryName: editName });
-        });
+        await renameSubcategoryInAssignments(categoryToEdit.id, editName);
       }
 
-      await batch.commit();
       updateCategoryInCache(categoryToEdit.id, { name: editName });
 
       setEditDialogOpen(false);

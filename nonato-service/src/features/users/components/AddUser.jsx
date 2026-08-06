@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ROLE_OPTIONS } from "../../../config/roles.js";
 
 const AddUser = ({ onClose }) => {
   const [formData, setFormData] = useState({
@@ -196,18 +197,15 @@ const AddUser = ({ onClose }) => {
               <SelectValue placeholder="Selecione a função" />
             </SelectTrigger>
             <SelectContent className="bg-zinc-800 border-zinc-700">
-              <SelectItem
-                value="admin"
-                className="text-white hover:bg-zinc-700"
-              >
-                Administrador
-              </SelectItem>
-              <SelectItem
-                value="client"
-                className="text-white hover:bg-zinc-700"
-              >
-                Cliente
-              </SelectItem>
+              {ROLE_OPTIONS.map((option) => (
+                <SelectItem
+                  key={option.value}
+                  value={option.value}
+                  className="text-white hover:bg-zinc-700"
+                >
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

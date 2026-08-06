@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, updateDoc, doc } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 
 // Lucide Icons
@@ -17,6 +17,7 @@ import {
   ClipboardList,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from "lucide-react";
 
 // UI Components
@@ -212,8 +213,10 @@ const ManageOrders = () => {
         return acc;
       }, {});
 
-      // ✅ FILTRAR APENAS ORDENS DE SERVIÇO NORMAIS (sem orçamentos online)
-      const serviceOrders = ordersData.filter((order) => !order.isQuote);
+      // ✅ FILTRAR APENAS ORDENS DE SERVIÇO NORMAIS (sem orçamentos online, sem excluídas)
+      const serviceOrders = ordersData.filter(
+        (order) => !order.isQuote && !order.eliminadoEm
+      );
 
       setOrders(serviceOrders);
       setClients(clientsData);
@@ -233,13 +236,16 @@ const ManageOrders = () => {
 
   const handleDelete = async (orderId) => {
     try {
-      await deleteDoc(doc(db, "ordens", orderId));
+      // Soft-delete: move para a Reciclagem em vez de apagar definitivamente
+      await updateDoc(doc(db, "ordens", orderId), {
+        eliminadoEm: new Date(),
+      });
       setOrders((prev) => prev.filter((order) => order.id !== orderId));
       setDeleteDialogOpen(false);
       setOrderToDelete(null);
     } catch (error) {
       console.error("Error deleting order:", error);
-      setError("Erro ao deletar ordem. Por favor, tente novamente.");
+      setError("Erro ao excluir ordem. Por favor, tente novamente.");
     }
   };
 
@@ -334,13 +340,34 @@ const ManageOrders = () => {
             Gerencie todas as suas ordens de serviço em um só lugar
           </p>
         </div>
-        <Button
-          onClick={() => navigate("/app/add-order")}
-          className="hidden sm:flex bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Ordem
-        </Button>
+        <div className="hidden sm:flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate("/app/recycle-bin")}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Reciclagem
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() =>
+              downloadCSV(convertToCSV(filteredOrders), "ordens-de-servico.csv")
+            }
+            disabled={filteredOrders.length === 0}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Exportar CSV
+          </Button>
+          <Button
+            onClick={() => navigate("/app/add-order")}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Ordem
+          </Button>
+        </div>
       </div>
 
       {/* ✅ STATS CARDS ATUALIZADOS (removido orçamentos) */}
@@ -553,8 +580,8 @@ const ManageOrders = () => {
           <DialogHeader>
             <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
             <DialogDescription className="text-zinc-400">
-              Tem certeza que deseja excluir esta ordem? Esta ação não pode ser
-              desfeita.
+              Tem certeza que deseja excluir esta ordem? A ordem será movida
+              para a Reciclagem e pode ser restaurada mais tarde.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">

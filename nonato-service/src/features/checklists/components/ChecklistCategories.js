@@ -24,6 +24,11 @@ export const CHECKLIST_CATEGORIES = [
       value: "installation",
       label: "Instalação",
       description: "Para acompanhamento do processo de instalação dos equipamentos"
+    },
+    {
+      value: "pre_operational",
+      label: "Pré-Checklist (Pré-Operacional)",
+      description: "Verificação preliminar antes da operação principal do equipamento"
     }
   ];
   

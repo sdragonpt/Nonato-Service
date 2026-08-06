@@ -12,6 +12,15 @@ import {
 import { db } from "../../firebase.jsx";
 import { useNavigate } from "react-router-dom";
 import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from "recharts";
+import {
   Card,
   CardContent,
   CardHeader,
@@ -31,17 +40,28 @@ import {
   ArrowRight,
   AlertCircle,
   TrendingUp,
+  TrendingDown,
   Plus,
   Euro,
   CheckCircle,
-  Activity,
+  Bell,
+  Package,
+  CheckSquare,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge.jsx";
+import {
+  calculateServiceFinancials,
+  calculateFinancialSummary,
+  getPaymentStatus,
+  formatPrice,
+} from "../../utils/financialUtils";
+
+const monthKey = (date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 
 const DashboardPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState({
-    // Stats gerais
     stats: {
       clients: 0,
       orders: 0,
@@ -51,37 +71,35 @@ const DashboardPage = () => {
       inspections: 0,
       appointments: 0,
     },
-    // Atividades do dia
     todayActivities: {
       appointments: [],
       urgentOrders: [],
-      completedToday: 0,
     },
-    // Métricas financeiras
-    financialMetrics: {
-      monthlyRevenue: 0,
-      pendingPayments: 0,
+    financial: {
+      currentMonthRevenue: 0,
       revenueGrowth: 0,
+      overdueAmount: 0,
+      averageTicket: 0,
     },
-    // Performance
+    revenueTrend: [],
     performance: {
       completionRate: 0,
-      avgResponseTime: 0,
-      customerSatisfaction: 0,
     },
-    // Ordens abertas por prioridade
     ordersByPriority: {
       high: 0,
       normal: 0,
       low: 0,
     },
-    // Atividades recentes
     recentActivities: [],
-    // Quick stats
     quickStats: {
       newClientsThisMonth: 0,
       ordersThisWeek: 0,
       appointmentsThisWeek: 0,
+    },
+    alertsSummary: {
+      debtors: 0,
+      warehousePending: 0,
+      onlineQuotesPending: 0,
     },
   });
 
@@ -93,12 +111,6 @@ const DashboardPage = () => {
     low: "text-green-400 bg-green-500/10 border-green-500/50",
   };
 
-  const priorityLabels = {
-    high: "Alta",
-    normal: "Normal",
-    low: "Baixa",
-  };
-
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -108,6 +120,7 @@ const DashboardPage = () => {
         const currentYear = new Date().getFullYear();
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
+        const now = new Date();
 
         // ✅ 1. BUSCAR DADOS BÁSICOS
         const [
@@ -118,6 +131,10 @@ const DashboardPage = () => {
           checklistsSnap,
           inspectionsSnap,
           appointmentsSnap,
+          partsBudgetsSnap,
+          closuresSnap,
+          warehouseSnap,
+          onlineQuotesPendingSnap,
         ] = await Promise.all([
           getDocs(collection(db, "clientes")),
           getDocs(collection(db, "ordens")),
@@ -126,6 +143,12 @@ const DashboardPage = () => {
           getDocs(collection(db, "checklist_machines")),
           getDocs(collection(db, "inspections")),
           getDocs(collection(db, "agendamentos")),
+          getDocs(query(collection(db, "ordens"), where("isQuote", "==", true))),
+          getDocs(collection(db, "orcamentos")),
+          getDocs(collection(db, "pedidosArmazem")),
+          getDocs(
+            query(collection(db, "orcamentos-online"), where("status", "==", "pending"))
+          ),
         ]);
 
         // ✅ 2. AGENDAMENTOS DE HOJE
@@ -158,24 +181,28 @@ const DashboardPage = () => {
           limit(5)
         );
         const urgentOrdersSnap = await getDocs(urgentOrdersQuery);
-        const urgentOrders = await Promise.all(
-          urgentOrdersSnap.docs.map(async (docSnapshot) => {
-            const order = { id: docSnapshot.id, ...docSnapshot.data() };
-            if (order.clientId) {
-              const clientDoc = await getDoc(
-                doc(db, "clientes", order.clientId)
-              );
-              order.client = clientDoc.exists() ? clientDoc.data() : null;
-            }
-            return order;
-          })
-        );
+        const urgentOrders = (
+          await Promise.all(
+            urgentOrdersSnap.docs.map(async (docSnapshot) => {
+              const order = { id: docSnapshot.id, ...docSnapshot.data() };
+              if (order.clientId) {
+                const clientDoc = await getDoc(
+                  doc(db, "clientes", order.clientId)
+                );
+                order.client = clientDoc.exists() ? clientDoc.data() : null;
+              }
+              return order;
+            })
+          )
+        ).filter((order) => !order.eliminadoEm);
 
-        // ✅ 4. ORDENS POR PRIORIDADE
-        const allOrders = ordersSnap.docs.map((docSnapshot) => ({
-          id: docSnapshot.id,
-          ...docSnapshot.data(),
-        }));
+        // ✅ 4. ORDENS POR PRIORIDADE (ignora ordens excluídas / na Reciclagem)
+        const allOrders = ordersSnap.docs
+          .map((docSnapshot) => ({
+            id: docSnapshot.id,
+            ...docSnapshot.data(),
+          }))
+          .filter((order) => !order.eliminadoEm);
         const openOrders = allOrders.filter(
           (order) => order.status !== "Fechado"
         );
@@ -194,7 +221,9 @@ const DashboardPage = () => {
         );
         const recentOrdersSnap = await getDocs(recentOrdersQuery);
         const recentActivities = await Promise.all(
-          recentOrdersSnap.docs.map(async (docSnapshot) => {
+          recentOrdersSnap.docs
+            .filter((docSnapshot) => !docSnapshot.data().eliminadoEm)
+            .map(async (docSnapshot) => {
             const order = { id: docSnapshot.id, ...docSnapshot.data() };
             if (order.clientId) {
               const clientDoc = await getDoc(
@@ -243,7 +272,7 @@ const DashboardPage = () => {
           return appointmentDate >= weekAgo;
         }).length;
 
-        // ✅ 7. PERFORMANCE METRICS (SIMULADOS - VOCÊ PODE CALCULAR REAIS)
+        // ✅ 7. TAXA DE CONCLUSÃO (REAL)
         const completedOrders = allOrders.filter(
           (order) => order.status === "Fechado"
         );
@@ -252,7 +281,58 @@ const DashboardPage = () => {
             ? Math.round((completedOrders.length / allOrders.length) * 100)
             : 0;
 
-        // Definir dados da dashboard
+        // ✅ 8. FINANCEIRO REAL (orçamentos de peças + fechamentos, ignora excluídas)
+        const financialServices = [
+          ...partsBudgetsSnap.docs.map((d) => ({ id: d.id, type: "parts_budget", ...d.data() })),
+          ...closuresSnap.docs.map((d) => ({ id: d.id, type: "closure", ...d.data() })),
+        ].filter((service) => !service.eliminadoEm);
+
+        const revenueByMonth = {};
+        financialServices.forEach((service) => {
+          const raw = service.createdAt;
+          const date = raw?.toDate ? raw.toDate() : new Date(raw);
+          if (!date || isNaN(date.getTime())) return;
+          const key = monthKey(date);
+          const financials = calculateServiceFinancials(service);
+          if (!revenueByMonth[key]) revenueByMonth[key] = 0;
+          revenueByMonth[key] += financials.totalWithVat;
+        });
+
+        const currentMonthKey = monthKey(now);
+        const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const prevMonthKey = monthKey(prevMonthDate);
+        const currentMonthRevenue = revenueByMonth[currentMonthKey] || 0;
+        const prevMonthRevenue = revenueByMonth[prevMonthKey] || 0;
+        const revenueGrowth =
+          prevMonthRevenue > 0
+            ? ((currentMonthRevenue - prevMonthRevenue) / prevMonthRevenue) * 100
+            : currentMonthRevenue > 0
+            ? 100
+            : 0;
+
+        const financialSummary = calculateFinancialSummary(financialServices);
+
+        const revenueTrend = [];
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const key = monthKey(d);
+          revenueTrend.push({
+            month: d.toLocaleDateString("pt-PT", { month: "short" }),
+            faturamento: Math.round(revenueByMonth[key] || 0),
+          });
+        }
+
+        // ✅ 9. ALERTAS (resumo)
+        const debtorClientIds = new Set();
+        financialServices.forEach((service) => {
+          if (service.clientId && getPaymentStatus(service) === "overdue") {
+            debtorClientIds.add(service.clientId);
+          }
+        });
+        const warehousePending = warehouseSnap.docs.filter(
+          (d) => d.data().status && d.data().status !== "entregue"
+        ).length;
+
         setDashboardData({
           stats: {
             clients: clientsSnap.size,
@@ -266,17 +346,16 @@ const DashboardPage = () => {
           todayActivities: {
             appointments: todayAppointments,
             urgentOrders: urgentOrders,
-            completedToday: 0, // Você pode calcular
           },
-          financialMetrics: {
-            monthlyRevenue: 12500, // Simulated - calcule real
-            pendingPayments: 3200, // Simulated - calcule real
-            revenueGrowth: 15.2, // Simulated - calcule real
+          financial: {
+            currentMonthRevenue,
+            revenueGrowth,
+            overdueAmount: financialSummary.overdueAmount,
+            averageTicket: financialSummary.averageTicket,
           },
+          revenueTrend,
           performance: {
             completionRate,
-            avgResponseTime: 2.3, // Simulated - calcule real
-            customerSatisfaction: 94, // Simulated - calcule real
           },
           ordersByPriority,
           recentActivities,
@@ -284,6 +363,11 @@ const DashboardPage = () => {
             newClientsThisMonth,
             ordersThisWeek,
             appointmentsThisWeek,
+          },
+          alertsSummary: {
+            debtors: debtorClientIds.size,
+            warehousePending,
+            onlineQuotesPending: onlineQuotesPendingSnap.size,
           },
         });
       } catch (error) {
@@ -307,12 +391,19 @@ const DashboardPage = () => {
   const {
     stats,
     todayActivities,
-    financialMetrics,
+    financial,
+    revenueTrend,
     performance,
     ordersByPriority,
     recentActivities,
     quickStats,
+    alertsSummary,
   } = dashboardData;
+
+  const totalAlerts =
+    alertsSummary.debtors +
+    alertsSummary.warehousePending +
+    alertsSummary.onlineQuotesPending;
 
   return (
     <div className="space-y-6">
@@ -341,6 +432,156 @@ const DashboardPage = () => {
           </Button>
         </div>
       </div>
+
+      {/* ✅ FINANCEIRO REAL */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="bg-zinc-800 border-zinc-700 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-green-600/10 to-green-500/5"></div>
+          <CardContent className="p-4 relative">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-zinc-300 font-medium">
+                  Faturamento do Mês
+                </p>
+                <p className="text-2xl font-bold text-white">
+                  {formatPrice(financial.currentMonthRevenue)}
+                </p>
+                <p
+                  className={`text-xs flex items-center gap-1 ${
+                    financial.revenueGrowth >= 0
+                      ? "text-green-400"
+                      : "text-red-400"
+                  }`}
+                >
+                  {financial.revenueGrowth >= 0 ? (
+                    <TrendingUp className="h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3" />
+                  )}
+                  {Math.abs(Math.round(financial.revenueGrowth))}% vs mês anterior
+                </p>
+              </div>
+              <div className="h-10 w-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                <Euro className="h-6 w-6 text-green-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="bg-zinc-800 border-zinc-700 relative overflow-hidden cursor-pointer hover:border-red-500/50 transition-colors"
+          onClick={() => navigate("/app/clientes-devedores")}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-red-500/5"></div>
+          <CardContent className="p-4 relative">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-zinc-300 font-medium">Em Atraso</p>
+                <p className="text-2xl font-bold text-white">
+                  {formatPrice(financial.overdueAmount)}
+                </p>
+                <p className="text-xs text-red-400">
+                  {alertsSummary.debtors} cliente(s)
+                </p>
+              </div>
+              <div className="h-10 w-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-red-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-zinc-800 border-zinc-700 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-blue-500/5"></div>
+          <CardContent className="p-4 relative">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-zinc-300 font-medium">
+                  Ticket Médio
+                </p>
+                <p className="text-2xl font-bold text-white">
+                  {formatPrice(financial.averageTicket)}
+                </p>
+                <p className="text-xs text-blue-400">Por documento</p>
+              </div>
+              <div className="h-10 w-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                <FileText className="h-6 w-6 text-blue-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="bg-zinc-800 border-zinc-700 relative overflow-hidden cursor-pointer hover:border-yellow-500/50 transition-colors"
+          onClick={() => navigate("/app/alerts")}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-yellow-600/10 to-yellow-500/5"></div>
+          <CardContent className="p-4 relative">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-zinc-300 font-medium">
+                  Central de Alertas
+                </p>
+                <p className="text-2xl font-bold text-white">{totalAlerts}</p>
+                <p className="text-xs text-yellow-400">
+                  {alertsSummary.warehousePending} armazém ·{" "}
+                  {alertsSummary.onlineQuotesPending} orçamentos
+                </p>
+              </div>
+              <div className="h-10 w-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                <Bell className="h-6 w-6 text-yellow-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ✅ GRÁFICO DE FATURAMENTO */}
+      <Card className="bg-zinc-800 border-zinc-700">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center">
+            <TrendingUp className="h-5 w-5 mr-2 text-green-400" />
+            Faturamento — Últimos 6 Meses
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={revenueTrend}>
+                <defs>
+                  <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+                <XAxis dataKey="month" stroke="#a1a1aa" fontSize={12} />
+                <YAxis
+                  stroke="#a1a1aa"
+                  fontSize={12}
+                  tickFormatter={(value) => `€${value}`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#27272a",
+                    border: "1px solid #3f3f46",
+                    borderRadius: "8px",
+                    color: "#fff",
+                  }}
+                  formatter={(value) => [formatPrice(value), "Faturamento"]}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="faturamento"
+                  stroke="#22c55e"
+                  strokeWidth={2}
+                  fill="url(#revenueGradient)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* ✅ QUICK STATS - MÉTRICAS RÁPIDAS */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -413,7 +654,7 @@ const DashboardPage = () => {
                 <p className="text-2xl font-bold text-white">
                   {performance.completionRate}%
                 </p>
-                <p className="text-xs text-yellow-400">Geral</p>
+                <p className="text-xs text-yellow-400">Ordens fechadas</p>
               </div>
               <div className="h-10 w-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
                 <CheckCircle className="h-6 w-6 text-yellow-400" />
@@ -576,9 +817,9 @@ const DashboardPage = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+              <div className={`flex items-center justify-between p-3 rounded-lg border ${priorityColors.high}`}>
                 <div className="flex items-center gap-3">
-                  <AlertCircle className="h-5 w-5 text-red-400" />
+                  <AlertCircle className="h-5 w-5" />
                   <span className="text-white">Alta Prioridade</span>
                 </div>
                 <Badge className="bg-red-500/20 text-red-400">
@@ -586,9 +827,9 @@ const DashboardPage = () => {
                 </Badge>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+              <div className={`flex items-center justify-between p-3 rounded-lg border ${priorityColors.normal}`}>
                 <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-blue-400" />
+                  <Clock className="h-5 w-5" />
                   <span className="text-white">Prioridade Normal</span>
                 </div>
                 <Badge className="bg-blue-500/20 text-blue-400">
@@ -596,9 +837,9 @@ const DashboardPage = () => {
                 </Badge>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+              <div className={`flex items-center justify-between p-3 rounded-lg border ${priorityColors.low}`}>
                 <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-400" />
+                  <CheckCircle className="h-5 w-5" />
                   <span className="text-white">Baixa Prioridade</span>
                 </div>
                 <Badge className="bg-green-500/20 text-green-400">
@@ -663,15 +904,16 @@ const DashboardPage = () => {
         </Card>
       </div>
 
-      {/* ✅ STATS GERAIS (SIMPLIFICADOS) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-zinc-800 border-zinc-700">
+      {/* ✅ STATS GERAIS */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+        <Card
+          className="bg-zinc-800 border-zinc-700 cursor-pointer hover:bg-zinc-750 transition-colors"
+          onClick={() => navigate("/app/manage-clients")}
+        >
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-zinc-400">
-                  Total Clientes
-                </p>
+                <p className="text-sm font-medium text-zinc-400">Clientes</p>
                 <h3 className="text-xl font-bold text-white mt-1">
                   {stats.clients}
                 </h3>
@@ -681,13 +923,14 @@ const DashboardPage = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card
+          className="bg-zinc-800 border-zinc-700 cursor-pointer hover:bg-zinc-750 transition-colors"
+          onClick={() => navigate("/app/manage-orders")}
+        >
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-zinc-400">
-                  Total Ordens
-                </p>
+                <p className="text-sm font-medium text-zinc-400">Ordens</p>
                 <h3 className="text-xl font-bold text-white mt-1">
                   {stats.orders}
                 </h3>
@@ -697,7 +940,10 @@ const DashboardPage = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card
+          className="bg-zinc-800 border-zinc-700 cursor-pointer hover:bg-zinc-750 transition-colors"
+          onClick={() => navigate("/app/manage-finances")}
+        >
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -711,7 +957,10 @@ const DashboardPage = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card
+          className="bg-zinc-800 border-zinc-700 cursor-pointer hover:bg-zinc-750 transition-colors"
+          onClick={() => navigate("/app/manage-inspection")}
+        >
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -721,6 +970,40 @@ const DashboardPage = () => {
                 </h3>
               </div>
               <ClipboardCheck className="h-5 w-5 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="bg-zinc-800 border-zinc-700 cursor-pointer hover:bg-zinc-750 transition-colors"
+          onClick={() => navigate("/app/manage-checklist")}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-zinc-400">Checklists</p>
+                <h3 className="text-xl font-bold text-white mt-1">
+                  {stats.checklists}
+                </h3>
+              </div>
+              <CheckSquare className="h-5 w-5 text-teal-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="bg-zinc-800 border-zinc-700 cursor-pointer hover:bg-zinc-750 transition-colors"
+          onClick={() => navigate("/app/warehouse")}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-zinc-400">Armazém</p>
+                <h3 className="text-xl font-bold text-white mt-1">
+                  {alertsSummary.warehousePending}
+                </h3>
+              </div>
+              <Package className="h-5 w-5 text-orange-500" />
             </div>
           </CardContent>
         </Card>

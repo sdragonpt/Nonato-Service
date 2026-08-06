@@ -1,39 +1,35 @@
-// ManagePartsLibrary.jsx - OTIMIZADO: Lazy Loading + React.memo + Zero Logs + URL Navigation
+// ManagePartsLibrary.jsx
+// Biblioteca de Peças — todas as peças vêm do catálogo estático HOMAG (ver
+// src/utils/partsCatalogLoader.js). Categoria/subcategoria são a única
+// coisa editável por peça, guardadas à parte (src/services/partCategoryAssignments.js).
+// Não há mais conceito de "peça gerida" na Firestore, nem criar/editar/apagar
+// peças a partir daqui — só atribuir classificação.
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { doc, deleteDoc } from "firebase/firestore";
-import { db } from "../../firebase.jsx";
-import { useNavigate, useSearchParams } from "react-router-dom"; // ✅ NOVO: Adicionado useSearchParams
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useCategories } from "../../context/CategoriesContext.jsx";
-import { usePartsCache } from "../../context/PartsCache.jsx";
-import { invalidateCache } from "../../context/UniversalFirestoreCache.js";
-import {
-  usePartsCounters,
-  decrementPartCount,
-} from "../../utils/MetadataCounters.js";
+import { useCatalogParts } from "../../hooks/useCatalogParts.js";
 import PartImage from "../../components/ui/PartImage.jsx";
+import AssignPartCategoryDialog from "./components/AssignPartCategoryDialog.jsx";
 import {
   Search,
-  Plus,
   Loader2,
-  Edit2,
-  Trash2,
-  ArrowUpDown,
-  AlertTriangle,
-  Package,
   Tag,
   MoreVertical,
   RefreshCw,
   Book,
   ChevronRight,
+  ChevronLeft,
   ArrowLeft,
   Grid,
   List,
   X,
-  Zap,
+  Wand2,
+  Package,
+  AlertTriangle,
 } from "lucide-react";
 
-// UI Components (já importados otimizados)
+// UI Components
 import { Card, CardContent } from "@/components/ui/card.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import {
@@ -59,7 +55,6 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs.jsx";
 
-// ✅ CONSTANTS - Reduzidas e otimizadas
 const STORAGE_KEYS = {
   SEARCH_TERM: "parts_search",
   FILTER_CATEGORY: "parts_filter",
@@ -68,7 +63,6 @@ const STORAGE_KEYS = {
   ACTIVE_TAB: "parts_tab",
 };
 
-// ✅ STORAGE HELPERS - Simplificados com error handling
 const saveToStorage = (key, value) => {
   try {
     sessionStorage.setItem(key, JSON.stringify(value));
@@ -86,35 +80,54 @@ const loadFromStorage = (key, defaultValue) => {
   }
 };
 
-// ✅ PART CARD COMPONENT - Memoizado para evitar re-renders
-const PartCard = React.memo(({ part, viewMode, onEdit, onDelete, onView }) => {
-  const handleEdit = useCallback(
-    (e) => {
-      e.stopPropagation();
-      onEdit(part.id);
-    },
-    [part.id, onEdit]
-  );
+const PAGE_SIZE = 24;
 
-  const handleDelete = useCallback(
+// ✅ PART CARD — todas as peças vêm do catálogo; a única ação é atribuir categoria.
+const PartCard = React.memo(({ part, viewMode, onAssign, onView }) => {
+  const handleAssign = useCallback(
     (e) => {
       e.stopPropagation();
-      onDelete(part);
+      onAssign(part);
     },
-    [part, onDelete]
+    [part, onAssign]
   );
 
   const handleView = useCallback(() => {
     onView(part.id);
   }, [part.id, onView]);
 
-  const formattedPrice = useMemo(
-    () =>
-      new Intl.NumberFormat("pt-PT", {
-        style: "currency",
-        currency: "EUR",
-      }).format(part.price || 0),
-    [part.price]
+  const categoryBadge = part.categoryName ? (
+    <Badge className="bg-green-500/10 text-green-500 hover:bg-green-500/20">
+      {part.categoryName}
+      {part.subcategoryName ? ` / ${part.subcategoryName}` : ""}
+    </Badge>
+  ) : (
+    <Badge className="bg-zinc-700 text-zinc-400 hover:bg-zinc-700">
+      Sem categoria
+    </Badge>
+  );
+
+  const actionsMenu = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-full hover:bg-zinc-700 text-white"
+        >
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="bg-zinc-800 border-zinc-700">
+        <DropdownMenuItem
+          onClick={handleAssign}
+          className="text-white hover:bg-zinc-700 cursor-pointer"
+        >
+          <Tag className="w-4 h-4 mr-2" />
+          Atribuir Categoria
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 
   if (viewMode === "list") {
@@ -139,46 +152,12 @@ const PartCard = React.memo(({ part, viewMode, onEdit, onDelete, onView }) => {
                 {part.name}
               </h3>
               <p className="text-zinc-400 text-xs truncate">
-                {part.categoryName || "Sem categoria"} • Código: {part.code}
+                Código: {part.code}
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <p className="text-white font-medium whitespace-nowrap">
-                {formattedPrice}
-              </p>
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  asChild
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-full hover:bg-zinc-700 text-white"
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="bg-zinc-800 border-zinc-700"
-                >
-                  <DropdownMenuItem
-                    onClick={handleEdit}
-                    className="text-white hover:bg-zinc-700 cursor-pointer"
-                  >
-                    <Edit2 className="w-4 h-4 mr-2" />
-                    Editar
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={handleDelete}
-                    className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Excluir
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {categoryBadge}
+              {actionsMenu}
             </div>
           </div>
         </CardContent>
@@ -211,47 +190,10 @@ const PartCard = React.memo(({ part, viewMode, onEdit, onDelete, onView }) => {
                 {part.code}
               </Badge>
             </div>
-            <p className="text-zinc-400 text-xs sm:text-sm truncate">
-              {part.categoryName || "Sem categoria"}
-            </p>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full hover:bg-zinc-700 text-white"
-              >
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="bg-zinc-800 border-zinc-700"
-            >
-              <DropdownMenuItem
-                onClick={handleEdit}
-                className="text-white hover:bg-zinc-700 cursor-pointer"
-              >
-                <Edit2 className="w-4 h-4 mr-2" />
-                Editar
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={handleDelete}
-                className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Excluir
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {actionsMenu}
         </div>
-        <div className="mt-3 space-y-1.5">
-          <p className="text-white text-sm font-medium">{formattedPrice}</p>
-          <p className="text-zinc-400 text-xs sm:text-sm line-clamp-2">
-            {part.description || "Sem descrição"}
-          </p>
-        </div>
+        <div className="mt-3">{categoryBadge}</div>
       </CardContent>
     </Card>
   );
@@ -259,7 +201,7 @@ const PartCard = React.memo(({ part, viewMode, onEdit, onDelete, onView }) => {
 
 PartCard.displayName = "PartCard";
 
-// ✅ STATS CARD COMPONENT - Memoizado
+// ✅ STATS CARD
 const StatsCard = React.memo(({ title, value, icon: Icon, color, loading }) => (
   <Card className="bg-zinc-800 border-zinc-700">
     <CardContent className="flex items-center justify-between p-4 sm:p-6">
@@ -280,38 +222,29 @@ const StatsCard = React.memo(({ title, value, icon: Icon, color, loading }) => (
 
 StatsCard.displayName = "StatsCard";
 
-// ✅ MAIN COMPONENT - OTIMIZADO
 const ManagePartsLibrary = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams(); // ✅ NOVO: Adicionado useSearchParams
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Context hooks
   const {
     categories,
     getSubcategoriesByParent,
     isLoading: categoriesLoading,
   } = useCategories();
-  const {
-    fetchParts,
-    fetchSubcategoryCounts,
-    getCachedParts,
-    isLoading: isCacheLoading,
-    removePartFromCache,
-  } = usePartsCache();
-  const {
-    counters,
-    loading: countersLoading,
-    getTotalCount,
-  } = usePartsCounters();
 
-  // ✅ ESTADO REDUZIDO - Só o essencial
-  const [displayParts, setDisplayParts] = useState([]);
-  const [hasMore, setHasMore] = useState(true);
+  const {
+    parts: catalogParts,
+    loading: catalogLoading,
+    error: catalogError,
+    total,
+    classifiedCount,
+    refresh: refreshCatalog,
+  } = useCatalogParts();
+
   const [error, setError] = useState(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [partToDelete, setPartToDelete] = useState(null);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [partToAssign, setPartToAssign] = useState(null);
 
-  // ✅ PERSISTENT STATE - Carregado uma vez
   const [searchTerm, setSearchTerm] = useState(() =>
     loadFromStorage(STORAGE_KEYS.SEARCH_TERM, "")
   );
@@ -332,40 +265,33 @@ const ManagePartsLibrary = () => {
     loadFromStorage(STORAGE_KEYS.ACTIVE_TAB, "all")
   );
 
-  // Navigation state for categories
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
-  const [subcategoryCounts, setSubcategoryCounts] = useState({});
+  const [allTabPage, setAllTabPage] = useState(1);
 
-  // ✅ NOVO: useEffect para ler a URL e restaurar o estado
+  // Ler URL e restaurar estado
   useEffect(() => {
     const tab = searchParams.get("tab");
     const categoryId = searchParams.get("categoryId");
     const subcategoryId = searchParams.get("subcategoryId");
 
-    if (tab) {
-      setActiveTab(tab);
-    }
+    if (tab) setActiveTab(tab);
 
     if (tab === "categories" && categoryId && categories.length > 0) {
       const category = categories.find((cat) => cat.id === categoryId);
       if (category) {
         setSelectedCategory(category);
-
         if (subcategoryId) {
           const subcategories = getSubcategoriesByParent(categoryId);
           const subcategory = subcategories.find(
             (sub) => sub.id === subcategoryId
           );
-          if (subcategory) {
-            setSelectedSubcategory(subcategory);
-          }
+          if (subcategory) setSelectedSubcategory(subcategory);
         }
       }
     }
   }, [searchParams, categories, getSubcategoriesByParent]);
 
-  // ✅ PERSIST STATE EFFECTS - Otimizados
   useEffect(
     () => saveToStorage(STORAGE_KEYS.SEARCH_TERM, searchTerm),
     [searchTerm]
@@ -384,83 +310,53 @@ const ManagePartsLibrary = () => {
     [activeTab]
   );
 
-  // ✅ DEBOUNCE SEARCH - Otimizado
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearchTerm(searchTerm), 300);
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // ✅ LAZY LOADING - SÓ CARREGA QUANDO NECESSÁRIO
-  const shouldLoadParts = useMemo(() => {
-    return (
-      debouncedSearchTerm.length >= 2 ||
-      filterCategory !== "all" ||
-      selectedSubcategory
-    );
-  }, [debouncedSearchTerm, filterCategory, selectedSubcategory]);
+  // ✅ Filtro/busca/ordenação — tudo em memória, sobre o catálogo já carregado
+  const filteredParts = useMemo(() => {
+    const term = debouncedSearchTerm.trim().toLowerCase();
+    let list = catalogParts;
 
-  // ✅ LOAD PARTS - Otimizado com lazy loading
-  const loadParts = useCallback(
-    async (loadMore = false) => {
-      console.log("📥 loadParts chamado:", { loadMore, shouldLoadParts });
+    if (filterCategory !== "all") {
+      list = list.filter((p) => p.categoryId === filterCategory);
+    }
 
-      if (!shouldLoadParts && !loadMore) {
-        console.log("❌ loadParts: shouldLoadParts = false, saindo");
-        setDisplayParts([]);
-        setHasMore(true);
-        return;
+    if (term) {
+      list = list.filter(
+        (p) =>
+          p.name?.toLowerCase().includes(term) ||
+          p.code?.toLowerCase().includes(term)
+      );
+    }
+
+    return [...list].sort((a, b) => {
+      let result = 0;
+      if (sortField === "name") {
+        result = (a.name || "").localeCompare(b.name || "", "pt-PT");
+      } else if (sortField === "code") {
+        result = (a.code || "").localeCompare(b.code || "", "pt-PT");
       }
+      return sortOrder === "asc" ? result : -result;
+    });
+  }, [catalogParts, filterCategory, debouncedSearchTerm, sortField, sortOrder]);
 
-      console.log("✅ loadParts: buscando peças do Firebase...");
+  useEffect(() => {
+    setAllTabPage(1);
+  }, [debouncedSearchTerm, filterCategory, sortField, sortOrder]);
 
-      try {
-        setError(null);
-
-        const result = await fetchParts({
-          categoryId: filterCategory !== "all" ? filterCategory : null,
-          subcategoryId: selectedSubcategory?.id || null,
-          searchTerm: debouncedSearchTerm,
-          sortField,
-          sortOrder,
-          loadMore,
-        });
-
-        console.log("📦 loadParts: resultado recebido:", {
-          partsCount: result.parts?.length,
-          hasMore: result.hasMore,
-          error: result.error,
-        });
-
-        if (result.error) setError(result.error);
-        if (result.warning) setError(result.warning);
-
-        setDisplayParts(result.parts);
-        setHasMore(result.hasMore);
-      } catch (err) {
-        console.error("❌ loadParts: erro:", err);
-        setError("Erro ao carregar peças. Tente novamente.");
-      }
-    },
-    [
-      shouldLoadParts,
-      fetchParts,
-      filterCategory,
-      selectedSubcategory,
-      debouncedSearchTerm,
-      sortField,
-      sortOrder,
-    ]
+  const allTabTotalPages = Math.max(
+    1,
+    Math.ceil(filteredParts.length / PAGE_SIZE)
   );
 
-  // ✅ EFFECTS - Simplificados
-  useEffect(() => {
-    if (shouldLoadParts) {
-      const timer = setTimeout(() => loadParts(false), 100);
-      return () => clearTimeout(timer);
-    }
-  }, [shouldLoadParts, loadParts]);
+  const paginatedParts = useMemo(() => {
+    const start = (allTabPage - 1) * PAGE_SIZE;
+    return filteredParts.slice(start, start + PAGE_SIZE);
+  }, [filteredParts, allTabPage]);
 
-  // ✅ HANDLERS - Otimizados com useCallback
   const handleSearch = useCallback((value) => {
     setSearchTerm(value);
     setError(null);
@@ -483,74 +379,25 @@ const ManagePartsLibrary = () => {
   }, []);
 
   const handleRefresh = useCallback(() => {
-    console.log("🔄 HandleRefresh chamado!");
+    refreshCatalog();
+  }, [refreshCatalog]);
 
-    // Solução temporária: recarregar a página
-    window.location.reload();
+  const openAssignDialog = useCallback((part) => {
+    setPartToAssign(part);
+    setAssignDialogOpen(true);
   }, []);
 
-  // ✅ DELETE HANDLER - Otimizado
-  const handleDelete = useCallback(
-    async (part) => {
-      try {
-        decrementPartCount(part.categoryId, part.subcategoryId);
-        setDisplayParts((prev) => prev.filter((p) => p.id !== part.id));
-        removePartFromCache(part.id);
+  const handleAssignSaved = useCallback(() => {
+    refreshCatalog();
+  }, [refreshCatalog]);
 
-        await deleteDoc(doc(db, "pecas", part.id));
-
-        setDeleteDialogOpen(false);
-        setPartToDelete(null);
-      } catch (error) {
-        setError("Erro ao deletar peça. Tente novamente.");
-      }
-    },
-    [removePartFromCache]
-  );
-
-  const confirmDelete = useCallback((part, e) => {
-    e.stopPropagation();
-    setPartToDelete(part);
-    setDeleteDialogOpen(true);
-  }, []);
-
-  // ✅ NAVIGATION HANDLERS
-  const handleEditPart = useCallback(
+  const handleViewPart = useCallback(
     (partId) => {
-      navigate(`/app/edit-part/${partId}`);
+      navigate(`/app/part/${encodeURIComponent(partId)}`);
     },
     [navigate]
   );
 
-  const handleViewPart = useCallback(
-    (partId) => {
-      const params = new URLSearchParams();
-      if (selectedCategory) params.set("categoryId", selectedCategory.id);
-      if (selectedSubcategory)
-        params.set("subcategoryId", selectedSubcategory.id);
-
-      const url = `/app/part/${partId}${
-        params.toString() ? `?${params.toString()}` : ""
-      }`;
-      navigate(url);
-    },
-    [navigate, selectedCategory, selectedSubcategory]
-  );
-
-  const handleAddPart = useCallback(() => {
-    const searchParamsUrl = new URLSearchParams();
-    if (selectedCategory)
-      searchParamsUrl.set("categoryId", selectedCategory.id);
-    if (selectedSubcategory)
-      searchParamsUrl.set("subcategoryId", selectedSubcategory.id);
-
-    const url = `/app/add-part${
-      searchParamsUrl.toString() ? `?${searchParamsUrl.toString()}` : ""
-    }`;
-    navigate(url);
-  }, [navigate, selectedCategory, selectedSubcategory]);
-
-  // ✅ CATEGORY NAVIGATION HANDLERS - MODIFICADOS para atualizar URL
   const handleTabChange = useCallback(
     (value) => {
       setActiveTab(value);
@@ -577,7 +424,6 @@ const ManagePartsLibrary = () => {
       setSelectedSubcategory(null);
       setError(null);
 
-      // ✅ NOVO: Atualizar URL
       const newSearchParams = new URLSearchParams(searchParams);
       newSearchParams.set("tab", "categories");
       newSearchParams.set("categoryId", category.id);
@@ -592,7 +438,6 @@ const ManagePartsLibrary = () => {
       setSelectedSubcategory(subcategory);
       setError(null);
 
-      // ✅ NOVO: Atualizar URL
       const newSearchParams = new URLSearchParams(searchParams);
       newSearchParams.set("tab", "categories");
       newSearchParams.set("categoryId", selectedCategory.id);
@@ -611,35 +456,12 @@ const ManagePartsLibrary = () => {
       newSearchParams.delete("subcategoryId");
     } else {
       setSelectedCategory(null);
-      setSubcategoryCounts({});
       newSearchParams.delete("categoryId");
       newSearchParams.delete("subcategoryId");
     }
 
     setSearchParams(newSearchParams);
   }, [selectedSubcategory, searchParams, setSearchParams]);
-
-  // ✅ LOAD SUBCATEGORY COUNTS
-  const loadSubcategoryCounts = useCallback(
-    async (categoryId) => {
-      if (!categoryId) return;
-
-      try {
-        const counts = await fetchSubcategoryCounts(categoryId);
-        setSubcategoryCounts(counts);
-      } catch (err) {
-        // Ignorar erro silenciosamente
-      }
-    },
-    [fetchSubcategoryCounts]
-  );
-
-  // ✅ EFFECT para carregar contadores quando categoria é selecionada
-  useEffect(() => {
-    if (selectedCategory) {
-      loadSubcategoryCounts(selectedCategory.id);
-    }
-  }, [selectedCategory, loadSubcategoryCounts]);
 
   const getSubcategories = useCallback(
     (categoryId) => {
@@ -650,13 +472,10 @@ const ManagePartsLibrary = () => {
     [getSubcategoriesByParent]
   );
 
-  // ✅ MEMOIZED VALUES
   const sortedCategories = useMemo(
-    () => categories.sort((a, b) => a.name.localeCompare(b.name, "pt-PT")),
+    () => categories.slice().sort((a, b) => a.name.localeCompare(b.name, "pt-PT")),
     [categories]
   );
-
-  const totalPartsCount = useMemo(() => getTotalCount(), [getTotalCount]);
 
   const hasActiveFilters = useMemo(
     () =>
@@ -667,7 +486,18 @@ const ManagePartsLibrary = () => {
     [searchTerm, filterCategory, sortField, sortOrder]
   );
 
-  // ✅ EARLY RETURNS
+  // Peças por categoria/subcategoria (em memória, calculado a cada render dos dados)
+  const partsInCategory = useCallback(
+    (categoryId) => catalogParts.filter((p) => p.categoryId === categoryId),
+    [catalogParts]
+  );
+
+  const partsInSubcategory = useCallback(
+    (subcategoryId) =>
+      catalogParts.filter((p) => p.subcategoryId === subcategoryId),
+    [catalogParts]
+  );
+
   if (categoriesLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
@@ -675,6 +505,18 @@ const ManagePartsLibrary = () => {
       </div>
     );
   }
+
+  const currentCategoryParts = selectedCategory
+    ? partsInCategory(selectedCategory.id).filter((p) => !p.subcategoryId)
+    : [];
+  const currentSubcategoryParts = selectedSubcategory
+    ? partsInSubcategory(selectedSubcategory.id).filter((p) =>
+        debouncedSearchTerm
+          ? p.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+            p.code?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+          : true
+      )
+    : [];
 
   return (
     <div className="space-y-6 pb-24">
@@ -685,10 +527,18 @@ const ManagePartsLibrary = () => {
             Biblioteca de Peças
           </h1>
           <p className="text-sm sm:text-base text-zinc-400">
-            Gerencie todas as peças disponíveis no sistema
+            Catálogo HOMAG — atribua categorias às peças
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={() => navigate("/app/parts-classification-rules")}
+            variant="outline"
+            className="bg-zinc-700 hover:bg-zinc-600 text-white border-zinc-600"
+          >
+            <Wand2 className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Regras de </span>Classificação
+          </Button>
           <Button
             onClick={() => navigate("/app/manage-categories")}
             variant="outline"
@@ -698,11 +548,11 @@ const ManagePartsLibrary = () => {
             <span className="hidden sm:inline">Gerenciar </span>Categorias
           </Button>
           <Button
-            onClick={handleAddPart}
-            className="bg-green-600 hover:bg-green-700"
+            onClick={handleRefresh}
+            variant="outline"
+            className="bg-zinc-700 hover:bg-zinc-600 text-white border-zinc-600"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Nova Peça
+            <RefreshCw className="w-4 h-4" />
           </Button>
         </div>
       </div>
@@ -710,30 +560,36 @@ const ManagePartsLibrary = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatsCard
-          title="Total de Peças"
-          value={totalPartsCount?.toLocaleString("pt-PT") || 0}
+          title="Total de Peças (Catálogo HOMAG)"
+          value={total.toLocaleString("pt-PT")}
           icon={Package}
           color="text-green-500"
-          loading={countersLoading}
+          loading={catalogLoading}
+        />
+        <StatsCard
+          title="Com Categoria Atribuída"
+          value={classifiedCount.toLocaleString("pt-PT")}
+          icon={Tag}
+          color="text-blue-500"
+          loading={catalogLoading}
         />
         <StatsCard
           title="Categorias"
           value={sortedCategories.length}
-          icon={Tag}
-          color="text-blue-500"
-          loading={false}
-        />
-        <StatsCard
-          title="Subcategorias"
-          value={categories.reduce(
-            (total, cat) => total + getSubcategoriesByParent(cat.id).length,
-            0
-          )}
           icon={Book}
           color="text-purple-500"
           loading={false}
         />
       </div>
+
+      {catalogError && (
+        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-red-400">
+            Erro ao carregar catálogo: {catalogError}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
@@ -754,14 +610,12 @@ const ManagePartsLibrary = () => {
 
         {/* All Parts Tab */}
         <TabsContent value="all">
-          {/* Search and Filters */}
           <Card className="bg-zinc-800 border-zinc-700">
             <CardContent className="space-y-4 p-4 sm:p-6">
-              {/* Search Input */}
               <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                 <Input
-                  placeholder="Buscar por nome, código ou descrição (mín. 2 caracteres)..."
+                  placeholder="Buscar por nome ou código..."
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
                   className="pl-10 pr-10 w-full bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
@@ -783,20 +637,13 @@ const ManagePartsLibrary = () => {
                 )}
               </div>
 
-              {/* Filter Controls */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Select
-                  value={filterCategory}
-                  onValueChange={setFilterCategory}
-                >
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
                   <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
                     <SelectValue placeholder="Filtrar por categoria" />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-800 border-zinc-700">
-                    <SelectItem
-                      value="all"
-                      className="text-white hover:bg-zinc-700"
-                    >
+                    <SelectItem value="all" className="text-white hover:bg-zinc-700">
                       Todas as Categorias
                     </SelectItem>
                     {sortedCategories.length > 0 ? (
@@ -826,42 +673,23 @@ const ManagePartsLibrary = () => {
                     <SelectValue placeholder="Ordenar por" />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-800 border-zinc-700">
-                    <SelectItem
-                      value="name"
-                      className="text-white hover:bg-zinc-700"
-                    >
+                    <SelectItem value="name" className="text-white hover:bg-zinc-700">
                       Nome
                     </SelectItem>
-                    <SelectItem
-                      value="price"
-                      className="text-white hover:bg-zinc-700"
-                    >
-                      Preço
-                    </SelectItem>
-                    <SelectItem
-                      value="code"
-                      className="text-white hover:bg-zinc-700"
-                    >
+                    <SelectItem value="code" className="text-white hover:bg-zinc-700">
                       Código
-                    </SelectItem>
-                    <SelectItem
-                      value="createdAt"
-                      className="text-white hover:bg-zinc-700"
-                    >
-                      Data de Cadastro
                     </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* No Categories Warning */}
               {sortedCategories.length === 0 && (
                 <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-amber-400" />
                     <span className="text-amber-400 text-sm flex-1">
                       Nenhuma categoria encontrada. Crie categorias primeiro
-                      para organizar melhor suas peças.
+                      para organizar melhor as peças.
                     </span>
                     <Button
                       size="sm"
@@ -875,7 +703,6 @@ const ManagePartsLibrary = () => {
                 </div>
               )}
 
-              {/* Action Buttons */}
               <div className="flex flex-wrap gap-2 justify-between">
                 <div className="flex gap-2 flex-wrap">
                   <Button
@@ -885,7 +712,6 @@ const ManagePartsLibrary = () => {
                     }
                     className="gap-2 text-white border-zinc-700 hover:bg-zinc-700 bg-green-600"
                   >
-                    <ArrowUpDown className="w-4 h-4" />
                     {sortOrder === "asc" ? "Crescente" : "Decrescente"}
                   </Button>
 
@@ -909,25 +735,6 @@ const ManagePartsLibrary = () => {
                     <List className="w-4 h-4" />
                   </Button>
 
-                  <Button
-                    variant="outline"
-                    onClick={handleRefresh}
-                    className="gap-2 text-white border-zinc-700 hover:bg-zinc-700 bg-zinc-600"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    Refresh
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate("/app/manage-categories")}
-                    className="gap-2 text-white bg-purple-600 border-purple-600 hover:bg-purple-700"
-                  >
-                    <Tag className="w-4 h-4" />
-                    <span className="hidden sm:inline">Gerenciar </span>
-                    Categorias
-                  </Button>
-
                   {hasActiveFilters && (
                     <Button
                       variant="outline"
@@ -940,182 +747,116 @@ const ManagePartsLibrary = () => {
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-zinc-400">
-                    {!shouldLoadParts ? (
-                      "Digite pelo menos 2 caracteres ou use filtros"
-                    ) : (
-                      <>
-                        {displayParts.length} peça(s) encontrada(s)
-                        {hasMore && <span className="text-zinc-500"> (+)</span>}
-                      </>
-                    )}
-                  </span>
-                  <Badge className="bg-green-500/10 text-green-500 text-xs flex items-center gap-1">
-                    <Zap className="h-2 w-2" />
-                    Lazy
-                  </Badge>
-                </div>
+                <span className="text-sm text-zinc-400 self-center">
+                  {filteredParts.length.toLocaleString("pt-PT")} peça(s) encontrada(s)
+                </span>
               </div>
 
               {error && (
-                <Alert
-                  variant="destructive"
-                  className="border-red-500 bg-red-500/10"
-                >
+                <Alert variant="destructive" className="border-red-500 bg-red-500/10">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription className="text-red-400 flex-1">
                     {error}
                   </AlertDescription>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="ml-2 h-6 px-2 text-red-400 hover:text-white hover:bg-red-600"
-                    onClick={() => setError(null)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
                 </Alert>
               )}
             </CardContent>
           </Card>
 
-          {/* ✅ LAZY LOADING STATE */}
-          {!shouldLoadParts ? (
+          {catalogLoading && filteredParts.length === 0 && (
             <Card className="bg-zinc-800 border-zinc-700">
               <CardContent className="p-8 text-center">
-                <Search className="w-10 h-10 text-zinc-600 mx-auto mb-4" />
-                <p className="text-lg font-medium mb-2 text-white">
-                  Busca Inteligente Ativada
-                </p>
-                <p className="text-zinc-400 mb-4">
-                  Digite pelo menos 2 caracteres na busca ou selecione um filtro
-                  para ver as peças
-                </p>
-                <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
-                  <Badge className="bg-green-500/10 text-green-500">
-                    <Zap className="h-3 w-3 mr-1" />
-                    Zero Requests Firebase
-                  </Badge>
-                  <Badge className="bg-blue-500/10 text-blue-500">
-                    Performance Otimizada
-                  </Badge>
-                </div>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  <Button
-                    onClick={handleAddPart}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nova Peça
-                  </Button>
-                  <Button
-                    onClick={() => navigate("/app/manage-categories")}
-                    variant="outline"
-                    className="bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
-                  >
-                    <Tag className="w-4 h-4 mr-2" />
-                    Gerenciar Categorias
-                  </Button>
-                </div>
+                <Loader2 className="w-8 h-8 animate-spin text-white mx-auto mb-4" />
+                <p className="text-white">Carregando peças...</p>
               </CardContent>
             </Card>
-          ) : (
+          )}
+
+          {paginatedParts.length > 0 && (
             <>
-              {/* Loading State */}
-              {isCacheLoading() && displayParts.length === 0 && (
-                <Card className="bg-zinc-800 border-zinc-700">
-                  <CardContent className="p-8 text-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-white mx-auto mb-4" />
-                    <p className="text-white">Carregando peças...</p>
-                  </CardContent>
-                </Card>
+              {viewMode === "grid" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {paginatedParts.map((part) => (
+                    <PartCard
+                      key={part.id}
+                      part={part}
+                      viewMode={viewMode}
+                      onAssign={openAssignDialog}
+                      onView={handleViewPart}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {paginatedParts.map((part) => (
+                    <PartCard
+                      key={part.id}
+                      part={part}
+                      viewMode={viewMode}
+                      onAssign={openAssignDialog}
+                      onView={handleViewPart}
+                    />
+                  ))}
+                </div>
               )}
 
-              {/* Parts Display */}
-              {displayParts.length > 0 && (
-                <>
-                  {viewMode === "grid" ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {displayParts.map((part) => (
-                        <PartCard
-                          key={part.id}
-                          part={part}
-                          viewMode={viewMode}
-                          onEdit={handleEditPart}
-                          onDelete={confirmDelete}
-                          onView={handleViewPart}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {displayParts.map((part) => (
-                        <PartCard
-                          key={part.id}
-                          part={part}
-                          viewMode={viewMode}
-                          onEdit={handleEditPart}
-                          onDelete={confirmDelete}
-                          onView={handleViewPart}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </>
+              {allTabTotalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-6">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={allTabPage === 1}
+                    onClick={() => setAllTabPage((p) => Math.max(1, p - 1))}
+                    className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-40"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm text-zinc-400">
+                    Página {allTabPage} de {allTabTotalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={allTabPage === allTabTotalPages}
+                    onClick={() =>
+                      setAllTabPage((p) => Math.min(allTabTotalPages, p + 1))
+                    }
+                    className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-40"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               )}
-
-              {/* Empty State */}
-              {displayParts.length === 0 &&
-                !isCacheLoading() &&
-                shouldLoadParts && (
-                  <Card className="bg-zinc-800 border-zinc-700">
-                    <CardContent className="p-8 sm:p-12 text-center">
-                      <Search className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
-                      <p className="text-lg font-medium mb-2 text-white">
-                        Nenhuma peça encontrada
-                      </p>
-                      <p className="text-sm sm:text-base text-zinc-400 mb-4">
-                        Tente ajustar seus critérios de busca ou adicione uma
-                        nova peça
-                      </p>
-                      <div className="flex flex-wrap gap-2 justify-center">
-                        {hasActiveFilters && (
-                          <Button
-                            onClick={handleClearAllFilters}
-                            className="bg-amber-600 hover:bg-amber-700"
-                          >
-                            <X className="w-4 h-4 mr-2" />
-                            Limpar Filtros
-                          </Button>
-                        )}
-                        <Button
-                          onClick={handleAddPart}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Nova Peça
-                        </Button>
-                        <Button
-                          onClick={() => navigate("/app/manage-categories")}
-                          variant="outline"
-                          className="bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
-                        >
-                          <Tag className="w-4 h-4 mr-2" />
-                          Gerenciar Categorias
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
             </>
+          )}
+
+          {filteredParts.length === 0 && !catalogLoading && (
+            <Card className="bg-zinc-800 border-zinc-700">
+              <CardContent className="p-8 sm:p-12 text-center">
+                <Search className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
+                <p className="text-lg font-medium mb-2 text-white">
+                  Nenhuma peça encontrada
+                </p>
+                <p className="text-sm sm:text-base text-zinc-400 mb-4">
+                  Tente ajustar os critérios de busca
+                </p>
+                {hasActiveFilters && (
+                  <Button
+                    onClick={handleClearAllFilters}
+                    className="bg-amber-600 hover:bg-amber-700"
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Limpar Filtros
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
 
         {/* Categories Tab */}
         <TabsContent value="categories">
           <div className="space-y-4">
-            {/* Breadcrumb */}
             {(selectedCategory || selectedSubcategory) && (
               <div className="flex items-center gap-2 mb-4">
                 <Button
@@ -1137,7 +878,6 @@ const ManagePartsLibrary = () => {
               </div>
             )}
 
-            {/* Search for categories */}
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
               <Input
@@ -1154,7 +894,7 @@ const ManagePartsLibrary = () => {
               />
             </div>
 
-            {/* ✅ 1. CATEGORIAS PRINCIPAIS */}
+            {/* Categorias principais */}
             {!selectedCategory && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {sortedCategories
@@ -1179,6 +919,8 @@ const ManagePartsLibrary = () => {
                         </div>
                         <p className="text-zinc-400 text-sm mt-2">
                           {getSubcategories(category.id).length} subcategorias
+                          {" • "}
+                          {partsInCategory(category.id).length} peça(s)
                         </p>
                       </CardContent>
                     </Card>
@@ -1186,67 +928,88 @@ const ManagePartsLibrary = () => {
               </div>
             )}
 
-            {/* ✅ 2. SUBCATEGORIAS */}
+            {/* Subcategorias */}
             {selectedCategory && !selectedSubcategory && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {getSubcategories(selectedCategory.id)
-                  .filter((sub) =>
-                    sub.name.toLowerCase().includes(searchTerm.toLowerCase())
-                  )
-                  .map((subcategory) => (
-                    <Card
-                      key={subcategory.id}
-                      onClick={() => handleSubcategoryClick(subcategory)}
-                      className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Package className="h-5 w-5 text-purple-500" />
-                            <h3 className="font-semibold text-base text-white">
-                              {subcategory.name}
-                            </h3>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {getSubcategories(selectedCategory.id)
+                    .filter((sub) =>
+                      sub.name.toLowerCase().includes(searchTerm.toLowerCase())
+                    )
+                    .map((subcategory) => (
+                      <Card
+                        key={subcategory.id}
+                        onClick={() => handleSubcategoryClick(subcategory)}
+                        className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Package className="h-5 w-5 text-purple-500" />
+                              <h3 className="font-semibold text-base text-white">
+                                {subcategory.name}
+                              </h3>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-zinc-400" />
                           </div>
-                          <ChevronRight className="h-4 w-4 text-zinc-400" />
-                        </div>
-                        <p className="text-zinc-400 text-sm mt-2">
-                          {subcategoryCounts[subcategory.id] || 0} peças
+                          <p className="text-zinc-400 text-sm mt-2">
+                            {partsInSubcategory(subcategory.id).length} peça(s)
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))}
+
+                  {getSubcategories(selectedCategory.id).length === 0 && (
+                    <Card className="md:col-span-2 lg:col-span-3 bg-zinc-800 border-zinc-700">
+                      <CardContent className="p-8 text-center">
+                        <Package className="w-10 h-10 text-zinc-600 mx-auto mb-4" />
+                        <p className="text-lg font-medium mb-2 text-white">
+                          Nenhuma subcategoria encontrada
                         </p>
+                        <p className="text-sm text-zinc-400">
+                          Esta categoria ainda não tem subcategorias
+                        </p>
+                        <Button
+                          onClick={() =>
+                            navigate(
+                              `/app/add-subcategory/${selectedCategory.id}`
+                            )
+                          }
+                          className="mt-4 bg-purple-600 hover:bg-purple-700"
+                        >
+                          <Tag className="w-4 h-4 mr-2" />
+                          Adicionar Subcategoria
+                        </Button>
                       </CardContent>
                     </Card>
-                  ))}
+                  )}
+                </div>
 
-                {getSubcategories(selectedCategory.id).length === 0 && (
-                  <Card className="md:col-span-2 lg:col-span-3 bg-zinc-800 border-zinc-700">
-                    <CardContent className="p-8 text-center">
-                      <Package className="w-10 h-10 text-zinc-600 mx-auto mb-4" />
-                      <p className="text-lg font-medium mb-2 text-white">
-                        Nenhuma subcategoria encontrada
-                      </p>
-                      <p className="text-sm text-zinc-400">
-                        Esta categoria ainda não tem subcategorias
-                      </p>
-                      <Button
-                        onClick={() =>
-                          navigate(
-                            `/app/add-subcategory/${selectedCategory.id}`
-                          )
-                        }
-                        className="mt-4 bg-purple-600 hover:bg-purple-700"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Adicionar Subcategoria
-                      </Button>
-                    </CardContent>
-                  </Card>
+                {/* Peças classificadas nesta categoria mas sem subcategoria */}
+                {currentCategoryParts.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-base font-semibold text-white">
+                      Peças sem subcategoria em {selectedCategory.name}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {currentCategoryParts.map((part) => (
+                        <PartCard
+                          key={part.id}
+                          part={part}
+                          viewMode="grid"
+                          onAssign={openAssignDialog}
+                          onView={handleViewPart}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
 
-            {/* ✅ 3. PEÇAS DA SUBCATEGORIA */}
+            {/* Peças da subcategoria */}
             {selectedSubcategory && (
               <>
-                {/* ✅ NOVO: Botão refresh para peças da subcategoria */}
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold text-white">
                     Peças em {selectedSubcategory.name}
@@ -1256,96 +1019,24 @@ const ManagePartsLibrary = () => {
                     variant="outline"
                     size="sm"
                     className="gap-2 text-white border-zinc-700 hover:bg-zinc-700 bg-zinc-600"
-                    disabled={isCacheLoading()}
                   >
-                    <RefreshCw
-                      className={`w-4 h-4 ${
-                        isCacheLoading() ? "animate-spin" : ""
-                      }`}
-                    />
-                    Atualizar Peças
+                    <RefreshCw className="w-4 h-4" />
+                    Atualizar
                   </Button>
                 </div>
 
-                {isCacheLoading() && displayParts.length === 0 ? (
-                  <Card className="bg-zinc-800 border-zinc-700">
-                    <CardContent className="p-8 text-center">
-                      <Loader2 className="w-8 w-8 animate-spin text-white mx-auto mb-4" />
-                      <p className="text-white">
-                        Carregando peças da subcategoria...
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : displayParts.length > 0 ? (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {displayParts
-                        .filter(
-                          (part) =>
-                            part.name
-                              ?.toLowerCase()
-                              .includes(searchTerm.toLowerCase()) ||
-                            part.code
-                              ?.toLowerCase()
-                              .includes(searchTerm.toLowerCase()) ||
-                            part.description
-                              ?.toLowerCase()
-                              .includes(searchTerm.toLowerCase())
-                        )
-                        .map((part) => (
-                          <Card
-                            key={part.id}
-                            onClick={() => {
-                              const params = new URLSearchParams();
-                              if (selectedCategory)
-                                params.set("categoryId", selectedCategory.id);
-                              if (selectedSubcategory)
-                                params.set(
-                                  "subcategoryId",
-                                  selectedSubcategory.id
-                                );
-
-                              const url = `/app/part/${part.id}${
-                                params.toString() ? `?${params.toString()}` : ""
-                              }`;
-                              navigate(url);
-                            }}
-                            className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
-                          >
-                            <CardContent className="p-4">
-                              <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-lg overflow-hidden">
-                                  <PartImage
-                                    src={part.image}
-                                    imageHash={part.imageHash}
-                                    alt={part.name}
-                                    className="w-full h-full object-cover"
-                                    defaultImage="/default-part.png"
-                                  />
-                                </div>
-
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <h3 className="font-semibold text-base text-white truncate">
-                                      {part.name}
-                                    </h3>
-                                    <Badge className="bg-blue-500/10 text-blue-500">
-                                      {part.code}
-                                    </Badge>
-                                  </div>
-                                  <p className="text-white text-sm">
-                                    {new Intl.NumberFormat("pt-PT", {
-                                      style: "currency",
-                                      currency: "EUR",
-                                    }).format(part.price || 0)}
-                                  </p>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                    </div>
-                  </>
+                {currentSubcategoryParts.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {currentSubcategoryParts.map((part) => (
+                      <PartCard
+                        key={part.id}
+                        part={part}
+                        viewMode="grid"
+                        onAssign={openAssignDialog}
+                        onView={handleViewPart}
+                      />
+                    ))}
+                  </div>
                 ) : (
                   <Card className="bg-zinc-800 border-zinc-700">
                     <CardContent className="p-6 text-center">
@@ -1354,17 +1045,14 @@ const ManagePartsLibrary = () => {
                         Nenhuma peça encontrada
                       </p>
                       <p className="text-zinc-400 text-sm">
-                        Esta subcategoria ainda não tem peças cadastradas
+                        Esta subcategoria ainda não tem peças atribuídas. Vá a
+                        &ldquo;Todas as Peças&rdquo; para atribuir categorias.
                       </p>
                       <Button
-                        onClick={handleAddPart}
+                        onClick={() => handleTabChange("all")}
                         className="mt-4 bg-green-600 hover:bg-green-700"
                       >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Adicionar Peça
-                        <span className="ml-1 text-xs bg-green-800 px-1 rounded">
-                          +
-                        </span>
+                        Ver Todas as Peças
                       </Button>
                     </CardContent>
                   </Card>
@@ -1372,13 +1060,12 @@ const ManagePartsLibrary = () => {
               </>
             )}
 
-            {/* Action Buttons */}
             <div className="flex flex-wrap gap-2 mt-4">
               <Button
                 onClick={() => navigate("/app/add-category")}
                 className="bg-green-600 hover:bg-green-700"
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Tag className="w-4 h-4 mr-2" />
                 Nova Categoria
               </Button>
 
@@ -1397,88 +1084,21 @@ const ManagePartsLibrary = () => {
                   }
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Tag className="w-4 h-4 mr-2" />
                   Nova Subcategoria
                 </Button>
               )}
-
-              <Button
-                onClick={handleAddPart}
-                className="bg-zinc-600 hover:bg-zinc-700"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Nova Peça
-              </Button>
             </div>
           </div>
         </TabsContent>
       </Tabs>
 
-      {/* Delete Dialog */}
-      {deleteDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="fixed inset-0 bg-black/50"
-            onClick={() => setDeleteDialogOpen(false)}
-          />
-          <div className="relative bg-zinc-800 border border-zinc-700 rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-white mb-2">
-              Confirmar exclusão
-            </h3>
-            <p className="text-zinc-400 mb-6">
-              Tem certeza que deseja excluir a peça{" "}
-              <span className="font-semibold text-white">
-                {partToDelete?.name}
-              </span>
-              ? Esta ação não pode ser desfeita.
-            </p>
-            <div className="flex justify-end gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setDeleteDialogOpen(false)}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
-              >
-                Cancelar
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => handleDelete(partToDelete)}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                Excluir
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Mobile FAB */}
-      <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden">
-        <Button
-          onClick={handleRefresh}
-          size="icon"
-          className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
-          title="Atualizar"
-        >
-          <RefreshCw className="h-5 w-5" />
-        </Button>
-        <Button
-          onClick={() => navigate("/app/manage-categories")}
-          size="icon"
-          className="rounded-full shadow-lg bg-purple-600 hover:bg-purple-700"
-          title="Gerenciar Categorias"
-        >
-          <Tag className="h-5 w-5" />
-        </Button>
-        <Button
-          onClick={handleAddPart}
-          size="icon"
-          className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
-          title="Nova Peça"
-        >
-          <Plus className="h-5 w-5" />
-        </Button>
-      </div>
+      <AssignPartCategoryDialog
+        open={assignDialogOpen}
+        onOpenChange={setAssignDialogOpen}
+        part={partToAssign}
+        onSaved={handleAssignSaved}
+      />
     </div>
   );
 };

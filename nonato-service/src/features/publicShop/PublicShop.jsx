@@ -1,6 +1,6 @@
 // PublicShop.jsx - CORRIGIDO: Funcionando sem crashes
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   addDoc,
   collection,
@@ -11,7 +11,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useCategories } from "../../context/CategoriesContext.jsx";
-import { usePartsCache } from "../../context/PartsCache.jsx";
+import { useCatalogParts } from "../../hooks/useCatalogParts.js";
 import PartImage from "../../components/ui/PartImage.jsx";
 import {
   Search,
@@ -84,18 +84,18 @@ const PublicShop = ({
     };
   }, []);
 
-  // ✅ CACHE CENTRALIZADO
+  // ✅ CATÁLOGO CENTRALIZADO (JSON estático HOMAG + categorias atribuídas)
   const {
-    fetchParts,
-    fetchSubcategoryCounts,
-    isLoading: isCacheLoading,
-    getCachedParts,
-  } = usePartsCache();
+    parts: catalogParts,
+    loading: catalogLoading,
+    error: catalogError,
+    refresh: refreshCatalog,
+  } = useCatalogParts();
 
-  // Estados das peças
-  const [displayParts, setDisplayParts] = useState([]);
-  const [hasMore, setHasMore] = useState(true);
-  const [subcategoryCounts, setSubcategoryCounts] = useState({});
+  // Quantas peças mostrar de cada vez — equivalente ao antigo "carregar mais"
+  // da Firestore, mas agora é só uma fatia maior da lista já em memória.
+  const PAGE_SIZE = 20;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   // Cache de categorias
   const {
@@ -195,88 +195,67 @@ const PublicShop = ({
     return () => window.removeEventListener("resize", checkDeviceType);
   }, []);
 
-  // ✅ FUNÇÃO PARA CARREGAR PEÇAS - Sem verificações excessivas
-  const loadParts = useCallback(
-    async (loadMore = false) => {
-      try {
-        setError(null);
+  // ✅ FILTRO/BUSCA/ORDENAÇÃO — tudo em memória, sobre o catálogo já carregado
+  const filteredParts = useMemo(() => {
+    let list = catalogParts;
 
-        const result = await fetchParts({
-          categoryId: selectedCategory !== "all" ? selectedCategory : null,
-          subcategoryId:
-            selectedSubcategory !== "all" ? selectedSubcategory : null,
-          searchTerm: debouncedSearchTerm,
-          sortField: sortBy,
-          sortOrder: "asc",
-          loadMore,
-        });
-
-        if (result.error) {
-          setError(result.error);
-        }
-
-        if (result.warning) {
-          setError(result.warning);
-        }
-
-        setDisplayParts(result.parts);
-        setHasMore(result.hasMore);
-
-        if (result.fromCache) {
-          console.log("🏪 Loja: Dados carregados do cache!");
-        }
-      } catch (err) {
-        console.error("❌ Erro ao carregar peças na loja:", err);
-        setError("Erro ao carregar peças. Por favor, tente novamente.");
-      }
-    },
-    [
-      fetchParts,
-      selectedCategory,
-      selectedSubcategory,
-      debouncedSearchTerm,
-      sortBy,
-    ]
-  );
-
-  // ✅ CARREGAR CONTADORES
-  const loadSubcategoryCounts = useCallback(
-    async (categoryId) => {
-      if (!categoryId || categoryId === "all") return;
-
-      try {
-        const counts = await fetchSubcategoryCounts(categoryId);
-        setSubcategoryCounts(counts);
-      } catch (err) {
-        console.error("❌ Erro ao carregar contadores na loja:", err);
-      }
-    },
-    [fetchSubcategoryCounts]
-  );
-
-  // ✅ EFFECT PRINCIPAL - Carrega peças
-  useEffect(() => {
-    loadParts(false);
-  }, [loadParts]);
-
-  // ✅ EFFECT - Carrega contadores quando categoria muda
-  useEffect(() => {
     if (selectedCategory !== "all") {
-      loadSubcategoryCounts(selectedCategory);
+      list = list.filter((p) => p.categoryId === selectedCategory);
     }
-  }, [selectedCategory, loadSubcategoryCounts]);
+    if (selectedSubcategory !== "all") {
+      list = list.filter((p) => p.subcategoryId === selectedSubcategory);
+    }
+    if (debouncedSearchTerm) {
+      const term = debouncedSearchTerm.toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.name?.toLowerCase().includes(term) ||
+          p.code?.toLowerCase().includes(term)
+      );
+    }
+
+    return [...list].sort((a, b) => {
+      if (sortBy === "code") {
+        return (a.code || "").localeCompare(b.code || "", "pt-PT");
+      }
+      return (a.name || "").localeCompare(b.name || "", "pt-PT");
+    });
+  }, [
+    catalogParts,
+    selectedCategory,
+    selectedSubcategory,
+    debouncedSearchTerm,
+    sortBy,
+  ]);
+
+  // Repor a "página" visível sempre que os filtros mudam
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [selectedCategory, selectedSubcategory, debouncedSearchTerm, sortBy]);
+
+  const displayParts = filteredParts.slice(0, visibleCount);
+  const hasMore = filteredParts.length > visibleCount;
+  const isLoadingParts = catalogLoading;
+
+  // ✅ Contagem de peças por subcategoria (para a barra lateral de categorias)
+  const subcategoryCounts = useMemo(() => {
+    const counts = {};
+    catalogParts.forEach((p) => {
+      if (p.subcategoryId) {
+        counts[p.subcategoryId] = (counts[p.subcategoryId] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [catalogParts]);
+
+  useEffect(() => {
+    if (catalogError) setError(catalogError);
+  }, [catalogError]);
 
   // ✅ FUNÇÃO LOAD MORE
   const loadMoreParts = () => {
-    if (
-      hasMore &&
-      !isCacheLoading(
-        selectedCategory !== "all" ? selectedCategory : null,
-        selectedSubcategory !== "all" ? selectedSubcategory : null,
-        debouncedSearchTerm
-      )
-    ) {
-      loadParts(true);
+    if (hasMore) {
+      setVisibleCount((prev) => prev + PAGE_SIZE);
     }
   };
 
@@ -427,7 +406,7 @@ const PublicShop = ({
           id: item.id,
           name: item.name,
           code: item.code,
-          price: item.price,
+          price: item.price || 0,
           quantity: item.quantity,
         })),
         createdAt: serverTimestamp(),
@@ -489,13 +468,6 @@ const PublicShop = ({
       behavior: "smooth",
     });
   };
-
-  // ✅ VERIFICAR LOADING STATE
-  const isLoadingParts = isCacheLoading(
-    selectedCategory !== "all" ? selectedCategory : null,
-    selectedSubcategory !== "all" ? selectedSubcategory : null,
-    debouncedSearchTerm
-  );
 
   // ✅ HANDLER SIMPLES para mudança de search
   const handleSearchChange = (e) => {
@@ -716,7 +688,7 @@ const PublicShop = ({
                             <div className="flex items-start gap-3">
                               <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0">
                                 <PartImage
-                                  src={item.image}
+                                  src={item.image || item.externalImageUrl}
                                   imageHash={item.imageHash}
                                   alt={item.name}
                                   className="w-full h-full object-cover"
@@ -1022,11 +994,7 @@ const PublicShop = ({
                       className="border-zinc-700 text-white bg-zinc-800"
                     >
                       <span className="mr-1">
-                        {sortBy === "name"
-                          ? "Nome"
-                          : sortBy === "price"
-                          ? "Preço"
-                          : "Código"}
+                        {sortBy === "name" ? "Nome" : "Código"}
                       </span>
                       <ChevronDown className="h-4 w-4" />
                     </Button>
@@ -1037,12 +1005,6 @@ const PublicShop = ({
                       onClick={() => setSortBy("name")}
                     >
                       Nome (A-Z)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className={sortBy === "price" ? "bg-zinc-700" : ""}
-                      onClick={() => setSortBy("price")}
-                    >
-                      Preço
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className={sortBy === "code" ? "bg-zinc-700" : ""}
@@ -1110,8 +1072,19 @@ const PublicShop = ({
               className="border-red-500 bg-red-500/10 mb-6"
             >
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-red-400">
-                {error}
+              <AlertDescription className="text-red-400 flex items-center justify-between gap-4">
+                <span>{error}</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setError(null);
+                    refreshCatalog();
+                  }}
+                  className="border-red-500/50 text-red-300 hover:bg-red-500/20 hover:text-white"
+                >
+                  Tentar novamente
+                </Button>
               </AlertDescription>
             </Alert>
           )}
@@ -1147,7 +1120,7 @@ const PublicShop = ({
                       <>
                         <div className="w-full h-48 mb-4 rounded-lg overflow-hidden">
                           <PartImage
-                            src={part.image}
+                            src={part.image || part.externalImageUrl}
                             imageHash={part.imageHash}
                             alt={part.name}
                             className="w-full h-full object-cover"
@@ -1205,7 +1178,7 @@ const PublicShop = ({
                       <>
                         <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden">
                           <PartImage
-                            src={part.image}
+                            src={part.image || part.externalImageUrl}
                             imageHash={part.imageHash}
                             alt={part.name}
                             className="w-full h-full object-cover"

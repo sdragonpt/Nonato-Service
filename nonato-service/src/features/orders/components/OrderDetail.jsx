@@ -8,7 +8,6 @@ import {
   getDocs,
   query,
   where,
-  deleteDoc,
 } from "firebase/firestore";
 import { db } from "../../../firebase";
 import generateServiceOrderPDF from "./pdf/generateServiceOrderPDF";
@@ -115,10 +114,8 @@ const OrderDetail = () => {
       setIsLoading(true);
       setError(null);
 
-      const [orderDoc, , , workdaysSnapshot] = await Promise.all([
+      const [orderDoc, workdaysSnapshot] = await Promise.all([
         getDoc(doc(db, "ordens", orderId)),
-        getDocs(collection(db, "clientes")),
-        getDocs(collection(db, "equipamentos")),
         getDocs(
           query(collection(db, "workdays"), where("orderId", "==", orderId))
         ),
@@ -383,17 +380,14 @@ const OrderDetail = () => {
       setIsDeleting(true);
       setError(null);
 
-      // Delete workdays first
-      const deleteWorkdaysPromises = workdays.map((workday) =>
-        deleteDoc(doc(db, "workdays", workday.id))
-      );
-      await Promise.all(deleteWorkdaysPromises);
-
-      // Then delete the order
-      await deleteDoc(doc(db, "ordens", orderId));
+      // Soft-delete: move para a Reciclagem (os dias de trabalho ficam
+      // preservados, para o caso de a ordem ser restaurada)
+      await updateDoc(doc(db, "ordens", orderId), {
+        eliminadoEm: new Date(),
+      });
       navigate("/app/manage-orders");
     } catch (err) {
-      console.error("Erro ao deletar ordem:", err);
+      console.error("Erro ao excluir ordem:", err);
       setError("Erro ao deletar ordem. Por favor, tente novamente.");
     } finally {
       setIsDeleting(false);
@@ -1011,9 +1005,8 @@ const OrderDetail = () => {
           <DialogHeader>
             <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
             <DialogDescription className="text-zinc-400">
-              Tem certeza que deseja excluir esta ordem de serviço? Esta ação
-              também irá excluir todos os dias de trabalho associados e não pode
-              ser desfeita.
+              Tem certeza que deseja excluir esta ordem de serviço? A ordem
+              será movida para a Reciclagem e pode ser restaurada mais tarde.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">

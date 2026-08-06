@@ -8,6 +8,7 @@ import {
   getDoc,
   increment,
 } from "firebase/firestore";
+import { searchCatalogParts } from "../../../utils/catalogPartSearch.js";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
@@ -108,7 +109,7 @@ const AddOrder = () => {
     vatRate: 23,
   });
 
-  // ✅ FUNÇÃO PARA PESQUISAR PEÇAS
+  // ✅ FUNÇÃO PARA PESQUISAR PEÇAS NO CATÁLOGO HOMAG
   const searchPartsByCode = async (searchTerm) => {
     if (!searchTerm.trim()) {
       setSearchResults([]);
@@ -119,16 +120,7 @@ const AddOrder = () => {
       setIsSearching(true);
       setSearchError("");
 
-      const partsSnapshot = await getDocs(collection(db, "pecas"));
-
-      const results = partsSnapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() }))
-        .filter(
-          (part) =>
-            part.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            part.name?.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-        .slice(0, 10);
+      const results = await searchCatalogParts(searchTerm, { limit: 10 });
 
       setSearchResults(results);
 
@@ -1018,9 +1010,6 @@ const AddOrder = () => {
                               {part.code}
                             </Badge>
                           </div>
-                          <p className="text-sm text-zinc-400 mt-1">
-                            {part.description || "Sem descrição"}
-                          </p>
                         </div>
                         <Button
                           size="sm"

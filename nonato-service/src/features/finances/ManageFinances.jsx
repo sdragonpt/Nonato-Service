@@ -77,11 +77,13 @@ const ManageFinances = () => {
         getDocs(closuresQuery),
       ]);
 
-      const partsBudgetsData = partsBudgetsSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        type: "parts_budget",
-        ...doc.data(),
-      }));
+      const partsBudgetsData = partsBudgetsSnapshot.docs
+        .map((doc) => ({
+          id: doc.id,
+          type: "parts_budget",
+          ...doc.data(),
+        }))
+        .filter((service) => !service.eliminadoEm);
 
       const closuresData = closuresSnapshot.docs.map((doc) => ({
         id: doc.id,
@@ -279,7 +281,15 @@ const ManageFinances = () => {
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate("/app/clientes-devedores")}
+            className="border-red-600 text-white hover:bg-red-700 bg-red-600"
+          >
+            <TrendingDown className="w-4 h-4 mr-2" />
+            Clientes Devedores &amp; IVA
+          </Button>
           <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
             <SelectTrigger className="w-32 bg-zinc-700 border-zinc-600 text-white">
               <SelectValue />

@@ -1,6 +1,15 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  deleteDoc,
+  collection,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import {
   ArrowLeft,
@@ -14,6 +23,8 @@ import {
   Shapes,
   AlertTriangle,
   User,
+  ClipboardCheck,
+  ChevronRight,
 } from "lucide-react";
 
 // UI Components
@@ -46,6 +57,8 @@ const EquipmentDetail = () => {
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [inspections, setInspections] = useState([]);
+  const [inspectionsLoading, setInspectionsLoading] = useState(true);
 
   useEffect(() => {
     const fetchEquipment = async () => {
@@ -81,6 +94,49 @@ const EquipmentDetail = () => {
     };
 
     fetchEquipment();
+  }, [equipmentId]);
+
+  useEffect(() => {
+    const fetchInspections = async () => {
+      try {
+        setInspectionsLoading(true);
+        const q = query(
+          collection(db, "inspections"),
+          where("equipmentId", "==", equipmentId)
+        );
+        const snap = await getDocs(q);
+        const checklistIds = [
+          ...new Set(snap.docs.map((d) => d.data().checklistTypeId).filter(Boolean)),
+        ];
+        const checklistDocs = await Promise.all(
+          checklistIds.map((id) => getDoc(doc(db, "checklist_machines", id)))
+        );
+        const checklistMap = {};
+        checklistDocs.forEach((d) => {
+          if (d.exists()) checklistMap[d.id] = d.data().type;
+        });
+
+        const list = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .filter((insp) => !insp.eliminadoEm)
+          .map((insp) => ({
+            ...insp,
+            checklistTypeName: checklistMap[insp.checklistTypeId] || "Checklist",
+          }))
+          .sort((a, b) => {
+            const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+            const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+            return dateB - dateA;
+          });
+        setInspections(list);
+      } catch (err) {
+        console.error("Erro ao buscar histórico de inspeções:", err);
+      } finally {
+        setInspectionsLoading(false);
+      }
+    };
+
+    if (equipmentId) fetchInspections();
   }, [equipmentId]);
 
   const handlePhotoChange = (e) => {
@@ -259,6 +315,92 @@ const EquipmentDetail = () => {
               Excluir Equipamento
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Histórico de Inspeções */}
+      <Card className="bg-zinc-800 border-zinc-700">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ClipboardCheck className="h-5 w-5 text-green-500" />
+              <h3 className="text-lg font-semibold text-white">
+                Histórico de Inspeções
+              </h3>
+            </div>
+            <div className="flex gap-2">
+              {inspections.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    navigate(`/app/manage-inspection?equipmentId=${equipmentId}`)
+                  }
+                  className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+                >
+                  Ver Todas
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/app/add-inspection")}
+                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+              >
+                Nova Inspeção
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {inspectionsLoading ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
+            </div>
+          ) : inspections.length === 0 ? (
+            <p className="text-sm text-zinc-400 text-center py-4">
+              Nenhuma inspeção registada para este equipamento ainda.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {inspections.map((insp) => {
+                const isCompleted = insp.status === "completed";
+                const dateRaw = insp.completedAt || insp.createdAt;
+                const date = dateRaw?.toDate ? dateRaw.toDate() : new Date(dateRaw || 0);
+                return (
+                  <div
+                    key={insp.id}
+                    onClick={() => navigate(`/app/inspection-detail/${insp.id}`)}
+                    className="flex items-center justify-between p-3 bg-zinc-700/30 hover:bg-zinc-700/60 rounded-lg border border-zinc-600 cursor-pointer transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-white text-sm font-medium truncate">
+                        {insp.checklistTypeName}
+                      </p>
+                      <p className="text-xs text-zinc-400">
+                        {date.toLocaleDateString("pt-PT")}
+                        {isCompleted && insp.overallCondition
+                          ? ` · ${insp.overallCondition}`
+                          : ""}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full ${
+                          isCompleted
+                            ? "bg-green-500/20 text-green-400"
+                            : "bg-yellow-500/20 text-yellow-400"
+                        }`}
+                      >
+                        {isCompleted ? "Concluída" : "Pendente"}
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-zinc-500" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -103,6 +103,8 @@ const ManageShopAccess = () => {
   const [tokenToApprove, setTokenToApprove] = useState(null);
   const [tokenToReject, setTokenToReject] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [tokenToDelete, setTokenToDelete] = useState(null);
 
   // Estado para exibição de detalhes do token
   const [expandedTokens, setExpandedTokens] = useState({});
@@ -334,16 +336,18 @@ const ManageShopAccess = () => {
     }
   };
 
-  const deleteToken = async (tokenId) => {
-    if (
-      !confirm(
-        "Tem certeza que deseja excluir este token de acesso? Esta ação não pode ser desfeita e removerá o acesso à loja."
-      )
-    )
-      return;
+  const confirmDeleteToken = (token) => {
+    setTokenToDelete(token);
+    setShowDeleteDialog(true);
+  };
+
+  const deleteToken = async () => {
+    if (!tokenToDelete) return;
 
     try {
-      await deleteDoc(doc(db, "shop_access_tokens", tokenId));
+      await deleteDoc(doc(db, "shop_access_tokens", tokenToDelete.id));
+      setShowDeleteDialog(false);
+      setTokenToDelete(null);
       fetchAccessTokens();
     } catch (err) {
       console.error("Erro ao excluir token:", err);
@@ -829,7 +833,7 @@ const ManageShopAccess = () => {
                       className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
                       onClick={(e) => {
                         e.stopPropagation();
-                        deleteToken(token.id);
+                        confirmDeleteToken(token);
                       }}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
@@ -1488,6 +1492,35 @@ const ManageShopAccess = () => {
                   Confirmar Rejeição
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Token Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="bg-zinc-800 border-zinc-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Tem a certeza que deseja excluir o token de acesso de{" "}
+              <span className="font-semibold text-white">{tokenToDelete?.name}</span>?
+              Esta ação não pode ser desfeita e removerá o acesso à loja.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteDialog(false);
+                setTokenToDelete(null);
+              }}
+              className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-800"
+            >
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={deleteToken} className="bg-red-600 hover:bg-red-700">
+              Excluir
             </Button>
           </DialogFooter>
         </DialogContent>

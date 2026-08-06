@@ -34,6 +34,7 @@ import {
 import { Badge } from "@/components/ui/badge.jsx";
 import {
   Trash2,
+  Edit2,
   Loader2,
   AlertTriangle,
   Users,
@@ -43,6 +44,8 @@ import {
 } from "lucide-react";
 
 import AddUser from "./components/AddUser.jsx";
+import EditUser from "./components/EditUser.jsx";
+import { getRoleLabel, getRoleBadgeStyle, isStaffRole } from "../../config/roles.js";
 
 const ManageUsers = () => {
   const [users, setUsers] = useState([]);
@@ -51,6 +54,8 @@ const ManageUsers = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   const [addUserDialogOpen, setAddUserDialogOpen] = useState(false);
+  const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState(null);
 
   const fetchUsers = async () => {
     try {
@@ -80,6 +85,11 @@ const ManageUsers = () => {
   const confirmDelete = (user) => {
     setUserToDelete(user);
     setDeleteDialogOpen(true);
+  };
+
+  const openEditUser = (user) => {
+    setUserToEdit(user);
+    setEditUserDialogOpen(true);
   };
 
   const handleDelete = async () => {
@@ -120,27 +130,10 @@ const ManageUsers = () => {
     }
   };
 
-  const getRoleBadgeStyle = (role) => {
-    switch (role?.toLowerCase()) {
-      case "admin":
-        return "bg-purple-500/10 text-purple-500 border-purple-500/20";
-      case "client":
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
-      default:
-        return "bg-zinc-500/10 text-zinc-500 border-zinc-500/20";
-    }
-  };
-
   const stats = {
     total: users.length,
-    admin: users.filter((user) => {
-      const isAdmin = user.role?.toLowerCase() === "admin";
-      if (isAdmin) return isAdmin;
-    }).length,
-    client: users.filter((user) => {
-      const isClient = user.role?.toLowerCase() === "client";
-      if (isClient) return isClient;
-    }).length,
+    staff: users.filter((user) => isStaffRole(user.role)).length,
+    client: users.filter((user) => user.role === "client" || !user.role).length,
   };
 
   if (loading) {
@@ -188,10 +181,10 @@ const ManageUsers = () => {
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
               <p className="text-sm font-medium text-zinc-400">
-                Administradores
+                Equipa Interna
               </p>
               <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
-                {stats.admin}
+                {stats.staff}
               </h3>
             </div>
             <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
@@ -260,18 +253,28 @@ const ManageUsers = () => {
                   <TableCell className="text-white">{user.email}</TableCell>
                   <TableCell>
                     <Badge className={getRoleBadgeStyle(user.role)}>
-                      {user.role === "admin" ? "Administrador" : "Cliente"}
+                      {getRoleLabel(user.role)}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => confirmDelete(user)}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditUser(user)}
+                        className="text-zinc-400 hover:text-white hover:bg-zinc-700"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => confirmDelete(user)}
+                        className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -315,6 +318,19 @@ const ManageUsers = () => {
       <Dialog open={addUserDialogOpen} onOpenChange={setAddUserDialogOpen}>
         <DialogContent className="bg-zinc-800 border-zinc-700 sm:max-w-[425px]">
           <AddUser onClose={() => setAddUserDialogOpen(false)} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editUserDialogOpen} onOpenChange={setEditUserDialogOpen}>
+        <DialogContent className="bg-zinc-800 border-zinc-700 sm:max-w-[425px]">
+          <EditUser
+            user={userToEdit}
+            onClose={() => {
+              setEditUserDialogOpen(false);
+              setUserToEdit(null);
+            }}
+            onUpdated={fetchUsers}
+          />
         </DialogContent>
       </Dialog>
 

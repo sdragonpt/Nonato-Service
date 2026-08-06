@@ -44,6 +44,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 
 
@@ -156,6 +164,10 @@ const ManageBudgets = () => {
   const [currentRegularPage, setCurrentRegularPage] = useState(1);
   const itemsPerPage = 8; // Menos itens por página já que são cards maiores
 
+  // Estados para confirmação de exclusão
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [budgetToDelete, setBudgetToDelete] = useState(null);
+
   useEffect(() => {
     localStorage.setItem("documentTypeFilter", documentTypeFilter);
   }, [documentTypeFilter]);
@@ -241,16 +253,22 @@ const ManageBudgets = () => {
     }
   };
 
-  const handleDelete = async (budgetId) => {
-    if (window.confirm("Tem certeza que deseja deletar este orçamento?")) {
-      try {
-        await deleteDoc(doc(db, "orcamentos", budgetId));
-        setSimpleBudgets((prev) => prev.filter((b) => b.id !== budgetId));
-        setRegularBudgets((prev) => prev.filter((b) => b.id !== budgetId));
-      } catch (error) {
-        setError("Erro ao deletar orçamento");
-        console.error(error);
-      }
+  const handleDelete = (budgetId) => {
+    setBudgetToDelete(budgetId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!budgetToDelete) return;
+    try {
+      await deleteDoc(doc(db, "orcamentos", budgetToDelete));
+      setSimpleBudgets((prev) => prev.filter((b) => b.id !== budgetToDelete));
+      setRegularBudgets((prev) => prev.filter((b) => b.id !== budgetToDelete));
+      setDeleteDialogOpen(false);
+      setBudgetToDelete(null);
+    } catch (error) {
+      setError("Erro ao excluir orçamento");
+      console.error(error);
     }
   };
 
@@ -818,6 +836,31 @@ const ManageBudgets = () => {
           <UserPlus className="h-5 w-5" />
         </Button>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="bg-zinc-800 border-zinc-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Tem a certeza que deseja excluir este orçamento? Esta ação não
+              pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+            >
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

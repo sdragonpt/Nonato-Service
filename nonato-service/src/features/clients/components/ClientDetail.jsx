@@ -1,5 +1,5 @@
 // src/features/clients/components/ClientDetail.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   doc,
@@ -7,11 +7,19 @@ import {
   deleteDoc,
   updateDoc,
   collection,
+  addDoc,
   getDocs,
   query,
   where,
+  orderBy,
 } from "firebase/firestore";
-import { db } from "../../../firebase";
+import {
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage";
+import { db, storage } from "../../../firebase";
 import {
   ArrowLeft,
   Loader2,
@@ -30,6 +38,11 @@ import {
   Package,
   CreditCard,
   Plus,
+  Paperclip,
+  Upload,
+  Download,
+  ClipboardCheck,
+  ChevronRight,
 } from "lucide-react";
 
 // UI Components
@@ -388,6 +401,369 @@ const ClientFinancialSection = ({ clientId }) => {
 };
 
 // ===================================
+// COMPONENTE DE SEÇÃO DE ANEXOS
+// ===================================
+const ClientAttachments = ({ clientId }) => {
+  const [attachments, setAttachments] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [error, setError] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const fetchAttachments = async () => {
+    try {
+      setIsLoading(true);
+      const q = query(
+        collection(db, "clientes", clientId, "anexos"),
+        orderBy("uploadedAt", "desc")
+      );
+      const snap = await getDocs(q);
+      setAttachments(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    } catch (err) {
+      console.error("Erro ao carregar anexos:", err);
+      setError("Erro ao carregar anexos.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (clientId) fetchAttachments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId]);
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setError("O ficheiro deve ter menos de 10MB.");
+      return;
+    }
+
+    setError(null);
+    setUploading(true);
+    setUploadProgress(0);
+
+    const safeName = file.name.replace(/[^a-zA-Z0-9_\-. ]/g, "_");
+    const storagePath = `clientes/${clientId}/anexos/${Date.now()}_${safeName}`;
+    const storageRef = ref(storage, storagePath);
+    const task = uploadBytesResumable(storageRef, file);
+
+    task.on(
+      "state_changed",
+      (snap) =>
+        setUploadProgress(
+          Math.round((snap.bytesTransferred / snap.totalBytes) * 100)
+        ),
+      (err) => {
+        console.error("Erro ao enviar anexo:", err);
+        setError("Erro ao enviar o ficheiro.");
+        setUploading(false);
+      },
+      async () => {
+        try {
+          const url = await getDownloadURL(task.snapshot.ref);
+          await addDoc(collection(db, "clientes", clientId, "anexos"), {
+            name: file.name,
+            url,
+            storagePath,
+            size: file.size,
+            uploadedAt: new Date(),
+          });
+          await fetchAttachments();
+        } catch (err) {
+          console.error("Erro ao guardar anexo:", err);
+          setError("Erro ao guardar a referência do anexo.");
+        } finally {
+          setUploading(false);
+        }
+      }
+    );
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      if (deleteTarget.storagePath) {
+        try {
+          await deleteObject(ref(storage, deleteTarget.storagePath));
+        } catch {
+          // Ficheiro pode já não existir no Storage — ignorar
+        }
+      }
+      await deleteDoc(doc(db, "clientes", clientId, "anexos", deleteTarget.id));
+      setAttachments((prev) => prev.filter((a) => a.id !== deleteTarget.id));
+    } catch (err) {
+      console.error("Erro ao apagar anexo:", err);
+      setError("Erro ao apagar anexo.");
+    } finally {
+      setDeleteTarget(null);
+    }
+  };
+
+  const formatSize = (bytes) => {
+    if (!bytes) return "";
+    const kb = bytes / 1024;
+    return kb < 1024 ? `${kb.toFixed(0)} KB` : `${(kb / 1024).toFixed(1)} MB`;
+  };
+
+  const formatDate = (timestamp) => {
+    if (!timestamp) return "N/A";
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleDateString("pt-PT");
+  };
+
+  return (
+    <Card className="bg-zinc-800 border-zinc-700">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-white flex items-center gap-2">
+            <Paperclip className="h-5 w-5" />
+            Anexos ({attachments.length})
+          </CardTitle>
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  A enviar... {uploadProgress}%
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Carregar Anexo
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {error && (
+          <Alert
+            variant="destructive"
+            className="border-red-500 bg-red-500/10 mb-4"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="text-red-400">{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-white" />
+          </div>
+        ) : attachments.length > 0 ? (
+          <div className="space-y-2">
+            {attachments.map((att) => (
+              <div
+                key={att.id}
+                className="flex items-center justify-between p-3 bg-zinc-700/50 rounded-lg border border-zinc-600"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <FileText className="h-5 w-5 text-blue-400 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-white truncate">{att.name}</p>
+                    <p className="text-xs text-zinc-400">
+                      {formatSize(att.size)} · {formatDate(att.uploadedAt)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => window.open(att.url, "_blank")}
+                    className="text-zinc-400 hover:text-white hover:bg-zinc-700"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setDeleteTarget(att)}
+                    className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Paperclip className="h-10 w-10 text-zinc-600 mx-auto mb-3" />
+            <p className="text-zinc-400">
+              Nenhum anexo (contratos, solicitações, documentos) carregado
+            </p>
+          </div>
+        )}
+      </CardContent>
+
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="bg-zinc-800 border-zinc-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Apagar anexo</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Tem a certeza que deseja apagar &ldquo;{deleteTarget?.name}
+              &rdquo;? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteTarget(null)}
+              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Apagar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+};
+
+// Inspeções Recentes — reaproveita a coleção "inspections" (já usada em
+// src/features/inspections) filtrando por clientId, sem duplicar dados.
+const ClientInspectionsSection = ({ clientId }) => {
+  const navigate = useNavigate();
+  const [inspections, setInspections] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchInspections = async () => {
+      try {
+        setLoading(true);
+        const q = query(
+          collection(db, "inspections"),
+          where("clientId", "==", clientId)
+        );
+        const snap = await getDocs(q);
+
+        const checklistIds = [
+          ...new Set(snap.docs.map((d) => d.data().checklistTypeId).filter(Boolean)),
+        ];
+        const checklistDocs = await Promise.all(
+          checklistIds.map((id) => getDoc(doc(db, "checklist_machines", id)))
+        );
+        const checklistMap = {};
+        checklistDocs.forEach((d) => {
+          if (d.exists()) checklistMap[d.id] = d.data().type;
+        });
+
+        const list = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .filter((insp) => !insp.eliminadoEm)
+          .map((insp) => ({
+            ...insp,
+            checklistTypeName: checklistMap[insp.checklistTypeId] || "Checklist",
+          }))
+          .sort((a, b) => {
+            const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+            const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+            return dateB - dateA;
+          });
+        setInspections(list);
+      } catch (err) {
+        console.error("Erro ao carregar inspeções do cliente:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (clientId) fetchInspections();
+  }, [clientId]);
+
+  if (!loading && inspections.length === 0) return null;
+
+  return (
+    <Card className="bg-zinc-800 border-zinc-700">
+      <CardHeader>
+        <CardTitle className="text-white flex items-center gap-2">
+          <ClipboardCheck className="h-5 w-5" />
+          Inspeções Recentes ({inspections.length})
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex justify-center py-6">
+            <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {inspections.slice(0, 5).map((insp) => {
+              const isCompleted = insp.status === "completed";
+              const dateRaw = insp.completedAt || insp.createdAt;
+              const date = dateRaw?.toDate ? dateRaw.toDate() : new Date(dateRaw || 0);
+              return (
+                <div
+                  key={insp.id}
+                  onClick={() => navigate(`/app/inspection-detail/${insp.id}`)}
+                  className="flex items-center justify-between p-3 bg-zinc-700/30 hover:bg-zinc-700/60 rounded-lg border border-zinc-600 cursor-pointer transition-colors"
+                >
+                  <div className="min-w-0">
+                    <p className="text-white text-sm font-medium truncate">
+                      {insp.checklistTypeName}
+                    </p>
+                    <p className="text-xs text-zinc-400">
+                      {date.toLocaleDateString("pt-PT")}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full ${
+                        isCompleted
+                          ? "bg-green-500/20 text-green-400"
+                          : "bg-yellow-500/20 text-yellow-400"
+                      }`}
+                    >
+                      {isCompleted ? "Concluída" : "Pendente"}
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-zinc-500" />
+                  </div>
+                </div>
+              );
+            })}
+            {inspections.length > 5 && (
+              <div className="text-center pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/app/manage-inspection?clientId=${clientId}`)}
+                  className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                >
+                  Ver todas ({inspections.length})
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// ===================================
 // COMPONENTE PRINCIPAL ClientDetail
 // ===================================
 const ClientDetail = () => {
@@ -428,10 +804,12 @@ const ClientDetail = () => {
 
         setClient({ id: clientDoc.id, ...clientDoc.data() });
 
-        const servicesList = servicesSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const servicesList = servicesSnapshot.docs
+          .map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+          .filter((service) => !service.eliminadoEm);
         setServices(servicesList);
 
         const equipmentsList = equipmentsSnapshot.docs.map((doc) => ({
@@ -735,6 +1113,12 @@ const ClientDetail = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Attachments Section */}
+      <ClientAttachments clientId={clientId} />
+
+      {/* Inspeções Recentes */}
+      <ClientInspectionsSection clientId={clientId} />
 
       {/* Financial Section */}
       <ClientFinancialSection clientId={clientId} />

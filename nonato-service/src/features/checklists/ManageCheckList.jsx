@@ -82,6 +82,11 @@ const CATEGORY_ICONS = {
     bgColor: "bg-orange-600",
     iconColor: "text-white",
   },
+  pre_operational: {
+    icon: ListChecks,
+    bgColor: "bg-cyan-600",
+    iconColor: "text-white",
+  },
 };
 
 const ChecklistTypeCard = ({
@@ -123,6 +128,15 @@ const ChecklistTypeCard = ({
                     "Sem categoria"}
                 </span>
               </div>
+              {type.familyName && (
+                <div className="flex items-center">
+                  <FolderIcon className="w-4 h-4 mr-1" />
+                  <span>
+                    {type.familyName}
+                    {type.groupName ? ` > ${type.groupName}` : ""}
+                  </span>
+                </div>
+              )}
               <div className="flex items-center">
                 <Layers className="w-4 h-4 mr-1" />
                 <span>{type.groups?.length || 0} grupo(s)</span>
@@ -333,13 +347,23 @@ const ManageChecklist = () => {
             Gerencie todos os seus tipos de checklist em um só lugar
           </p>
         </div>
-        <Button
-          onClick={() => navigate("/app/add-checklist-type")}
-          className="hidden sm:flex bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Tipo
-        </Button>
+        <div className="hidden sm:flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate("/app/checklist-families")}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
+          >
+            <Layers className="w-4 h-4 mr-2" />
+            Famílias / Grupos
+          </Button>
+          <Button
+            onClick={() => navigate("/app/add-checklist-type")}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Tipo
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}

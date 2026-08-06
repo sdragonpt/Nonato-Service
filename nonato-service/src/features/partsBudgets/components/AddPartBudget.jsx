@@ -1,8 +1,9 @@
 // src/features/partsBudgets/components/AddPartBudget.jsx - ✅ SIMPLIFICADO
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, getDocs, doc, setDoc } from "firebase/firestore";
+import { collection, doc, setDoc } from "firebase/firestore";
 import { db } from "../../../firebase";
+import { searchCatalogParts } from "../../../utils/catalogPartSearch.js";
 import {
   ArrowLeft,
   Loader2,
@@ -86,7 +87,7 @@ const AddPartBudget = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  // Função para pesquisar peças por código
+  // Função para pesquisar peças no catálogo HOMAG por nome ou código
   const searchPartsByCode = async (searchTerm) => {
     if (!searchTerm.trim()) {
       setSearchResults([]);
@@ -97,16 +98,7 @@ const AddPartBudget = () => {
       setIsSearching(true);
       setSearchError("");
 
-      const partsSnapshot = await getDocs(collection(db, "pecas"));
-
-      const results = partsSnapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() }))
-        .filter(
-          (part) =>
-            part.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            part.name?.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-        .slice(0, 10);
+      const results = await searchCatalogParts(searchTerm, { limit: 10 });
 
       setSearchResults(results);
 
@@ -447,9 +439,6 @@ const AddPartBudget = () => {
                             {part.code}
                           </Badge>
                         </div>
-                        <p className="text-sm text-zinc-400 mt-1">
-                          {part.description || "Sem descrição"}
-                        </p>
                       </div>
                       <Button
                         size="sm"

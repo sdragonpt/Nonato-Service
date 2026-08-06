@@ -16,6 +16,8 @@ import {
   ArrowLeft,
   Loader2,
   AlertTriangle,
+  Timer,
+  UserCog,
 } from "lucide-react";
 
 // UI Components
@@ -35,6 +37,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog.jsx";
+
+import { isStaffRole } from "../../../config/roles.js";
+import {
+  checkAgendaConflict,
+  DEFAULT_DURATION_MINUTES,
+  minutesToTime,
+  timeToMinutes,
+} from "../utils/agendaConflicts.js";
 
 const EditAgendamento = () => {
   const { agendamentoId } = useParams();
@@ -46,8 +64,11 @@ const EditAgendamento = () => {
   const [error, setError] = useState(null);
   const [equipments, setEquipments] = useState([]);
   const [filteredEquipments, setFilteredEquipments] = useState([]);
+  const [staffUsers, setStaffUsers] = useState([]);
   const [selectedDates, setSelectedDates] = useState([""]);
   const [, setOriginalAgendamento] = useState(null);
+  const [conflicts, setConflicts] = useState([]);
+  const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     hora: "",
@@ -57,6 +78,8 @@ const EditAgendamento = () => {
     status: "",
     prioridade: "",
     equipmentId: "",
+    tecnicoId: "",
+    duracaoMinutos: DEFAULT_DURATION_MINUTES,
   });
 
   useEffect(() => {
@@ -79,10 +102,11 @@ const EditAgendamento = () => {
         setOriginalAgendamento(agendamentoData);
         setSelectedDates([agendamentoData.data]);
 
-        // Fetch clients and equipment in parallel
-        const [clientsSnapshot, equipmentsSnapshot] = await Promise.all([
+        // Fetch clients, equipment and staff users in parallel
+        const [clientsSnapshot, equipmentsSnapshot, usersSnapshot] = await Promise.all([
           getDocs(collection(db, "clientes")),
           getDocs(collection(db, "equipamentos")),
+          getDocs(collection(db, "users")),
         ]);
 
         const clientsData = clientsSnapshot.docs.map((doc) => ({
@@ -97,6 +121,11 @@ const EditAgendamento = () => {
         }));
         setEquipments(equipmentsData);
 
+        const usersData = usersSnapshot.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
+          .filter((u) => isStaffRole(u.role));
+        setStaffUsers(usersData);
+
         // Set form data with existing data
         setFormData({
           hora: agendamentoData.hora,
@@ -106,6 +135,8 @@ const EditAgendamento = () => {
           status: agendamentoData.status,
           prioridade: agendamentoData.prioridade,
           equipmentId: agendamentoData.equipmentId,
+          tecnicoId: agendamentoData.tecnicoId || "",
+          duracaoMinutos: agendamentoData.duracaoMinutos || DEFAULT_DURATION_MINUTES,
         });
 
         // Filter equipment for selected client
@@ -151,17 +182,18 @@ const EditAgendamento = () => {
   // Removed date manipulation functions as they're no longer needed
   // The date is now read-only and can't be modified
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
+  const saveAgendamento = async () => {
     try {
       setIsSaving(true);
       setError(null);
 
-      // Update the appointment
+      const tecnico = staffUsers.find((u) => u.id === formData.tecnicoId);
+
       const agendamentoRef = doc(db, "agendamentos", agendamentoId);
       await updateDoc(agendamentoRef, {
         ...formData,
+        duracaoMinutos: parseInt(formData.duracaoMinutos, 10) || DEFAULT_DURATION_MINUTES,
+        tecnicoNome: tecnico?.displayName || "",
         updatedAt: new Date(),
       });
 
@@ -169,6 +201,40 @@ const EditAgendamento = () => {
     } catch (err) {
       console.error("Erro ao atualizar:", err);
       setError("Erro ao salvar alterações. Por favor, tente novamente.");
+      setIsSaving(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!formData.clientId) {
+      setError("Selecione um cliente para o agendamento.");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const foundConflicts = await checkAgendaConflict({
+        date: selectedDates[0],
+        hora: formData.hora,
+        duracaoMinutos: formData.duracaoMinutos,
+        tecnicoId: formData.tecnicoId,
+        excludeId: agendamentoId,
+      });
+
+      if (foundConflicts.length > 0) {
+        setConflicts(foundConflicts);
+        setConflictDialogOpen(true);
+        setIsSaving(false);
+        return;
+      }
+
+      await saveAgendamento();
+    } catch (err) {
+      console.error("Erro ao verificar conflitos:", err);
+      setError("Erro ao verificar disponibilidade. Tente novamente.");
       setIsSaving(false);
     }
   };
@@ -332,6 +398,69 @@ const EditAgendamento = () => {
                 />
               </div>
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-1">
+                  Técnico Responsável
+                </label>
+                <Select
+                  value={formData.tecnicoId || "none"}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      tecnicoId: value === "none" ? "" : value,
+                    }))
+                  }
+                >
+                  <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white pl-10 relative">
+                    <UserCog className="absolute left-3 h-4 w-4 text-zinc-400" />
+                    <SelectValue placeholder="Por atribuir" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-800 border-zinc-700">
+                    <SelectItem value="none" className="text-white hover:bg-zinc-700">
+                      Por atribuir
+                    </SelectItem>
+                    {staffUsers.map((user) => (
+                      <SelectItem
+                        key={user.id}
+                        value={user.id}
+                        className="text-white hover:bg-zinc-700"
+                      >
+                        {user.displayName || user.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-1">
+                  Duração (minutos)
+                </label>
+                <div className="relative">
+                  <Timer className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
+                  <Input
+                    type="number"
+                    min="15"
+                    step="15"
+                    name="duracaoMinutos"
+                    value={formData.duracaoMinutos}
+                    onChange={handleChange}
+                    className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                  />
+                </div>
+                {formData.hora && (
+                  <p className="text-xs text-zinc-500 mt-1">
+                    Termina às{" "}
+                    {minutesToTime(
+                      timeToMinutes(formData.hora) +
+                        (parseInt(formData.duracaoMinutos, 10) || DEFAULT_DURATION_MINUTES)
+                    )}
+                  </p>
+                )}
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -456,6 +585,56 @@ const EditAgendamento = () => {
           )}
         </Button>
       </form>
+
+      {/* Conflito de Horário */}
+      <Dialog open={conflictDialogOpen} onOpenChange={setConflictDialogOpen}>
+        <DialogContent className="bg-zinc-800 border-zinc-700">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-yellow-500" />
+              Conflito de horário
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              {formData.tecnicoId
+                ? "Este técnico já tem "
+                : "Já existe "}
+              {conflicts.length === 1 ? "um agendamento" : `${conflicts.length} agendamentos`}{" "}
+              que se sobrepõe ao horário escolhido:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {conflicts.map((c) => (
+              <div
+                key={c.id}
+                className="p-3 bg-zinc-700/50 rounded-lg border border-zinc-600 text-sm"
+              >
+                <p className="text-white font-medium">
+                  {c.data} às {c.hora} ({c.duracaoMinutos || DEFAULT_DURATION_MINUTES} min)
+                </p>
+                <p className="text-zinc-400">{c.tipoServico || "Sem descrição"}</p>
+              </div>
+            ))}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setConflictDialogOpen(false)}
+              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+            >
+              Alterar horário
+            </Button>
+            <Button
+              onClick={async () => {
+                setConflictDialogOpen(false);
+                await saveAgendamento();
+              }}
+              className="bg-yellow-600 hover:bg-yellow-700"
+            >
+              Guardar mesmo assim
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

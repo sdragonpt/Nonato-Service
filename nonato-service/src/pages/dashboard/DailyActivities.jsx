@@ -36,10 +36,12 @@ const DailyActivities = () => {
           where("status", "!=", "Fechado")
         );
         const ordersSnap = await getDocs(ordersQuery);
-        let ordersData = ordersSnap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        let ordersData = ordersSnap.docs
+          .map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+          .filter((order) => !order.eliminadoEm);
 
         // Buscar agendamentos de hoje
         const appointmentsQuery = query(

@@ -23,6 +23,8 @@ import {
   Download,
   Euro,
   ClipboardList,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 // UI Components
@@ -62,6 +64,8 @@ const ManageServices = () => {
   const [filterType, setFilterType] = useState("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
   const navigate = useNavigate();
 
   const fetchServices = useCallback(async () => {
@@ -89,6 +93,10 @@ const ManageServices = () => {
   useEffect(() => {
     fetchServices();
   }, [fetchServices]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterType]);
 
   const handleDelete = async (serviceId) => {
     try {
@@ -135,6 +143,19 @@ const ManageServices = () => {
     return [headers, ...rows]
       .map((row) => row.map((cell) => `"${cell || ""}"`).join(","))
       .join("\n");
+  };
+
+  const indexOfLastService = currentPage * itemsPerPage;
+  const indexOfFirstService = indexOfLastService - itemsPerPage;
+  const currentServices = filteredServices.slice(
+    indexOfFirstService,
+    indexOfLastService
+  );
+  const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
+
+  const paginate = (page) => {
+    setCurrentPage(page);
+    window.scrollTo(0, 0);
   };
 
   const downloadCSV = (content, filename) => {
@@ -353,10 +374,9 @@ const ManageServices = () => {
 
       {/* Services Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredServices.map((service) => (
+        {currentServices.map((service) => (
           <Card
             key={service.id}
-            // onClick={() => navigate(`/app/service/${service.id}`)}
             className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-default"
           >
             <CardContent className="p-4">
@@ -429,6 +449,45 @@ const ManageServices = () => {
           </Card>
         )}
       </div>
+
+      {/* Paginação */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-8">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => paginate(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <Button
+              key={i + 1}
+              variant={currentPage === i + 1 ? "secondary" : "outline"}
+              size="icon"
+              onClick={() => paginate(i + 1)}
+              className={`border-zinc-700 ${
+                currentPage === i + 1
+                  ? "bg-zinc-700 text-white hover:bg-zinc-600"
+                  : "text-white hover:bg-zinc-700 bg-zinc-800"
+              }`}
+            >
+              {i + 1}
+            </Button>
+          ))}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => paginate(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

@@ -1,15 +1,12 @@
 import { useState, useEffect } from "react";
-import {
-  doc,
-  updateDoc,
-  collection,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCategories } from "../../../context/CategoriesContext.jsx"; // NOVO
+import {
+  renameCategoryInAssignments,
+  renameSubcategoryInAssignments,
+} from "../../../services/partCategoryAssignments.js";
 import { ArrowLeft, Loader2, Save, AlertTriangle, Tag } from "lucide-react";
 
 // UI Components
@@ -129,30 +126,14 @@ const EditCategory = () => {
         lastUpdate: new Date(),
       });
 
-      // If category name changed, we need to update all parts that reference this category
+      // Se o nome mudou, atualizar também o nome já guardado nas atribuições
+      // de categoria das peças do catálogo (ver partCategoryAssignments.js)
       if (formData.name !== originalData.name) {
-        // Determine if we need to update categoryName or subcategoryName in parts
-        const fieldToUpdate = isSubcategory
-          ? "subcategoryName"
-          : "categoryName";
-        const queryField = isSubcategory ? "subcategoryId" : "categoryId";
-
-        // Get all parts that use this category
-        const partsQuery = query(
-          collection(db, "pecas"),
-          where(queryField, "==", categoryId)
-        );
-        const partsSnapshot = await getDocs(partsQuery);
-
-        // Update each part
-        const updatePromises = partsSnapshot.docs.map((partDoc) => {
-          return updateDoc(doc(db, "pecas", partDoc.id), {
-            [fieldToUpdate]: formData.name,
-          });
-        });
-
-        // Wait for all updates to complete
-        await Promise.all(updatePromises);
+        if (isSubcategory) {
+          await renameSubcategoryInAssignments(categoryId, formData.name);
+        } else {
+          await renameCategoryInAssignments(categoryId, formData.name);
+        }
       }
 
       // NOVO: Atualizar cache em vez de forçar refresh

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, getDocs, collection, updateDoc } from "firebase/firestore";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../../../firebase.jsx";
 import {
@@ -9,6 +9,7 @@ import {
   Trash2,
   Save,
   AlertTriangle,
+  Layers,
 } from "lucide-react";
 
 // UI Components
@@ -21,15 +22,25 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.jsx";
 
 import ChecklistTypeSelector from "./ChecklistTypeSelector";
 
 const EditChecklistType = () => {
   const { typeId } = useParams();
   const navigate = useNavigate();
+  const [familyItems, setFamilyItems] = useState([]);
 
   const [formData, setFormData] = useState({
     type: "",
+    familyId: "",
+    groupId: "",
     groups: [
       {
         name: "",
@@ -37,6 +48,11 @@ const EditChecklistType = () => {
       },
     ],
   });
+
+  const families = familyItems.filter((i) => !i.parentId);
+  const groupsForFamily = familyItems.filter(
+    (i) => i.parentId === formData.familyId
+  );
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,6 +70,18 @@ const EditChecklistType = () => {
   const [originalData, setOriginalData] = useState(null);
 
   useEffect(() => {
+    const fetchFamilies = async () => {
+      try {
+        const snap = await getDocs(collection(db, "familiasChecklist"));
+        setFamilyItems(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } catch (err) {
+        console.error("Erro ao carregar famílias de checklist:", err);
+      }
+    };
+    fetchFamilies();
+  }, []);
+
+  useEffect(() => {
     const fetchType = async () => {
       try {
         setIsLoading(true);
@@ -69,6 +97,8 @@ const EditChecklistType = () => {
         const formattedData = {
           type: data.type || "",
           category: data.category || "",
+          familyId: data.familyId || "",
+          groupId: data.groupId || "",
           groups: data.groups || [
             {
               name: "",
@@ -327,9 +357,16 @@ const EditChecklistType = () => {
         characteristics: group.characteristics.filter((char) => char.trim()),
       }));
 
+      const family = families.find((f) => f.id === formData.familyId);
+      const group = groupsForFamily.find((g) => g.id === formData.groupId);
+
       await updateDoc(doc(db, "checklist_machines", typeId), {
         type: formData.type,
         category: formData.category,
+        familyId: family?.id || "",
+        familyName: family?.name || "",
+        groupId: group?.id || "",
+        groupName: group?.name || "",
         groups: cleanedGroups,
         updatedAt: new Date(),
       });
@@ -401,6 +438,81 @@ const EditChecklistType = () => {
                 className="bg-zinc-900 border-zinc-700 text-white"
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white flex items-center gap-2">
+              <Layers className="w-5 h-5" />
+              Família / Grupo de Equipamento (opcional)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">Família</label>
+              <Select
+                value={formData.familyId || "none"}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    familyId: value === "none" ? "" : value,
+                    groupId: "",
+                  }))
+                }
+              >
+                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                  <SelectValue placeholder="Sem família" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-800 border-zinc-700">
+                  <SelectItem value="none" className="text-white hover:bg-zinc-700">
+                    Sem família
+                  </SelectItem>
+                  {families.map((family) => (
+                    <SelectItem
+                      key={family.id}
+                      value={family.id}
+                      className="text-white hover:bg-zinc-700"
+                    >
+                      {family.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {formData.familyId && groupsForFamily.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">Grupo</label>
+                <Select
+                  value={formData.groupId || "none"}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      groupId: value === "none" ? "" : value,
+                    }))
+                  }
+                >
+                  <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                    <SelectValue placeholder="Sem grupo" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-800 border-zinc-700">
+                    <SelectItem value="none" className="text-white hover:bg-zinc-700">
+                      Sem grupo
+                    </SelectItem>
+                    {groupsForFamily.map((group) => (
+                      <SelectItem
+                        key={group.id}
+                        value={group.id}
+                        className="text-white hover:bg-zinc-700"
+                      >
+                        {group.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </CardContent>
         </Card>
 

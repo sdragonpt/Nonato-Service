@@ -18,6 +18,7 @@ const CHECKLIST_CATEGORIES = [
   { value: "receiving", label: "Recebimento" },
   { value: "programming", label: "Programação" },
   { value: "installation", label: "Instalação" },
+  { value: "pre_operational", label: "Pré-Checklist (Pré-Operacional)" },
 ];
 
 const ChecklistFilter = ({ value, onValueChange }) => {

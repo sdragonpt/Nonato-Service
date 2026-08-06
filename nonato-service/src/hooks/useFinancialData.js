@@ -34,12 +34,14 @@ export const useFinancialData = (options = {}) => {
           getDocs(collection(db, "clientes"))
         ]);
 
-        // Processar dados
-        const partsBudgets = partsBudgetsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          type: 'parts_budget',
-          ...doc.data()
-        }));
+        // Processar dados (ignora ordens excluídas / na Reciclagem)
+        const partsBudgets = partsBudgetsSnapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            type: 'parts_budget',
+            ...doc.data()
+          }))
+          .filter(service => !service.eliminadoEm);
 
         const closures = closuresSnapshot.docs.map(doc => ({
           id: doc.id,
@@ -102,7 +104,7 @@ export const useClientFinancialStatus = (clients) => {
         const allServices = [
           ...partsBudgetsSnapshot.docs.map(doc => ({ id: doc.id, type: 'parts_budget', ...doc.data() })),
           ...closuresSnapshot.docs.map(doc => ({ id: doc.id, type: 'closure', ...doc.data() }))
-        ];
+        ].filter(service => !service.eliminadoEm);
 
         const statuses = {};
 

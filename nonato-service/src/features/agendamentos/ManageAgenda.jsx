@@ -32,6 +32,9 @@ import {
   X,
   Zap,
   ArrowRight,
+  MessageCircle,
+  UserCog,
+  ChevronDown,
 } from "lucide-react";
 
 // UI Components
@@ -67,118 +70,111 @@ import {
   SelectValue,
 } from "@/components/ui/select.jsx";
 
-// ✅ COMPONENTE ATUALIZADO: Para pré-agendamentos
-const PreAgendamentoCard = ({ preAgendamento, onConvert, onDelete }) => {
+import {
+  DEFAULT_DURATION_MINUTES,
+  minutesToTime,
+  timeToMinutes,
+} from "./utils/agendaConflicts.js";
+import QuickAddAppointmentDialog from "./components/QuickAddAppointmentDialog.jsx";
+
+// ✅ NOVO: Lembretes via WhatsApp
+const buildWhatsAppLink = (phone, message) => {
+  if (!phone) return null;
+  let digits = phone.replace(/\D/g, "");
+  if (digits.length === 9) digits = `351${digits}`; // ✅ Prefixo PT por default
+  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+};
+
+const buildReminderMessage = (appointment) => {
+  const clientName =
+    appointment.cliente?.name || appointment.newClientName || "Cliente";
+  const date = appointment.data
+    ? new Date(appointment.data).toLocaleDateString("pt-PT")
+    : "";
+  return `Olá ${clientName}, aqui é da Nonato Service. Este é um lembrete da sua visita técnica agendada para ${date} às ${appointment.hora || ""}. Até breve!`;
+};
+
+// ✅ Linha compacta para pré-agendamentos (evita ocupar muito espaço no topo)
+const PreAgendamentoRow = ({ preAgendamento, onConvert, onDelete }) => {
   const isUrgent = preAgendamento.priority === "alta";
+  const clientName = preAgendamento.isRegisteredClient
+    ? preAgendamento.cliente?.name || "Cliente não encontrado"
+    : preAgendamento.newClientName;
 
   return (
-    <Card className="bg-yellow-800/20 border-yellow-500/30 hover:border-yellow-500/50 transition-colors">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className={`h-10 w-10 rounded-full ${
-                isUrgent ? "bg-red-600" : "bg-yellow-600"
-              } flex items-center justify-center`}
-            >
-              <Zap className="w-5 h-5 text-white" />
-            </div>
+    <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-yellow-800/10 border border-yellow-500/20 hover:border-yellow-500/40 transition-colors">
+      <div
+        className={`h-8 w-8 shrink-0 rounded-full ${
+          isUrgent ? "bg-red-600" : "bg-yellow-600"
+        } flex items-center justify-center`}
+      >
+        <Zap className="w-4 h-4 text-white" />
+      </div>
 
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-lg text-white truncate">
-                {preAgendamento.isRegisteredClient
-                  ? preAgendamento.cliente?.name || "Cliente não encontrado"
-                  : preAgendamento.newClientName}
-              </h3>
-
-              {/* ✅ ATUALIZADO: Mostrar informações do serviço e equipamento */}
-              <div className="flex items-center gap-2 text-sm text-zinc-400">
-                <span>{preAgendamento.machineType}</span>
-                <span>•</span>
-                <span>{preAgendamento.serviceType}</span>
-              </div>
-
-              {/* ✅ NOVO: Mostrar equipamento se selecionado */}
-              {preAgendamento.equipmentId && preAgendamento.equipment && (
-                <div className="text-sm text-zinc-300 mt-1">
-                  <span className="text-zinc-400">Equipamento:</span>{" "}
-                  {preAgendamento.equipment.brand}{" "}
-                  {preAgendamento.equipment.model}
-                  {preAgendamento.equipment.serialNumber && (
-                    <span className="text-zinc-500">
-                      {" "}
-                      - {preAgendamento.equipment.serialNumber}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              <div className="flex gap-2 mt-1">
-                <Badge className="bg-yellow-500/20 text-yellow-400">
-                  Pré-agendamento
-                </Badge>
-                {!preAgendamento.isRegisteredClient && (
-                  <Badge className="bg-blue-500/20 text-blue-400">
-                    Cliente Novo
-                  </Badge>
-                )}
-                {isUrgent && (
-                  <Badge className="bg-red-500/20 text-red-400">Urgente</Badge>
-                )}
-              </div>
-
-              {preAgendamento.quickNotes && (
-                <p className="text-sm text-zinc-300 mt-1 truncate">
-                  {preAgendamento.quickNotes}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={() => onConvert(preAgendamento)}
-              className="bg-green-600 hover:bg-green-700"
-              size="sm"
-            >
-              <ArrowRight className="w-4 h-4 mr-1" />
-              Agendar
-            </Button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full hover:bg-zinc-700 text-yellow-400"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="bg-zinc-800 border-zinc-700"
-              >
-                <DropdownMenuItem
-                  onClick={() => onConvert(preAgendamento)}
-                  className="text-white hover:bg-zinc-700 cursor-pointer"
-                >
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Converter em Agendamento
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
-                  onClick={() => onDelete(preAgendamento)}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Excluir
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-medium text-sm text-white truncate">
+            {clientName}
+          </span>
+          {isUrgent && (
+            <Badge className="bg-red-500/20 text-red-400 text-[10px] px-1.5 py-0">
+              Urgente
+            </Badge>
+          )}
+          {!preAgendamento.isRegisteredClient && (
+            <Badge className="bg-blue-500/20 text-blue-400 text-[10px] px-1.5 py-0">
+              Novo
+            </Badge>
+          )}
         </div>
-      </CardContent>
-    </Card>
+        <p className="text-xs text-zinc-400 truncate">
+          {preAgendamento.machineType} • {preAgendamento.serviceType}
+          {preAgendamento.quickNotes ? ` — ${preAgendamento.quickNotes}` : ""}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-1 shrink-0">
+        <Button
+          onClick={() => onConvert(preAgendamento)}
+          className="bg-green-600 hover:bg-green-700 h-8"
+          size="sm"
+        >
+          <ArrowRight className="w-3.5 h-3.5 mr-1" />
+          Agendar
+        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full hover:bg-zinc-700 text-yellow-400"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="bg-zinc-800 border-zinc-700"
+          >
+            <DropdownMenuItem
+              onClick={() => onConvert(preAgendamento)}
+              className="text-white hover:bg-zinc-700 cursor-pointer"
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              Converter em Agendamento
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
+              onClick={() => onDelete(preAgendamento)}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Excluir
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
   );
 };
 
@@ -197,6 +193,8 @@ const AppointmentCard = ({
 
   const isToday = appointment.data === new Date().toISOString().split("T")[0];
   const isUrgent = appointment.prioridade === "alta";
+  const phone = appointment.cliente?.phone || appointment.newClientPhone;
+  const whatsappLink = buildWhatsAppLink(phone, buildReminderMessage(appointment));
 
   return (
     <Card className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors">
@@ -215,8 +213,20 @@ const AppointmentCard = ({
               <h3 className="font-semibold text-lg text-white truncate">
                 {appointment.cliente?.name || "Cliente não encontrado"}
               </h3>
-              <p className="text-zinc-400 text-sm">{appointment.hora}</p>
-              <div className="flex gap-2 mt-1">
+              <p className="text-zinc-400 text-sm">
+                {appointment.hora}
+                {appointment.hora && (
+                  <>
+                    {" "}
+                    –{" "}
+                    {minutesToTime(
+                      timeToMinutes(appointment.hora) +
+                        (parseInt(appointment.duracaoMinutos, 10) || DEFAULT_DURATION_MINUTES)
+                    )}
+                  </>
+                )}
+              </p>
+              <div className="flex flex-wrap gap-2 mt-1">
                 <Badge className={statusColors[appointment.status]}>
                   {appointment.status}
                 </Badge>
@@ -234,6 +244,22 @@ const AppointmentCard = ({
                     className="bg-red-500/10 text-red-400 border-red-500/30"
                   >
                     Urgente
+                  </Badge>
+                )}
+                {appointment.tecnicoNome ? (
+                  <Badge
+                    variant="outline"
+                    className="bg-zinc-700/50 text-zinc-300 border-zinc-600 flex items-center gap-1"
+                  >
+                    <UserCog className="h-3 w-3" />
+                    {appointment.tecnicoNome}
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className="bg-yellow-500/10 text-yellow-500 border-yellow-500/30"
+                  >
+                    Sem técnico
                   </Badge>
                 )}
               </div>
@@ -261,6 +287,15 @@ const AppointmentCard = ({
                 <Edit2 className="w-4 h-4 mr-2" />
                 Editar
               </DropdownMenuItem>
+              {whatsappLink && (
+                <DropdownMenuItem
+                  onClick={() => window.open(whatsappLink, "_blank")}
+                  className="text-green-400 hover:bg-zinc-700 focus:text-green-400 cursor-pointer"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Enviar Lembrete WhatsApp
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onClick={() =>
                   onToggleComplete(appointment.id, appointment.concluido)
@@ -313,6 +348,10 @@ const ManageAgenda = () => {
     date: "",
     time: "",
   }); // ✅ NOVO
+  const [remindersDialogOpen, setRemindersDialogOpen] = useState(false); // ✅ NOVO
+  const [preAgendamentosOpen, setPreAgendamentosOpen] = useState(false); // ✅ Recolhido por defeito para não ocupar espaço
+  const [quickAddOpen, setQuickAddOpen] = useState(false); // ✅ Marcar clicando no dia
+  const [quickAddDate, setQuickAddDate] = useState(null);
 
   const months = [
     "Janeiro",
@@ -471,6 +510,9 @@ const ManageAgenda = () => {
         observacoes: preAgendamento.quickNotes || "",
         status: "agendado",
         prioridade: preAgendamento.priority,
+        tecnicoId: "",
+        tecnicoNome: "",
+        duracaoMinutos: DEFAULT_DURATION_MINUTES,
         // Se cliente novo, incluir dados
         ...(preAgendamento.isRegisteredClient
           ? {}
@@ -671,47 +713,6 @@ const ManageAgenda = () => {
         </div>
       </div>
 
-      {/* ✅ NOVA SEÇÃO: Pré-Agendamentos Pendentes */}
-      {preAgendamentos.length > 0 && (
-        <Card className="bg-zinc-800 border-zinc-700">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg text-white flex items-center">
-                <Zap className="h-5 w-5 mr-2 text-yellow-400" />
-                Pré-Agendamentos Pendentes
-                <Badge className="ml-2 bg-yellow-500/20 text-yellow-400">
-                  {preAgendamentos.length}
-                </Badge>
-              </CardTitle>
-              <Button
-                onClick={() => navigate("/app/add-pre-agendamento")}
-                variant="outline"
-                size="sm"
-                className="bg-yellow-800/20 border-yellow-500/30 border-yellow-600 text-yellow-400 hover:bg-yellow-500/20"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Novo
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 gap-4">
-              {preAgendamentos.map((preAgendamento) => (
-                <PreAgendamentoCard
-                  key={preAgendamento.id}
-                  preAgendamento={preAgendamento}
-                  onConvert={(pre) => {
-                    setPreAgendamentoToConvert(pre);
-                    setConvertDialogOpen(true);
-                  }}
-                  onDelete={handleDeletePreAgendamento}
-                />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="bg-zinc-800 border-zinc-700">
@@ -762,8 +763,18 @@ const ManageAgenda = () => {
           </CardContent>
         </Card>
 
-        {/* ✅ NOVO CARD: Pré-Agendamentos */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        {/* ✅ CARD: Pré-Agendamentos - clicável para expandir/recolher a lista */}
+        <Card
+          className={`bg-zinc-800 border-zinc-700 ${
+            stats.preAgendamentos > 0
+              ? "cursor-pointer hover:border-yellow-500/40 transition-colors"
+              : ""
+          }`}
+          onClick={() =>
+            stats.preAgendamentos > 0 &&
+            setPreAgendamentosOpen((prev) => !prev)
+          }
+        >
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
               <p className="text-sm font-medium text-zinc-400">
@@ -773,10 +784,52 @@ const ManageAgenda = () => {
                 {stats.preAgendamentos}
               </h3>
             </div>
-            <Zap className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500" />
+            {stats.preAgendamentos > 0 ? (
+              <ChevronDown
+                className={`h-6 w-6 sm:h-8 sm:w-8 text-yellow-500 transition-transform ${
+                  preAgendamentosOpen ? "rotate-180" : ""
+                }`}
+              />
+            ) : (
+              <Zap className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500" />
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Pré-Agendamentos Pendentes - compacto, só aparece quando expandido */}
+      {preAgendamentos.length > 0 && preAgendamentosOpen && (
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader className="flex flex-row items-center justify-between py-3">
+            <CardTitle className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
+              <Zap className="h-4 w-4 text-yellow-400" />
+              Pré-Agendamentos Pendentes
+            </CardTitle>
+            <Button
+              onClick={() => navigate("/app/add-pre-agendamento")}
+              variant="outline"
+              size="sm"
+              className="h-8 bg-yellow-800/20 border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              Novo
+            </Button>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-2">
+            {preAgendamentos.map((preAgendamento) => (
+              <PreAgendamentoRow
+                key={preAgendamento.id}
+                preAgendamento={preAgendamento}
+                onConvert={(pre) => {
+                  setPreAgendamentoToConvert(pre);
+                  setConvertDialogOpen(true);
+                }}
+                onDelete={handleDeletePreAgendamento}
+              />
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters Card */}
       <Card className="bg-zinc-800 border-zinc-700">
@@ -899,6 +952,27 @@ const ManageAgenda = () => {
             </span>
           </div>
 
+          {/* Ações rápidas - Desktop Only */}
+          <div className="hidden sm:flex gap-2 pt-1 border-t border-zinc-700/50">
+            <Button
+              variant="outline"
+              onClick={fetchAppointments}
+              className="mt-3 border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Atualizar Lista
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setRemindersDialogOpen(true)}
+              disabled={stats.today === 0}
+              className="mt-3 border-green-600 text-white hover:bg-green-700 bg-green-600"
+            >
+              <MessageCircle className="w-4 h-4 mr-2" />
+              Lembretes de Hoje ({stats.today})
+            </Button>
+          </div>
+
           {error && (
             <Alert
               variant="destructive"
@@ -912,18 +986,6 @@ const ManageAgenda = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Quick Actions - Desktop Only */}
-      <div className="hidden sm:flex gap-2">
-        <Button
-          variant="outline"
-          onClick={fetchAppointments}
-          className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
-        >
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Atualizar Lista
-        </Button>
-      </div>
 
       {/* Appointments Grid */}
       <div className="space-y-6">
@@ -974,13 +1036,18 @@ const ManageAgenda = () => {
                   days.push(
                     <div
                       key={date}
-                      className={`h-32 p-2 rounded-lg ${
+                      onClick={() => {
+                        setQuickAddDate(dateStr);
+                        setQuickAddOpen(true);
+                      }}
+                      className={`h-32 p-2 rounded-lg cursor-pointer group ${
                         isToday
                           ? "bg-green-900/20 border-2 border-green-500"
-                          : "bg-zinc-800 border border-zinc-700"
-                      } overflow-y-auto`}
+                          : "bg-zinc-800 border border-zinc-700 hover:border-green-500/40"
+                      } overflow-y-auto transition-colors`}
                     >
-                      <div className="text-right mb-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <Plus className="h-3.5 w-3.5 text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                         <span
                           className={`text-sm ${
                             isToday
@@ -1019,27 +1086,99 @@ const ManageAgenda = () => {
                               }
                             };
 
+                            const phone =
+                              appointment.cliente?.phone ||
+                              appointment.newClientPhone;
+                            const whatsappLink = buildWhatsAppLink(
+                              phone,
+                              buildReminderMessage(appointment)
+                            );
+
                             return (
-                              <div
-                                key={appointment.id}
-                                className={`${clientColor.bg} ${clientColor.border} border rounded-md p-1 cursor-pointer text-xs`}
-                                onClick={() =>
-                                  navigate(
-                                    `/app/edit-agendamento/${appointment.id}`
-                                  )
-                                }
-                              >
-                                <div
-                                  className={`${clientColor.text} font-medium truncate flex items-center justify-between`}
+                              <DropdownMenu key={appointment.id}>
+                                <DropdownMenuTrigger asChild>
+                                  <div
+                                    onClick={(e) => e.stopPropagation()}
+                                    className={`${clientColor.bg} ${clientColor.border} border rounded-md p-1 cursor-pointer text-xs`}
+                                  >
+                                    <div
+                                      className={`${clientColor.text} font-medium truncate flex items-center justify-between`}
+                                    >
+                                      <span>{appointment.hora}</span>
+                                      <StatusIcon />
+                                    </div>
+                                    <div className="truncate text-white">
+                                      {appointment.cliente?.name ||
+                                        "Cliente não encontrado"}
+                                    </div>
+                                    {appointment.tecnicoNome && (
+                                      <div className="truncate text-zinc-400 flex items-center gap-1">
+                                        <UserCog className="h-2.5 w-2.5 shrink-0" />
+                                        {appointment.tecnicoNome}
+                                      </div>
+                                    )}
+                                  </div>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align="start"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="bg-zinc-800 border-zinc-700"
                                 >
-                                  <span>{appointment.hora}</span>
-                                  <StatusIcon />
-                                </div>
-                                <div className="truncate text-white">
-                                  {appointment.cliente?.name ||
-                                    "Cliente não encontrado"}
-                                </div>
-                              </div>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      navigate(
+                                        `/app/edit-agendamento/${appointment.id}`
+                                      )
+                                    }
+                                    className="text-white hover:bg-zinc-700 cursor-pointer"
+                                  >
+                                    <Edit2 className="w-4 h-4 mr-2" />
+                                    Editar
+                                  </DropdownMenuItem>
+                                  {whatsappLink && (
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        window.open(whatsappLink, "_blank")
+                                      }
+                                      className="text-green-400 hover:bg-zinc-700 focus:text-green-400 cursor-pointer"
+                                    >
+                                      <MessageCircle className="w-4 h-4 mr-2" />
+                                      Enviar Lembrete WhatsApp
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleToggleComplete(
+                                        appointment.id,
+                                        appointment.concluido
+                                      )
+                                    }
+                                    className="text-white hover:bg-zinc-700 cursor-pointer"
+                                  >
+                                    {appointment.concluido ? (
+                                      <>
+                                        <RotateCcw className="w-4 h-4 mr-2" />
+                                        Reabrir
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                                        Concluir
+                                      </>
+                                    )}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
+                                    onClick={() => {
+                                      setAppointmentToDelete(appointment);
+                                      setDeleteDialogOpen(true);
+                                    }}
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Excluir
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             );
                           })}
                       </div>
@@ -1219,6 +1358,72 @@ const ManageAgenda = () => {
         </DialogContent>
       </Dialog>
 
+      {/* ✅ NOVO: Dialog de Lembretes de Hoje via WhatsApp */}
+      <Dialog open={remindersDialogOpen} onOpenChange={setRemindersDialogOpen}>
+        <DialogContent className="bg-zinc-800 border-zinc-700">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-green-500" />
+              Lembretes de Hoje
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Envie um lembrete via WhatsApp para cada cliente com visita
+              agendada hoje.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {appointments
+              .filter(
+                (a) => a.data === new Date().toISOString().split("T")[0]
+              )
+              .sort((a, b) => a.hora?.localeCompare(b.hora))
+              .map((appointment) => {
+                const phone =
+                  appointment.cliente?.phone || appointment.newClientPhone;
+                const link = buildWhatsAppLink(
+                  phone,
+                  buildReminderMessage(appointment)
+                );
+                return (
+                  <div
+                    key={appointment.id}
+                    className="flex items-center justify-between p-3 bg-zinc-700/50 rounded-lg border border-zinc-600"
+                  >
+                    <div>
+                      <p className="text-white font-medium">
+                        {appointment.cliente?.name ||
+                          appointment.newClientName ||
+                          "Cliente"}
+                      </p>
+                      <p className="text-sm text-zinc-400">
+                        {appointment.hora} · {phone || "sem telefone"}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      disabled={!link}
+                      onClick={() => window.open(link, "_blank")}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Enviar
+                    </Button>
+                  </div>
+                );
+              })}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRemindersDialogOpen(false)}
+              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+            >
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="bg-zinc-800 border-zinc-700">
@@ -1247,6 +1452,14 @@ const ManageAgenda = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ✅ Marcar rapidamente ao clicar num dia do calendário */}
+      <QuickAddAppointmentDialog
+        open={quickAddOpen}
+        onOpenChange={setQuickAddOpen}
+        date={quickAddDate}
+        onCreated={fetchAppointments}
+      />
 
       {/* FAB Menu for Mobile */}
       <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden">

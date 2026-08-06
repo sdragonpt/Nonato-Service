@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   collection, addDoc, getDocs, deleteDoc,
-  doc, query, where, orderBy, serverTimestamp,
+  doc, query, where, orderBy, limit, serverTimestamp,
 } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import { db, storage } from "../../firebase.jsx";
@@ -151,8 +151,10 @@ const ManageDocuments = () => {
 
   const fetchRecent = useCallback(async () => {
     try {
-      const snap = await getDocs(query(collection(db, "doc_files"), orderBy("createdAt", "desc")));
-      setRecentDocs(snap.docs.slice(0, 12).map((d) => ({ id: d.id, ...d.data() })));
+      const snap = await getDocs(
+        query(collection(db, "doc_files"), orderBy("createdAt", "desc"), limit(12))
+      );
+      setRecentDocs(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     } catch (e) { console.error(e); }
   }, []);
 

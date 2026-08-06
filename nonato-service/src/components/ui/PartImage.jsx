@@ -82,10 +82,17 @@ const PartImage = ({
         }
       }
 
-      // 2. Fallback: Estrutura legacy (src direto)
+      // 2. Fallback: Estrutura legacy (src direto) — aceita tanto base64
+      // (biblioteca antiga) como um URL http(s) direto (ex.: imagem de
+      // referência externa do catálogo HOMAG). Se o URL remoto falhar a
+      // carregar (ex.: exige sessão), o onError da tag <img> mais abaixo
+      // trata disso e mostra o estado "Sem imagem".
       if (src && src !== defaultImage) {
-        // Verifica se é base64 válido
-        if (src.startsWith("data:image/")) {
+        if (
+          src.startsWith("data:image/") ||
+          src.startsWith("http://") ||
+          src.startsWith("https://")
+        ) {
           setImageSrc(src);
           setIsLoading(false);
           onLoad?.();

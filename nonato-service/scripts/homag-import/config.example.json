@@ -1,0 +1,20 @@
+{
+  "_comentario": "Copie este ficheiro para config.json e ajuste os valores antes de usar. Os seletores abaixo são exemplos genéricos — tem de os confirmar com o DevTools do navegador (F12 > Inspecionar) numa página real da loja, já com sessão iniciada.",
+
+  "startUrl": "https://shop.homag.com/s/category/SUBSTITUIR-PELA-CATEGORIA?language=en_US",
+  "outputPath": "out/export.json",
+  "maxPages": 20,
+  "waitForSelectorTimeoutMs": 15000,
+
+  "category": "Peças HOMAG",
+  "subcategory": "",
+
+  "selectors": {
+    "productItem": "[data-testid='product-tile'], .product-tile, .productTile, li.product",
+    "name": ".product-name, .productName, [data-testid='product-name'], h3, h2",
+    "code": ".product-sku, .sku, [data-testid='product-sku']",
+    "price": ".product-price, .price, [data-testid='product-price']",
+    "image": "img",
+    "nextPage": "button[aria-label='Next'], .pagination-next, [data-testid='next-page'], a[rel='next']"
+  }
+}

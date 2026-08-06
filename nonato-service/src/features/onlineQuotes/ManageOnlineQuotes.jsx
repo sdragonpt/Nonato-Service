@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
 import {
   Search,
   Loader2,
@@ -23,6 +24,8 @@ import {
   RefreshCw,
   Clock,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Mail,
   Phone,
   Building2,
@@ -70,6 +73,7 @@ import {
 
 const ManageOnlineQuotes = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [quotes, setQuotes] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -81,6 +85,10 @@ const ManageOnlineQuotes = () => {
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [currentNote, setCurrentNote] = useState("");
   const [selectedQuoteForNote, setSelectedQuoteForNote] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [quoteToDelete, setQuoteToDelete] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Quote status labels
   const statusLabels = {
@@ -127,6 +135,10 @@ const ManageOnlineQuotes = () => {
   useEffect(() => {
     fetchQuotes();
   }, [fetchQuotes]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   // Format date
   const formatDate = (timestamp) => {
@@ -259,6 +271,17 @@ const ManageOnlineQuotes = () => {
     return matchesSearch;
   });
 
+  // Pagination
+  const indexOfLastQuote = currentPage * itemsPerPage;
+  const indexOfFirstQuote = indexOfLastQuote - itemsPerPage;
+  const currentQuotes = filteredQuotes.slice(indexOfFirstQuote, indexOfLastQuote);
+  const totalPages = Math.ceil(filteredQuotes.length / itemsPerPage);
+
+  const paginate = (page) => {
+    setCurrentPage(page);
+    window.scrollTo(0, 0);
+  };
+
   // View details
   const viewDetails = (quote) => {
     setSelectedQuote(quote);
@@ -281,7 +304,7 @@ const ManageOnlineQuotes = () => {
       const newNote = {
         text: currentNote,
         timestamp: new Date(),
-        adminName: "Admin", // You might want to use actual admin name
+        adminName: user?.displayName || "Administrador",
       };
 
       await updateDoc(quoteRef, {
@@ -302,12 +325,19 @@ const ManageOnlineQuotes = () => {
   };
 
   // Delete quote
-  const deleteQuote = async (quoteId) => {
-    if (!confirm("Tem certeza que deseja excluir este orçamento?")) return;
+  const confirmDeleteQuote = (quote) => {
+    setQuoteToDelete(quote);
+    setDeleteDialogOpen(true);
+  };
+
+  const deleteQuote = async () => {
+    if (!quoteToDelete) return;
 
     try {
       setIsUpdating(true);
-      await deleteDoc(doc(db, "orcamentos-online", quoteId));
+      await deleteDoc(doc(db, "orcamentos-online", quoteToDelete.id));
+      setDeleteDialogOpen(false);
+      setQuoteToDelete(null);
       fetchQuotes();
     } catch (err) {
       console.error("Erro ao excluir orçamento:", err);
@@ -479,7 +509,7 @@ const ManageOnlineQuotes = () => {
         </Card>
       ) : (
         <div className="space-y-4">
-          {filteredQuotes.map((quote) => (
+          {currentQuotes.map((quote) => (
             <Card key={quote.id} className="bg-zinc-800 border-zinc-700">
               <Collapsible>
                 <CardHeader className="p-4">
@@ -697,7 +727,7 @@ const ManageOnlineQuotes = () => {
                           variant="ghost"
                           size="sm"
                           className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
-                          onClick={() => deleteQuote(quote.id)}
+                          onClick={() => confirmDeleteQuote(quote)}
                           disabled={isUpdating}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
@@ -710,6 +740,45 @@ const ManageOnlineQuotes = () => {
               </Collapsible>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Paginação */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-8">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => paginate(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <Button
+              key={i + 1}
+              variant={currentPage === i + 1 ? "secondary" : "outline"}
+              size="icon"
+              onClick={() => paginate(i + 1)}
+              className={`border-zinc-700 ${
+                currentPage === i + 1
+                  ? "bg-zinc-700 text-white hover:bg-zinc-600"
+                  : "text-white hover:bg-zinc-700 bg-zinc-800"
+              }`}
+            >
+              {i + 1}
+            </Button>
+          ))}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => paginate(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       )}
 
@@ -912,6 +981,42 @@ const ManageOnlineQuotes = () => {
               disabled={!currentNote.trim() || isUpdating}
             >
               Salvar Nota
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Quote Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="bg-zinc-800 border-zinc-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Tem a certeza que deseja excluir o orçamento de{" "}
+              <span className="font-semibold text-white">
+                {quoteToDelete?.clientInfo?.name || "Cliente"}
+              </span>
+              ? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setQuoteToDelete(null);
+              }}
+              className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-800"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={deleteQuote}
+              disabled={isUpdating}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Excluir
             </Button>
           </DialogFooter>
         </DialogContent>

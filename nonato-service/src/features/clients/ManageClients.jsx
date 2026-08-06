@@ -84,10 +84,11 @@ const useClientFinancialStatus = (clients) => {
           getDocs(collection(db, "orcamentos"))
         ]);
 
+        // Ignora ordens excluídas / na Reciclagem
         const allServices = [
           ...partsBudgetsSnapshot.docs.map(doc => ({ id: doc.id, type: 'parts_budget', ...doc.data() })),
           ...closuresSnapshot.docs.map(doc => ({ id: doc.id, type: 'closure', ...doc.data() }))
-        ];
+        ].filter(service => !service.eliminadoEm);
 
         const statuses = {};
 

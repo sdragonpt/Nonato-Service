@@ -451,6 +451,30 @@ const AddInspection = () => {
                   </div>
                 </div>
               </div>
+
+              <div
+                onClick={() => setSelectedCategory("pre_operational")}
+                className={`p-6 rounded-lg cursor-pointer ${
+                  selectedCategory === "pre_operational"
+                    ? "bg-green-600"
+                    : "bg-zinc-800 hover:bg-zinc-700"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-cyan-600 flex items-center justify-center">
+                    <ListChecks className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-white">
+                      Pré-Checklist (Pré-Operacional)
+                    </h3>
+                    <p className="text-sm text-zinc-400">
+                      Verificação preliminar antes da operação principal do
+                      equipamento
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -470,6 +494,8 @@ const AddInspection = () => {
                   "Programação"}
                 {selectedCategory === "installation" &&
                   "Instalação"}
+                {selectedCategory === "pre_operational" &&
+                  "Pré-Checklist (Pré-Operacional)"}
               </p>
             </div>
 

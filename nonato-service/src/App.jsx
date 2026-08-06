@@ -25,36 +25,18 @@ import { motion, AnimatePresence } from "framer-motion";
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import {
-  Users,
-  Wrench,
-  Book,
-  ClipboardList,
-  BarChart,
-  CheckSquare,
   LogOut,
   Menu,
   X,
-  Calendar,
-  FileText,
-  ClipboardCheck,
   ChevronDown,
   Settings,
   User,
   UserCog,
-  ShoppingBag,
-  Store,
-  Shield,
-  Database,
-  RotateCcw,
-  Calculator,
-  Euro,
   Building2,
   Sparkles,
   Bell,
   Search,
   Home,
-  FileSpreadsheet,
-  FolderOpen,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -79,11 +61,14 @@ import { Input } from "@/components/ui/input";
 
 import ErrorBoundary from "./components/layout/ErrorBoundary";
 import { CategoriesProvider } from "./context/CategoriesContext.jsx";
-import { PartsCacheProvider } from "./context/PartsCache.jsx";
 import { NotificationProvider } from "./context/NotificationContext.jsx";
+import { TabsProvider } from "./context/TabsContext.jsx";
 import NotificationsDropdown from "./components/ui/NotificationsDropdown";
+import TabsBar from "./components/layout/TabsBar.jsx";
 import { useAuth } from "./hooks/useAuth";
 import { initOldBrowserSupport } from "./utils/oldBrowserUtils.js";
+import { NAVIGATION_ITEMS } from "./config/navigationItems.jsx";
+import CommunicationBubble from "./features/communication/components/CommunicationBubble.jsx";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 📄 IMPORTS DE PÁGINAS PRINCIPAIS (LAZY LOADING SIMPLIFICADO)
@@ -197,6 +182,68 @@ const EditSimpleBudget = React.lazy(() =>
 // 💰 IMPORTS DE FEATURES - FINANÇAS (LAZY LOADING)
 // ═══════════════════════════════════════════════════════════════════════════════
 
+const ManageDebtors = React.lazy(() =>
+  import("./features/finances/ManageDebtors")
+);
+const ManageReportsLibrary = React.lazy(() =>
+  import("./features/reports/ManageReportsLibrary")
+);
+const ManageExpenses = React.lazy(() =>
+  import("./features/expenses/ManageExpenses")
+);
+const AddExpense = React.lazy(() =>
+  import("./features/expenses/components/AddExpense")
+);
+const ManageWarehouse = React.lazy(() =>
+  import("./features/warehouse/ManageWarehouse")
+);
+const AddWarehouseRequest = React.lazy(() =>
+  import("./features/warehouse/components/AddWarehouseRequest")
+);
+const ManageAlerts = React.lazy(() => import("./features/alerts/ManageAlerts"));
+const ManageTechnicianStatus = React.lazy(() =>
+  import("./features/technicians/ManageTechnicianStatus")
+);
+const ManageTechnicianSkills = React.lazy(() =>
+  import("./features/technicians/ManageTechnicianSkills")
+);
+const ManageWarehouseEquipment = React.lazy(() =>
+  import("./features/warehouseEquipment/ManageWarehouseEquipment")
+);
+const AddWarehouseEquipment = React.lazy(() =>
+  import("./features/warehouseEquipment/components/AddWarehouseEquipment")
+);
+const EditWarehouseEquipment = React.lazy(() =>
+  import("./features/warehouseEquipment/components/EditWarehouseEquipment")
+);
+const ManageEquipmentFamilies = React.lazy(() =>
+  import("./features/warehouseEquipment/components/ManageEquipmentFamilies")
+);
+const ManageDisassembledParts = React.lazy(() =>
+  import("./features/disassembled/ManageDisassembledParts")
+);
+const ManageRecycleBin = React.lazy(() =>
+  import("./features/recycle/ManageRecycleBin")
+);
+const ManageManual = React.lazy(() => import("./features/manual/ManageManual"));
+const AddDisassembledPart = React.lazy(() =>
+  import("./features/disassembled/components/AddDisassembledPart")
+);
+const EditDisassembledPart = React.lazy(() =>
+  import("./features/disassembled/components/EditDisassembledPart")
+);
+const ManageOrdensPreparacao = React.lazy(() =>
+  import("./features/prepOrders/ManageOrdensPreparacao")
+);
+const AddOrdemPreparacao = React.lazy(() =>
+  import("./features/prepOrders/components/AddOrdemPreparacao")
+);
+const OrdemPreparacaoDetail = React.lazy(() =>
+  import("./features/prepOrders/components/OrdemPreparacaoDetail")
+);
+const ManageFormulariosTecnicos = React.lazy(() =>
+  import("./features/prepOrders/ManageFormulariosTecnicos")
+);
 const ManageFinances = React.lazy(() =>
   import("./features/finances/ManageFinances")
 );
@@ -205,12 +252,25 @@ const ManageFinances = React.lazy(() =>
 // 🔧 IMPORTS DE FEATURES - PEÇAS (LAZY LOADING)
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🚚 IMPORTS DE FEATURES - FORNECEDORES (LAZY LOADING)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ManageSuppliers = React.lazy(() =>
+  import("./features/suppliers/ManageSuppliers")
+);
+const AddSupplier = React.lazy(() =>
+  import("./features/suppliers/components/AddSupplier")
+);
+const SupplierDetail = React.lazy(() =>
+  import("./features/suppliers/components/SupplierDetail")
+);
+const EditSupplier = React.lazy(() =>
+  import("./features/suppliers/components/EditSupplier")
+);
+
 const ManagePartsLibrary = React.lazy(() =>
   import("./features/parts/ManagePartsLibrary")
-);
-const AddPart = React.lazy(() => import("./features/parts/components/AddPart"));
-const EditPart = React.lazy(() =>
-  import("./features/parts/components/EditPart")
 );
 const PartDetail = React.lazy(() =>
   import("./features/parts/components/PartDetail")
@@ -226,6 +286,22 @@ const EditCategory = React.lazy(() =>
 );
 const ManageCategories = React.lazy(() =>
   import("./features/parts/ManageCategories")
+);
+const ManageClassificationRules = React.lazy(() =>
+  import("./features/parts/ManageClassificationRules")
+);
+
+const ManageProtocols = React.lazy(() =>
+  import("./features/protocols/ManageProtocols")
+);
+const AddProtocol = React.lazy(() =>
+  import("./features/protocols/components/AddProtocol")
+);
+const EditProtocol = React.lazy(() =>
+  import("./features/protocols/components/EditProtocol")
+);
+const ProtocolDetail = React.lazy(() =>
+  import("./features/protocols/components/ProtocolDetail")
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -257,6 +333,9 @@ const AddChecklistType = React.lazy(() =>
 );
 const EditChecklistType = React.lazy(() =>
   import("./features/checklists/components/EditCheckListType")
+);
+const ManageChecklistFamilies = React.lazy(() =>
+  import("./features/checklists/components/ManageChecklistFamilies")
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -318,108 +397,22 @@ const ManageDocuments = React.lazy(() =>
   import("./features/documents/ManageDocuments")
 );
 
-const ImageMigrationTool = React.lazy(() =>
-  import("./context/ImageMigrationTool")
+const CompanyProfile = React.lazy(() =>
+  import("./features/company/CompanyProfile")
 );
-const RollbackTool = React.lazy(() => import("./context/RollbackTool"));
+
+const ManageCommunicationHub = React.lazy(() =>
+  import("./features/communication/ManageCommunicationHub")
+);
+
 const PartsExportTool = React.lazy(() => import("./context/PartsExportTool"));
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ⚙️ CONSTANTES E CONFIGURAÇÕES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/**
- * Itens de navegação organizados alfabeticamente dentro de cada seção
- */
-const NAVIGATION_ITEMS = [
-  {
-    title: "Cadastro",
-    icon: Users,
-    items: [
-      { path: "/app/parts-library", icon: Book, label: "Biblioteca de Peças" },
-      { path: "/app/manage-clients", icon: Users, label: "Clientes" },
-      { path: "/app/manage-budgets", icon: FileText, label: "Orçamentos" },
-      { path: "/app/manage-services", icon: Wrench, label: "Serviços" },
-    ],
-  },
-  {
-    title: "Bíblia",
-    icon: FolderOpen,
-    items: [
-      { path: "/app/documents", icon: FolderOpen, label: "Bíblia de Máquinas" },
-    ],
-  },
-  {
-    title: "Gestão",
-    icon: ClipboardList,
-    items: [
-      { path: "/app/manage-agenda", icon: Calendar, label: "Agenda" },
-      { path: "/app/manage-checklist", icon: CheckSquare, label: "Check List" },
-      { path: "/app/manage-finances", icon: Euro, label: "Finanças" },
-      {
-        path: "/app/manage-inspection",
-        icon: ClipboardCheck,
-        label: "Inspeções",
-      },
-      {
-        path: "/app/manage-orders",
-        icon: ClipboardList,
-        label: "Ordem de Serviço",
-      },
-      {
-        path: "/app/parts-budgets",
-        icon: Calculator,
-        label: "Orçamento de Peças",
-      },
-      { path: "/app/manage-report", icon: BarChart, label: "Relatório" },
-    ],
-  },
-  {
-    title: "Loja Online",
-    icon: Store,
-    items: [
-      {
-        path: "/app/manage-shop-access",
-        icon: Shield,
-        label: "Gerenciar Acessos",
-      },
-      {
-        path: "/app/orcamento-online",
-        icon: Store,
-        label: "Gestão de Orçamentos Online",
-      },
-      {
-        path: "/loja",
-        icon: ShoppingBag,
-        label: "Visitar Loja",
-        external: true,
-      },
-    ],
-  },
-  {
-    title: "Administração",
-    icon: Settings,
-    items: [
-      {
-        path: "/app/image-migration",
-        icon: Database,
-        label: "Migração de Imagens",
-        adminOnly: true,
-      },
-      {
-        path: "/app/rollback-tool",
-        icon: RotateCcw,
-        label: "Rollback de Migração",
-        adminOnly: true,
-      },
-      {
-        path: "/app/parts-export",
-        icon: FileSpreadsheet,
-        label: "Exportar Peças CSV",
-      },
-    ],
-  },
-];
+// NAVIGATION_ITEMS foi movido para "./config/navigationItems.jsx" (importado
+// acima) para poder ser partilhado com o TabsContext sem import circular.
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🧩 COMPONENTES AUXILIARES
@@ -539,7 +532,7 @@ const DashboardShell = React.memo(({ children }) => {
         return section.title;
       }
     }
-    return "Cadastro";
+    return "";
   }, []);
 
   const [activeSection, setActiveSection] = useState(() => getSectionForPath(window.location.pathname));
@@ -647,11 +640,6 @@ const DashboardShell = React.memo(({ children }) => {
           {/* Navegação - SEMPRE VISÍVEL */}
           <div className="flex-1 space-y-2 overflow-y-auto overflow-x-hidden">
             {NAVIGATION_ITEMS.map((section, idx) => {
-              // Filtrar seções admin para não-admins
-              if (section.title === "Administração" && user?.role !== "admin") {
-                return null;
-              }
-
               // Filtrar por pesquisa
               const matchesSearch =
                 searchQuery === "" ||
@@ -678,7 +666,7 @@ const DashboardShell = React.memo(({ children }) => {
                         activeSection === section.title ? "" : section.title
                       )
                     }
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all text-left ${
                       activeSection === section.title
                         ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-500/20"
                         : "text-zinc-300 hover:bg-zinc-800/50 hover:text-white"
@@ -846,6 +834,9 @@ const DashboardShell = React.memo(({ children }) => {
           </div>
         </motion.header>
 
+        {/* Barra de Abas — mantém várias páginas abertas ao mesmo tempo */}
+        <TabsBar />
+
         {/* Conteúdo das páginas - CARREGAMENTO INSTANTÂNEO */}
         <div className="p-6 lg:p-8">
           <ErrorBoundary>
@@ -855,6 +846,9 @@ const DashboardShell = React.memo(({ children }) => {
           </ErrorBoundary>
         </div>
       </main>
+
+      {/* ✅ Atalho global para o Hub de Comunicação */}
+      <CommunicationBubble />
     </div>
   );
 });
@@ -897,7 +891,6 @@ const App = () => {
   return (
     <NotificationProvider>
       <CategoriesProvider>
-        <PartsCacheProvider>
           <Router>
             <React.Suspense
               fallback={<div className="min-h-screen bg-zinc-900" />}
@@ -942,6 +935,7 @@ const App = () => {
                   path="/app/*"
                   element={
                     <ProtectedRoute>
+                      <TabsProvider>
                       <DashboardShell>
                         <Routes>
                           {/* Dashboard */}
@@ -949,6 +943,18 @@ const App = () => {
 
                           {/* Documentos */}
                           <Route path="documents" element={<ManageDocuments />} />
+
+                          {/* Cadastro da Nonato Service */}
+                          <Route
+                            path="company-profile"
+                            element={<CompanyProfile />}
+                          />
+
+                          {/* Hub de Comunicação */}
+                          <Route
+                            path="hub-comunicacao"
+                            element={<ManageCommunicationHub />}
+                          />
 
                           {/* Profile e Settings */}
                           <Route path="profile" element={<UserProfile />} />
@@ -971,6 +977,21 @@ const App = () => {
                           <Route
                             path="client/:clientId/add-equipment"
                             element={<AddEquipment />}
+                          />
+
+                          {/* Fornecedores */}
+                          <Route
+                            path="manage-suppliers"
+                            element={<ManageSuppliers />}
+                          />
+                          <Route path="add-supplier" element={<AddSupplier />} />
+                          <Route
+                            path="supplier/:supplierId"
+                            element={<SupplierDetail />}
+                          />
+                          <Route
+                            path="edit-supplier/:supplierId"
+                            element={<EditSupplier />}
                           />
 
                           {/* Equipamentos */}
@@ -1045,6 +1066,94 @@ const App = () => {
                             path="manage-finances"
                             element={<ManageFinances />}
                           />
+                          <Route
+                            path="clientes-devedores"
+                            element={<ManageDebtors />}
+                          />
+                          <Route
+                            path="biblioteca-relatorios"
+                            element={<ManageReportsLibrary />}
+                          />
+                          <Route
+                            path="manage-expenses"
+                            element={<ManageExpenses />}
+                          />
+                          <Route
+                            path="add-expense"
+                            element={<AddExpense />}
+                          />
+                          <Route
+                            path="warehouse"
+                            element={<ManageWarehouse />}
+                          />
+                          <Route
+                            path="add-warehouse-request"
+                            element={<AddWarehouseRequest />}
+                          />
+                          <Route
+                            path="alerts"
+                            element={<ManageAlerts />}
+                          />
+                          <Route
+                            path="technician-status"
+                            element={<ManageTechnicianStatus />}
+                          />
+                          <Route
+                            path="technician-skills"
+                            element={<ManageTechnicianSkills />}
+                          />
+                          <Route
+                            path="warehouse-equipment"
+                            element={<ManageWarehouseEquipment />}
+                          />
+                          <Route
+                            path="add-warehouse-equipment"
+                            element={<AddWarehouseEquipment />}
+                          />
+                          <Route
+                            path="edit-warehouse-equipment/:equipmentId"
+                            element={<EditWarehouseEquipment />}
+                          />
+                          <Route
+                            path="equipment-families"
+                            element={<ManageEquipmentFamilies />}
+                          />
+                          <Route
+                            path="disassembled-parts"
+                            element={<ManageDisassembledParts />}
+                          />
+                          <Route
+                            path="recycle-bin"
+                            element={<ManageRecycleBin />}
+                          />
+                          <Route
+                            path="manual"
+                            element={<ManageManual />}
+                          />
+                          <Route
+                            path="add-disassembled-part"
+                            element={<AddDisassembledPart />}
+                          />
+                          <Route
+                            path="edit-disassembled-part/:partId"
+                            element={<EditDisassembledPart />}
+                          />
+                          <Route
+                            path="ordens-preparacao"
+                            element={<ManageOrdensPreparacao />}
+                          />
+                          <Route
+                            path="add-ordem-preparacao"
+                            element={<AddOrdemPreparacao />}
+                          />
+                          <Route
+                            path="ordem-preparacao/:orderId"
+                            element={<OrdemPreparacaoDetail />}
+                          />
+                          <Route
+                            path="formularios-tecnicos"
+                            element={<ManageFormulariosTecnicos />}
+                          />
 
                           {/* Orçamento de Peças */}
                           <Route
@@ -1095,6 +1204,10 @@ const App = () => {
                             path="edit-checklist-type/:typeId"
                             element={<EditChecklistType />}
                           />
+                          <Route
+                            path="checklist-families"
+                            element={<ManageChecklistFamilies />}
+                          />
 
                           {/* Inspeções */}
                           <Route
@@ -1119,11 +1232,6 @@ const App = () => {
                             path="parts-library"
                             element={<ManagePartsLibrary />}
                           />
-                          <Route path="add-part" element={<AddPart />} />
-                          <Route
-                            path="edit-part/:partId"
-                            element={<EditPart />}
-                          />
                           <Route path="part/:partId" element={<PartDetail />} />
                           <Route
                             path="add-category"
@@ -1140,6 +1248,28 @@ const App = () => {
                           <Route
                             path="manage-categories"
                             element={<ManageCategories />}
+                          />
+                          <Route
+                            path="parts-classification-rules"
+                            element={<ManageClassificationRules />}
+                          />
+
+                          {/* Protocolos de Serviço */}
+                          <Route
+                            path="protocols"
+                            element={<ManageProtocols />}
+                          />
+                          <Route
+                            path="add-protocol"
+                            element={<AddProtocol />}
+                          />
+                          <Route
+                            path="edit-protocol/:protocolId"
+                            element={<EditProtocol />}
+                          />
+                          <Route
+                            path="protocol/:protocolId"
+                            element={<ProtocolDetail />}
                           />
 
                           {/* Loja Online */}
@@ -1162,22 +1292,6 @@ const App = () => {
                             }
                           />
                           <Route
-                            path="image-migration"
-                            element={
-                              <RoleRoute allowedRoles={["admin"]}>
-                                <ImageMigrationTool />
-                              </RoleRoute>
-                            }
-                          />
-                          <Route
-                            path="rollback-tool"
-                            element={
-                              <RoleRoute allowedRoles={["admin"]}>
-                                <RollbackTool />
-                              </RoleRoute>
-                            }
-                          />
-                          <Route
                             path="parts-export"
                             element={
                               <RoleRoute allowedRoles={["admin"]}>
@@ -1187,13 +1301,13 @@ const App = () => {
                           />
                         </Routes>
                       </DashboardShell>
+                      </TabsProvider>
                     </ProtectedRoute>
                   }
                 />
               </Routes>
             </React.Suspense>
           </Router>
-        </PartsCacheProvider>
       </CategoriesProvider>
     </NotificationProvider>
   );
