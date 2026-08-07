@@ -61,6 +61,7 @@ import { Input } from "@/components/ui/input";
 
 import ErrorBoundary from "./components/layout/ErrorBoundary";
 import { CategoriesProvider } from "./context/CategoriesContext.jsx";
+import { ClientsProvider } from "./context/ClientsContext.jsx";
 import { NotificationProvider } from "./context/NotificationContext.jsx";
 import { TabsProvider } from "./context/TabsContext.jsx";
 import NotificationsDropdown from "./components/ui/NotificationsDropdown";
@@ -891,6 +892,7 @@ const App = () => {
   return (
     <NotificationProvider>
       <CategoriesProvider>
+        <ClientsProvider>
           <Router>
             <React.Suspense
               fallback={<div className="min-h-screen bg-zinc-900" />}
@@ -1308,6 +1310,7 @@ const App = () => {
               </Routes>
             </React.Suspense>
           </Router>
+        </ClientsProvider>
       </CategoriesProvider>
     </NotificationProvider>
   );
