@@ -12,6 +12,9 @@ import {
 import { db } from "../../../firebase";
 import generateServiceOrderPDF from "./pdf/generateServiceOrderPDF";
 import generateQuotePDF from "./pdf/generateQuotePDF";
+import generateMachineHoursReportPDF from "./pdf/generateMachineHoursReportPDF";
+import { generateDocNumber } from "../../../utils/docNumbering.js";
+import { totalBlocksDurationLabel } from "../../workdays/components/MachineTimeBlocks.jsx";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { FileOpener } from "@capacitor-community/file-opener";
 import {
@@ -33,6 +36,7 @@ import {
   ShoppingCart,
   Package,
   Receipt,
+  Cpu,
 } from "lucide-react";
 
 // UI Components
@@ -66,12 +70,18 @@ const OrderDetail = () => {
   const [isClosing, setIsClosing] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isGeneratingQuotePDF, setIsGeneratingQuotePDF] = useState(false);
+  const [isGeneratingMachineReport, setIsGeneratingMachineReport] =
+    useState(false);
   const [error, setError] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // ✅ FUNÇÃO PARA FORMATAR PREÇO
   const formatPrice = (price) => {
-    return `€ ${parseFloat(price || 0).toFixed(2)}`;
+    const numericAmount = parseFloat(price || 0);
+    const isNegative = numericAmount < 0;
+    const [intPart, decPart] = Math.abs(numericAmount).toFixed(2).split(".");
+    const intWithDots = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return `${isNegative ? "-" : ""}€ ${intWithDots},${decPart}`;
   };
 
   // ✅ CALCULAR TOTAIS DO ORÇAMENTO
@@ -180,11 +190,8 @@ const OrderDetail = () => {
       setIsGeneratingPDF(true);
       setError(null);
 
-      const fileName = `OrdemServico_${
-        order.isUnregisteredClient
-          ? order.unregisteredClient?.name || "Cliente"
-          : client?.name || "Cliente"
-      }_${orderId}.pdf`;
+      // ✅ Nome do ficheiro = número da OS (ex.: OS-0826-0187.pdf)
+      const fileName = `${order.orderNumber || `OS-${orderId}`}.pdf`;
 
       // ✅ FORMATTEDDATA CORRIGIDO - Incluindo partsQuoteItems
       const formattedData = {
@@ -227,7 +234,7 @@ const OrderDetail = () => {
       };
 
       const pdfResult = await generateServiceOrderPDF(
-        orderId,
+        order.orderNumber || orderId,
         formattedData,
         order.isUnregisteredClient ? order.unregisteredClient : client,
         order.manualEquipment?.model ? order.manualEquipment : equipment,
@@ -286,21 +293,114 @@ const OrderDetail = () => {
     }
   };
 
+  // ✅ FUNÇÃO PARA GERAR O RELATÓRIO ESPECIAL DE HORAS POR EQUIPAMENTO
+  // (só relevante quando a ordem tem dias de trabalho com máquinas
+  // registadas — ver `hasMachineEntries` mais abaixo, que controla a
+  // visibilidade do botão)
+  const handleGenerateMachineHoursReport = async () => {
+    try {
+      setIsGeneratingMachineReport(true);
+      setError(null);
+
+      // ✅ Nome do ficheiro = número da OS com prefixo "OS-E" (Equipamentos),
+      // para não colidir com o relatório normal da mesma ordem (mesmo nº).
+      const baseOrderNumber = order.orderNumber || `OS-${orderId}`;
+      const fileName = `${baseOrderNumber.replace(/^OS-/, "OS-E-")}.pdf`;
+
+      // Mesma preparação de dados do relatório normal — este relatório tem
+      // tudo o que o normal tem, mais a secção de horas por equipamento.
+      const formattedData = {
+        orderId,
+        orderNumber: order.orderNumber || orderId,
+        date: order.date,
+        serviceType: order.serviceType || "",
+        status: order.status || "",
+        priority: order.priority || "",
+        resultDescription: order.resultDescription || "",
+        pontosEmAberto: order.pontosEmAberto || "",
+        checklist: order.checklist || {},
+        workdays: workdays.map((workday) => ({
+          ...workday,
+          workDate: new Date(workday.workDate).toLocaleDateString(),
+        })),
+        partsQuoteItems: order.partsQuoteItems || [],
+      };
+
+      const pdfResult = await generateMachineHoursReportPDF(
+        order.orderNumber || orderId,
+        formattedData,
+        order.isUnregisteredClient ? order.unregisteredClient : client,
+        order.manualEquipment?.model ? order.manualEquipment : equipment,
+        workdays,
+        fileName
+      );
+
+      if (window?.Capacitor?.isNative) {
+        try {
+          const reader = new FileReader();
+          reader.readAsDataURL(pdfResult.blob);
+          reader.onloadend = async () => {
+            const base64Data = reader.result.split(",")[1];
+
+            await Filesystem.writeFile({
+              path: fileName,
+              data: base64Data,
+              directory: Directory.Documents,
+            });
+
+            const { uri } = await Filesystem.getUri({
+              directory: Directory.Documents,
+              path: fileName,
+            });
+
+            await FileOpener.open({
+              filePath: uri,
+              contentType: "application/pdf",
+            });
+          };
+        } catch (error) {
+          console.error("Erro ao salvar/abrir arquivo:", error);
+          throw error;
+        }
+      } else {
+        const url = URL.createObjectURL(pdfResult.blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      console.error("Erro ao gerar relatório por equipamento:", err);
+      setError("Erro ao gerar relatório por equipamento. Por favor, tente novamente.");
+    } finally {
+      setIsGeneratingMachineReport(false);
+    }
+  };
+
   // ✅ FUNÇÃO PARA GERAR PDF DO ORÇAMENTO
   const handleGenerateQuotePDF = async () => {
     try {
       setIsGeneratingQuotePDF(true);
       setError(null);
 
-      const clientName = order.isUnregisteredClient
-        ? order.unregisteredClient?.name || "Cliente"
-        : client?.name || "Cliente";
+      // ✅ NÚMERO DO ORÇAMENTO DE PEÇAS: gera uma única vez e fica guardado
+      // na própria ordem, para o PDF ter sempre o mesmo número.
+      let quoteNumber = order.quoteNumber;
+      if (!quoteNumber) {
+        quoteNumber = await generateDocNumber("orp");
+        await updateDoc(doc(db, "ordens", orderId), { quoteNumber });
+      }
 
-      const fileName = `Orcamento_${clientName}_${orderId}.pdf`;
+      // ✅ Nome do ficheiro = número do orçamento de peças (ex.: ORP-0826-0009.pdf)
+      const fileName = `${quoteNumber}.pdf`;
 
       // ✅ PREPARAR DADOS DO ORÇAMENTO
       const quoteData = {
         ...order,
+        quoteNumber,
         items: order.partsQuoteItems || [],
         clientInfo: order.isUnregisteredClient
           ? {
@@ -438,6 +538,9 @@ const OrderDetail = () => {
   const quoteTotals = calculateQuoteTotals();
   const hasQuote =
     order?.checklist?.pecas && order?.partsQuoteItems?.length > 0;
+  const hasMachineEntries = workdays.some(
+    (day) => day.machineEntries && day.machineEntries.length > 0
+  );
 
   return (
     <div className="space-y-6">
@@ -445,7 +548,7 @@ const OrderDetail = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">
-            Ordem de Serviço #{orderId}
+            Ordem de Serviço {order.orderNumber || `#${orderId}`}
           </h1>
           <p className="text-sm text-zinc-400">
             Visualize e gerencie os detalhes da ordem de serviço
@@ -542,6 +645,22 @@ const OrderDetail = () => {
                 )}
                 <span className="sm:inline">PDF Ordem</span>
               </Button>
+
+              {/* ✅ BOTÃO PARA GERAR O RELATÓRIO ESPECIAL DE HORAS POR EQUIPAMENTO */}
+              {hasMachineEntries && (
+                <Button
+                  onClick={handleGenerateMachineHoursReport}
+                  className="bg-teal-600 hover:bg-teal-700 flex-1 sm:flex-none"
+                  disabled={isGeneratingMachineReport}
+                >
+                  {isGeneratingMachineReport ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Cpu className="w-4 h-4 mr-2" />
+                  )}
+                  <span className="sm:inline">PDF por Equipamento</span>
+                </Button>
+              )}
 
               {/* ✅ BOTÃO PARA GERAR PDF DO ORÇAMENTO */}
               {hasQuote && (
@@ -947,9 +1066,28 @@ const OrderDetail = () => {
                       <p className="text-white">
                         {new Date(workday.workDate).toLocaleDateString()}
                       </p>
-                      <p className="text-sm text-zinc-400">
-                        {workday.startHour} - {workday.endHour}
-                      </p>
+                      {workday.machineEntries?.length > 0 ? (
+                        <>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {workday.machineEntries.map((entry, entryIdx) => (
+                              <span
+                                key={entryIdx}
+                                className="text-xs bg-zinc-900 border border-zinc-700 rounded px-2 py-0.5 text-zinc-300"
+                              >
+                                {entry.equipmentLabel || "Máquina"}{" "}
+                                {entry.startHour}-{entry.endHour}
+                              </span>
+                            ))}
+                          </div>
+                          <p className="text-xs text-green-400 mt-1">
+                            Total: {totalBlocksDurationLabel(workday.machineEntries)}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-sm text-zinc-400">
+                          {workday.startHour} - {workday.endHour}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <Edit2 className="w-4 h-4 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity" />

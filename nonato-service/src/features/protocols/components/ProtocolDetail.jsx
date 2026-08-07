@@ -86,7 +86,8 @@ const ProtocolDetail = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `protocolo-${(protocol.title || protocolId).replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
+      // ✅ Nome do ficheiro = número do protocolo (ex.: PROT-0826-0003.pdf)
+      link.download = `${protocol.protocolNumber || `PROT-${protocolId}`}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -185,6 +186,9 @@ const ProtocolDetail = () => {
             <h1 className="text-xl sm:text-2xl font-bold text-white truncate">
               {protocol.title || "Protocolo sem título"}
             </h1>
+            <p className="text-xs text-zinc-500 font-mono">
+              {protocol.protocolNumber || `PROT-${protocolId}`}
+            </p>
             <Badge
               className={
                 protocol.status === "concluido"

@@ -1,8 +1,10 @@
 // src/features/clients/ManageClients.jsx
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, getDocs, deleteDoc, doc, query, where, orderBy } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, query, where } from "firebase/firestore";
 import { db } from "../../firebase";
+import { useClients } from "../../context/ClientsContext.jsx";
+import { searchIncludes } from "../../utils/normalizeSearch.js";
 import {
   Search,
   Plus,
@@ -22,8 +24,7 @@ import {
   Euro,
   MapPin,
   ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
+  ArrowDown,
   Edit2
 } from "lucide-react";
 
@@ -359,57 +360,97 @@ const ManageClients = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
-  const itemsPerPage = 12;
+  // Scroll infinito: em vez de páginas numeradas, mostra-se um número
+  // crescente de clientes já carregados/filtrados em memória. Nota: ao
+  // contrário das outras listas do programa, esta página não faz leituras
+  // parciais à Firestore — os clientes vêm sempre completos do
+  // ClientsContext partilhado (cache de 5 min), porque os cartões de
+  // estatísticas e o estado financeiro por cliente precisam do conjunto
+  // completo para serem exatos. O scroll infinito aqui só controla quantos
+  // já carregados são desenhados no ecrã de cada vez.
+  const PAGE_SIZE = 10;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   // Usar o hook de status financeiro
   const { financialStatuses, isLoading: isLoadingFinancial } = useClientFinancialStatus(clients);
 
-  const fetchClients = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const q = query(
-        collection(db, "clientes"),
-        orderBy(sortField, sortOrder)
-      );
-      const clientsSnapshot = await getDocs(q);
-      const clientsList = clientsSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      
-      // Buscar contagem de equipamentos para cada cliente
-      const clientsWithEquipmentCount = await Promise.all(
-        clientsList.map(async (client) => {
-          const equipmentsSnapshot = await getDocs(
-            query(collection(db, "equipamentos"), where("clientId", "==", client.id))
-          );
-          return {
-            ...client,
-            equipmentCount: equipmentsSnapshot.docs.length,
-          };
-        })
-      );
-      
-      setClients(clientsWithEquipmentCount);
-    } catch (err) {
-      console.error("Error fetching clients:", err);
-      setError("Erro ao carregar clientes. Por favor, tente novamente.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [sortField, sortOrder]);
+  const { ensureClients, refreshClients, removeClientFromCache } = useClients();
+  // Guarda a lista "crua" (com contagem de equipamentos já calculada, mas
+  // sem ordenação aplicada) para podermos reordenar em memória quando o
+  // utilizador muda o critério de ordenação, sem voltar a ler a Firestore
+  const rawClientsRef = useRef([]);
+
+  const applySort = useCallback(
+    (list) => {
+      return [...list].sort((a, b) => {
+        const aVal = a[sortField] ?? "";
+        const bVal = b[sortField] ?? "";
+        if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+        if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+        return 0;
+      });
+    },
+    [sortField, sortOrder]
+  );
+
+  const fetchClients = useCallback(
+    async (forceRefresh = false) => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Clientes vêm do ClientsContext partilhado por toda a app, em vez
+        // de uma leitura própria desta página
+        const clientsList = forceRefresh
+          ? await refreshClients()
+          : await ensureClients();
+
+        // Contagem de equipamentos: uma única leitura da coleção inteira e
+        // agrupamento em memória, em vez de uma query separada por cliente
+        // (eram N queries à Firestore, uma por cada cliente na lista)
+        const equipmentsSnapshot = await getDocs(collection(db, "equipamentos"));
+        const countByClient = new Map();
+        equipmentsSnapshot.docs.forEach((docSnap) => {
+          const clientId = docSnap.data().clientId;
+          if (!clientId) return;
+          countByClient.set(clientId, (countByClient.get(clientId) || 0) + 1);
+        });
+
+        const clientsWithEquipmentCount = clientsList.map((client) => ({
+          ...client,
+          equipmentCount: countByClient.get(client.id) || 0,
+        }));
+
+        rawClientsRef.current = clientsWithEquipmentCount;
+        setClients(applySort(clientsWithEquipmentCount));
+      } catch (err) {
+        console.error("Error fetching clients:", err);
+        setError("Erro ao carregar clientes. Por favor, tente novamente.");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [ensureClients, refreshClients, applySort]
+  );
 
   useEffect(() => {
     fetchClients();
-  }, [fetchClients]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Mudar a ordenação só reordena os dados já carregados — não volta a
+  // pedir nada à Firestore
+  useEffect(() => {
+    if (rawClientsRef.current.length > 0) {
+      setClients(applySort(rawClientsRef.current));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortField, sortOrder]);
 
   useEffect(() => {
-    setCurrentPage(1);
+    setVisibleCount(PAGE_SIZE);
   }, [searchTerm, statusFilter, sortField, sortOrder]);
 
   const handleEdit = (clientId) => {
@@ -432,6 +473,12 @@ const ManageClients = () => {
     try {
       await deleteDoc(doc(db, "clientes", clientToDelete.id));
       setClients((prev) => prev.filter((client) => client.id !== clientToDelete.id));
+      rawClientsRef.current = rawClientsRef.current.filter(
+        (client) => client.id !== clientToDelete.id
+      );
+      // Mantém o cache partilhado (ClientsContext) em sincronia, para que
+      // outras páginas não continuem a mostrar este cliente já excluído
+      removeClientFromCache(clientToDelete.id);
       setDeleteDialogOpen(false);
       setClientToDelete(null);
     } catch (err) {
@@ -471,12 +518,11 @@ const ManageClients = () => {
   // Filtrar clientes - CORRIGIDO: Verificar se propriedades existem antes de usar toLowerCase
   const filteredClients = useMemo(() => {
     return clients.filter(client => {
-      const searchLower = searchTerm.toLowerCase();
-      
-      const matchesSearch = 
-        (client.name && client.name.toLowerCase().includes(searchLower)) ||
+      // ✅ Pesquisa insensível a acentos: "Sergio" encontra "Sérgio"
+      const matchesSearch =
+        searchIncludes(client.name, searchTerm) ||
         (client.phone && client.phone.includes(searchTerm)) ||
-        (client.address && client.address.toLowerCase().includes(searchLower)) ||
+        searchIncludes(client.address, searchTerm) ||
         (client.nif && client.nif.includes(searchTerm)) ||
         (client.postalCode && client.postalCode.includes(searchTerm));
       
@@ -495,16 +541,14 @@ const ManageClients = () => {
     });
   }, [clients, searchTerm, statusFilter, financialStatuses]);
 
-  // Paginação
-  const indexOfLastClient = currentPage * itemsPerPage;
-  const indexOfFirstClient = indexOfLastClient - itemsPerPage;
-  const currentClients = filteredClients.slice(indexOfFirstClient, indexOfLastClient);
-  const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
+  // Scroll infinito: mostra só os primeiros `visibleCount` da lista já
+  // filtrada/ordenada (que está inteira em memória).
+  const currentClients = filteredClients.slice(0, visibleCount);
+  const hasMoreVisible = visibleCount < filteredClients.length;
 
-  const paginate = (pageNumber) => {
-    setCurrentPage(pageNumber);
-    window.scrollTo(0, 0);
-  };
+  const loadMoreVisible = useCallback(() => {
+    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredClients.length));
+  }, [filteredClients.length]);
 
   const exportToCSV = () => {
     const csvContent = [
@@ -671,7 +715,7 @@ const ManageClients = () => {
               
               <Button
                 variant="outline"
-                onClick={fetchClients}
+                onClick={() => fetchClients(true)}
                 className="flex-1 sm:flex-none border-zinc-700 text-white hover:bg-zinc-700"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
@@ -691,7 +735,7 @@ const ManageClients = () => {
 
           <div className="flex justify-between items-center mt-4 pt-4 border-t border-zinc-700">
             <span className="text-sm text-zinc-400">
-              {filteredClients.length} cliente(s) encontrado(s) - Página {currentPage} de {totalPages || 1}
+              A mostrar {currentClients.length} de {filteredClients.length} cliente(s)
             </span>
             {isLoadingFinancial && (
               <div className="flex items-center gap-2 text-sm text-zinc-400">
@@ -748,89 +792,16 @@ const ManageClients = () => {
         </div>
       )}
 
-      {/* Paginação */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-8">
+      {/* Carregar mais */}
+      {hasMoreVisible && (
+        <div className="flex justify-center">
           <Button
             variant="outline"
-            size="icon"
-            onClick={() => paginate(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+            onClick={loadMoreVisible}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
           >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-
-          {currentPage > 3 && (
-            <>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => paginate(1)}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-              >
-                1
-              </Button>
-              {currentPage > 4 && <span className="text-zinc-400">...</span>}
-            </>
-          )}
-
-          {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
-            let pageNumber;
-            if (totalPages <= 5) {
-              pageNumber = i + 1;
-            } else if (currentPage <= 3) {
-              pageNumber = i + 1;
-            } else if (currentPage >= totalPages - 2) {
-              pageNumber = totalPages - 4 + i;
-            } else {
-              pageNumber = currentPage - 2 + i;
-            }
-
-            if (pageNumber >= 1 && pageNumber <= totalPages) {
-              return (
-                <Button
-                  key={pageNumber}
-                  variant={currentPage === pageNumber ? "secondary" : "outline"}
-                  size="icon"
-                  onClick={() => paginate(pageNumber)}
-                  className={`border-zinc-700 ${
-                    currentPage === pageNumber
-                      ? "bg-zinc-700 text-white hover:bg-zinc-600"
-                      : "text-white hover:bg-zinc-700 bg-zinc-800"
-                  }`}
-                >
-                  {pageNumber}
-                </Button>
-              );
-            }
-            return null;
-          })}
-
-          {currentPage < totalPages - 2 && (
-            <>
-              {currentPage < totalPages - 3 && (
-                <span className="text-zinc-400">...</span>
-              )}
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => paginate(totalPages)}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-              >
-                {totalPages}
-              </Button>
-            </>
-          )}
-
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => paginate(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
-          >
-            <ChevronRight className="h-4 w-4" />
+            <ArrowDown className="h-4 w-4" />
+            Carregar mais
           </Button>
         </div>
       )}
@@ -863,7 +834,7 @@ const ManageClients = () => {
       {/* FAB Menu for Mobile */}
       <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden">
         <Button
-          onClick={fetchClients}
+          onClick={() => fetchClients(true)}
           size="icon"
           className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
         >

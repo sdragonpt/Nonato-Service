@@ -18,8 +18,7 @@ import {
   MapPin,
   Hash,
   ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
+  ArrowDown,
   AlertTriangle,
   Layers,
 } from "lucide-react";
@@ -148,9 +147,12 @@ const ManageWarehouseEquipment = () => {
   const [estadoFilter, setEstadoFilter] = useState("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState("asc");
-  const itemsPerPage = 12;
+  // Scroll infinito: lista pequena e sempre lida por inteiro, por isso não
+  // há paginação por cursor à Firestore aqui — só se controla quantos dos
+  // que já estão em memória são mostrados de cada vez.
+  const PAGE_SIZE = 10;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const fetchItems = useCallback(async () => {
     try {
@@ -173,7 +175,7 @@ const ManageWarehouseEquipment = () => {
   }, [fetchItems]);
 
   useEffect(() => {
-    setCurrentPage(1);
+    setVisibleCount(PAGE_SIZE);
   }, [searchTerm, estadoFilter, sortOrder]);
 
   const handleEdit = (id) => navigate(`/app/edit-warehouse-equipment/${id}`);
@@ -209,15 +211,12 @@ const ManageWarehouseEquipment = () => {
     });
   }, [items, searchTerm, estadoFilter]);
 
-  const indexOfLast = currentPage * itemsPerPage;
-  const indexOfFirst = indexOfLast - itemsPerPage;
-  const currentItems = filteredItems.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const currentItems = filteredItems.slice(0, visibleCount);
+  const hasMoreVisible = visibleCount < filteredItems.length;
 
-  const paginate = (page) => {
-    setCurrentPage(page);
-    window.scrollTo(0, 0);
-  };
+  const loadMoreVisible = useCallback(() => {
+    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredItems.length));
+  }, [filteredItems.length]);
 
   const exportToCSV = () => {
     const csvContent = [
@@ -389,8 +388,7 @@ const ManageWarehouseEquipment = () => {
 
           <div className="flex justify-between items-center mt-4 pt-4 border-t border-zinc-700">
             <span className="text-sm text-zinc-400">
-              {filteredItems.length} equipamento(s) encontrado(s) - Página {currentPage} de{" "}
-              {totalPages || 1}
+              A mostrar {currentItems.length} de {filteredItems.length} equipamento(s)
             </span>
           </div>
 
@@ -439,41 +437,16 @@ const ManageWarehouseEquipment = () => {
         </div>
       )}
 
-      {/* Paginação */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-8">
+      {/* Carregar mais */}
+      {hasMoreVisible && (
+        <div className="flex justify-center">
           <Button
             variant="outline"
-            size="icon"
-            onClick={() => paginate(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+            onClick={loadMoreVisible}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
           >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          {Array.from({ length: totalPages }).map((_, i) => (
-            <Button
-              key={i + 1}
-              variant={currentPage === i + 1 ? "secondary" : "outline"}
-              size="icon"
-              onClick={() => paginate(i + 1)}
-              className={`border-zinc-700 ${
-                currentPage === i + 1
-                  ? "bg-zinc-700 text-white hover:bg-zinc-600"
-                  : "text-white hover:bg-zinc-700 bg-zinc-800"
-              }`}
-            >
-              {i + 1}
-            </Button>
-          ))}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => paginate(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
-          >
-            <ChevronRight className="h-4 w-4" />
+            <ArrowDown className="h-4 w-4" />
+            Carregar mais
           </Button>
         </div>
       )}

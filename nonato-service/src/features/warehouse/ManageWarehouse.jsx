@@ -1,9 +1,8 @@
 // ManageWarehouse.jsx - Almoxarifado / Armazém: pedidos de separação de peças
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   collection,
-  getDocs,
   doc,
   updateDoc,
   deleteDoc,
@@ -11,6 +10,8 @@ import {
   query,
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
+import { searchIncludes } from "../../utils/normalizeSearch.js";
+import { fetchPage } from "../../utils/firestorePage.js";
 import {
   Search,
   Plus,
@@ -23,6 +24,7 @@ import {
   ChevronUp,
   CheckCircle2,
   Truck,
+  ArrowDown,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card.jsx";
@@ -56,6 +58,11 @@ const STATUS_META = {
 
 const STATUS_ORDER = ["pendente", "em_separacao", "separado", "entregue"];
 
+const PAGE_SIZE = 10;
+const MAX_AUTO_LOADS = 15;
+
+const warehouseBaseQuery = query(collection(db, "pedidosArmazem"), orderBy("updatedAt", "desc"));
+
 const ManageWarehouse = () => {
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
@@ -66,36 +73,80 @@ const ManageWarehouse = () => {
   const [expandedId, setExpandedId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [savingId, setSavingId] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const fetchRequests = async () => {
+  const cursorRef = useRef(null);
+  const autoLoadCountRef = useRef(0);
+
+  const loadPage = useCallback(async (cursor) => {
+    const { docs, cursor: nextCursor, hasMore: more } = await fetchPage(warehouseBaseQuery, {
+      pageSize: PAGE_SIZE,
+      cursor,
+    });
+    cursorRef.current = nextCursor;
+    setHasMore(more);
+    return docs;
+  }, []);
+
+  const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const q = query(collection(db, "pedidosArmazem"), orderBy("updatedAt", "desc"));
-      const snap = await getDocs(q);
-      setRequests(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      cursorRef.current = null;
+      const docs = await loadPage(null);
+      setRequests(docs);
     } catch (err) {
       console.error("Erro ao carregar pedidos de armazém:", err);
       setError("Erro ao carregar pedidos de armazém.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadPage]);
 
   useEffect(() => {
     fetchRequests();
-  }, []);
+  }, [fetchRequests]);
+
+  const loadMore = useCallback(async () => {
+    if (!hasMore || isLoadingMore || !cursorRef.current) return;
+    setIsLoadingMore(true);
+    try {
+      const docs = await loadPage(cursorRef.current);
+      setRequests((prev) => [...prev, ...docs]);
+    } catch (err) {
+      console.error("Erro ao carregar mais pedidos de armazém:", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [hasMore, isLoadingMore, loadPage]);
 
   const filtered = useMemo(() => {
     return requests.filter((r) => {
       const matchesSearch =
         !searchTerm ||
-        r.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.orderLabel?.toLowerCase().includes(searchTerm.toLowerCase());
+        searchIncludes(r.clientName, searchTerm) ||
+        searchIncludes(r.orderLabel, searchTerm);
       const matchesStatus = statusFilter === "all" || r.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [requests, searchTerm, statusFilter]);
+
+  // Pesquisa/filtro só opera sobre os lotes já carregados; se os
+  // resultados ficarem escassos com pesquisa ativa, carrega mais.
+  useEffect(() => {
+    if (
+      (searchTerm || statusFilter !== "all") &&
+      hasMore &&
+      !isLoadingMore &&
+      !loading &&
+      filtered.length < PAGE_SIZE &&
+      autoLoadCountRef.current < MAX_AUTO_LOADS
+    ) {
+      autoLoadCountRef.current += 1;
+      loadMore();
+    }
+  }, [searchTerm, statusFilter, filtered.length, hasMore, isLoadingMore, loading, loadMore]);
 
   const persistRequest = async (id, patch) => {
     try {
@@ -345,6 +396,30 @@ const ManageWarehouse = () => {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {/* Carregar mais */}
+      {hasMore && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={loadMore}
+            disabled={isLoadingMore}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+          >
+            {isLoadingMore ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                A carregar...
+              </>
+            ) : (
+              <>
+                <ArrowDown className="h-4 w-4" />
+                Carregar mais
+              </>
+            )}
+          </Button>
         </div>
       )}
 

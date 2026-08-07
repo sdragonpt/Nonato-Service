@@ -16,6 +16,7 @@ import {
   Edit2,
   Trash2,
   ArrowUpDown,
+  ArrowDown,
   AlertTriangle,
   Wrench,
   MoreVertical,
@@ -23,8 +24,6 @@ import {
   Download,
   Euro,
   ClipboardList,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 
 // UI Components
@@ -64,8 +63,11 @@ const ManageServices = () => {
   const [filterType, setFilterType] = useState("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  // Scroll infinito: lista pequena e sempre lida por inteiro, por isso não
+  // há paginação por cursor à Firestore aqui — só se controla quantos dos
+  // que já estão em memória são mostrados de cada vez.
+  const PAGE_SIZE = 10;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const navigate = useNavigate();
 
   const fetchServices = useCallback(async () => {
@@ -95,7 +97,7 @@ const ManageServices = () => {
   }, [fetchServices]);
 
   useEffect(() => {
-    setCurrentPage(1);
+    setVisibleCount(PAGE_SIZE);
   }, [searchTerm, filterType]);
 
   const handleDelete = async (serviceId) => {
@@ -145,18 +147,12 @@ const ManageServices = () => {
       .join("\n");
   };
 
-  const indexOfLastService = currentPage * itemsPerPage;
-  const indexOfFirstService = indexOfLastService - itemsPerPage;
-  const currentServices = filteredServices.slice(
-    indexOfFirstService,
-    indexOfLastService
-  );
-  const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
+  const currentServices = filteredServices.slice(0, visibleCount);
+  const hasMoreVisible = visibleCount < filteredServices.length;
 
-  const paginate = (page) => {
-    setCurrentPage(page);
-    window.scrollTo(0, 0);
-  };
+  const loadMoreVisible = useCallback(() => {
+    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredServices.length));
+  }, [filteredServices.length]);
 
   const downloadCSV = (content, filename) => {
     const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
@@ -330,7 +326,7 @@ const ManageServices = () => {
               <span>{sortOrder === "asc" ? "Crescente" : "Decrescente"}</span>
             </Button>
             <span className="text-center sm:text-right text-sm text-zinc-400">
-              {filteredServices.length} serviço(s) encontrado(s)
+              A mostrar {currentServices.length} de {filteredServices.length} serviço(s)
             </span>
           </div>
 
@@ -450,41 +446,16 @@ const ManageServices = () => {
         )}
       </div>
 
-      {/* Paginação */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-8">
+      {/* Carregar mais */}
+      {hasMoreVisible && (
+        <div className="flex justify-center">
           <Button
             variant="outline"
-            size="icon"
-            onClick={() => paginate(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+            onClick={loadMoreVisible}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
           >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          {Array.from({ length: totalPages }).map((_, i) => (
-            <Button
-              key={i + 1}
-              variant={currentPage === i + 1 ? "secondary" : "outline"}
-              size="icon"
-              onClick={() => paginate(i + 1)}
-              className={`border-zinc-700 ${
-                currentPage === i + 1
-                  ? "bg-zinc-700 text-white hover:bg-zinc-600"
-                  : "text-white hover:bg-zinc-700 bg-zinc-800"
-              }`}
-            >
-              {i + 1}
-            </Button>
-          ))}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => paginate(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
-          >
-            <ChevronRight className="h-4 w-4" />
+            <ArrowDown className="h-4 w-4" />
+            Carregar mais
           </Button>
         </div>
       )}

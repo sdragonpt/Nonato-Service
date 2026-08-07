@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   collection,
-  getDocs,
   doc,
   updateDoc,
   query,
@@ -9,8 +8,12 @@ import {
   where,
   deleteDoc,
   setDoc,
+  getCountFromServer,
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
+import { generateDocNumber } from "../../utils/docNumbering.js";
+import { searchIncludes } from "../../utils/normalizeSearch.js";
+import { fetchPage } from "../../utils/firestorePage.js";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import {
@@ -24,8 +27,7 @@ import {
   RefreshCw,
   Clock,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
+  ArrowDown,
   Mail,
   Phone,
   Building2,
@@ -71,13 +73,29 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible.jsx";
 
+const PAGE_SIZE = 10;
+const MAX_AUTO_LOADS = 15; // salvaguarda: nº máx. de lotes extra a carregar automaticamente ao pesquisar
+
+// Quote status labels
+const statusLabels = {
+  pending: { label: "Pendente", color: "yellow" },
+  approved: { label: "Aprovado", color: "green" },
+  rejected: { label: "Rejeitado", color: "red" },
+  converted: { label: "Convertido", color: "blue" },
+};
+
 const ManageOnlineQuotes = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // ✅ Carregado por lotes (cursor do Firestore), em vez de ler a coleção
+  // "orcamentos-online" inteira de uma só vez.
   const [quotes, setQuotes] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState(null);
   const [selectedQuote, setSelectedQuote] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -87,58 +105,94 @@ const ManageOnlineQuotes = () => {
   const [selectedQuoteForNote, setSelectedQuoteForNote] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [quoteToDelete, setQuoteToDelete] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
 
-  // Quote status labels
-  const statusLabels = {
-    pending: { label: "Pendente", color: "yellow" },
-    approved: { label: "Aprovado", color: "green" },
-    rejected: { label: "Rejeitado", color: "red" },
-    converted: { label: "Convertido", color: "blue" },
-  };
+  // Contagens exatas por status (aggregation query — não lê os documentos)
+  const [statusCounts, setStatusCounts] = useState({
+    total: null,
+    pending: null,
+    approved: null,
+    converted: null,
+  });
 
-  // Fetch quotes
+  const cursorRef = useRef(null);
+  const autoLoadCountRef = useRef(0);
+
+  const loadPage = useCallback(
+    async (cursor) => {
+      const constraints = [];
+      if (statusFilter !== "all") {
+        constraints.push(where("status", "==", statusFilter));
+      }
+      constraints.push(orderBy("createdAt", "desc"));
+      const baseQuery = query(collection(db, "orcamentos-online"), ...constraints);
+      const { docs, cursor: nextCursor, hasMore: more } = await fetchPage(baseQuery, {
+        pageSize: PAGE_SIZE,
+        cursor,
+      });
+      cursorRef.current = nextCursor;
+      setHasMore(more);
+      return docs;
+    },
+    [statusFilter]
+  );
+
+  // Fetch quotes (primeiro lote — reinicia sempre que o filtro de status muda)
   const fetchQuotes = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-
-      let q = query(
-        collection(db, "orcamentos-online"),
-        orderBy("createdAt", "desc")
-      );
-
-      if (statusFilter !== "all") {
-        q = query(
-          collection(db, "orcamentos-online"),
-          where("status", "==", statusFilter),
-          orderBy("createdAt", "desc")
-        );
-      }
-
-      const snapshot = await getDocs(q);
-      const quotesData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      setQuotes(quotesData);
+      cursorRef.current = null;
+      const docs = await loadPage(null);
+      setQuotes(docs);
     } catch (err) {
       console.error("Erro ao buscar orçamentos:", err);
       setError("Erro ao carregar orçamentos. Por favor, tente novamente.");
     } finally {
       setIsLoading(false);
     }
-  }, [statusFilter]);
+  }, [loadPage]);
 
   useEffect(() => {
     fetchQuotes();
   }, [fetchQuotes]);
 
+  const loadMore = useCallback(async () => {
+    if (!hasMore || isLoadingMore || !cursorRef.current) return;
+    setIsLoadingMore(true);
+    try {
+      const docs = await loadPage(cursorRef.current);
+      setQuotes((prev) => [...prev, ...docs]);
+    } catch (err) {
+      console.error("Erro ao carregar mais orçamentos:", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [hasMore, isLoadingMore, loadPage]);
+
+  // Contagens totais por status (cheap: aggregation query, não lê os docs)
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
+    const fetchCounts = async () => {
+      try {
+        const quotesRef = collection(db, "orcamentos-online");
+        const [totalSnap, pendingSnap, approvedSnap, convertedSnap] =
+          await Promise.all([
+            getCountFromServer(quotesRef),
+            getCountFromServer(query(quotesRef, where("status", "==", "pending"))),
+            getCountFromServer(query(quotesRef, where("status", "==", "approved"))),
+            getCountFromServer(query(quotesRef, where("status", "==", "converted"))),
+          ]);
+        setStatusCounts({
+          total: totalSnap.data().count,
+          pending: pendingSnap.data().count,
+          approved: approvedSnap.data().count,
+          converted: convertedSnap.data().count,
+        });
+      } catch (err) {
+        console.error("Erro ao contar orçamentos online:", err);
+      }
+    };
+    fetchCounts();
+  }, [statusFilter]);
 
   // Format date
   const formatDate = (timestamp) => {
@@ -187,7 +241,9 @@ const ManageOnlineQuotes = () => {
       setIsUpdating(true);
 
       // ✅ CRIAR DADOS ESPECÍFICOS PARA ORÇAMENTO DE PEÇAS
+      const quoteNumber = await generateDocNumber("orp");
       const partsQuoteData = {
+        quoteNumber,
         date: new Date().toISOString().split("T")[0],
 
         // ✅ CLIENTE NÃO REGISTRADO (mais apropriado para orçamentos online)
@@ -255,32 +311,35 @@ const ManageOnlineQuotes = () => {
     }
   };
 
-  // Filter quotes
+  // Filter quotes (pesquisa insensível a acentos, sobre o que já está carregado)
   const filteredQuotes = quotes.filter((quote) => {
-    const matchesSearch =
-      quote.clientInfo?.name
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      quote.clientInfo?.email
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      quote.clientInfo?.company
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase());
-
-    return matchesSearch;
+    return (
+      searchIncludes(quote.clientInfo?.name, searchTerm) ||
+      searchIncludes(quote.clientInfo?.email, searchTerm) ||
+      searchIncludes(quote.clientInfo?.company, searchTerm)
+    );
   });
 
-  // Pagination
-  const indexOfLastQuote = currentPage * itemsPerPage;
-  const indexOfFirstQuote = indexOfLastQuote - itemsPerPage;
-  const currentQuotes = filteredQuotes.slice(indexOfFirstQuote, indexOfLastQuote);
-  const totalPages = Math.ceil(filteredQuotes.length / itemsPerPage);
+  // Ao pesquisar, os resultados só existem dentro do que já foi carregado —
+  // por isso, se houver poucos resultados e ainda houver mais orçamentos
+  // por trás, vamos buscando lotes extra automaticamente.
+  useEffect(() => {
+    autoLoadCountRef.current = 0;
+  }, [searchTerm, statusFilter]);
 
-  const paginate = (page) => {
-    setCurrentPage(page);
-    window.scrollTo(0, 0);
-  };
+  useEffect(() => {
+    if (
+      searchTerm &&
+      hasMore &&
+      !isLoadingMore &&
+      !isLoading &&
+      filteredQuotes.length < PAGE_SIZE &&
+      autoLoadCountRef.current < MAX_AUTO_LOADS
+    ) {
+      autoLoadCountRef.current += 1;
+      loadMore();
+    }
+  }, [searchTerm, filteredQuotes.length, hasMore, isLoadingMore, isLoading, loadMore]);
 
   // View details
   const viewDetails = (quote) => {
@@ -370,7 +429,7 @@ const ManageOnlineQuotes = () => {
             <div>
               <p className="text-sm font-medium text-zinc-400">Pendentes</p>
               <h3 className="text-xl sm:text-2xl font-bold text-yellow-500 mt-1 sm:mt-2">
-                {quotes.filter((q) => q.status === "pending").length}
+                {statusCounts.pending === null ? "…" : statusCounts.pending}
               </h3>
             </div>
             <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500" />
@@ -382,7 +441,7 @@ const ManageOnlineQuotes = () => {
             <div>
               <p className="text-sm font-medium text-zinc-400">Aprovados</p>
               <h3 className="text-xl sm:text-2xl font-bold text-green-500 mt-1 sm:mt-2">
-                {quotes.filter((q) => q.status === "approved").length}
+                {statusCounts.approved === null ? "…" : statusCounts.approved}
               </h3>
             </div>
             <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
@@ -394,7 +453,7 @@ const ManageOnlineQuotes = () => {
             <div>
               <p className="text-sm font-medium text-zinc-400">Convertidos</p>
               <h3 className="text-xl sm:text-2xl font-bold text-blue-500 mt-1 sm:mt-2">
-                {quotes.filter((q) => q.status === "converted").length}
+                {statusCounts.converted === null ? "…" : statusCounts.converted}
               </h3>
             </div>
             <ShoppingCart className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
@@ -406,7 +465,7 @@ const ManageOnlineQuotes = () => {
             <div>
               <p className="text-sm font-medium text-zinc-400">Total</p>
               <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
-                {quotes.length}
+                {statusCounts.total === null ? "…" : statusCounts.total}
               </h3>
             </div>
             <Tag className="h-6 w-6 sm:h-8 sm:w-8 text-zinc-400" />
@@ -476,6 +535,11 @@ const ManageOnlineQuotes = () => {
             </Button>
           </div>
 
+          <p className="text-xs text-zinc-500">
+            {filteredQuotes.length} orçamento(s) carregado(s)
+            {hasMore && " — há mais por carregar"}
+          </p>
+
           {error && (
             <Alert
               variant="destructive"
@@ -509,7 +573,7 @@ const ManageOnlineQuotes = () => {
         </Card>
       ) : (
         <div className="space-y-4">
-          {currentQuotes.map((quote) => (
+          {filteredQuotes.map((quote) => (
             <Card key={quote.id} className="bg-zinc-800 border-zinc-700">
               <Collapsible>
                 <CardHeader className="p-4">
@@ -743,41 +807,26 @@ const ManageOnlineQuotes = () => {
         </div>
       )}
 
-      {/* Paginação */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-8">
+      {/* Carregar mais */}
+      {hasMore && !isLoading && (
+        <div className="flex justify-center">
           <Button
             variant="outline"
-            size="icon"
-            onClick={() => paginate(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+            onClick={loadMore}
+            disabled={isLoadingMore}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
           >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          {Array.from({ length: totalPages }).map((_, i) => (
-            <Button
-              key={i + 1}
-              variant={currentPage === i + 1 ? "secondary" : "outline"}
-              size="icon"
-              onClick={() => paginate(i + 1)}
-              className={`border-zinc-700 ${
-                currentPage === i + 1
-                  ? "bg-zinc-700 text-white hover:bg-zinc-600"
-                  : "text-white hover:bg-zinc-700 bg-zinc-800"
-              }`}
-            >
-              {i + 1}
-            </Button>
-          ))}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => paginate(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
-          >
-            <ChevronRight className="h-4 w-4" />
+            {isLoadingMore ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                A carregar...
+              </>
+            ) : (
+              <>
+                <ArrowDown className="h-4 w-4" />
+                Carregar mais
+              </>
+            )}
           </Button>
         </div>
       )}

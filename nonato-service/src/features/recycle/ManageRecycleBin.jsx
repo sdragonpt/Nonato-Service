@@ -1,17 +1,22 @@
 // src/features/recycle/ManageRecycleBin.jsx
 // Reciclagem — ordens de serviço e relatórios (inspeções) excluídos,
 // organizados por cliente, com restauro ou eliminação definitiva.
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   collection,
-  getDocs,
   doc,
   updateDoc,
   deleteDoc,
   deleteField,
+  query,
+  where,
+  orderBy,
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
+import { useClients } from "../../context/ClientsContext.jsx";
+import { searchIncludes } from "../../utils/normalizeSearch.js";
+import { fetchPage } from "../../utils/firestorePage.js";
 import {
   Trash2,
   Loader2,
@@ -22,6 +27,7 @@ import {
   ClipboardCheck,
   Search,
   XCircle,
+  ArrowDown,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card.jsx";
@@ -50,8 +56,49 @@ const formatDate = (timestamp) => {
   });
 };
 
+const toJsDate = (timestamp) =>
+  timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
+
+const mapOrderItem = (o) => ({
+  id: o.id,
+  collectionName: "ordens",
+  tipo: "ordem",
+  label: `Ordem de Serviço — ${o.serviceType || o.id}`,
+  clientId: o.clientId,
+  eliminadoEm: o.eliminadoEm,
+  linkTo: `/app/order-detail/${o.id}`,
+});
+
+const mapInspectionItem = (i) => ({
+  id: i.id,
+  collectionName: "inspections",
+  tipo: "inspecao",
+  label: `Relatório de Inspeção — ${i.type || i.id}`,
+  clientId: i.clientId,
+  eliminadoEm: i.eliminadoEm,
+  linkTo: `/app/inspection-detail/${i.id}`,
+});
+
+// Só os documentos com eliminadoEm (soft-delete) contam — os que nunca
+// foram excluídos simplesmente não têm este campo, por isso o filtro
+// "!=" já os exclui corretamente, sem varrer a coleção toda no cliente.
+const ordersDeletedQuery = query(
+  collection(db, "ordens"),
+  where("eliminadoEm", "!=", null),
+  orderBy("eliminadoEm", "desc")
+);
+const inspectionsDeletedQuery = query(
+  collection(db, "inspections"),
+  where("eliminadoEm", "!=", null),
+  orderBy("eliminadoEm", "desc")
+);
+
+const PAGE_SIZE = 10;
+const MAX_AUTO_LOADS = 15;
+
 const ManageRecycleBin = () => {
   const navigate = useNavigate();
+  const { ensureClients } = useClients();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [items, setItems] = useState([]);
@@ -59,68 +106,112 @@ const ManageRecycleBin = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [restoringId, setRestoringId] = useState(null);
   const [permDeleteTarget, setPermDeleteTarget] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const fetchData = useCallback(async () => {
+  // Duas coleções (ordens + inspecções) são combinadas cronologicamente
+  // por eliminadoEm. Cada uma tem o seu próprio cursor Firestore; um
+  // pequeno "buffer" local guarda docs já lidos mas ainda não mostrados,
+  // para se poder intercalar as duas fontes por data sem perder nada.
+  const ordersCursorRef = useRef(null);
+  const inspectionsCursorRef = useRef(null);
+  const ordersDoneRef = useRef(false);
+  const inspectionsDoneRef = useRef(false);
+  const ordersBufferRef = useRef([]);
+  const inspectionsBufferRef = useRef([]);
+  const autoLoadCountRef = useRef(0);
+
+  const ensureBuffer = useCallback(
+    async (bufferRef, cursorRef, doneRef, baseQuery, mapFn) => {
+      if (bufferRef.current.length > 0 || doneRef.current) return;
+      const { docs, cursor, hasMore: more } = await fetchPage(baseQuery, {
+        pageSize: PAGE_SIZE,
+        cursor: cursorRef.current,
+      });
+      bufferRef.current = docs.map(mapFn);
+      cursorRef.current = cursor;
+      doneRef.current = !more;
+    },
+    []
+  );
+
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore) return;
+    const noMoreLeft =
+      ordersDoneRef.current &&
+      inspectionsDoneRef.current &&
+      ordersBufferRef.current.length === 0 &&
+      inspectionsBufferRef.current.length === 0;
+    if (noMoreLeft) {
+      setHasMore(false);
+      return;
+    }
+
+    setIsLoadingMore(true);
     try {
-      setLoading(true);
-      setError(null);
-
-      const [ordersSnap, inspectionsSnap, clientsSnap] = await Promise.all([
-        getDocs(collection(db, "ordens")),
-        getDocs(collection(db, "inspections")),
-        getDocs(collection(db, "clientes")),
+      await Promise.all([
+        ensureBuffer(ordersBufferRef, ordersCursorRef, ordersDoneRef, ordersDeletedQuery, mapOrderItem),
+        ensureBuffer(inspectionsBufferRef, inspectionsCursorRef, inspectionsDoneRef, inspectionsDeletedQuery, mapInspectionItem),
       ]);
 
-      const cMap = {};
-      clientsSnap.docs.forEach((d) => {
-        cMap[d.id] = { id: d.id, ...d.data() };
-      });
-      setClientsMap(cMap);
+      const merged = [];
+      while (
+        merged.length < PAGE_SIZE &&
+        (ordersBufferRef.current.length > 0 || inspectionsBufferRef.current.length > 0)
+      ) {
+        const nextOrder = ordersBufferRef.current[0];
+        const nextInsp = inspectionsBufferRef.current[0];
+        let pickRef;
+        if (nextOrder && nextInsp) {
+          pickRef = toJsDate(nextOrder.eliminadoEm) >= toJsDate(nextInsp.eliminadoEm)
+            ? ordersBufferRef
+            : inspectionsBufferRef;
+        } else {
+          pickRef = nextOrder ? ordersBufferRef : inspectionsBufferRef;
+        }
+        merged.push(pickRef.current.shift());
+      }
 
-      const deletedOrders = ordersSnap.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .filter((o) => o.eliminadoEm)
-        .map((o) => ({
-          id: o.id,
-          collectionName: "ordens",
-          tipo: "ordem",
-          label: `Ordem de Serviço — ${o.serviceType || o.id}`,
-          clientId: o.clientId,
-          eliminadoEm: o.eliminadoEm,
-          linkTo: `/app/order-detail/${o.id}`,
-        }));
+      setItems((prev) => [...prev, ...merged]);
 
-      const deletedInspections = inspectionsSnap.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .filter((i) => i.eliminadoEm)
-        .map((i) => ({
-          id: i.id,
-          collectionName: "inspections",
-          tipo: "inspecao",
-          label: `Relatório de Inspeção — ${i.type || i.id}`,
-          clientId: i.clientId,
-          eliminadoEm: i.eliminadoEm,
-          linkTo: `/app/inspection-detail/${i.id}`,
-        }));
-
-      const all = [...deletedOrders, ...deletedInspections].sort((a, b) => {
-        const dateA = a.eliminadoEm?.toDate ? a.eliminadoEm.toDate() : new Date(a.eliminadoEm);
-        const dateB = b.eliminadoEm?.toDate ? b.eliminadoEm.toDate() : new Date(b.eliminadoEm);
-        return dateB - dateA;
-      });
-
-      setItems(all);
+      const stillHasMore =
+        !ordersDoneRef.current ||
+        !inspectionsDoneRef.current ||
+        ordersBufferRef.current.length > 0 ||
+        inspectionsBufferRef.current.length > 0;
+      setHasMore(stillHasMore);
     } catch (err) {
       console.error("Erro ao carregar reciclagem:", err);
       setError("Erro ao carregar itens da reciclagem.");
     } finally {
-      setLoading(false);
+      setIsLoadingMore(false);
     }
-  }, []);
+  }, [isLoadingMore, ensureBuffer]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    const init = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const allClients = await ensureClients();
+        const cMap = {};
+        allClients.forEach((client) => {
+          cMap[client.id] = client;
+        });
+        setClientsMap(cMap);
+
+        await loadMore();
+      } catch (err) {
+        console.error("Erro ao carregar reciclagem:", err);
+        setError("Erro ao carregar itens da reciclagem.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleRestore = async (item) => {
     try {
@@ -153,20 +244,21 @@ const ManageRecycleBin = () => {
     }
   };
 
-  const groupedByClient = useMemo(() => {
-    const searchLower = searchTerm.toLowerCase();
-    const filtered = items.filter((item) => {
-      if (!searchLower) return true;
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      if (!searchTerm) return true;
       const clientName = clientsMap[item.clientId]?.name || "";
       return (
-        clientName.toLowerCase().includes(searchLower) ||
-        item.label.toLowerCase().includes(searchLower)
+        searchIncludes(clientName, searchTerm) ||
+        searchIncludes(item.label, searchTerm)
       );
     });
+  }, [items, clientsMap, searchTerm]);
 
+  const groupedByClient = useMemo(() => {
     const groups = {};
     const semClienteKey = "__sem_cliente__";
-    filtered.forEach((item) => {
+    filteredItems.forEach((item) => {
       const key = item.clientId && clientsMap[item.clientId] ? item.clientId : semClienteKey;
       if (!groups[key]) {
         groups[key] = {
@@ -179,7 +271,24 @@ const ManageRecycleBin = () => {
     });
 
     return Object.values(groups).sort((a, b) => b.items.length - a.items.length);
-  }, [items, clientsMap, searchTerm]);
+  }, [filteredItems, clientsMap]);
+
+  // Pesquisa/filtro só opera sobre os lotes já carregados. Se o
+  // utilizador está a pesquisar e os resultados ainda são poucos,
+  // carrega automaticamente mais lotes para a pesquisa "parecer completa".
+  useEffect(() => {
+    if (
+      searchTerm &&
+      hasMore &&
+      !isLoadingMore &&
+      !loading &&
+      filteredItems.length < PAGE_SIZE &&
+      autoLoadCountRef.current < MAX_AUTO_LOADS
+    ) {
+      autoLoadCountRef.current += 1;
+      loadMore();
+    }
+  }, [searchTerm, filteredItems.length, hasMore, isLoadingMore, loading, loadMore]);
 
   if (loading) {
     return (
@@ -298,6 +407,30 @@ const ManageRecycleBin = () => {
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Carregar mais */}
+      {hasMore && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={loadMore}
+            disabled={isLoadingMore}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+          >
+            {isLoadingMore ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                A carregar...
+              </>
+            ) : (
+              <>
+                <ArrowDown className="h-4 w-4" />
+                Carregar mais
+              </>
+            )}
+          </Button>
         </div>
       )}
 

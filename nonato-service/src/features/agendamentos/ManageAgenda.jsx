@@ -8,8 +8,13 @@ import {
   updateDoc,
   deleteDoc,
   addDoc,
+  query,
+  where,
+  orderBy,
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
+import { searchIncludes } from "../../utils/normalizeSearch.js";
+import { useClients } from "../../context/ClientsContext.jsx";
 import {
   Search,
   Plus,
@@ -32,6 +37,7 @@ import {
   X,
   Zap,
   ArrowRight,
+  ArrowDown,
   MessageCircle,
   UserCog,
   ChevronDown,
@@ -331,6 +337,7 @@ const AppointmentCard = ({
 
 const ManageAgenda = () => {
   const navigate = useNavigate();
+  const { ensureClients, getClientById } = useClients();
   const [appointments, setAppointments] = useState([]);
   const [preAgendamentos, setPreAgendamentos] = useState([]); // ✅ NOVO
   const [searchTerm, setSearchTerm] = useState("");
@@ -350,8 +357,14 @@ const ManageAgenda = () => {
   }); // ✅ NOVO
   const [remindersDialogOpen, setRemindersDialogOpen] = useState(false); // ✅ NOVO
   const [preAgendamentosOpen, setPreAgendamentosOpen] = useState(false); // ✅ Recolhido por defeito para não ocupar espaço
-  const [quickAddOpen, setQuickAddOpen] = useState(false); // ✅ Marcar clicando no dia
+  const [quickAddOpen, setQuickAddOpen] = useState(false); // ✅ Marcar clicando num dia
   const [quickAddDate, setQuickAddDate] = useState(null);
+  // Scroll infinito (só na vista de Lista): mostra só os primeiros
+  // `visibleCount` agendamentos do mês já filtrado (o mês inteiro já está
+  // em memória — não há paginação por cursor aqui porque a grelha de
+  // calendário precisa sempre do mês completo).
+  const PAGE_SIZE = 10;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const months = [
     "Janeiro",
@@ -402,7 +415,9 @@ const ManageAgenda = () => {
     }
   };
 
-  // ✅ FUNÇÃO ATUALIZADA: Buscar pré-agendamentos com equipamentos
+  // ✅ Buscar pré-agendamentos com equipamentos. O cliente registado vem do
+  // cache partilhado (ClientsContext) em vez de um getDoc por item — só o
+  // equipamento (sem cache equivalente) ainda faz uma leitura por item.
   const fetchPreAgendamentos = useCallback(async () => {
     try {
       const preAgendamentosRef = collection(db, "pre_agendamentos");
@@ -412,22 +427,20 @@ const ManageAgenda = () => {
         ...doc.data(),
       }));
 
-      // Buscar dados dos clientes registrados e equipamentos
       const preAgendamentosWithDetails = await Promise.all(
         preAgendamentosData.map(async (preAgendamento) => {
           let updatedPreAgendamento = { ...preAgendamento };
 
-          // Buscar dados do cliente se registrado
           if (preAgendamento.isRegisteredClient && preAgendamento.clientId) {
-            const clientDoc = await getDoc(
-              doc(db, "clientes", preAgendamento.clientId)
-            );
-            if (clientDoc.exists()) {
-              updatedPreAgendamento.cliente = clientDoc.data();
+            const cliente = getClientById(preAgendamento.clientId);
+            if (cliente) {
+              updatedPreAgendamento.cliente = cliente;
             }
           }
 
-          // ✅ NOVO: Buscar dados do equipamento se selecionado
+          // ✅ Equipamento: sem cache equivalente ao de clientes, mantém-se
+          // uma leitura por item (lista de pré-agendamentos é tipicamente
+          // pequena — só os pendentes de conversão).
           if (preAgendamento.equipmentId) {
             const equipmentDoc = await getDoc(
               doc(db, "equipamentos", preAgendamento.equipmentId)
@@ -445,42 +458,51 @@ const ManageAgenda = () => {
     } catch (err) {
       console.error("Error fetching pre agendamentos:", err);
     }
-  }, []);
+  }, [getClientById]);
 
+  // ✅ Agendamentos: em vez de ler a coleção inteira (todos os meses, todos
+  // os anos) e filtrar no cliente, a query já vem limitada ao mês
+  // selecionado (campo "data" no formato "AAAA-MM-DD", que ordena bem como
+  // string). Os dados do cliente vêm do cache partilhado (ClientsContext,
+  // já buscado uma vez para toda a app) em vez de um getDoc por agendamento.
   const fetchAppointments = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const appointmentsRef = collection(db, "agendamentos");
-      const querySnapshot = await getDocs(appointmentsRef);
-      const appointmentsData = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const monthStart = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-01`;
+      const lastDay = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+      const monthEnd = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
-      const appointmentsWithDetails = await Promise.all(
-        appointmentsData.map(async (appointment) => {
-          if (appointment.clientId) {
-            const clientDoc = await getDoc(
-              doc(db, "clientes", appointment.clientId)
-            );
-            return {
-              ...appointment,
-              cliente: clientDoc.exists() ? clientDoc.data() : null,
-            };
-          }
-          return appointment;
-        })
+      const appointmentsRef = query(
+        collection(db, "agendamentos"),
+        where("data", ">=", monthStart),
+        where("data", "<=", monthEnd),
+        orderBy("data")
       );
+
+      const [querySnapshot] = await Promise.all([
+        getDocs(appointmentsRef),
+        ensureClients(),
+      ]);
+
+      const appointmentsData = querySnapshot.docs.map((docSnap) => {
+        const data = { id: docSnap.id, ...docSnap.data() };
+        return {
+          ...data,
+          cliente: data.clientId ? getClientById(data.clientId) : null,
+        };
+      });
 
       // Atualiza agendamentos passados e define o estado
       const updatedAppointments = await updatePastAppointments(
-        appointmentsWithDetails
+        appointmentsData
       );
       setAppointments(updatedAppointments);
+      setVisibleCount(PAGE_SIZE);
 
-      // ✅ NOVO: Buscar pré-agendamentos também
+      // ✅ Buscar pré-agendamentos também (não é filtrado por mês — são
+      // pendentes de conversão, independentemente da data)
       await fetchPreAgendamentos();
     } catch (err) {
       console.error("Error fetching appointments:", err);
@@ -488,7 +510,7 @@ const ManageAgenda = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [fetchPreAgendamentos]);
+  }, [selectedMonth, selectedYear, ensureClients, getClientById, fetchPreAgendamentos]);
 
   useEffect(() => {
     fetchAppointments();
@@ -645,22 +667,34 @@ const ManageAgenda = () => {
     return colors[Math.abs(hash) % colors.length];
   };
 
+  // O mês já vem filtrado da query à Firestore — só falta filtrar por
+  // pesquisa e por estado (ambos operam sobre os dados já carregados).
   const filteredAppointments = appointments.filter((appointment) => {
     const matchesSearch =
-      appointment.cliente?.name
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      appointment.hora?.toLowerCase().includes(searchTerm.toLowerCase());
+      searchIncludes(appointment.cliente?.name, searchTerm) ||
+      searchIncludes(appointment.hora, searchTerm);
     const matchesFilter =
       filterStatus === "all" || appointment.status === filterStatus;
 
-    const appointmentDate = new Date(appointment.data);
-    const matchesMonth =
-      appointmentDate.getMonth() === selectedMonth &&
-      appointmentDate.getFullYear() === selectedYear;
-
-    return matchesSearch && matchesFilter && matchesMonth;
+    return matchesSearch && matchesFilter;
   });
+
+  // Scroll infinito (só na vista de Lista, que é a única com uma lista
+  // linear a percorrer — o calendário mostra sempre o mês completo).
+  const sortedFilteredAppointments = [...filteredAppointments].sort((a, b) => {
+    const dateCompare = a.data.localeCompare(b.data);
+    return dateCompare === 0 ? a.hora.localeCompare(b.hora) : dateCompare;
+  });
+  const visibleAppointments = sortedFilteredAppointments.slice(0, visibleCount);
+  const hasMoreVisible = visibleCount < sortedFilteredAppointments.length;
+
+  const loadMoreVisible = useCallback(() => {
+    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, sortedFilteredAppointments.length));
+  }, [sortedFilteredAppointments.length]);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchTerm, filterStatus, viewMode]);
 
   const stats = {
     total: filteredAppointments.length,
@@ -1203,13 +1237,7 @@ const ManageAgenda = () => {
           </>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredAppointments
-              .sort((a, b) => {
-                const dateCompare = a.data.localeCompare(b.data);
-                return dateCompare === 0
-                  ? a.hora.localeCompare(b.hora)
-                  : dateCompare;
-              })
+            {visibleAppointments
               .map((appointment) => (
                 <AppointmentCard
                   key={appointment.id}
@@ -1222,6 +1250,20 @@ const ManageAgenda = () => {
                   onToggleComplete={handleToggleComplete}
                 />
               ))}
+          </div>
+        )}
+
+        {/* Carregar mais (vista de Lista) */}
+        {viewMode === "list" && hasMoreVisible && (
+          <div className="flex justify-center py-4">
+            <Button
+              variant="outline"
+              onClick={loadMoreVisible}
+              className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+            >
+              <ArrowDown className="h-4 w-4" />
+              Carregar mais
+            </Button>
           </div>
         )}
 

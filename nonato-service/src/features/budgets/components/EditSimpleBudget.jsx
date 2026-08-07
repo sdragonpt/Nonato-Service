@@ -22,6 +22,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
+import formatEuroNumber from "../../../utils/formatters/formatEuroNumber";
 import generateSimpleBudgetPDF from "./pdf/generateSimpleBudgetPDF.jsx";
 import ServiceInput from "../../../components/shared/ServiceInput.jsx";
 import IVASelector from "./IVASelector.jsx";
@@ -167,9 +168,8 @@ const EditSimpleBudget = () => {
       const pdfUrl = URL.createObjectURL(pdfBlob);
       const link = document.createElement("a");
       link.href = pdfUrl;
-      link.download = `${isExpense ? "Despesa" : "Orçamento"}_${
-        clientData.name
-      }_${originalData.budgetNumber}.pdf`;
+      // ✅ Nome do ficheiro = número gerado (ex.: ORC-0826-0042.pdf / DESP-0826-0015.pdf)
+      link.download = `${originalData.budgetNumber}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -380,10 +380,10 @@ const EditSimpleBudget = () => {
                       <p className="text-white font-medium">{service.name}</p>
                       <p className="text-zinc-400 text-sm">
                         {service.multipleEntries
-                          ? `Total: ${service.total.toFixed(2)}€`
-                          : `${service.value.toFixed(2)}€ x ${
+                          ? `Total: ${formatEuroNumber(service.total)}€`
+                          : `${formatEuroNumber(service.value)}€ x ${
                               service.quantity
-                            } = ${service.total.toFixed(2)}€`}
+                            } = ${formatEuroNumber(service.total)}€`}
                       </p>
                       {service.multipleEntries && (
                         <div className="mt-1 text-xs text-zinc-400">
@@ -407,7 +407,7 @@ const EditSimpleBudget = () => {
                 ))}
                 <div className="pt-4 border-t border-zinc-700">
                   <p className="text-right font-medium text-white">
-                    Total: {totalAmount.toFixed(2)}€
+                    Total: {formatEuroNumber(totalAmount)}€
                   </p>
                 </div>
               </div>

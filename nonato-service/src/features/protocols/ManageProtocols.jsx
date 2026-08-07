@@ -1,8 +1,10 @@
 // ManageProtocols.jsx - Protocolos de Serviço (antes/depois por cliente + equipamento)
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, getDocs, doc, deleteDoc, orderBy, query } from "firebase/firestore";
+import { collection, doc, deleteDoc, orderBy, query } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
+import { searchIncludes } from "../../utils/normalizeSearch.js";
+import { fetchPage } from "../../utils/firestorePage.js";
 import {
   Search,
   Plus,
@@ -15,6 +17,7 @@ import {
   Printer,
   CheckCircle2,
   FileEdit,
+  ArrowDown,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card.jsx";
@@ -43,6 +46,14 @@ const STATUS_LABELS = {
   concluido: { label: "Concluído", className: "bg-green-500/20 text-green-400" },
 };
 
+const PAGE_SIZE = 10;
+const MAX_AUTO_LOADS = 15;
+
+const protocolsBaseQuery = query(
+  collection(db, "protocolosServico"),
+  orderBy("updatedAt", "desc")
+);
+
 const ManageProtocols = () => {
   const navigate = useNavigate();
   const [protocols, setProtocols] = useState([]);
@@ -51,40 +62,82 @@ const ManageProtocols = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const fetchProtocols = async () => {
+  const cursorRef = useRef(null);
+  const autoLoadCountRef = useRef(0);
+
+  const loadPage = useCallback(async (cursor) => {
+    const { docs, cursor: nextCursor, hasMore: more } = await fetchPage(protocolsBaseQuery, {
+      pageSize: PAGE_SIZE,
+      cursor,
+    });
+    cursorRef.current = nextCursor;
+    setHasMore(more);
+    return docs;
+  }, []);
+
+  const fetchProtocols = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const q = query(
-        collection(db, "protocolosServico"),
-        orderBy("updatedAt", "desc")
-      );
-      const snap = await getDocs(q);
-      setProtocols(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      cursorRef.current = null;
+      const docs = await loadPage(null);
+      setProtocols(docs);
     } catch (err) {
       console.error("Erro ao carregar protocolos:", err);
       setError("Erro ao carregar protocolos de serviço.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadPage]);
 
   useEffect(() => {
     fetchProtocols();
-  }, []);
+  }, [fetchProtocols]);
+
+  const loadMore = useCallback(async () => {
+    if (!hasMore || isLoadingMore || !cursorRef.current) return;
+    setIsLoadingMore(true);
+    try {
+      const docs = await loadPage(cursorRef.current);
+      setProtocols((prev) => [...prev, ...docs]);
+    } catch (err) {
+      console.error("Erro ao carregar mais protocolos:", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [hasMore, isLoadingMore, loadPage]);
 
   const filtered = useMemo(() => {
     return protocols.filter((p) => {
       const matchesSearch =
         !searchTerm ||
-        p.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.equipmentName?.toLowerCase().includes(searchTerm.toLowerCase());
+        searchIncludes(p.title, searchTerm) ||
+        searchIncludes(p.protocolNumber, searchTerm) ||
+        searchIncludes(p.clientName, searchTerm) ||
+        searchIncludes(p.equipmentName, searchTerm);
       const matchesStatus = statusFilter === "all" || p.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [protocols, searchTerm, statusFilter]);
+
+  // Pesquisa/filtro só opera sobre os lotes já carregados; se os
+  // resultados ficarem escassos com pesquisa ativa, carrega mais.
+  useEffect(() => {
+    if (
+      (searchTerm || statusFilter !== "all") &&
+      hasMore &&
+      !isLoadingMore &&
+      !loading &&
+      filtered.length < PAGE_SIZE &&
+      autoLoadCountRef.current < MAX_AUTO_LOADS
+    ) {
+      autoLoadCountRef.current += 1;
+      loadMore();
+    }
+  }, [searchTerm, statusFilter, filtered.length, hasMore, isLoadingMore, loading, loadMore]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -202,6 +255,9 @@ const ManageProtocols = () => {
                       <h3 className="font-semibold text-white truncate">
                         {protocol.title || "Protocolo sem título"}
                       </h3>
+                      <p className="text-xs text-zinc-500 font-mono">
+                        {protocol.protocolNumber || `PROT-${protocol.id}`}
+                      </p>
                       <div className="flex items-center gap-1.5 text-sm text-zinc-400 mt-1">
                         <User className="h-3.5 w-3.5" />
                         <span className="truncate">
@@ -267,6 +323,30 @@ const ManageProtocols = () => {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {/* Carregar mais */}
+      {hasMore && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={loadMore}
+            disabled={isLoadingMore}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+          >
+            {isLoadingMore ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                A carregar...
+              </>
+            ) : (
+              <>
+                <ArrowDown className="h-4 w-4" />
+                Carregar mais
+              </>
+            )}
+          </Button>
         </div>
       )}
 

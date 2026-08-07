@@ -1,6 +1,6 @@
 // ManageShopAccess.jsx - Atualizado com recursos de aprovação
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   collection,
   getDocs,
@@ -14,6 +14,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
+import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { useAuth } from "../../hooks/useAuth";
 import {
   Search,
@@ -27,8 +28,6 @@ import {
   Mail,
   Phone,
   Building2,
-  ChevronLeft,
-  ChevronRight,
   Check,
   Share2,
   ExternalLink,
@@ -39,6 +38,7 @@ import {
   XCircle,
   CheckCircle2,
   Clock8,
+  ArrowDown,
 } from "lucide-react";
 import QRCode from "react-qr-code";
 
@@ -88,9 +88,12 @@ const ManageShopAccess = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedToken, setCopiedToken] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("all");
-  const itemsPerPage = 10;
+  // Scroll infinito: lista pequena e sempre lida por inteiro, por isso não
+  // há paginação por cursor à Firestore aqui — só se controla quantos dos
+  // que já estão em memória são mostrados de cada vez.
+  const PAGE_SIZE = 10;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   // Novos estados para compartilhamento
   const [tokenToShare, setTokenToShare] = useState(null);
@@ -190,6 +193,10 @@ const ManageShopAccess = () => {
       fetchAccessTokens();
     }
   }, [loading, user?.uid]);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchTerm, activeTab]);
 
   // Format date
   const formatDate = (timestamp) => {
@@ -424,26 +431,21 @@ const ManageShopAccess = () => {
 
     // Filtrar por termo de busca
     return (
-      token.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      token.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      token.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      token.token?.toLowerCase().includes(searchTerm.toLowerCase())
+      searchIncludes(token.name, searchTerm) ||
+      searchIncludes(token.email, searchTerm) ||
+      searchIncludes(token.company, searchTerm) ||
+      searchIncludes(token.token, searchTerm)
     );
   });
 
-  // Pagination
-  const indexOfLastToken = currentPage * itemsPerPage;
-  const indexOfFirstToken = indexOfLastToken - itemsPerPage;
-  const currentTokens = filteredTokens.slice(
-    indexOfFirstToken,
-    indexOfLastToken
-  );
-  const totalPages = Math.ceil(filteredTokens.length / itemsPerPage);
+  // Scroll infinito: mostra só os primeiros `visibleCount` tokens já
+  // filtrados (a lista inteira está em memória).
+  const currentTokens = filteredTokens.slice(0, visibleCount);
+  const hasMoreVisible = visibleCount < filteredTokens.length;
 
-  const paginate = (pageNumber) => {
-    setCurrentPage(pageNumber);
-    window.scrollTo(0, 0);
-  };
+  const loadMoreVisible = useCallback(() => {
+    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredTokens.length));
+  }, [filteredTokens.length]);
 
   // Renderizar badge de status de acesso
   const renderAccessStatusBadge = (token) => {
@@ -1027,89 +1029,16 @@ const ManageShopAccess = () => {
         </div>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-8">
+      {/* Carregar mais */}
+      {hasMoreVisible && (
+        <div className="flex justify-center">
           <Button
             variant="outline"
-            size="icon"
-            onClick={() => paginate(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+            onClick={loadMoreVisible}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
           >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-
-          {currentPage > 3 && (
-            <>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => paginate(1)}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-              >
-                1
-              </Button>
-              {currentPage > 4 && <span className="text-zinc-400">...</span>}
-            </>
-          )}
-
-          {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
-            let pageNumber;
-            if (totalPages <= 5) {
-              pageNumber = i + 1;
-            } else if (currentPage <= 3) {
-              pageNumber = i + 1;
-            } else if (currentPage >= totalPages - 2) {
-              pageNumber = totalPages - 4 + i;
-            } else {
-              pageNumber = currentPage - 2 + i;
-            }
-
-            if (pageNumber >= 1 && pageNumber <= totalPages) {
-              return (
-                <Button
-                  key={pageNumber}
-                  variant={currentPage === pageNumber ? "secondary" : "outline"}
-                  size="icon"
-                  onClick={() => paginate(pageNumber)}
-                  className={`border-zinc-700 ${
-                    currentPage === pageNumber
-                      ? "bg-zinc-700 text-white hover:bg-zinc-600"
-                      : "text-white hover:bg-zinc-700 bg-zinc-800"
-                  }`}
-                >
-                  {pageNumber}
-                </Button>
-              );
-            }
-            return null;
-          })}
-
-          {currentPage < totalPages - 2 && (
-            <>
-              {currentPage < totalPages - 3 && (
-                <span className="text-zinc-400">...</span>
-              )}
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => paginate(totalPages)}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-              >
-                {totalPages}
-              </Button>
-            </>
-          )}
-
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => paginate(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
-          >
-            <ChevronRight className="h-4 w-4" />
+            <ArrowDown className="h-4 w-4" />
+            Carregar mais
           </Button>
         </div>
       )}

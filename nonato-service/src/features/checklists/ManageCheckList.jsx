@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   collection,
   getDocs,
@@ -20,6 +20,7 @@ import {
   AlertTriangle,
   ChevronRight,
   ChevronDown,
+  ArrowDown,
   Layers,
   ListChecks,
   ClipboardList,
@@ -30,7 +31,6 @@ import {
   GraduationCap,
   Wrench,
   Code,
-  ChevronLeft,
 } from "lucide-react";
 
 // UI Components
@@ -236,9 +236,11 @@ const ManageChecklist = () => {
   const navigate = useNavigate();
   const [categoryFilter, setCategoryFilter] = useState("all");
 
-  // Adicionar estado de paginação
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5; // Ajuste conforme necessário
+  // Scroll infinito: lista pequena e sempre lida por inteiro, por isso não
+  // há paginação por cursor à Firestore aqui — só se controla quantos dos
+  // que já estão em memória são mostrados de cada vez.
+  const PAGE_SIZE = 10;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const fetchTypes = async () => {
     try {
@@ -293,21 +295,18 @@ const ManageChecklist = () => {
     return matchesSearch && matchesCategory;
   });
 
-  // Calcular dados da paginação
-  const indexOfLastType = currentPage * itemsPerPage;
-  const indexOfFirstType = indexOfLastType - itemsPerPage;
-  const currentTypes = filteredTypes.slice(indexOfFirstType, indexOfLastType);
-  const totalPages = Math.ceil(filteredTypes.length / itemsPerPage);
+  // Scroll infinito: mostra só os primeiros `visibleCount` tipos já
+  // filtrados (a lista inteira está em memória).
+  const currentTypes = filteredTypes.slice(0, visibleCount);
+  const hasMoreVisible = visibleCount < filteredTypes.length;
 
-  // Função para mudança de página
-  const paginate = (pageNumber) => {
-    setCurrentPage(pageNumber);
-    window.scrollTo(0, 0);
-  };
+  const loadMoreVisible = useCallback(() => {
+    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredTypes.length));
+  }, [filteredTypes.length]);
 
-  // Resetar página quando filtros mudarem
+  // Resetar quantos são mostrados quando os filtros mudarem
   useEffect(() => {
-    setCurrentPage(1);
+    setVisibleCount(PAGE_SIZE);
   }, [searchTerm, categoryFilter]);
 
   const stats = {
@@ -432,8 +431,7 @@ const ManageChecklist = () => {
               onValueChange={setCategoryFilter}
             />
             <span className="text-sm text-zinc-400">
-              {filteredTypes.length} tipo(s) encontrado(s) - Página{" "}
-              {currentPage} de {totalPages || 1}
+              A mostrar {currentTypes.length} de {filteredTypes.length} tipo(s)
             </span>
           </div>
 
@@ -494,89 +492,16 @@ const ManageChecklist = () => {
         )}
       </div>
 
-      {/* Paginação */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-8">
+      {/* Carregar mais */}
+      {hasMoreVisible && (
+        <div className="flex justify-center">
           <Button
             variant="outline"
-            size="icon"
-            onClick={() => paginate(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+            onClick={loadMoreVisible}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
           >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-
-          {currentPage > 3 && (
-            <>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => paginate(1)}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-              >
-                1
-              </Button>
-              {currentPage > 4 && <span className="text-zinc-400">...</span>}
-            </>
-          )}
-
-          {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
-            let pageNumber;
-            if (totalPages <= 5) {
-              pageNumber = i + 1;
-            } else if (currentPage <= 3) {
-              pageNumber = i + 1;
-            } else if (currentPage >= totalPages - 2) {
-              pageNumber = totalPages - 4 + i;
-            } else {
-              pageNumber = currentPage - 2 + i;
-            }
-
-            if (pageNumber >= 1 && pageNumber <= totalPages) {
-              return (
-                <Button
-                  key={pageNumber}
-                  variant={currentPage === pageNumber ? "secondary" : "outline"}
-                  size="icon"
-                  onClick={() => paginate(pageNumber)}
-                  className={`border-zinc-700 ${
-                    currentPage === pageNumber
-                      ? "bg-zinc-700 text-white hover:bg-zinc-600"
-                      : "text-white hover:bg-zinc-700 bg-zinc-800"
-                  }`}
-                >
-                  {pageNumber}
-                </Button>
-              );
-            }
-            return null;
-          })}
-
-          {currentPage < totalPages - 2 && (
-            <>
-              {currentPage < totalPages - 3 && (
-                <span className="text-zinc-400">...</span>
-              )}
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => paginate(totalPages)}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-              >
-                {totalPages}
-              </Button>
-            </>
-          )}
-
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => paginate(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
-          >
-            <ChevronRight className="h-4 w-4" />
+            <ArrowDown className="h-4 w-4" />
+            Carregar mais
           </Button>
         </div>
       )}

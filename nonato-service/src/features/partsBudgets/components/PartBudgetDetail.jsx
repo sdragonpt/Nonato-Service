@@ -1,13 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  collection,
-  getDocs,
-  deleteDoc,
-} from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../../firebase";
 import generateQuotePDF from "./pdf/generateQuotePDF";
 import { Filesystem, Directory } from "@capacitor/filesystem";
@@ -70,13 +63,7 @@ const PartBudgetDetail = () => {
       setIsLoading(true);
       setError(null);
 
-      const [quoteDoc, clientsSnapshot, equipmentsSnapshot] = await Promise.all(
-        [
-          getDoc(doc(db, "ordens", quoteId)),
-          getDocs(collection(db, "clientes")),
-          getDocs(collection(db, "equipamentos")),
-        ]
-      );
+      const quoteDoc = await getDoc(doc(db, "ordens", quoteId));
 
       if (!quoteDoc.exists()) {
         setError("Orçamento de peças não encontrado");
@@ -127,11 +114,8 @@ const PartBudgetDetail = () => {
       setIsGeneratingPDF(true);
       setError(null);
 
-      const fileName = `OrcamentoPecas_${
-        quote.isUnregisteredClient
-          ? quote.unregisteredClient?.name || "Cliente"
-          : client?.name || "Cliente"
-      }_${quoteId}.pdf`;
+      // ✅ Nome do ficheiro = número do orçamento de peças (ex.: ORP-0826-0009.pdf)
+      const fileName = `${quote.quoteNumber || `ORP-${quoteId}`}.pdf`;
 
       // Preparar dados para o PDF
       const clientData = quote.isUnregisteredClient
@@ -251,7 +235,11 @@ const PartBudgetDetail = () => {
   };
 
   const formatPrice = (price) => {
-    return `€ ${parseFloat(price || 0).toFixed(2)}`;
+    const numericAmount = parseFloat(price || 0);
+    const isNegative = numericAmount < 0;
+    const [intPart, decPart] = Math.abs(numericAmount).toFixed(2).split(".");
+    const intWithDots = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return `${isNegative ? "-" : ""}€ ${intWithDots},${decPart}`;
   };
 
   const calculateTotal = () => {

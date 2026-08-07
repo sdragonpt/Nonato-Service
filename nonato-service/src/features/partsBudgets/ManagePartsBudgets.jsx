@@ -1,17 +1,20 @@
 // src/features/partsBudgets/ManagePartsBudgets.jsx - ✅ CORRIGIDO
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   collection,
-  getDocs,
   deleteDoc,
   doc,
   query,
   where,
   orderBy,
   updateDoc,
+  getCountFromServer,
 } from "firebase/firestore";
 import { db } from "../../firebase";
+import { useClients } from "../../context/ClientsContext.jsx";
+import { searchIncludes } from "../../utils/normalizeSearch.js";
+import { fetchPage } from "../../utils/firestorePage.js";
 import {
   Search,
   Plus,
@@ -25,10 +28,9 @@ import {
   Calculator,
   AlertTriangle,
   Package,
-  ChevronLeft,
-  ChevronRight,
   FileText,
   ArrowLeft, // ✅ NOVO: Para voltar atrás
+  ArrowDown,
   Undo2, // ✅ NOVO: Para voltar atrás
 } from "lucide-react";
 
@@ -68,11 +70,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
 
+const PAGE_SIZE = 10;
+const MAX_AUTO_LOADS = 15; // salvaguarda: nº máx. de lotes extra a carregar automaticamente ao pesquisar/filtrar
+
 const ManagePartsBudgets = () => {
   const navigate = useNavigate();
+  const { ensureClients } = useClients();
+
+  // ✅ Carregado por lotes (cursor do Firestore), em vez de ler todos os
+  // orçamentos de peças de uma só vez.
   const [quotes, setQuotes] = useState([]);
   const [clients, setClients] = useState({}); // ✅ NOVO: Para clientes registrados
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -83,51 +94,106 @@ const ManagePartsBudgets = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [quoteToDelete, setQuoteToDelete] = useState(null);
 
-  // Paginação
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  // Contagens exatas por status (aggregation query — não lê os documentos)
+  const [statusCounts, setStatusCounts] = useState({
+    total: null,
+    Aberto: null,
+    "Em Andamento": null,
+    Fechado: null,
+  });
 
-  const fetchQuotes = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  const cursorRef = useRef(null);
+  const autoLoadCountRef = useRef(0);
 
-      // ✅ BUSCAR ORÇAMENTOS E CLIENTES EM PARALELO
-      const [quotesSnapshot, clientsSnapshot] = await Promise.all([
-        getDocs(
-          query(
-            collection(db, "ordens"),
-            where("isQuote", "==", true),
-            orderBy("createdAt", "desc")
-          )
-        ),
-        getDocs(collection(db, "clientes")),
-      ]);
-
-      const quotesData = quotesSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      // ✅ NOVO: Mapear clientes por ID para acesso rápido
-      const clientsData = clientsSnapshot.docs.reduce((acc, doc) => {
-        acc[doc.id] = { id: doc.id, ...doc.data() };
-        return acc;
-      }, {});
-
-      setQuotes(quotesData);
-      setClients(clientsData);
-    } catch (err) {
-      console.error("Erro ao buscar orçamentos:", err);
-      setError("Erro ao carregar orçamentos. Por favor, tente novamente.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const loadPage = useCallback(async (cursor) => {
+    const baseQuery = query(
+      collection(db, "ordens"),
+      where("isQuote", "==", true),
+      orderBy("createdAt", "desc")
+    );
+    const { docs, cursor: nextCursor, hasMore: more } = await fetchPage(baseQuery, {
+      pageSize: PAGE_SIZE,
+      cursor,
+    });
+    cursorRef.current = nextCursor;
+    setHasMore(more);
+    return docs;
+  }, []);
 
   useEffect(() => {
-    fetchQuotes();
+    (async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        cursorRef.current = null;
+        const [firstBatch, allClients] = await Promise.all([
+          loadPage(null),
+          ensureClients(),
+        ]);
+        setQuotes(firstBatch);
+        const clientsData = allClients.reduce((acc, client) => {
+          acc[client.id] = client;
+          return acc;
+        }, {});
+        setClients(clientsData);
+      } catch (err) {
+        console.error("Erro ao buscar orçamentos:", err);
+        setError("Erro ao carregar orçamentos. Por favor, tente novamente.");
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Contagens totais por status (cheap: aggregation query, não lê os docs)
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const quotesRef = collection(db, "ordens");
+        const isQuoteFilter = where("isQuote", "==", true);
+        const [totalSnap, abertoSnap, andamentoSnap, fechadoSnap] =
+          await Promise.all([
+            getCountFromServer(query(quotesRef, isQuoteFilter)),
+            getCountFromServer(
+              query(quotesRef, isQuoteFilter, where("status", "==", "Aberto"))
+            ),
+            getCountFromServer(
+              query(
+                quotesRef,
+                isQuoteFilter,
+                where("status", "==", "Em Andamento")
+              )
+            ),
+            getCountFromServer(
+              query(quotesRef, isQuoteFilter, where("status", "==", "Fechado"))
+            ),
+          ]);
+        setStatusCounts({
+          total: totalSnap.data().count,
+          Aberto: abertoSnap.data().count,
+          "Em Andamento": andamentoSnap.data().count,
+          Fechado: fechadoSnap.data().count,
+        });
+      } catch (err) {
+        console.error("Erro ao contar orçamentos:", err);
+      }
+    };
+    fetchCounts();
+  }, []);
+
+  const loadMore = useCallback(async () => {
+    if (!hasMore || isLoadingMore || !cursorRef.current) return;
+    setIsLoadingMore(true);
+    try {
+      const docs = await loadPage(cursorRef.current);
+      setQuotes((prev) => [...prev, ...docs]);
+    } catch (err) {
+      console.error("Erro ao carregar mais orçamentos:", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [hasMore, isLoadingMore, loadPage]);
 
   // ✅ NOVO: Função para obter dados do cliente (registrado ou não)
   const getClientData = (quote) => {
@@ -158,36 +224,50 @@ const ManagePartsBudgets = () => {
     };
   };
 
-  // Filtrar e paginar orçamentos
-  const getFilteredAndPaginatedQuotes = () => {
-    let filteredQuotes = quotes.filter((quote) => {
-      const clientData = getClientData(quote);
+  const filteredQuotes = quotes.filter((quote) => {
+    const clientData = getClientData(quote);
 
-      const matchesSearch =
-        quote.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        clientData.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        quote.serviceType?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch =
+      searchIncludes(quote.id, searchTerm) ||
+      searchIncludes(quote.quoteNumber, searchTerm) ||
+      searchIncludes(clientData.name, searchTerm) ||
+      searchIncludes(quote.serviceType, searchTerm);
 
-      const matchesStatus =
-        statusFilter === "all" || quote.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "all" || quote.status === statusFilter;
 
-      return matchesSearch && matchesStatus;
-    });
+    return matchesSearch && matchesStatus;
+  });
 
-    const totalFiltered = filteredQuotes.length;
-    const totalPages = Math.ceil(totalFiltered / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const paginatedQuotes = filteredQuotes.slice(
-      startIndex,
-      startIndex + itemsPerPage
-    );
+  // Ao pesquisar/filtrar, os resultados só existem dentro do que já foi
+  // carregado — por isso, se houver poucos resultados e ainda houver mais
+  // orçamentos por trás, vamos buscando lotes extra automaticamente.
+  useEffect(() => {
+    autoLoadCountRef.current = 0;
+  }, [searchTerm, statusFilter]);
 
-    return {
-      paginatedQuotes,
-      totalFiltered,
-      totalPages,
-    };
-  };
+  useEffect(() => {
+    const isFiltering = Boolean(searchTerm) || statusFilter !== "all";
+    if (
+      isFiltering &&
+      hasMore &&
+      !isLoadingMore &&
+      !isLoading &&
+      filteredQuotes.length < PAGE_SIZE &&
+      autoLoadCountRef.current < MAX_AUTO_LOADS
+    ) {
+      autoLoadCountRef.current += 1;
+      loadMore();
+    }
+  }, [
+    searchTerm,
+    statusFilter,
+    filteredQuotes.length,
+    hasMore,
+    isLoadingMore,
+    isLoading,
+    loadMore,
+  ]);
 
   // ✅ NOVO: Update quote status com possibilidade de voltar atrás
   const updateQuoteStatus = async (quoteId, newStatus) => {
@@ -281,7 +361,11 @@ const ManagePartsBudgets = () => {
 
   // Format price
   const formatPrice = (price) => {
-    return `€ ${parseFloat(price || 0).toFixed(2)}`;
+    const numericAmount = parseFloat(price || 0);
+    const isNegative = numericAmount < 0;
+    const [intPart, decPart] = Math.abs(numericAmount).toFixed(2).split(".");
+    const intWithDots = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return `${isNegative ? "-" : ""}€ ${intWithDots},${decPart}`;
   };
 
   // Calculate quote total
@@ -328,18 +412,6 @@ const ManagePartsBudgets = () => {
     );
   };
 
-  // Pagination
-  const paginate = (pageNumber) => {
-    setCurrentPage(pageNumber);
-  };
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
-
-  const { paginatedQuotes, totalFiltered, totalPages } =
-    getFilteredAndPaginatedQuotes();
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
@@ -378,7 +450,7 @@ const ManagePartsBudgets = () => {
             <div>
               <p className="text-sm font-medium text-zinc-400">Em Análise</p>
               <h3 className="text-xl sm:text-2xl font-bold text-yellow-500 mt-1 sm:mt-2">
-                {quotes.filter((q) => q.status === "Aberto").length}
+                {statusCounts.Aberto === null ? "…" : statusCounts.Aberto}
               </h3>
             </div>
             <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500" />
@@ -390,7 +462,9 @@ const ManagePartsBudgets = () => {
             <div>
               <p className="text-sm font-medium text-zinc-400">Em Andamento</p>
               <h3 className="text-xl sm:text-2xl font-bold text-blue-500 mt-1 sm:mt-2">
-                {quotes.filter((q) => q.status === "Em Andamento").length}
+                {statusCounts["Em Andamento"] === null
+                  ? "…"
+                  : statusCounts["Em Andamento"]}
               </h3>
             </div>
             <Calculator className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
@@ -402,7 +476,7 @@ const ManagePartsBudgets = () => {
             <div>
               <p className="text-sm font-medium text-zinc-400">Concluídos</p>
               <h3 className="text-xl sm:text-2xl font-bold text-green-500 mt-1 sm:mt-2">
-                {quotes.filter((q) => q.status === "Fechado").length}
+                {statusCounts.Fechado === null ? "…" : statusCounts.Fechado}
               </h3>
             </div>
             <CheckCircle2 className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
@@ -414,7 +488,7 @@ const ManagePartsBudgets = () => {
             <div>
               <p className="text-sm font-medium text-zinc-400">Total</p>
               <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
-                {quotes.length}
+                {statusCounts.total === null ? "…" : statusCounts.total}
               </h3>
             </div>
             <Package className="h-6 w-6 sm:h-8 sm:w-8 text-zinc-400" />
@@ -473,8 +547,8 @@ const ManagePartsBudgets = () => {
 
           <div className="flex justify-between items-center mt-4 pt-4 border-t border-zinc-700">
             <span className="text-sm text-zinc-400">
-              {totalFiltered} orçamento(s) encontrado(s) - Página {currentPage}{" "}
-              de {totalPages || 1}
+              {filteredQuotes.length} orçamento(s) carregado(s)
+              {hasMore && " — há mais por carregar"}
             </span>
           </div>
 
@@ -494,7 +568,7 @@ const ManagePartsBudgets = () => {
 
       {/* Quotes List */}
       <div className="space-y-4">
-        {paginatedQuotes.map((quote) => {
+        {filteredQuotes.map((quote) => {
           const clientData = getClientData(quote); // ✅ NOVO: Dados unificados do cliente
 
           return (
@@ -555,9 +629,9 @@ const ManagePartsBudgets = () => {
 
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                         <div>
-                          <p className="text-zinc-400">ID do Orçamento</p>
+                          <p className="text-zinc-400">Nº do Orçamento</p>
                           <p className="text-white font-mono">
-                            #{quote.id.substring(0, 8)}
+                            {quote.quoteNumber || `ORP-${quote.id.substring(0, 8)}`}
                           </p>
                         </div>
                         <div>
@@ -703,7 +777,7 @@ const ManagePartsBudgets = () => {
           );
         })}
 
-        {paginatedQuotes.length === 0 && !isLoading && (
+        {filteredQuotes.length === 0 && !isLoading && (
           <Card className="bg-zinc-800 border-zinc-700">
             <CardContent className="p-12 text-center">
               <Package className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
@@ -729,59 +803,26 @@ const ManagePartsBudgets = () => {
         )}
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-8">
+      {/* Carregar mais */}
+      {hasMore && (
+        <div className="flex justify-center">
           <Button
             variant="outline"
-            size="icon"
-            onClick={() => paginate(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="border-zinc-600 text-white hover:bg-zinc-700 hover:border-zinc-500 bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={loadMore}
+            disabled={isLoadingMore}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
           >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-
-          {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
-            let pageNumber = i + 1;
-            if (totalPages > 5) {
-              if (currentPage <= 3) {
-                pageNumber = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNumber = totalPages - 4 + i;
-              } else {
-                pageNumber = currentPage - 2 + i;
-              }
-            }
-
-            if (pageNumber >= 1 && pageNumber <= totalPages) {
-              return (
-                <Button
-                  key={pageNumber}
-                  variant={currentPage === pageNumber ? "secondary" : "outline"}
-                  size="icon"
-                  onClick={() => paginate(pageNumber)}
-                  className={`border-zinc-600 ${
-                    currentPage === pageNumber
-                      ? "bg-zinc-700 text-white hover:bg-zinc-600 border-zinc-500"
-                      : "text-white hover:bg-zinc-700 hover:border-zinc-500 bg-zinc-800"
-                  }`}
-                >
-                  {pageNumber}
-                </Button>
-              );
-            }
-            return null;
-          })}
-
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => paginate(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="border-zinc-600 text-white hover:bg-zinc-700 hover:border-zinc-500 bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronRight className="h-4 w-4" />
+            {isLoadingMore ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                A carregar...
+              </>
+            ) : (
+              <>
+                <ArrowDown className="h-4 w-4" />
+                Carregar mais
+              </>
+            )}
           </Button>
         </div>
       )}

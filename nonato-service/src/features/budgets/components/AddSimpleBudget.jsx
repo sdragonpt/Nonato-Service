@@ -14,15 +14,10 @@ import {
   MapPin,
   Calculator,
 } from "lucide-react";
-import {
-  collection,
-  getDocs,
-  addDoc,
-  query,
-  orderBy,
-  limit,
-} from "firebase/firestore";
+import { collection, getDocs, addDoc } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
+import formatEuroNumber from "../../../utils/formatters/formatEuroNumber";
+import { generateDocNumber } from "../../../utils/docNumbering.js";
 import generateSimpleBudgetPDF from "./pdf/generateSimpleBudgetPDF.jsx";
 import ServiceInput from "../../../components/shared/ServiceInput.jsx";
 import IVASelector from "./IVASelector.jsx";
@@ -105,28 +100,8 @@ const AddSimpleBudget = () => {
         return;
       }
 
-      const now = new Date();
-      const month = String(now.getMonth() + 1).padStart(2, "0");
-      const year = String(now.getFullYear()).slice(-2);
-
       const budgetsRef = collection(db, "orcamentos");
-      const q = query(
-        budgetsRef,
-        orderBy("sequentialNumber", "desc"),
-        limit(1)
-      );
-      const querySnapshot = await getDocs(q);
-
-      let nextNumber = 1326;
-      if (!querySnapshot.empty) {
-        const lastBudget = querySnapshot.docs[0].data();
-        nextNumber = (lastBudget.sequentialNumber || 1325) + 1;
-      }
-
-      const budgetNumber = `${month}${year}-${String(nextNumber).padStart(
-        4,
-        "0"
-      )}`;
+      const budgetNumber = await generateDocNumber(isExpense ? "desp" : "orc");
 
       // Formatar os serviços para o formato esperado pelo PDF
       const formattedServices = selectedServices.map((service) => {
@@ -147,7 +122,7 @@ const AddSimpleBudget = () => {
       const budgetData = {
         type: "simple",
         budgetNumber,
-        sequentialNumber: nextNumber,
+        numberingV2: true,
         clientData,
         services: formattedServices,
         total: selectedServices.reduce((acc, curr) => acc + curr.total, 0),
@@ -161,9 +136,8 @@ const AddSimpleBudget = () => {
       const pdfUrl = URL.createObjectURL(pdfBlob);
       const link = document.createElement("a");
       link.href = pdfUrl;
-      link.download = `${isExpense ? "Despesa" : "Orçamento"}_${
-        clientData.name
-      }_${budgetNumber}.pdf`;
+      // ✅ Nome do ficheiro = número gerado (ex.: ORC-0826-0042.pdf / DESP-0826-0015.pdf)
+      link.download = `${budgetNumber}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -368,10 +342,10 @@ const AddSimpleBudget = () => {
                       <p className="text-white font-medium">{service.name}</p>
                       <p className="text-zinc-400 text-sm">
                         {service.multipleEntries
-                          ? `Total: ${service.total.toFixed(2)}€`
-                          : `${service.value.toFixed(2)}€ x ${
+                          ? `Total: ${formatEuroNumber(service.total)}€`
+                          : `${formatEuroNumber(service.value)}€ x ${
                               service.quantity
-                            } = ${service.total.toFixed(2)}€`}
+                            } = ${formatEuroNumber(service.total)}€`}
                       </p>
                       {service.multipleEntries && (
                         <div className="mt-1 text-xs text-zinc-400">
@@ -395,7 +369,7 @@ const AddSimpleBudget = () => {
                 ))}
                 <div className="pt-4 border-t border-zinc-700">
                   <p className="text-right font-medium text-white">
-                    Total: {totalAmount.toFixed(2)}€
+                    Total: {formatEuroNumber(totalAmount)}€
                   </p>
                 </div>
               </div>

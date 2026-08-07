@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   collection,
-  getDocs,
   doc,
   updateDoc,
   query,
@@ -9,6 +8,8 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
+import { searchIncludes } from "../../utils/normalizeSearch.js";
+import { fetchPage } from "../../utils/firestorePage.js";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { FileOpener } from "@capacitor-community/file-opener";
@@ -32,8 +33,7 @@ import {
   RefreshCw,
   ChartBarIcon,
   GraduationCap,
-  ChevronLeft,
-  ChevronRight,
+  ArrowDown,
 } from "lucide-react";
 
 // UI Components
@@ -55,6 +55,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+
+const PAGE_SIZE = 10;
+const MAX_AUTO_LOADS = 15; // salvaguarda: nº máx. de lotes extra a carregar automaticamente ao pesquisar
 
 const InspectionCard = ({
   inspection,
@@ -95,6 +98,9 @@ const InspectionCard = ({
             <h3 className="font-semibold text-lg text-white truncate">
               {inspection.clientName}
             </h3>
+            <p className="text-xs text-zinc-500 font-mono">
+              {inspection.inspectionNumber || `INSP-${inspection.id}`}
+            </p>
             <div className="flex flex-col text-sm text-zinc-400">
               <div className="flex items-center">
                 <Package className="w-4 h-4 mr-1" />
@@ -168,9 +174,14 @@ const ManageInspection = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const clientIdFilter = searchParams.get("clientId") || "";
   const equipmentIdFilter = searchParams.get("equipmentId") || "";
+
+  // ✅ Carregado por lotes (cursor do Firestore), em vez de ler a coleção
+  // "inspections" inteira de uma só vez.
   const [inspections, setInspections] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -178,21 +189,14 @@ const ManageInspection = () => {
   const [languageDialogOpen, setLanguageDialogOpen] = useState(false);
   const [inspectionToGenerate, setInspectionToGenerate] = useState(null);
 
-  // Adicionar estado de paginação
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // Ajuste conforme necessário
+  const cursorRef = useRef(null);
+  const autoLoadCountRef = useRef(0);
 
-  const fetchInspections = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const q = query(
-        collection(db, "inspections"),
-        orderBy("createdAt", "desc")
-      );
-      const snapshot = await getDocs(q);
-
-      const inspectionPromises = snapshot.docs.map(async (docSnapshot) => {
-        const data = { id: docSnapshot.id, ...docSnapshot.data() };
+  // Enriquece um lote de inspeções com os dados de cliente/equipamento/
+  // checklist (só para os itens desse lote, não para a coleção inteira).
+  const enrichInspections = useCallback(async (rawDocs) => {
+    const enriched = await Promise.all(
+      rawDocs.map(async (data) => {
         const [clientDoc, equipmentDoc, checklistDoc] = await Promise.all([
           getDoc(doc(db, "clientes", data.clientId)),
           getDoc(doc(db, "equipamentos", data.equipmentId)),
@@ -211,11 +215,36 @@ const ManageInspection = () => {
             ? checklistDoc.data().type
             : "Tipo não encontrado",
         };
-      });
+      })
+    );
+    // Filtrar excluídas (soft-delete)
+    return enriched.filter((i) => !i.eliminadoEm);
+  }, []);
 
-      const inspectionsData = await Promise.all(inspectionPromises);
-      // Filtrar excluídas (soft-delete) client-side, evitando índice composto
-      setInspections(inspectionsData.filter((i) => !i.eliminadoEm));
+  const loadPage = useCallback(
+    async (cursor) => {
+      const baseQuery = query(
+        collection(db, "inspections"),
+        orderBy("createdAt", "desc")
+      );
+      const { docs, cursor: nextCursor, hasMore: more } = await fetchPage(baseQuery, {
+        pageSize: PAGE_SIZE,
+        cursor,
+      });
+      const enriched = await enrichInspections(docs);
+      cursorRef.current = nextCursor;
+      setHasMore(more);
+      return enriched;
+    },
+    [enrichInspections]
+  );
+
+  const fetchInspections = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      cursorRef.current = null;
+      const docs = await loadPage(null);
+      setInspections(docs);
       setError(null);
     } catch (err) {
       console.error("Erro ao carregar inspeções:", err);
@@ -223,11 +252,24 @@ const ManageInspection = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [loadPage]);
 
   useEffect(() => {
     fetchInspections();
   }, [fetchInspections]);
+
+  const loadMore = useCallback(async () => {
+    if (!hasMore || isLoadingMore || !cursorRef.current) return;
+    setIsLoadingMore(true);
+    try {
+      const docs = await loadPage(cursorRef.current);
+      setInspections((prev) => [...prev, ...docs]);
+    } catch (err) {
+      console.error("Erro ao carregar mais inspeções:", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [hasMore, isLoadingMore, loadPage]);
 
   const handleDelete = async (inspectionId) => {
     try {
@@ -283,9 +325,12 @@ const ManageInspection = () => {
         language // Passar o idioma selecionado
       );
 
-      const fileName = `Checklist_${clientDoc.data().name}_${
-        inspectionToGenerate.id
-      }.pdf`;
+      // ✅ Nome do ficheiro = número da inspeção + sufixo do idioma (ex.:
+      // INSP-0826-0056-PT.pdf), para gerar em várias línguas sem uma
+      // substituir a outra.
+      const inspectionNumber =
+        inspectionToGenerate.inspectionNumber || `INSP-${inspectionToGenerate.id}`;
+      const fileName = `${inspectionNumber}-${language.toUpperCase()}.pdf`;
 
       if (window?.Capacitor?.isNative) {
         const base64Data = await new Promise((resolve, reject) => {
@@ -333,33 +378,43 @@ const ManageInspection = () => {
     if (clientIdFilter && inspection.clientId !== clientIdFilter) return false;
     if (equipmentIdFilter && inspection.equipmentId !== equipmentIdFilter) return false;
     return (
-      inspection.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inspection.equipmentType
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      inspection.checklistType.toLowerCase().includes(searchTerm.toLowerCase())
+      searchIncludes(inspection.clientName, searchTerm) ||
+      searchIncludes(inspection.equipmentType, searchTerm) ||
+      searchIncludes(inspection.checklistType, searchTerm) ||
+      searchIncludes(inspection.inspectionNumber, searchTerm)
     );
   });
 
-  // Calcular dados da paginação
-  const indexOfLastInspection = currentPage * itemsPerPage;
-  const indexOfFirstInspection = indexOfLastInspection - itemsPerPage;
-  const currentInspections = filteredInspections.slice(
-    indexOfFirstInspection,
-    indexOfLastInspection
-  );
-  const totalPages = Math.ceil(filteredInspections.length / itemsPerPage);
-
-  // Função para mudança de página
-  const paginate = (pageNumber) => {
-    setCurrentPage(pageNumber);
-    window.scrollTo(0, 0);
-  };
-
-  // Resetar página quando filtros mudarem
+  // Ao pesquisar/filtrar, os resultados só existem dentro do que já foi
+  // carregado — por isso, se houver poucos resultados e ainda houver mais
+  // inspeções por trás, vamos buscando lotes extra automaticamente.
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
+    autoLoadCountRef.current = 0;
+  }, [searchTerm, clientIdFilter, equipmentIdFilter]);
+
+  useEffect(() => {
+    const isFiltering = Boolean(searchTerm) || Boolean(clientIdFilter) || Boolean(equipmentIdFilter);
+    if (
+      isFiltering &&
+      hasMore &&
+      !isLoadingMore &&
+      !isLoading &&
+      filteredInspections.length < PAGE_SIZE &&
+      autoLoadCountRef.current < MAX_AUTO_LOADS
+    ) {
+      autoLoadCountRef.current += 1;
+      loadMore();
+    }
+  }, [
+    searchTerm,
+    clientIdFilter,
+    equipmentIdFilter,
+    filteredInspections.length,
+    hasMore,
+    isLoadingMore,
+    isLoading,
+    loadMore,
+  ]);
 
   const stats = {
     total: inspections.length,
@@ -415,7 +470,9 @@ const ManageInspection = () => {
         <Card className="bg-zinc-800 border-zinc-700">
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Total</p>
+              <p className="text-sm font-medium text-zinc-400">
+                Total Carregado
+              </p>
               <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
                 {stats.total}
               </h3>
@@ -492,10 +549,8 @@ const ManageInspection = () => {
 
           <div className="flex justify-between">
             <span className="text-sm text-zinc-400">
-              {filteredInspections.length} inspeção(ões) encontrada(s)
-            </span>
-            <span className="text-sm text-zinc-400">
-              Página {currentPage} de {totalPages || 1}
+              {filteredInspections.length} inspeção(ões) carregada(s)
+              {hasMore && " — há mais por carregar"}
             </span>
           </div>
         </CardContent>
@@ -516,7 +571,7 @@ const ManageInspection = () => {
       {/* Inspections Grid */}
       <div className="grid grid-cols-1 gap-4">
         {filteredInspections.length > 0 ? (
-          currentInspections.map((inspection) => (
+          filteredInspections.map((inspection) => (
             <InspectionCard
               key={inspection.id}
               inspection={inspection}
@@ -541,89 +596,26 @@ const ManageInspection = () => {
         )}
       </div>
 
-      {/* Paginação */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-8">
+      {/* Carregar mais */}
+      {hasMore && (
+        <div className="flex justify-center">
           <Button
             variant="outline"
-            size="icon"
-            onClick={() => paginate(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+            onClick={loadMore}
+            disabled={isLoadingMore}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
           >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-
-          {currentPage > 3 && (
-            <>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => paginate(1)}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-              >
-                1
-              </Button>
-              {currentPage > 4 && <span className="text-zinc-400">...</span>}
-            </>
-          )}
-
-          {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
-            let pageNumber;
-            if (totalPages <= 5) {
-              pageNumber = i + 1;
-            } else if (currentPage <= 3) {
-              pageNumber = i + 1;
-            } else if (currentPage >= totalPages - 2) {
-              pageNumber = totalPages - 4 + i;
-            } else {
-              pageNumber = currentPage - 2 + i;
-            }
-
-            if (pageNumber >= 1 && pageNumber <= totalPages) {
-              return (
-                <Button
-                  key={pageNumber}
-                  variant={currentPage === pageNumber ? "secondary" : "outline"}
-                  size="icon"
-                  onClick={() => paginate(pageNumber)}
-                  className={`border-zinc-700 ${
-                    currentPage === pageNumber
-                      ? "bg-zinc-700 text-white hover:bg-zinc-600"
-                      : "text-white hover:bg-zinc-700 bg-zinc-800"
-                  }`}
-                >
-                  {pageNumber}
-                </Button>
-              );
-            }
-            return null;
-          })}
-
-          {currentPage < totalPages - 2 && (
-            <>
-              {currentPage < totalPages - 3 && (
-                <span className="text-zinc-400">...</span>
-              )}
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => paginate(totalPages)}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-              >
-                {totalPages}
-              </Button>
-            </>
-          )}
-
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => paginate(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
-          >
-            <ChevronRight className="h-4 w-4" />
+            {isLoadingMore ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                A carregar...
+              </>
+            ) : (
+              <>
+                <ArrowDown className="h-4 w-4" />
+                Carregar mais inspeções
+              </>
+            )}
           </Button>
         </div>
       )}

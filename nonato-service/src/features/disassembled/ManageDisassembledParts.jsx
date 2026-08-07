@@ -2,10 +2,19 @@
 // Peças Desmontadas — inventário de peças retiradas de equipamentos
 // (ex: substituídas mas ainda em bom estado), com localização em prateleira.
 // No sistema do cliente este CRUD existia mas era inacessível na UI.
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, getDocs, deleteDoc, doc, query, orderBy } from "firebase/firestore";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  query,
+  orderBy,
+  where,
+  getCountFromServer,
+} from "firebase/firestore";
 import { db } from "../../firebase.jsx";
+import { fetchPage } from "../../utils/firestorePage.js";
 import {
   Search,
   Plus,
@@ -16,6 +25,7 @@ import {
   PackageOpen,
   MapPin,
   AlertTriangle,
+  ArrowDown,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card.jsx";
@@ -51,6 +61,11 @@ export const ESTADO_META = {
   descartar: { label: "Para Descartar", className: "bg-red-500/20 text-red-400 border-red-500/30" },
 };
 
+const PAGE_SIZE = 10;
+const MAX_AUTO_LOADS = 15;
+
+const partsBaseQuery = query(collection(db, "pecasDesmontadas"), orderBy("createdAt", "desc"));
+
 const ManageDisassembledParts = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
@@ -60,25 +75,66 @@ const ManageDisassembledParts = () => {
   const [estadoFilter, setEstadoFilter] = useState("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // Contagens totais (cheap: aggregation query, não lê os docs) para os
+  // cartões de estatísticas continuarem exatos mesmo com a lista paginada.
+  const [totalCount, setTotalCount] = useState(0);
+  const [reutilizavelCount, setReutilizavelCount] = useState(0);
+
+  const cursorRef = useRef(null);
+  const autoLoadCountRef = useRef(0);
+
+  const loadPage = useCallback(async (cursor) => {
+    const { docs, cursor: nextCursor, hasMore: more } = await fetchPage(partsBaseQuery, {
+      pageSize: PAGE_SIZE,
+      cursor,
+    });
+    cursorRef.current = nextCursor;
+    setHasMore(more);
+    return docs;
+  }, []);
 
   const fetchItems = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const q = query(collection(db, "pecasDesmontadas"), orderBy("createdAt", "desc"));
-      const snapshot = await getDocs(q);
-      setItems(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+      cursorRef.current = null;
+      const [docs, totalSnap, reutilizavelSnap] = await Promise.all([
+        loadPage(null),
+        getCountFromServer(collection(db, "pecasDesmontadas")),
+        getCountFromServer(
+          query(collection(db, "pecasDesmontadas"), where("estado", "==", "reutilizavel"))
+        ),
+      ]);
+      setItems(docs);
+      setTotalCount(totalSnap.data().count);
+      setReutilizavelCount(reutilizavelSnap.data().count);
     } catch (err) {
       console.error("Erro ao carregar peças desmontadas:", err);
       setError("Erro ao carregar peças desmontadas.");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [loadPage]);
 
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
+
+  const loadMore = useCallback(async () => {
+    if (!hasMore || isLoadingMore || !cursorRef.current) return;
+    setIsLoadingMore(true);
+    try {
+      const docs = await loadPage(cursorRef.current);
+      setItems((prev) => [...prev, ...docs]);
+    } catch (err) {
+      console.error("Erro ao carregar mais peças desmontadas:", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [hasMore, isLoadingMore, loadPage]);
+
 
   const handleDelete = (id) => {
     setItemToDelete(items.find((i) => i.id === id));
@@ -90,6 +146,10 @@ const ManageDisassembledParts = () => {
     try {
       await deleteDoc(doc(db, "pecasDesmontadas", itemToDelete.id));
       setItems((prev) => prev.filter((i) => i.id !== itemToDelete.id));
+      setTotalCount((prev) => Math.max(0, prev - 1));
+      if (itemToDelete.estado === "reutilizavel") {
+        setReutilizavelCount((prev) => Math.max(0, prev - 1));
+      }
       setDeleteDialogOpen(false);
       setItemToDelete(null);
     } catch (err) {
@@ -110,6 +170,22 @@ const ManageDisassembledParts = () => {
       return matchesSearch && matchesEstado;
     });
   }, [items, searchTerm, estadoFilter]);
+
+  // Pesquisa/filtro só opera sobre os lotes já carregados; se os
+  // resultados ficarem escassos com pesquisa ativa, carrega mais.
+  useEffect(() => {
+    if (
+      (searchTerm || estadoFilter !== "all") &&
+      hasMore &&
+      !isLoadingMore &&
+      !isLoading &&
+      filteredItems.length < PAGE_SIZE &&
+      autoLoadCountRef.current < MAX_AUTO_LOADS
+    ) {
+      autoLoadCountRef.current += 1;
+      loadMore();
+    }
+  }, [searchTerm, estadoFilter, filteredItems.length, hasMore, isLoadingMore, isLoading, loadMore]);
 
   if (isLoading) {
     return (
@@ -150,7 +226,7 @@ const ManageDisassembledParts = () => {
             <div>
               <p className="text-sm font-medium text-zinc-400">Total</p>
               <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
-                {items.length}
+                {totalCount}
               </h3>
             </div>
             <PackageOpen className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
@@ -161,7 +237,7 @@ const ManageDisassembledParts = () => {
             <div>
               <p className="text-sm font-medium text-zinc-400">Reutilizáveis</p>
               <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
-                {items.filter((i) => i.estado === "reutilizavel").length}
+                {reutilizavelCount}
               </h3>
             </div>
             <PackageOpen className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
@@ -284,6 +360,30 @@ const ManageDisassembledParts = () => {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {/* Carregar mais */}
+      {hasMore && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={loadMore}
+            disabled={isLoadingMore}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+          >
+            {isLoadingMore ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                A carregar...
+              </>
+            ) : (
+              <>
+                <ArrowDown className="h-4 w-4" />
+                Carregar mais
+              </>
+            )}
+          </Button>
         </div>
       )}
 

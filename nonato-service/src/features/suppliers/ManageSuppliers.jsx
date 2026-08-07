@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { collection, getDocs, deleteDoc, doc, query, orderBy } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
+import { searchIncludes } from "../../utils/normalizeSearch.js";
 import {
   Search,
   Plus,
@@ -18,8 +19,7 @@ import {
   CreditCard,
   Mail,
   ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
+  ArrowDown,
   Building2,
 } from "lucide-react";
 
@@ -139,9 +139,12 @@ const ManageSuppliers = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [supplierToDelete, setSupplierToDelete] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState("asc");
-  const itemsPerPage = 12;
+  // Scroll infinito: lista pequena e sempre lida por inteiro (fornecedores),
+  // por isso não há paginação por cursor à Firestore aqui — só se controla
+  // quantos dos que já estão em memória são mostrados de cada vez.
+  const PAGE_SIZE = 10;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const fetchSuppliers = useCallback(async () => {
     try {
@@ -164,7 +167,7 @@ const ManageSuppliers = () => {
   }, [fetchSuppliers]);
 
   useEffect(() => {
-    setCurrentPage(1);
+    setVisibleCount(PAGE_SIZE);
   }, [searchTerm, sortOrder]);
 
   const handleEdit = (id) => navigate(`/app/edit-supplier/${id}`);
@@ -188,26 +191,22 @@ const ManageSuppliers = () => {
   };
 
   const filteredSuppliers = useMemo(() => {
-    const searchLower = searchTerm.toLowerCase();
     return suppliers.filter(
       (s) =>
-        (s.nomeEmpresa && s.nomeEmpresa.toLowerCase().includes(searchLower)) ||
-        (s.localidade && s.localidade.toLowerCase().includes(searchLower)) ||
+        searchIncludes(s.nomeEmpresa, searchTerm) ||
+        searchIncludes(s.localidade, searchTerm) ||
         (s.numeroContribuicaoFiscal && s.numeroContribuicaoFiscal.includes(searchTerm)) ||
-        (s.email && s.email.toLowerCase().includes(searchLower)) ||
+        searchIncludes(s.email, searchTerm) ||
         (s.telefones && s.telefones.includes(searchTerm))
     );
   }, [suppliers, searchTerm]);
 
-  const indexOfLast = currentPage * itemsPerPage;
-  const indexOfFirst = indexOfLast - itemsPerPage;
-  const currentSuppliers = filteredSuppliers.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(filteredSuppliers.length / itemsPerPage);
+  const currentSuppliers = filteredSuppliers.slice(0, visibleCount);
+  const hasMoreVisible = visibleCount < filteredSuppliers.length;
 
-  const paginate = (page) => {
-    setCurrentPage(page);
-    window.scrollTo(0, 0);
-  };
+  const loadMoreVisible = useCallback(() => {
+    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredSuppliers.length));
+  }, [filteredSuppliers.length]);
 
   const exportToCSV = () => {
     const csvContent = [
@@ -341,8 +340,7 @@ const ManageSuppliers = () => {
 
           <div className="flex justify-between items-center mt-4 pt-4 border-t border-zinc-700">
             <span className="text-sm text-zinc-400">
-              {filteredSuppliers.length} fornecedor(es) encontrado(s) - Página {currentPage} de{" "}
-              {totalPages || 1}
+              A mostrar {currentSuppliers.length} de {filteredSuppliers.length} fornecedor(es)
             </span>
           </div>
 
@@ -390,41 +388,16 @@ const ManageSuppliers = () => {
         </div>
       )}
 
-      {/* Paginação */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-8">
+      {/* Carregar mais */}
+      {hasMoreVisible && (
+        <div className="flex justify-center">
           <Button
             variant="outline"
-            size="icon"
-            onClick={() => paginate(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
+            onClick={loadMoreVisible}
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
           >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          {Array.from({ length: totalPages }).map((_, i) => (
-            <Button
-              key={i + 1}
-              variant={currentPage === i + 1 ? "secondary" : "outline"}
-              size="icon"
-              onClick={() => paginate(i + 1)}
-              className={`border-zinc-700 ${
-                currentPage === i + 1
-                  ? "bg-zinc-700 text-white hover:bg-zinc-600"
-                  : "text-white hover:bg-zinc-700 bg-zinc-800"
-              }`}
-            >
-              {i + 1}
-            </Button>
-          ))}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => paginate(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-50"
-          >
-            <ChevronRight className="h-4 w-4" />
+            <ArrowDown className="h-4 w-4" />
+            Carregar mais
           </Button>
         </div>
       )}
