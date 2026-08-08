@@ -1,4 +1,12 @@
-// components/layout/ErrorBoundary.jsx - VERSÃO MELHORADA
+// components/layout/ErrorBoundary.jsx - VERSÃO CORRIGIDA
+// Antes: erros com "removeChild"/"insertBefore"/"appendChild"/"Node" eram
+// automaticamente etiquetados como "Erro de Compatibilidade (PC Antigo)",
+// mesmo em browsers atualizados/telemóveis modernos. Essa etiqueta era só
+// um filtro de texto na mensagem de erro, não uma deteção real de hardware.
+// Isto escondia o erro real e impedia de o corrigir. Agora: mostra sempre
+// o erro tal como é, e regista SEMPRE (não só em dev) a mensagem, stack e
+// componentStack na consola, para conseguirmos apanhar o componente exato
+// da próxima vez que isto acontecer.
 import React from "react";
 import { AlertTriangle, RefreshCw, ArrowLeft } from "lucide-react";
 
@@ -9,32 +17,24 @@ class ErrorBoundary extends React.Component {
       hasError: false,
       error: null,
       retryCount: 0,
-      isDOMError: false,
     };
   }
 
   static getDerivedStateFromError(error) {
-    // Detectar se é erro comum de PC antigo
-    const isDOMError =
-      error.message?.includes("removeChild") ||
-      error.message?.includes("insertBefore") ||
-      error.message?.includes("appendChild") ||
-      error.message?.includes("Node");
-
-    return {
-      hasError: true,
-      error,
-      isDOMError,
-    };
+    return { hasError: true, error };
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log melhorado para PCs antigos
-    if (this.state.isDOMError) {
-      console.warn("🔧 Erro de DOM capturado (PC antigo):", error, errorInfo);
-    } else {
-      console.error("Error capturado pelo ErrorBoundary:", error, errorInfo);
-    }
+    // Log completo, sempre (produção incluída) — é a única forma de
+    // conseguirmos apanhar o stacktrace real quando isto acontece a um
+    // cliente, em vez de adivinhar.
+    console.error("[ErrorBoundary] Erro capturado:", {
+      message: error?.message,
+      stack: error?.stack,
+      componentStack: errorInfo?.componentStack,
+      url: window.location.href,
+      timestamp: new Date().toISOString(),
+    });
   }
 
   handleRetry = () => {
@@ -42,10 +42,8 @@ class ErrorBoundary extends React.Component {
       hasError: false,
       error: null,
       retryCount: this.state.retryCount + 1,
-      isDOMError: false,
     });
 
-    // Callback customizado se fornecido
     if (this.props.onReset) {
       this.props.onReset();
     }
@@ -55,63 +53,26 @@ class ErrorBoundary extends React.Component {
     try {
       window.history.back();
     } catch (error) {
-      // Fallback para biblioteca de peças
       window.location.href = "/app/parts-library";
     }
   };
 
   render() {
     if (this.state.hasError) {
-      const isOldBrowserError = this.state.isDOMError;
-
       return (
         <div className="w-full min-h-screen flex items-center justify-center p-4 bg-zinc-900">
           <div className="max-w-md w-full space-y-4">
             {/* Alert principal */}
-            <div
-              className={`p-4 rounded-lg border ${
-                isOldBrowserError
-                  ? "border-amber-500 bg-amber-500/10"
-                  : "border-red-500 bg-red-500/10"
-              }`}
-            >
+            <div className="p-4 rounded-lg border border-red-500 bg-red-500/10">
               <div className="flex items-start gap-3">
-                <AlertTriangle
-                  className={`h-5 w-5 mt-0.5 ${
-                    isOldBrowserError ? "text-amber-400" : "text-red-400"
-                  }`}
-                />
+                <AlertTriangle className="h-5 w-5 mt-0.5 text-red-400" />
                 <div className="flex-1">
-                  <h3
-                    className={`font-medium ${
-                      isOldBrowserError ? "text-amber-400" : "text-red-400"
-                    }`}
-                  >
-                    {isOldBrowserError
-                      ? "🖥️ Erro de Compatibilidade (PC Antigo)"
-                      : "❌ Algo deu errado"}
+                  <h3 className="font-medium text-red-400">
+                    ❌ Algo deu errado
                   </h3>
 
-                  <div
-                    className={`mt-2 text-sm ${
-                      isOldBrowserError ? "text-amber-300" : "text-red-300"
-                    }`}
-                  >
-                    {isOldBrowserError ? (
-                      <div className="space-y-2">
-                        <p>
-                          O navegador teve dificuldade com a última operação.
-                          Isso é comum em sistemas mais antigos.
-                        </p>
-                        <p className="text-xs bg-amber-900/30 p-2 rounded">
-                          💡 <strong>Dica:</strong> A operação provavelmente foi
-                          concluída com sucesso, mesmo com este erro de
-                          compatibilidade.
-                        </p>
-                      </div>
-                    ) : (
-                      <p>{this.state.error?.message || "Erro inesperado"}</p>
-                    )}
+                  <div className="mt-2 text-sm text-red-300">
+                    <p>{this.state.error?.message || "Erro inesperado"}</p>
 
                     {this.state.retryCount > 0 && (
                       <p className="mt-2 text-xs">
@@ -127,16 +88,10 @@ class ErrorBoundary extends React.Component {
             <div className="flex flex-col gap-2">
               <button
                 onClick={this.handleRetry}
-                className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                  isOldBrowserError
-                    ? "bg-amber-600 hover:bg-amber-700 text-white"
-                    : "bg-blue-600 hover:bg-blue-700 text-white"
-                }`}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <RefreshCw className="w-4 h-4" />
-                {isOldBrowserError
-                  ? "Continuar (Ignorar Erro)"
-                  : "Tentar Novamente"}
+                Tentar Novamente
               </button>
 
               <button
@@ -158,14 +113,16 @@ class ErrorBoundary extends React.Component {
               )}
             </div>
 
-            {/* Detalhes técnicos (só em desenvolvimento) */}
-            {process.env.NODE_ENV === "development" && this.state.error && (
-              <details className="mt-4 p-3 bg-zinc-800 rounded text-xs text-zinc-400">
+            {/* Detalhes técnicos — mostrados sempre, não só em dev, para
+                dar para ler o stack diretamente no telemóvel/PC do cliente
+                se for preciso (ex: pedir print). */}
+            {this.state.error && (
+              <details className="mt-4 p-3 bg-zinc-800 rounded text-xs text-zinc-400" open={false}>
                 <summary className="cursor-pointer mb-2 font-medium">
-                  Detalhes Técnicos (Dev)
+                  Detalhes Técnicos
                 </summary>
                 <pre className="whitespace-pre-wrap overflow-auto max-h-32 text-xs">
-                  {this.state.error.toString()}
+                  {this.state.error.stack || this.state.error.toString()}
                 </pre>
               </details>
             )}

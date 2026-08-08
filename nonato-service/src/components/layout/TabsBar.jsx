@@ -2,6 +2,13 @@
 // Barra de abas (estilo VSCode/browser) fixa por baixo do header do
 // Dashboard. Mesma linguagem visual do resto da app: fundo zinc-800/900,
 // acento verde na aba ativa, framer-motion nas transições.
+//
+// Alteração: removido mode="popLayout" do AnimatePresence. Esse modo é a
+// causa mais provável do erro "Failed to execute 'removeChild'/'insertBefore'
+// on 'Node'" — é um bug conhecido do Framer Motion quando popLayout corre
+// ao mesmo tempo que o React troca conteúdo via Suspense/lazy loading
+// (que acontece sempre que se abre uma página nova, porque cada rota é
+// lazy-loaded e o TabsContext acrescenta logo uma aba nova).
 
 import React, { useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -73,7 +80,7 @@ export default function TabsBar() {
     <div className="sticky top-16 z-20 border-b border-zinc-700/50 bg-zinc-800/60 backdrop-blur-xl">
       <div className="flex items-center gap-2 px-4 py-2">
         <div className="flex flex-1 items-center gap-1.5 overflow-x-auto scrollbar-thin scrollbar-thumb-zinc-700/60 scrollbar-track-transparent">
-          <AnimatePresence initial={false} mode="popLayout">
+          <AnimatePresence initial={false}>
             {tabs.map((tab) => (
               <TabChip
                 key={tab.path}
