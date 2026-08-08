@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "896475175219",
+    "firebase_url": "https://nonato-service-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "nonato-service",
+    "storage_bucket": "nonato-service.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:896475175219:android:04fbd9b2780e8f2d2ec646",
+        "android_client_info": {
+          "package_name": "com.nonatoservice.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "896475175219-6cj6qd98usuduc3ps334orcc8o413dfl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0ju6MWp1TkOj-BswxB5SnRdV36giPesk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "896475175219-6cj6qd98usuduc3ps334orcc8o413dfl.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
