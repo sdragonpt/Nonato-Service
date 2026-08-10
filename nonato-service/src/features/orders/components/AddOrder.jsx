@@ -47,6 +47,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+const emptyEquipmentEntry = () => ({ id: genId(), equipmentId: "", brand: "", model: "", serialNumber: "" });
+
 const AddOrder = () => {
   const { search } = useLocation();
   const queryParams = new URLSearchParams(search);
@@ -82,6 +86,14 @@ const AddOrder = () => {
   const [clients, setClients] = useState([]);
   const [equipments, setEquipments] = useState([]);
   const [filteredEquipments, setFilteredEquipments] = useState([]);
+  // Lista de equipamentos da ordem — pode ter mais do que 1 (ordem
+  // "especial"). Cada entrada usa `equipmentId` quando o cliente é
+  // registado, ou `brand`/`model`/`serialNumber` quando é manual (só
+  // permitido para clientes não registados). Os campos singulares
+  // `formData.equipmentId`/`formData.manualEquipment` continuam a ser
+  // gravados (a partir da 1ª entrada) para compatibilidade com o resto do
+  // código que ainda só lê um equipamento por ordem.
+  const [equipmentsList, setEquipmentsList] = useState([emptyEquipmentEntry()]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -288,7 +300,25 @@ const AddOrder = () => {
         ...prev,
         equipmentId: "",
       }));
+      setEquipmentsList([emptyEquipmentEntry()]);
     }
+  };
+
+  // ✅ HANDLERS PARA A LISTA DE EQUIPAMENTOS (1 ou vários por ordem)
+  const addEquipmentEntry = () =>
+    setEquipmentsList((prev) => [...prev, emptyEquipmentEntry()]);
+  const removeEquipmentEntry = (id) =>
+    setEquipmentsList((prev) => (prev.length <= 1 ? prev : prev.filter((e) => e.id !== id)));
+  const updateEquipmentEntry = (id, patch) =>
+    setEquipmentsList((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+  const setRegisteredEquipmentEntry = (id, equipmentId) => {
+    const eq = filteredEquipments.find((e) => e.id === equipmentId);
+    updateEquipmentEntry(id, {
+      equipmentId,
+      brand: eq?.brand || "",
+      model: eq?.model || "",
+      serialNumber: eq?.serialNumber || "",
+    });
   };
 
   // ✅ HANDLER PARA DADOS DE CLIENTE NÃO REGISTRADO
@@ -297,17 +327,6 @@ const AddOrder = () => {
       ...prev,
       unregisteredClient: {
         ...prev.unregisteredClient,
-        [field]: value,
-      },
-    }));
-  };
-
-  // ✅ HANDLER PARA DADOS DE EQUIPAMENTO MANUAL
-  const handleManualEquipmentChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      manualEquipment: {
-        ...prev.manualEquipment,
         [field]: value,
       },
     }));
@@ -342,6 +361,7 @@ const AddOrder = () => {
     if (!isUnregistered) {
       setFilteredEquipments([]);
     }
+    setEquipmentsList([emptyEquipmentEntry()]);
   };
 
   const handleBlur = (field) => {
@@ -402,19 +422,20 @@ const AddOrder = () => {
 
     // ✅ VALIDAÇÃO BASEADA NO TIPO DE CLIENTE
     if (formData.isUnregisteredClient) {
+      const hasValidEquipment = equipmentsList.some((e) => e.brand && e.model);
       if (
         !formData.unregisteredClient.name ||
-        !formData.manualEquipment.brand ||
-        !formData.manualEquipment.model ||
+        !hasValidEquipment ||
         !formData.serviceType
       ) {
         setError("Por favor, preencha todos os campos obrigatórios");
         return;
       }
     } else {
+      const hasValidEquipment = equipmentsList.some((e) => e.equipmentId);
       if (
         !formData.clientId ||
-        !formData.equipmentId ||
+        !hasValidEquipment ||
         !formData.serviceType
       ) {
         setError("Por favor, preencha todos os campos obrigatórios");
@@ -427,8 +448,36 @@ const AddOrder = () => {
       setError(null);
 
       const newOrderId = await getNextOrderId();
+
+      // Só entram na lista final as entradas com dados preenchidos —
+      // linhas adicionadas mas deixadas em branco não contam.
+      const validEntries = equipmentsList.filter((e) =>
+        formData.isUnregisteredClient ? !!(e.brand && e.model) : !!e.equipmentId
+      );
+      const resolvedEquipmentsList = validEntries.map((e) => {
+        if (formData.isUnregisteredClient) {
+          return { equipmentId: null, brand: e.brand || "", model: e.model || "", serialNumber: e.serialNumber || "" };
+        }
+        const match = equipments.find((eq) => eq.id === e.equipmentId);
+        return {
+          equipmentId: e.equipmentId,
+          brand: match?.brand || e.brand || "",
+          model: match?.model || e.model || "",
+          serialNumber: match?.serialNumber || e.serialNumber || "",
+        };
+      });
+      const primaryEquipment = resolvedEquipmentsList[0] || { equipmentId: null, brand: "", model: "", serialNumber: "" };
+
       const serviceData = {
         ...formData,
+        // Campos singulares legados — continuam gravados a partir da 1ª
+        // entrada da lista, para o resto do código (PDFs, cartões de
+        // listagem, etc.) que ainda só lê um único equipamento por ordem.
+        equipmentId: primaryEquipment.equipmentId || "",
+        manualEquipment: formData.isUnregisteredClient
+          ? { brand: primaryEquipment.brand, model: primaryEquipment.model, serialNumber: primaryEquipment.serialNumber }
+          : formData.manualEquipment,
+        equipmentsList: resolvedEquipmentsList,
         checklist,
         createdAt: new Date(),
         orderNumber: formatDocNumber("os", newOrderId),
@@ -577,36 +626,62 @@ const AddOrder = () => {
                   </div>
                 </div>
 
-                {/* Equipment Selection */}
+                {/* Equipment Selection — pode ter mais do que 1 (ordem "especial") */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400">
-                    Equipamento
-                  </label>
-                  <div className="relative">
-                    <Printer className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                    <Select
-                      value={formData.equipmentId}
-                      onValueChange={(value) =>
-                        handleChange({ target: { name: "equipmentId", value } })
-                      }
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-zinc-400">
+                      {equipmentsList.length > 1 ? "Equipamentos" : "Equipamento"}
+                    </label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={addEquipmentEntry}
                       disabled={!formData.clientId}
+                      className="h-7 border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
                     >
-                      <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
-                        <SelectValue placeholder="Selecione um Equipamento" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-800 border-zinc-700">
-                        {filteredEquipments.map((equipment) => (
-                          <SelectItem
-                            key={equipment.id}
-                            value={equipment.id}
-                            className="text-white hover:bg-zinc-700"
-                          >
-                            {`${equipment.brand} - ${equipment.model}`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <Plus className="h-3.5 w-3.5 mr-1" />
+                      Adicionar
+                    </Button>
                   </div>
+                  {equipmentsList.map((entry) => (
+                    <div key={entry.id} className="relative flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <Printer className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                        <Select
+                          value={entry.equipmentId}
+                          onValueChange={(value) => setRegisteredEquipmentEntry(entry.id, value)}
+                          disabled={!formData.clientId}
+                        >
+                          <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                            <SelectValue placeholder="Selecione um Equipamento" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-zinc-800 border-zinc-700">
+                            {filteredEquipments.map((equipment) => (
+                              <SelectItem
+                                key={equipment.id}
+                                value={equipment.id}
+                                className="text-white hover:bg-zinc-700"
+                              >
+                                {`${equipment.brand} - ${equipment.model}`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {equipmentsList.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeEquipmentEntry(entry.id)}
+                          className="text-red-400 hover:text-red-300 hover:bg-red-400/10 shrink-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </TabsContent>
 
@@ -710,64 +785,82 @@ const AddOrder = () => {
                   </div>
                 </div>
 
-                {/* ✅ DADOS DO EQUIPAMENTO MANUAL */}
-                <div className="mt-6">
-                  <h4 className="text-sm font-medium text-zinc-300 mb-3 flex items-center">
-                    <Printer className="h-4 w-4 mr-2 text-orange-400" />
-                    Dados do Equipamento
-                  </h4>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400">
-                        Marca *
-                      </label>
-                      <Input
-                        type="text"
-                        value={formData.manualEquipment.brand}
-                        onChange={(e) =>
-                          handleManualEquipmentChange("brand", e.target.value)
-                        }
-                        placeholder="Ex: HP, Canon, Epson..."
-                        className="bg-zinc-900 border-zinc-700 text-white"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400">
-                        Modelo *
-                      </label>
-                      <Input
-                        type="text"
-                        value={formData.manualEquipment.model}
-                        onChange={(e) =>
-                          handleManualEquipmentChange("model", e.target.value)
-                        }
-                        placeholder="Ex: LaserJet 1020, MG3610..."
-                        className="bg-zinc-900 border-zinc-700 text-white"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400">
-                        Número de Série
-                      </label>
-                      <Input
-                        type="text"
-                        value={formData.manualEquipment.serialNumber}
-                        onChange={(e) =>
-                          handleManualEquipmentChange(
-                            "serialNumber",
-                            e.target.value
-                          )
-                        }
-                        placeholder="Número de série do equipamento"
-                        className="bg-zinc-900 border-zinc-700 text-white"
-                      />
-                    </div>
+                {/* ✅ DADOS DO(S) EQUIPAMENTO(S) MANUAL(AIS) */}
+                <div className="mt-6 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium text-zinc-300 flex items-center">
+                      <Printer className="h-4 w-4 mr-2 text-orange-400" />
+                      {equipmentsList.length > 1 ? "Dados dos Equipamentos" : "Dados do Equipamento"}
+                    </h4>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={addEquipmentEntry}
+                      className="h-7 border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" />
+                      Adicionar
+                    </Button>
                   </div>
+
+                  {equipmentsList.map((entry, idx) => (
+                    <div key={entry.id} className="flex items-start gap-2">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-zinc-400">
+                            Marca {idx === 0 ? "*" : ""}
+                          </label>
+                          <Input
+                            type="text"
+                            value={entry.brand}
+                            onChange={(e) => updateEquipmentEntry(entry.id, { brand: e.target.value })}
+                            placeholder="Ex: HP, Canon, Epson..."
+                            className="bg-zinc-900 border-zinc-700 text-white"
+                            required={idx === 0}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-zinc-400">
+                            Modelo {idx === 0 ? "*" : ""}
+                          </label>
+                          <Input
+                            type="text"
+                            value={entry.model}
+                            onChange={(e) => updateEquipmentEntry(entry.id, { model: e.target.value })}
+                            placeholder="Ex: LaserJet 1020, MG3610..."
+                            className="bg-zinc-900 border-zinc-700 text-white"
+                            required={idx === 0}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-zinc-400">
+                            Número de Série
+                          </label>
+                          <Input
+                            type="text"
+                            value={entry.serialNumber}
+                            onChange={(e) => updateEquipmentEntry(entry.id, { serialNumber: e.target.value })}
+                            placeholder="Número de série do equipamento"
+                            className="bg-zinc-900 border-zinc-700 text-white"
+                          />
+                        </div>
+                      </div>
+                      {equipmentsList.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeEquipmentEntry(entry.id)}
+                          className="text-red-400 hover:text-red-300 hover:bg-red-400/10 shrink-0 mt-6"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </TabsContent>
             </Tabs>

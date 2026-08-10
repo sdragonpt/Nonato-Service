@@ -125,7 +125,7 @@ export const NAVIGATION_ITEMS = [
     title: "Documentos & Relatórios",
     icon: FileText,
     items: [
-      { path: "/app/manage-report", icon: BarChart, iconKey: "BarChart", label: "Relatório de Serviço" },
+      { path: "/app/manage-report", icon: BarChart, iconKey: "BarChart", label: "Relatórios (Normais / Especiais)" },
       { path: "/app/biblioteca-relatorios", icon: FolderOpen, iconKey: "FolderOpen", label: "Biblioteca de Relatórios" },
       { path: "/app/recycle-bin", icon: Trash2, iconKey: "Trash2", label: "Relatórios Excluídos / Clientes" },
       { path: "/app/manual", icon: HelpCircle, iconKey: "HelpCircle", label: "Manual do Programa" },
@@ -228,6 +228,7 @@ export const ROUTE_META = [
   { pattern: "/app/technician-status", label: "Estado Visual do Técnico", iconKey: "UserCog" },
   { pattern: "/app/technician-skills", label: "Matriz de Competências", iconKey: "GraduationCap" },
   { pattern: "/app/warehouse-equipment", label: "Equipamentos do Armazém", iconKey: "Wrench" },
+  { pattern: "/app/warehouse-equipment/:equipmentId", label: "Detalhe do Equipamento", iconKey: "Wrench" },
   { pattern: "/app/add-warehouse-equipment", label: "Novo Equipamento de Armazém", iconKey: "Wrench" },
   { pattern: "/app/edit-warehouse-equipment/:equipmentId", label: "Editar Equipamento de Armazém", iconKey: "Wrench" },
   { pattern: "/app/equipment-families", label: "Famílias e Grupos de Equipamentos", iconKey: "FolderOpen" },
@@ -240,6 +241,7 @@ export const ROUTE_META = [
   { pattern: "/app/ordem-preparacao/:orderId", label: "Ordem de Preparação", iconKey: "ClipboardCheck" },
   { pattern: "/app/formularios-tecnicos", label: "Formulários para Técnicos", iconKey: "CheckSquare" },
   { pattern: "/app/biblioteca-relatorios", label: "Biblioteca de Relatórios", iconKey: "FolderOpen" },
+  { pattern: "/app/manage-report", label: "Relatórios (Normais / Especiais)", iconKey: "BarChart" },
 
   // Orçamento de Peças
   { pattern: "/app/parts-budgets", label: "Orçamento de Peças", iconKey: "Calculator" },

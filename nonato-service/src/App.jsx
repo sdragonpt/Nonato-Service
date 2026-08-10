@@ -189,6 +189,9 @@ const ManageDebtors = React.lazy(() =>
 const ManageReportsLibrary = React.lazy(() =>
   import("./features/reports/ManageReportsLibrary")
 );
+const ManageReport = React.lazy(() =>
+  import("./features/reports/ManageReport")
+);
 const ManageExpenses = React.lazy(() =>
   import("./features/expenses/ManageExpenses")
 );
@@ -216,6 +219,9 @@ const AddWarehouseEquipment = React.lazy(() =>
 );
 const EditWarehouseEquipment = React.lazy(() =>
   import("./features/warehouseEquipment/components/EditWarehouseEquipment")
+);
+const WarehouseEquipmentDetail = React.lazy(() =>
+  import("./features/warehouseEquipment/WarehouseEquipmentDetail")
 );
 const ManageEquipmentFamilies = React.lazy(() =>
   import("./features/warehouseEquipment/components/ManageEquipmentFamilies")
@@ -1077,6 +1083,10 @@ const App = () => {
                             element={<ManageReportsLibrary />}
                           />
                           <Route
+                            path="manage-report"
+                            element={<ManageReport />}
+                          />
+                          <Route
                             path="manage-expenses"
                             element={<ManageExpenses />}
                           />
@@ -1107,6 +1117,10 @@ const App = () => {
                           <Route
                             path="warehouse-equipment"
                             element={<ManageWarehouseEquipment />}
+                          />
+                          <Route
+                            path="warehouse-equipment/:equipmentId"
+                            element={<WarehouseEquipmentDetail />}
                           />
                           <Route
                             path="add-warehouse-equipment"

@@ -70,8 +70,6 @@ const OrderDetail = () => {
   const [isClosing, setIsClosing] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isGeneratingQuotePDF, setIsGeneratingQuotePDF] = useState(false);
-  const [isGeneratingMachineReport, setIsGeneratingMachineReport] =
-    useState(false);
   const [error, setError] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
@@ -185,13 +183,27 @@ const OrderDetail = () => {
     fetchData();
   }, [orderId]);
 
+  // ✅ PDF ÚNICO DA ORDEM — escolhe automaticamente qual gerador usar
+  // conforme o número de equipamentos da ordem: 1 equipamento (ou nenhum,
+  // ordens antigas) usa o PDF normal; mais do que 1 torna a ordem
+  // "especial" e usa o relatório de horas por equipamento (mesmo conteúdo
+  // do normal + secção agrupada por máquina).
+  const equipmentsCount = Array.isArray(order?.equipmentsList) && order.equipmentsList.length > 0
+    ? order.equipmentsList.length
+    : 1;
+  const isSpecialOrder = equipmentsCount > 1;
+
   const handleGeneratePDF = async () => {
     try {
       setIsGeneratingPDF(true);
       setError(null);
 
-      // ✅ Nome do ficheiro = número da OS (ex.: OS-0826-0187.pdf)
-      const fileName = `${order.orderNumber || `OS-${orderId}`}.pdf`;
+      // ✅ Nome do ficheiro = número da OS (ex.: OS-0826-0187.pdf), com
+      // prefixo "OS-E" (Equipamentos) quando a ordem é "especial".
+      const baseOrderNumber = order.orderNumber || `OS-${orderId}`;
+      const fileName = isSpecialOrder
+        ? `${baseOrderNumber.replace(/^OS-/, "OS-E-")}.pdf`
+        : `${baseOrderNumber}.pdf`;
 
       // ✅ FORMATTEDDATA CORRIGIDO - Incluindo partsQuoteItems
       const formattedData = {
@@ -233,7 +245,9 @@ const OrderDetail = () => {
         partsQuoteItems: order.partsQuoteItems || [],
       };
 
-      const pdfResult = await generateServiceOrderPDF(
+      const generator = isSpecialOrder ? generateMachineHoursReportPDF : generateServiceOrderPDF;
+
+      const pdfResult = await generator(
         order.orderNumber || orderId,
         formattedData,
         order.isUnregisteredClient ? order.unregisteredClient : client,
@@ -290,93 +304,6 @@ const OrderDetail = () => {
       setError("Erro ao gerar PDF. Por favor, tente novamente.");
     } finally {
       setIsGeneratingPDF(false);
-    }
-  };
-
-  // ✅ FUNÇÃO PARA GERAR O RELATÓRIO ESPECIAL DE HORAS POR EQUIPAMENTO
-  // (só relevante quando a ordem tem dias de trabalho com máquinas
-  // registadas — ver `hasMachineEntries` mais abaixo, que controla a
-  // visibilidade do botão)
-  const handleGenerateMachineHoursReport = async () => {
-    try {
-      setIsGeneratingMachineReport(true);
-      setError(null);
-
-      // ✅ Nome do ficheiro = número da OS com prefixo "OS-E" (Equipamentos),
-      // para não colidir com o relatório normal da mesma ordem (mesmo nº).
-      const baseOrderNumber = order.orderNumber || `OS-${orderId}`;
-      const fileName = `${baseOrderNumber.replace(/^OS-/, "OS-E-")}.pdf`;
-
-      // Mesma preparação de dados do relatório normal — este relatório tem
-      // tudo o que o normal tem, mais a secção de horas por equipamento.
-      const formattedData = {
-        orderId,
-        orderNumber: order.orderNumber || orderId,
-        date: order.date,
-        serviceType: order.serviceType || "",
-        status: order.status || "",
-        priority: order.priority || "",
-        resultDescription: order.resultDescription || "",
-        pontosEmAberto: order.pontosEmAberto || "",
-        checklist: order.checklist || {},
-        workdays: workdays.map((workday) => ({
-          ...workday,
-          workDate: new Date(workday.workDate).toLocaleDateString(),
-        })),
-        partsQuoteItems: order.partsQuoteItems || [],
-      };
-
-      const pdfResult = await generateMachineHoursReportPDF(
-        order.orderNumber || orderId,
-        formattedData,
-        order.isUnregisteredClient ? order.unregisteredClient : client,
-        order.manualEquipment?.model ? order.manualEquipment : equipment,
-        workdays,
-        fileName
-      );
-
-      if (window?.Capacitor?.isNative) {
-        try {
-          const reader = new FileReader();
-          reader.readAsDataURL(pdfResult.blob);
-          reader.onloadend = async () => {
-            const base64Data = reader.result.split(",")[1];
-
-            await Filesystem.writeFile({
-              path: fileName,
-              data: base64Data,
-              directory: Directory.Documents,
-            });
-
-            const { uri } = await Filesystem.getUri({
-              directory: Directory.Documents,
-              path: fileName,
-            });
-
-            await FileOpener.open({
-              filePath: uri,
-              contentType: "application/pdf",
-            });
-          };
-        } catch (error) {
-          console.error("Erro ao salvar/abrir arquivo:", error);
-          throw error;
-        }
-      } else {
-        const url = URL.createObjectURL(pdfResult.blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }
-    } catch (err) {
-      console.error("Erro ao gerar relatório por equipamento:", err);
-      setError("Erro ao gerar relatório por equipamento. Por favor, tente novamente.");
-    } finally {
-      setIsGeneratingMachineReport(false);
     }
   };
 
@@ -538,9 +465,6 @@ const OrderDetail = () => {
   const quoteTotals = calculateQuoteTotals();
   const hasQuote =
     order?.checklist?.pecas && order?.partsQuoteItems?.length > 0;
-  const hasMachineEntries = workdays.some(
-    (day) => day.machineEntries && day.machineEntries.length > 0
-  );
 
   return (
     <div className="space-y-6">
@@ -633,34 +557,26 @@ const OrderDetail = () => {
                 </>
               )}
 
+              {/* ✅ PDF ÚNICO — normal ou "por equipamento" consoante o
+                  número de equipamentos da ordem (ver isSpecialOrder) */}
               <Button
                 onClick={handleGeneratePDF}
-                className="bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none"
+                className={
+                  isSpecialOrder
+                    ? "bg-teal-600 hover:bg-teal-700 flex-1 sm:flex-none"
+                    : "bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none"
+                }
                 disabled={isGeneratingPDF}
               >
                 {isGeneratingPDF ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : isSpecialOrder ? (
+                  <Cpu className="w-4 h-4 mr-2" />
                 ) : (
                   <FileText className="w-4 h-4 mr-2" />
                 )}
                 <span className="sm:inline">PDF Ordem</span>
               </Button>
-
-              {/* ✅ BOTÃO PARA GERAR O RELATÓRIO ESPECIAL DE HORAS POR EQUIPAMENTO */}
-              {hasMachineEntries && (
-                <Button
-                  onClick={handleGenerateMachineHoursReport}
-                  className="bg-teal-600 hover:bg-teal-700 flex-1 sm:flex-none"
-                  disabled={isGeneratingMachineReport}
-                >
-                  {isGeneratingMachineReport ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Cpu className="w-4 h-4 mr-2" />
-                  )}
-                  <span className="sm:inline">PDF por Equipamento</span>
-                </Button>
-              )}
 
               {/* ✅ BOTÃO PARA GERAR PDF DO ORÇAMENTO */}
               {hasQuote && (

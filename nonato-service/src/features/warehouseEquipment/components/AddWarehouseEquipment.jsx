@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   FileText,
   Layers,
+  Barcode,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.jsx";
@@ -36,6 +37,7 @@ import { ESTADO_META } from "../ManageWarehouseEquipment.jsx";
 
 const emptyForm = {
   nome: "",
+  equipmentCode: "",
   categoria: "",
   marca: "",
   modelo: "",
@@ -187,6 +189,30 @@ const AddWarehouseEquipment = () => {
               {touched.nome && !formData.nome && (
                 <p className="text-sm text-red-500">Nome / Designação é obrigatório</p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">
+                ID do Equipamento
+              </label>
+              <div className="relative">
+                <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                <Input
+                  type="text"
+                  name="equipmentCode"
+                  value={formData.equipmentCode}
+                  onChange={handleChange}
+                  placeholder="Ex: 008323 (o número que o cliente atribui/escreve na etiqueta)"
+                  className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                />
+              </div>
+              <p className="text-xs text-zinc-500">
+                Este ID identifica a máquina toda. Cada volume/peça (a máquina
+                em si + os itens inclusos) gera uma etiqueta com este ID mais
+                um sufixo — ex: {formData.equipmentCode || "008323"}-01,{" "}
+                {formData.equipmentCode || "008323"}-02. Define-se depois em
+                &ldquo;Itens Inclusos&rdquo;, na página de detalhe.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

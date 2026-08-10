@@ -12,8 +12,10 @@ import {
   query,
   where,
   orderBy,
+  getDocs,
 } from "firebase/firestore";
-import { db } from "../../firebase.jsx";
+import { ref, deleteObject } from "firebase/storage";
+import { db, storage } from "../../firebase.jsx";
 import { useClients } from "../../context/ClientsContext.jsx";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { fetchPage } from "../../utils/firestorePage.js";
@@ -25,6 +27,7 @@ import {
   User,
   FileText,
   ClipboardCheck,
+  ScrollText,
   Search,
   XCircle,
   ArrowDown,
@@ -79,6 +82,25 @@ const mapInspectionItem = (i) => ({
   linkTo: `/app/inspection-detail/${i.id}`,
 });
 
+// "relatorios" (relatórios gerados via /app/manage-report) — coleção nova,
+// sem índice composto (eliminadoEm + orderBy) configurado no Firestore.
+// Em vez de replicar o padrão de paginação por cursor das outras duas
+// coleções (o que exigiria criar esse índice), lê-se a coleção inteira e
+// filtra/ordena do lado do cliente — aceitável porque "relatorios" é uma
+// coleção pequena.
+const mapReportItem = (r) => ({
+  id: r.id,
+  collectionName: "relatorios",
+  tipo: "relatorio",
+  label: `${r.tipo === "especial" ? "Relatório Especial" : "Relatório"}${
+    r.orderNumber ? ` — Ordem ${r.orderNumber}` : r.fileName ? ` — ${r.fileName}` : ""
+  }`,
+  clientId: r.clientId || null,
+  eliminadoEm: r.eliminadoEm,
+  storagePath: r.storagePath || null,
+  linkTo: "/app/biblioteca-relatorios",
+});
+
 // Só os documentos com eliminadoEm (soft-delete) contam — os que nunca
 // foram excluídos simplesmente não têm este campo, por isso o filtro
 // "!=" já os exclui corretamente, sem varrer a coleção toda no cliente.
@@ -102,6 +124,7 @@ const ManageRecycleBin = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [items, setItems] = useState([]);
+  const [reportItems, setReportItems] = useState([]);
   const [clientsMap, setClientsMap] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [restoringId, setRestoringId] = useState(null);
@@ -201,6 +224,16 @@ const ManageRecycleBin = () => {
         });
         setClientsMap(cMap);
 
+        // "relatorios" é lida por inteiro (sem índice composto) e filtrada
+        // do lado do cliente — ver nota junto de mapReportItem.
+        const reportsSnap = await getDocs(collection(db, "relatorios"));
+        const deletedReports = reportsSnap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .filter((r) => !!r.eliminadoEm)
+          .sort((a, b) => toJsDate(b.eliminadoEm) - toJsDate(a.eliminadoEm))
+          .map(mapReportItem);
+        setReportItems(deletedReports);
+
         await loadMore();
       } catch (err) {
         console.error("Erro ao carregar reciclagem:", err);
@@ -219,7 +252,11 @@ const ManageRecycleBin = () => {
       await updateDoc(doc(db, item.collectionName, item.id), {
         eliminadoEm: deleteField(),
       });
-      setItems((prev) => prev.filter((i) => !(i.id === item.id && i.collectionName === item.collectionName)));
+      if (item.collectionName === "relatorios") {
+        setReportItems((prev) => prev.filter((i) => i.id !== item.id));
+      } else {
+        setItems((prev) => prev.filter((i) => !(i.id === item.id && i.collectionName === item.collectionName)));
+      }
     } catch (err) {
       console.error("Erro ao restaurar item:", err);
       setError("Erro ao restaurar item. Por favor, tente novamente.");
@@ -232,11 +269,22 @@ const ManageRecycleBin = () => {
     if (!permDeleteTarget) return;
     try {
       await deleteDoc(doc(db, permDeleteTarget.collectionName, permDeleteTarget.id));
-      setItems((prev) =>
-        prev.filter(
-          (i) => !(i.id === permDeleteTarget.id && i.collectionName === permDeleteTarget.collectionName)
-        )
-      );
+      if (permDeleteTarget.storagePath) {
+        try {
+          await deleteObject(ref(storage, permDeleteTarget.storagePath));
+        } catch (storageErr) {
+          console.warn("Erro ao eliminar ficheiro do Storage:", storageErr);
+        }
+      }
+      if (permDeleteTarget.collectionName === "relatorios") {
+        setReportItems((prev) => prev.filter((i) => i.id !== permDeleteTarget.id));
+      } else {
+        setItems((prev) =>
+          prev.filter(
+            (i) => !(i.id === permDeleteTarget.id && i.collectionName === permDeleteTarget.collectionName)
+          )
+        );
+      }
       setPermDeleteTarget(null);
     } catch (err) {
       console.error("Erro ao eliminar definitivamente:", err);
@@ -244,8 +292,10 @@ const ManageRecycleBin = () => {
     }
   };
 
+  const allItems = useMemo(() => [...items, ...reportItems], [items, reportItems]);
+
   const filteredItems = useMemo(() => {
-    return items.filter((item) => {
+    return allItems.filter((item) => {
       if (!searchTerm) return true;
       const clientName = clientsMap[item.clientId]?.name || "";
       return (
@@ -253,7 +303,7 @@ const ManageRecycleBin = () => {
         searchIncludes(item.label, searchTerm)
       );
     });
-  }, [items, clientsMap, searchTerm]);
+  }, [allItems, clientsMap, searchTerm]);
 
   const groupedByClient = useMemo(() => {
     const groups = {};
@@ -367,6 +417,8 @@ const ManageRecycleBin = () => {
                     >
                       {item.tipo === "ordem" ? (
                         <FileText className="h-4 w-4 text-green-400 shrink-0" />
+                      ) : item.tipo === "relatorio" ? (
+                        <ScrollText className="h-4 w-4 text-amber-400 shrink-0" />
                       ) : (
                         <ClipboardCheck className="h-4 w-4 text-blue-400 shrink-0" />
                       )}

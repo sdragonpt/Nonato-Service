@@ -20,6 +20,7 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { db, storage } from "../../../firebase";
+import { downloadFileFromUrl } from "../../../utils/reportStorage.js";
 import {
   ArrowLeft,
   Loader2,
@@ -763,6 +764,132 @@ const ClientInspectionsSection = ({ clientId }) => {
   );
 };
 
+// Relatórios Gerados — histórico dos relatórios (normais e especiais)
+// criados em /app/manage-report para este cliente (coleção "relatorios").
+// Sem orderBy no Firestore de propósito (só equality em clientId), para
+// não precisar de índice composto — ordena-se aqui. Excluir move para a
+// Reciclagem (soft-delete via eliminadoEm), tal como ordens e inspeções.
+const ClientReportsSection = ({ clientId }) => {
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
+
+  const fetchReports = async () => {
+    try {
+      setLoading(true);
+      const q = query(collection(db, "relatorios"), where("clientId", "==", clientId));
+      const snap = await getDocs(q);
+      const list = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((r) => !r.eliminadoEm)
+        .sort((a, b) => {
+          const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+          const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+          return dateB - dateA;
+        });
+      setReports(list);
+    } catch (err) {
+      console.error("Erro ao carregar relatórios do cliente:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (clientId) fetchReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId]);
+
+  const handleDownload = async (report) => {
+    try {
+      await downloadFileFromUrl(report.url, report.fileName || `${report.orderNumber || "relatorio"}.pdf`);
+    } catch (err) {
+      console.error("Erro ao descarregar relatório:", err);
+    }
+  };
+
+  const handleDelete = async (report) => {
+    try {
+      setDeletingId(report.id);
+      await updateDoc(doc(db, "relatorios", report.id), { eliminadoEm: new Date() });
+      setReports((prev) => prev.filter((r) => r.id !== report.id));
+    } catch (err) {
+      console.error("Erro ao excluir relatório:", err);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  if (!loading && reports.length === 0) return null;
+
+  return (
+    <Card className="bg-zinc-800 border-zinc-700">
+      <CardHeader>
+        <CardTitle className="text-white flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          Relatórios ({reports.length})
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex justify-center py-6">
+            <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {reports.map((report) => (
+              <div
+                key={report.id}
+                className="flex items-center justify-between p-3 bg-zinc-700/30 hover:bg-zinc-700/60 rounded-lg border border-zinc-600 transition-colors"
+              >
+                <div
+                  className="min-w-0 flex-1 cursor-pointer"
+                  onClick={() => handleDownload(report)}
+                >
+                  <p className="text-white text-sm font-medium truncate">
+                    {report.tipo === "especial" ? "Relatório Especial" : "Relatório"}
+                    {report.orderNumber ? ` — Ordem ${report.orderNumber}` : ""}
+                    {report.equipmentLabel ? ` — ${report.equipmentLabel}` : ""}
+                  </p>
+                  <p className="text-xs text-zinc-400">
+                    {(report.createdAt?.toDate
+                      ? report.createdAt.toDate()
+                      : new Date(report.createdAt || 0)
+                    ).toLocaleDateString("pt-PT")}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDownload(report)}
+                    className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-zinc-700"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(report)}
+                    disabled={deletingId === report.id}
+                    className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                  >
+                    {deletingId === report.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 // ===================================
 // COMPONENTE PRINCIPAL ClientDetail
 // ===================================
@@ -1119,6 +1246,9 @@ const ClientDetail = () => {
 
       {/* Inspeções Recentes */}
       <ClientInspectionsSection clientId={clientId} />
+
+      {/* Relatórios Gerados */}
+      <ClientReportsSection clientId={clientId} />
 
       {/* Financial Section */}
       <ClientFinancialSection clientId={clientId} />
