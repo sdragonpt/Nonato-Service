@@ -148,27 +148,32 @@ export const PaymentStatusButtons = ({
   const buttonSize = size === "sm" ? "sm" : "default";
   const iconSize = size === "sm" ? "h-3 w-3" : "h-4 w-4";
 
+  // ✅ "bg-transparent" é essencial aqui — a variante "outline" do Button
+  // traz "bg-background" por omissão, que neste tema (fundo claro na
+  // variável --background do shadcn, nunca redefinida para dark) pintava
+  // os botões não selecionados de branco/sem cor, escondendo a cor
+  // (verde/amarelo/vermelho) da borda e do texto.
   const buttons = [
     {
       status: "paid",
       label: "Pago",
       icon: CheckCircle,
       color: "bg-green-600 hover:bg-green-700 text-white",
-      outlineColor: "border-green-600 text-green-400 hover:bg-green-600/10",
+      outlineColor: "bg-transparent border-green-600 text-green-400 hover:bg-green-600/10",
     },
     {
       status: "pending",
       label: "Pendente",
       icon: Clock,
       color: "bg-yellow-600 hover:bg-yellow-700 text-white",
-      outlineColor: "border-yellow-600 text-yellow-400 hover:bg-yellow-600/10",
+      outlineColor: "bg-transparent border-yellow-600 text-yellow-400 hover:bg-yellow-600/10",
     },
     {
       status: "overdue",
       label: "Devedor",
       icon: AlertTriangle,
       color: "bg-red-600 hover:bg-red-700 text-white",
-      outlineColor: "border-red-600 text-red-400 hover:bg-red-600/10",
+      outlineColor: "bg-transparent border-red-600 text-red-400 hover:bg-red-600/10",
     },
   ];
 

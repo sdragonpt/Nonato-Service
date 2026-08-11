@@ -20,6 +20,7 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { db, storage } from "../../../firebase";
+import { useClients } from "../../../context/ClientsContext.jsx";
 import { downloadFileFromUrl } from "../../../utils/reportStorage.js";
 import {
   ArrowLeft,
@@ -32,7 +33,6 @@ import {
   Phone,
   MapPin,
   Calendar,
-  Hash,
   Euro,
   Calculator,
   FileText,
@@ -44,6 +44,10 @@ import {
   Download,
   ClipboardCheck,
   ChevronRight,
+  UserCheck,
+  UserCog,
+  LayoutGrid,
+  FolderOpen,
 } from "lucide-react";
 
 // UI Components
@@ -69,6 +73,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.jsx";
 
 // Financial Components
 import {
@@ -80,6 +85,14 @@ import {
   getPaymentStatus,
   formatPrice,
 } from "../../../utils/financialUtils";
+
+// ✅ Partilhado por todas as secções desta página — antes estava duplicado
+// 4 vezes (uma por secção).
+const formatDate = (timestamp) => {
+  if (!timestamp) return "N/A";
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  return date.toLocaleDateString("pt-PT");
+};
 
 // ===================================
 // COMPONENTE DE SEÇÃO FINANCEIRA
@@ -205,17 +218,11 @@ const ClientFinancialSection = ({ clientId }) => {
     }
   };
 
-  // Formatar data
-  const formatDate = (timestamp) => {
-    if (!timestamp) return "N/A";
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString("pt-PT");
-  };
-
   useEffect(() => {
     if (clientId) {
       fetchFinancialData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
 
   if (isLoading) {
@@ -511,12 +518,6 @@ const ClientAttachments = ({ clientId }) => {
     return kb < 1024 ? `${kb.toFixed(0)} KB` : `${(kb / 1024).toFixed(1)} MB`;
   };
 
-  const formatDate = (timestamp) => {
-    if (!timestamp) return "N/A";
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString("pt-PT");
-  };
-
   return (
     <Card className="bg-zinc-800 border-zinc-700">
       <CardHeader>
@@ -696,8 +697,6 @@ const ClientInspectionsSection = ({ clientId }) => {
     if (clientId) fetchInspections();
   }, [clientId]);
 
-  if (!loading && inspections.length === 0) return null;
-
   return (
     <Card className="bg-zinc-800 border-zinc-700">
       <CardHeader>
@@ -710,6 +709,11 @@ const ClientInspectionsSection = ({ clientId }) => {
         {loading ? (
           <div className="flex justify-center py-6">
             <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
+          </div>
+        ) : inspections.length === 0 ? (
+          <div className="text-center py-6">
+            <ClipboardCheck className="h-10 w-10 text-zinc-600 mx-auto mb-3" />
+            <p className="text-zinc-400">Nenhuma inspeção registada</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -820,8 +824,6 @@ const ClientReportsSection = ({ clientId }) => {
     }
   };
 
-  if (!loading && reports.length === 0) return null;
-
   return (
     <Card className="bg-zinc-800 border-zinc-700">
       <CardHeader>
@@ -834,6 +836,11 @@ const ClientReportsSection = ({ clientId }) => {
         {loading ? (
           <div className="flex justify-center py-6">
             <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
+          </div>
+        ) : reports.length === 0 ? (
+          <div className="text-center py-6">
+            <FileText className="h-10 w-10 text-zinc-600 mx-auto mb-3" />
+            <p className="text-zinc-400">Nenhum relatório gerado</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -851,12 +858,7 @@ const ClientReportsSection = ({ clientId }) => {
                     {report.orderNumber ? ` — Ordem ${report.orderNumber}` : ""}
                     {report.equipmentLabel ? ` — ${report.equipmentLabel}` : ""}
                   </p>
-                  <p className="text-xs text-zinc-400">
-                    {(report.createdAt?.toDate
-                      ? report.createdAt.toDate()
-                      : new Date(report.createdAt || 0)
-                    ).toLocaleDateString("pt-PT")}
-                  </p>
+                  <p className="text-xs text-zinc-400">{formatDate(report.createdAt)}</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <Button
@@ -896,6 +898,7 @@ const ClientReportsSection = ({ clientId }) => {
 const ClientDetail = () => {
   const { clientId } = useParams();
   const navigate = useNavigate();
+  const { removeClientFromCache } = useClients();
   const [client, setClient] = useState(null);
   const [services, setServices] = useState([]);
   const [equipments, setEquipments] = useState([]);
@@ -957,24 +960,38 @@ const ClientDetail = () => {
     fetchData();
   }, [clientId]);
 
+  // ✅ Exclusão suave — igual ao resto da app (ordens, inspeções,
+  // relatórios): o cliente e as suas ordens ficam marcados como eliminados
+  // e podem ser restaurados na Reciclagem, em vez de desaparecerem para
+  // sempre. Os equipamentos continuam a ser apagados definitivamente,
+  // porque ainda não têm exclusão suave em lado nenhum da app.
   const handleDeleteClient = async () => {
     try {
       setIsSubmitting(true);
 
-      // Delete orders first
-      const servicesDeletePromises = services.map((service) =>
-        deleteDoc(doc(db, "ordens", service.id))
+      const now = new Date();
+      const ordersSoftDeletePromises = services.map((service) =>
+        updateDoc(doc(db, "ordens", service.id), { eliminadoEm: now })
       );
-      await Promise.all(servicesDeletePromises);
+      await Promise.all(ordersSoftDeletePromises);
 
-      // Then delete equipments
-      const equipmentsDeletePromises = equipments.map((equipment) =>
-        deleteDoc(doc(db, "equipamentos", equipment.id))
-      );
+      const equipmentsDeletePromises = equipments.map(async (equipment) => {
+        await deleteDoc(doc(db, "equipamentos", equipment.id));
+        // ✅ Limpa também a foto no Storage, se o equipamento tiver uma
+        // (ver AddEquipment.jsx/EditEquipment.jsx — foto passou a ser
+        // guardada no Storage em vez de base64 no documento).
+        if (equipment.equipmentPicStoragePath) {
+          try {
+            await deleteObject(ref(storage, equipment.equipmentPicStoragePath));
+          } catch {
+            // foto pode já não existir no storage
+          }
+        }
+      });
       await Promise.all(equipmentsDeletePromises);
 
-      // Finally delete the client
-      await deleteDoc(doc(db, "clientes", clientId));
+      await updateDoc(doc(db, "clientes", clientId), { eliminadoEm: now });
+      removeClientFromCache(clientId);
 
       navigate("/app/manage-clients");
     } catch (err) {
@@ -995,12 +1012,6 @@ const ClientDetail = () => {
         .toUpperCase()
         .slice(0, 2) || "??"
     );
-  };
-
-  const formatDate = (timestamp) => {
-    if (!timestamp) return "N/A";
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString("pt-PT");
   };
 
   if (isLoading) {
@@ -1030,21 +1041,28 @@ const ClientDetail = () => {
     );
   }
 
+  const isCompany = client.type === "company";
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Detalhes do Cliente</h1>
-          <p className="text-sm text-zinc-400">
-            Visualize e gerencie informações do cliente
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+            <Users className="h-5 w-5 text-green-400" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Detalhes do Cliente</h1>
+            <p className="text-sm text-zinc-400">
+              Visualize e gerencie informações do cliente
+            </p>
+          </div>
         </div>
         <Button
           variant="outline"
           size="icon"
           onClick={() => navigate("/app/manage-clients")}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
         >
           <ArrowLeft className="h-4 w-4 text-white" />
         </Button>
@@ -1057,12 +1075,38 @@ const ClientDetail = () => {
         </Alert>
       )}
 
-      {/* Client Information Card */}
+      {/* Identidade — sempre visível, independente do separador ativo */}
       <Card className="bg-zinc-800 border-zinc-700">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-white">Informações do Cliente</CardTitle>
-            <div className="flex gap-2">
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <Avatar className="h-20 w-20 border-2 border-zinc-700 shrink-0">
+              <AvatarImage src={client.profilePic} className="object-cover" />
+              <AvatarFallback className="bg-zinc-700 text-zinc-300 text-xl">
+                {getInitials(client.name)}
+              </AvatarFallback>
+            </Avatar>
+
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-xl font-bold text-white truncate">{client.name}</h3>
+                <Badge
+                  className={
+                    isCompany
+                      ? "bg-blue-500/20 text-blue-400 flex items-center gap-1"
+                      : "bg-green-500/20 text-green-400 flex items-center gap-1"
+                  }
+                >
+                  {isCompany ? <UserCog className="h-3 w-3" /> : <UserCheck className="h-3 w-3" />}
+                  {isCompany ? "Empresa" : "Pessoa Física"}
+                </Badge>
+              </div>
+              {client.company && (
+                <p className="text-sm text-zinc-400">{client.company}</p>
+              )}
+              <p className="text-sm text-zinc-400">{client.nif || "Sem NIF"}</p>
+            </div>
+
+            <div className="flex gap-2 shrink-0">
               <Button
                 onClick={() => navigate(`/app/edit-client/${clientId}`)}
                 className="bg-blue-600 hover:bg-blue-700"
@@ -1080,35 +1124,51 @@ const ClientDetail = () => {
               </Button>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Profile Section */}
-            <div className="flex flex-col items-center space-y-4">
-              <Avatar className="h-32 w-32">
-                <AvatarImage src={client.profilePic} className="object-cover" />
-                <AvatarFallback className="bg-zinc-700 text-zinc-300 text-2xl">
-                  {getInitials(client.name)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="text-center">
-                <h3 className="text-xl font-bold text-white">{client.name}</h3>
-                <p className="text-zinc-400">{client.nif || "Sem NIF"}</p>
-              </div>
-            </div>
+        </CardContent>
+      </Card>
 
-            {/* Contact Information */}
-            <div className="space-y-4">
-              <h4 className="font-semibold text-white border-b border-zinc-700 pb-2">
-                Informações de Contato
-              </h4>
+      {/* Separadores — antes eram 7 secções empilhadas numa scroll só */}
+      <Tabs defaultValue="geral" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4 bg-zinc-800 border border-zinc-700">
+          <TabsTrigger value="geral" className="flex items-center gap-2 data-[state=active]:bg-green-600">
+            <LayoutGrid className="h-4 w-4" />
+            <span className="hidden sm:inline">Visão Geral</span>
+          </TabsTrigger>
+          <TabsTrigger value="equipamentos" className="flex items-center gap-2 data-[state=active]:bg-green-600">
+            <Printer className="h-4 w-4" />
+            <span className="hidden sm:inline">Equipamentos</span>
+          </TabsTrigger>
+          <TabsTrigger value="financeiro" className="flex items-center gap-2 data-[state=active]:bg-green-600">
+            <Euro className="h-4 w-4" />
+            <span className="hidden sm:inline">Financeiro</span>
+          </TabsTrigger>
+          <TabsTrigger value="documentos" className="flex items-center gap-2 data-[state=active]:bg-green-600">
+            <FolderOpen className="h-4 w-4" />
+            <span className="hidden sm:inline">Documentos</span>
+          </TabsTrigger>
+        </TabsList>
 
-              <div className="space-y-3">
+        {/* Visão Geral */}
+        <TabsContent value="geral" className="space-y-4">
+          <Card className="bg-zinc-800 border-zinc-700">
+            <CardHeader>
+              <CardTitle className="text-white">Informações do Cliente</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                 <div className="flex items-center gap-3">
                   <Phone className="h-4 w-4 text-zinc-400" />
                   <div>
                     <p className="text-sm text-zinc-400">Telefone</p>
                     <p className="text-white">{client.phone || "N/A"}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <CreditCard className="h-4 w-4 text-zinc-400" />
+                  <div>
+                    <p className="text-sm text-zinc-400">NIF</p>
+                    <p className="text-white">{client.nif || "N/A"}</p>
                   </div>
                 </div>
 
@@ -1129,198 +1189,168 @@ const ClientDetail = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <CreditCard className="h-4 w-4 text-zinc-400" />
-                  <div>
-                    <p className="text-sm text-zinc-400">NIF</p>
-                    <p className="text-white">{client.nif || "N/A"}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Statistics */}
-            <div className="space-y-4">
-              <h4 className="font-semibold text-white border-b border-zinc-700 pb-2">
-                Estatísticas
-              </h4>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
                   <Calendar className="h-4 w-4 text-zinc-400" />
                   <div>
                     <p className="text-sm text-zinc-400">Cliente desde</p>
                     <p className="text-white">{formatDate(client.createdAt)}</p>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-3">
-                  <Users className="h-4 w-4 text-zinc-400" />
-                  <div>
-                    <p className="text-sm text-zinc-400">Total de Serviços</p>
-                    <p className="text-white">{services.length}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Printer className="h-4 w-4 text-zinc-400" />
-                  <div>
-                    <p className="text-sm text-zinc-400">Equipamentos</p>
-                    <p className="text-white">{equipments.length}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Hash className="h-4 w-4 text-zinc-400" />
-                  <div>
-                    <p className="text-sm text-zinc-400">ID do Cliente</p>
-                    <p className="text-white text-xs font-mono">
-                      {clientId.substring(0, 8)}...
-                    </p>
-                  </div>
-                </div>
               </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
 
-      {/* Equipment List */}
-      <Card className="bg-zinc-800 border-zinc-700">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-white flex items-center gap-2">
-              <Printer className="h-5 w-5" />
-              Equipamentos ({equipments.length})
-            </CardTitle>
-            <Button
-              onClick={() =>
-                navigate(`/app/add-equipment?clientId=${clientId}`)
-              }
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Adicionar Equipamento
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {equipments.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {equipments.map((equipment) => (
-                <div
-                  key={equipment.id}
-                  className="p-4 bg-zinc-700/50 rounded-lg border border-zinc-600 hover:bg-zinc-700 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/app/equipment/${equipment.id}`)}
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <Printer className="h-8 w-8 text-blue-400" />
-                    <div>
-                      <h4 className="font-medium text-white">
-                        {equipment.brand} {equipment.model}
-                      </h4>
-                      <p className="text-sm text-zinc-400">
-                        {equipment.serialNumber || "Sem nº série"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-xs text-zinc-500">
-                    Adicionado em {formatDate(equipment.createdAt)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Printer className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-              <p className="text-zinc-400">Nenhum equipamento cadastrado</p>
-              <p className="text-sm text-zinc-500 mt-2">
-                Use o botão "Adicionar Equipamento" acima para começar
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Attachments Section */}
-      <ClientAttachments clientId={clientId} />
-
-      {/* Inspeções Recentes */}
-      <ClientInspectionsSection clientId={clientId} />
-
-      {/* Relatórios Gerados */}
-      <ClientReportsSection clientId={clientId} />
-
-      {/* Financial Section */}
-      <ClientFinancialSection clientId={clientId} />
-
-      {/* Service History */}
-      <Card className="bg-zinc-800 border-zinc-700">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Histórico de Serviços ({services.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {services.length > 0 ? (
-            <div className="space-y-3">
-              {services
-                .sort((a, b) => new Date(b.date) - new Date(a.date))
-                .slice(0, 5)
-                .map((service) => (
-                  <div
-                    key={service.id}
-                    className="p-4 bg-zinc-700/50 rounded-lg border border-zinc-600"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-white">
-                        {service.isQuote ? "Orçamento" : "Fechamento"}
-                      </h4>
-                      <Badge
-                        className={
-                          service.status === "Fechado"
-                            ? "bg-green-500/20 text-green-400"
-                            : "bg-blue-500/20 text-blue-400"
-                        }
+          {/* Service History */}
+          <Card className="bg-zinc-800 border-zinc-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Histórico de Serviços ({services.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {services.length > 0 ? (
+                <div className="space-y-3">
+                  {services
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))
+                    .slice(0, 5)
+                    .map((service) => (
+                      <div
+                        key={service.id}
+                        className="p-4 bg-zinc-700/50 rounded-lg border border-zinc-600"
                       >
-                        {service.status}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-zinc-400 mb-2 font-mono">
-                      {service.id}
-                    </p>
-                    <div className="text-xs text-zinc-500">
-                      {formatDate(service.date || service.createdAt)}
-                    </div>
-                  </div>
-                ))}
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-white">
+                            {service.isQuote ? "Orçamento" : "Fechamento"}
+                          </h4>
+                          <Badge
+                            className={
+                              service.status === "Fechado"
+                                ? "bg-green-500/20 text-green-400"
+                                : "bg-blue-500/20 text-blue-400"
+                            }
+                          >
+                            {service.status}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-zinc-400 mb-2 font-mono">
+                          {service.id}
+                        </p>
+                        <div className="text-xs text-zinc-500">
+                          {formatDate(service.date || service.createdAt)}
+                        </div>
+                      </div>
+                    ))}
 
-              {services.length > 5 && (
-                <div className="text-center pt-4">
+                  {services.length > 5 && (
+                    <div className="text-center pt-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => navigate("/app/manage-orders")}
+                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                      >
+                        Ver todos os serviços ({services.length})
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Users className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
+                  <p className="text-zinc-400">Nenhum serviço registrado</p>
                   <Button
-                    variant="outline"
-                    onClick={() => navigate("/app/manage-orders")}
-                    className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                    onClick={() => navigate(`/app/add-order?clientId=${clientId}`)}
+                    className="mt-4 bg-green-600 hover:bg-green-700"
                   >
-                    Ver todos os serviços ({services.length})
+                    Criar Primeira Ordem
                   </Button>
                 </div>
               )}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Users className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-              <p className="text-zinc-400">Nenhum serviço registrado</p>
-              <Button
-                onClick={() => navigate(`/app/add-order?clientId=${clientId}`)}
-                className="mt-4 bg-green-600 hover:bg-green-700"
-              >
-                Criar Primeira Ordem
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Equipamentos */}
+        <TabsContent value="equipamentos">
+          <Card className="bg-zinc-800 border-zinc-700">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Printer className="h-5 w-5" />
+                  Equipamentos ({equipments.length})
+                </CardTitle>
+                <Button
+                  onClick={() =>
+                    navigate(`/app/add-equipment?clientId=${clientId}`)
+                  }
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Adicionar Equipamento
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {equipments.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {equipments.map((equipment) => (
+                    <div
+                      key={equipment.id}
+                      className="flex items-center gap-3 p-4 bg-zinc-700/50 rounded-lg border border-zinc-600 hover:bg-zinc-700 hover:border-zinc-500 transition-colors cursor-pointer"
+                      onClick={() => navigate(`/app/equipment/${equipment.id}`)}
+                    >
+                      <Avatar className="h-12 w-12 border border-zinc-600 shrink-0">
+                        <AvatarImage src={equipment.equipmentPic} className="object-cover" />
+                        <AvatarFallback className="bg-zinc-800 text-blue-400">
+                          <Printer className="h-5 w-5" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-medium text-white truncate">
+                            {equipment.brand} {equipment.model}
+                          </h4>
+                          {equipment.type && (
+                            <Badge variant="outline" className="text-[10px] border-zinc-600 text-zinc-400 shrink-0">
+                              {equipment.type}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-zinc-400 truncate">
+                          {equipment.serialNumber || "Sem nº série"}
+                        </p>
+                        <p className="text-xs text-zinc-500">
+                          Adicionado em {formatDate(equipment.createdAt)}
+                        </p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-zinc-500 shrink-0" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Printer className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
+                  <p className="text-zinc-400">Nenhum equipamento cadastrado</p>
+                  <p className="text-sm text-zinc-500 mt-2">
+                    Use o botão &ldquo;Adicionar Equipamento&rdquo; acima para começar
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Financeiro */}
+        <TabsContent value="financeiro">
+          <ClientFinancialSection clientId={clientId} />
+        </TabsContent>
+
+        {/* Documentos: anexos + relatórios + inspeções */}
+        <TabsContent value="documentos" className="space-y-4">
+          <ClientAttachments clientId={clientId} />
+          <ClientReportsSection clientId={clientId} />
+          <ClientInspectionsSection clientId={clientId} />
+        </TabsContent>
+      </Tabs>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -1328,9 +1358,10 @@ const ClientDetail = () => {
           <DialogHeader>
             <DialogTitle className="text-white">Confirmar Exclusão</DialogTitle>
             <DialogDescription className="text-zinc-400">
-              Tem certeza que deseja excluir este cliente? Esta ação irá também
-              excluir todos os equipamentos e serviços associados. Esta ação não
-              pode ser desfeita.
+              Tem certeza que deseja excluir este cliente? As ordens de serviço
+              associadas vão para a Reciclagem junto com o cliente (podem ser
+              restauradas mais tarde). Os equipamentos associados são apagados
+              definitivamente.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

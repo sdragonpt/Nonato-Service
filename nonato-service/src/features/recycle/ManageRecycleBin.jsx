@@ -16,7 +16,6 @@ import {
 } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../../firebase.jsx";
-import { useClients } from "../../context/ClientsContext.jsx";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { fetchPage } from "../../utils/firestorePage.js";
 import {
@@ -25,6 +24,7 @@ import {
   AlertTriangle,
   RotateCcw,
   User,
+  UserX,
   FileText,
   ClipboardCheck,
   ScrollText,
@@ -101,6 +101,21 @@ const mapReportItem = (r) => ({
   linkTo: "/app/biblioteca-relatorios",
 });
 
+// "clientes" — mesmo princípio de leitura completa da coleção que
+// "relatorios". O próprio cliente é o item (não pertence a outro cliente),
+// por isso não entra em nenhum grupo — cai em "Sem cliente associado",
+// identificável pelo próprio label.
+const mapClientItem = (c) => ({
+  id: c.id,
+  collectionName: "clientes",
+  tipo: "cliente",
+  label: `Cliente — ${c.name || c.id}`,
+  clientId: null,
+  eliminadoEm: c.eliminadoEm,
+  storagePath: c.profilePicStoragePath || null,
+  linkTo: `/app/client/${c.id}`,
+});
+
 // Só os documentos com eliminadoEm (soft-delete) contam — os que nunca
 // foram excluídos simplesmente não têm este campo, por isso o filtro
 // "!=" já os exclui corretamente, sem varrer a coleção toda no cliente.
@@ -120,11 +135,11 @@ const MAX_AUTO_LOADS = 15;
 
 const ManageRecycleBin = () => {
   const navigate = useNavigate();
-  const { ensureClients } = useClients();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [items, setItems] = useState([]);
   const [reportItems, setReportItems] = useState([]);
+  const [clientItems, setClientItems] = useState([]);
   const [clientsMap, setClientsMap] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [restoringId, setRestoringId] = useState(null);
@@ -217,12 +232,24 @@ const ManageRecycleBin = () => {
         setLoading(true);
         setError(null);
 
-        const allClients = await ensureClients();
+        // ✅ Leitura direta e SEM filtro de eliminadoEm — ao contrário do
+        // cache partilhado (ClientsContext.ensureClients), que agora exclui
+        // clientes eliminados de propósito. Aqui precisamos exatamente do
+        // contrário: dos clientes eliminados (para os listar) e de todos os
+        // outros (para conseguir mostrar o nome certo nos itens agrupados).
+        const allClientsSnap = await getDocs(collection(db, "clientes"));
+        const allClientsData = allClientsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         const cMap = {};
-        allClients.forEach((client) => {
+        allClientsData.forEach((client) => {
           cMap[client.id] = client;
         });
         setClientsMap(cMap);
+
+        const deletedClients = allClientsData
+          .filter((c) => !!c.eliminadoEm)
+          .sort((a, b) => toJsDate(b.eliminadoEm) - toJsDate(a.eliminadoEm))
+          .map(mapClientItem);
+        setClientItems(deletedClients);
 
         // "relatorios" é lida por inteiro (sem índice composto) e filtrada
         // do lado do cliente — ver nota junto de mapReportItem.
@@ -254,6 +281,8 @@ const ManageRecycleBin = () => {
       });
       if (item.collectionName === "relatorios") {
         setReportItems((prev) => prev.filter((i) => i.id !== item.id));
+      } else if (item.collectionName === "clientes") {
+        setClientItems((prev) => prev.filter((i) => i.id !== item.id));
       } else {
         setItems((prev) => prev.filter((i) => !(i.id === item.id && i.collectionName === item.collectionName)));
       }
@@ -278,6 +307,8 @@ const ManageRecycleBin = () => {
       }
       if (permDeleteTarget.collectionName === "relatorios") {
         setReportItems((prev) => prev.filter((i) => i.id !== permDeleteTarget.id));
+      } else if (permDeleteTarget.collectionName === "clientes") {
+        setClientItems((prev) => prev.filter((i) => i.id !== permDeleteTarget.id));
       } else {
         setItems((prev) =>
           prev.filter(
@@ -292,7 +323,10 @@ const ManageRecycleBin = () => {
     }
   };
 
-  const allItems = useMemo(() => [...items, ...reportItems], [items, reportItems]);
+  const allItems = useMemo(
+    () => [...items, ...reportItems, ...clientItems],
+    [items, reportItems, clientItems]
+  );
 
   const filteredItems = useMemo(() => {
     return allItems.filter((item) => {
@@ -357,7 +391,7 @@ const ManageRecycleBin = () => {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-white">Reciclagem</h1>
           <p className="text-sm text-zinc-400">
-            Ordens e relatórios excluídos, organizados por cliente — restaure ou elimine definitivamente
+            Clientes, ordens e relatórios excluídos, organizados por cliente — restaure ou elimine definitivamente
           </p>
         </div>
       </div>
@@ -389,7 +423,7 @@ const ManageRecycleBin = () => {
             <Trash2 className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
             <p className="text-lg font-medium mb-2 text-white">A reciclagem está vazia</p>
             <p className="text-sm text-zinc-400">
-              Itens excluídos de Ordens de Serviço e Relatórios de Inspeção aparecem aqui
+              Clientes, ordens de serviço, inspeções e relatórios excluídos aparecem aqui
             </p>
           </CardContent>
         </Card>
@@ -419,6 +453,8 @@ const ManageRecycleBin = () => {
                         <FileText className="h-4 w-4 text-green-400 shrink-0" />
                       ) : item.tipo === "relatorio" ? (
                         <ScrollText className="h-4 w-4 text-amber-400 shrink-0" />
+                      ) : item.tipo === "cliente" ? (
+                        <UserX className="h-4 w-4 text-purple-400 shrink-0" />
                       ) : (
                         <ClipboardCheck className="h-4 w-4 text-blue-400 shrink-0" />
                       )}

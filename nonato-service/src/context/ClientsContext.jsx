@@ -38,10 +38,16 @@ export const ClientsProvider = ({ children }) => {
       setError(null);
 
       const snapshot = await getDocs(query(collection(db, "clientes")));
-      const list = snapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...docSnap.data(),
-      }));
+      // ✅ Clientes com eliminadoEm (exclusão suave, ver ClientDetail.jsx e
+      // ManageClients.jsx) ficam de fora — desaparecem de imediato de todos
+      // os pickers/selects de cliente em toda a app, sem precisar de tocar
+      // em cada consumidor individualmente.
+      const list = snapshot.docs
+        .map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        }))
+        .filter((c) => !c.eliminadoEm);
       const map = new Map(list.map((c) => [c.id, c]));
 
       setClients(list);

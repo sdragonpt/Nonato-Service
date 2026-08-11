@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { collection, addDoc, getDocs } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useClients } from "../../../context/ClientsContext.jsx";
 import { useNavigate } from "react-router-dom";
+import { searchIncludes } from "../../../utils/normalizeSearch.js";
 import {
   Clock,
   FileText,
@@ -15,6 +16,8 @@ import {
   Zap,
   Package,
   Wrench,
+  Search,
+  UserCheck,
 } from "lucide-react";
 
 // UI Components
@@ -51,6 +54,8 @@ const AddPreAgendamento = () => {
   const [filteredEquipments, setFilteredEquipments] = useState([]);
   const [error, setError] = useState(null);
   const [clientType, setClientType] = useState("registered"); // registered ou new
+  const [clientSearch, setClientSearch] = useState("");
+  const [touched, setTouched] = useState({});
 
   const [formData, setFormData] = useState({
     // Cliente registrado
@@ -114,14 +119,79 @@ const AddPreAgendamento = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // ✅ Sanitiza o telefone enquanto se escreve — só dígitos e os
+    // caracteres habituais de formatação (espaço, +, (), -).
+    const nextValue = name === "newClientPhone" ? value.replace(/[^\d+()\s-]/g, "") : value;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: nextValue,
     }));
   };
 
+  const handleBlur = (field) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
+  // ✅ Deteção de possível cliente duplicado ao preencher "Cliente Novo" —
+  // compara nome e telefone (só dígitos) com os clientes já registados.
+  const onlyDigits = (value) => (value || "").replace(/\D/g, "");
+  const duplicateMatches = useMemo(() => {
+    if (clientType !== "new") return [];
+    const nameTerm = formData.newClientName.trim();
+    const phoneDigits = onlyDigits(formData.newClientPhone);
+    if (nameTerm.length < 3 && phoneDigits.length < 6) return [];
+    return clients.filter((c) => {
+      const nameMatch = nameTerm.length >= 3 && searchIncludes(c.name, nameTerm);
+      const phoneMatch = phoneDigits.length >= 6 && onlyDigits(c.phone).includes(phoneDigits);
+      return nameMatch || phoneMatch;
+    });
+  }, [clientType, formData.newClientName, formData.newClientPhone, clients]);
+
+  const handleUseExistingClient = (client) => {
+    setClientType("registered");
+    setFormData((prev) => ({
+      ...prev,
+      clientId: client.id,
+      newClientName: "",
+      newClientPhone: "",
+    }));
+  };
+
+  // ✅ Lista de clientes filtrada pela pesquisa (o placeholder do Select já
+  // prometia "Buscar cliente registrado..." — agora pesquisa mesmo).
+  const filteredClientsForSearch = useMemo(() => {
+    if (!clientSearch.trim()) return clients;
+    return clients.filter(
+      (c) => searchIncludes(c.name, clientSearch) || searchIncludes(c.phone, clientSearch)
+    );
+  }, [clients, clientSearch]);
+
+  const isNewClientNameValid = formData.newClientName.trim().length > 0;
+  const isNewClientPhoneValid = formData.newClientPhone.trim().length > 0;
+  const isMachineTypeValid = formData.machineType.trim().length > 0;
+  const isServiceTypeValid = formData.serviceType.trim().length > 0;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // ✅ Marca tudo como "tocado" para mostrar os avisos de campo em falta
+    setTouched({
+      clientId: true,
+      newClientName: true,
+      newClientPhone: true,
+      machineType: true,
+      serviceType: true,
+    });
+
+    if (
+      !isMachineTypeValid ||
+      !isServiceTypeValid ||
+      (clientType === "registered" && !formData.clientId) ||
+      (clientType === "new" && (!isNewClientNameValid || !isNewClientPhoneValid))
+    ) {
+      setError("Por favor, preencha todos os campos obrigatórios");
+      return;
+    }
 
     try {
       setIsSaving(true);
@@ -129,6 +199,11 @@ const AddPreAgendamento = () => {
 
       const preAgendamentoData = {
         ...formData,
+        machineType: formData.machineType.trim(),
+        serviceType: formData.serviceType.trim(),
+        newClientName: formData.newClientName.trim(),
+        newClientPhone: formData.newClientPhone.trim(),
+        quickNotes: formData.quickNotes.trim(),
         isRegisteredClient: clientType === "registered",
         status: "pending", // Status especial para pré-agendamentos
         createdAt: new Date(),
@@ -232,10 +307,20 @@ const AddPreAgendamento = () => {
               </TabsList>
 
               <TabsContent value="registered" className="space-y-4">
-                <div>
+                <div className="space-y-2">
                   <label className="block text-sm font-medium text-zinc-400 mb-1">
                     Selecionar Cliente *
                   </label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                    <Input
+                      type="text"
+                      value={clientSearch}
+                      onChange={(e) => setClientSearch(e.target.value)}
+                      placeholder="Pesquisar por nome ou telefone..."
+                      className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                    />
+                  </div>
                   <Select
                     value={formData.clientId}
                     onValueChange={(value) =>
@@ -243,10 +328,15 @@ const AddPreAgendamento = () => {
                     }
                   >
                     <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
-                      <SelectValue placeholder="Buscar cliente registrado..." />
+                      <SelectValue placeholder="Selecionar cliente registrado..." />
                     </SelectTrigger>
                     <SelectContent className="bg-zinc-800 border-zinc-700 max-h-[200px]">
-                      {clients.map((client) => (
+                      {filteredClientsForSearch.length === 0 && (
+                        <div className="px-3 py-2 text-sm text-zinc-500">
+                          Nenhum cliente encontrado
+                        </div>
+                      )}
+                      {filteredClientsForSearch.map((client) => (
                         <SelectItem
                           key={client.id}
                           value={client.id}
@@ -262,6 +352,9 @@ const AddPreAgendamento = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {touched.clientId && clientType === "registered" && !formData.clientId && (
+                    <p className="text-xs text-red-400">Seleciona um cliente.</p>
+                  )}
                 </div>
 
                 {/* ✅ NOVO: Seleção de equipamento para cliente registrado */}
@@ -313,10 +406,14 @@ const AddPreAgendamento = () => {
                       name="newClientName"
                       value={formData.newClientName}
                       onChange={handleChange}
+                      onBlur={() => handleBlur("newClientName")}
                       placeholder="Nome completo"
                       className="bg-zinc-900 border-zinc-700 text-white"
                       required={clientType === "new"}
                     />
+                    {touched.newClientName && !isNewClientNameValid && (
+                      <p className="text-xs text-red-400 mt-1">Campo obrigatório.</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-zinc-400 mb-1">
@@ -327,12 +424,48 @@ const AddPreAgendamento = () => {
                       name="newClientPhone"
                       value={formData.newClientPhone}
                       onChange={handleChange}
+                      onBlur={() => handleBlur("newClientPhone")}
                       placeholder="(XX) XXXXX-XXXX"
                       className="bg-zinc-900 border-zinc-700 text-white"
                       required={clientType === "new"}
                     />
+                    {touched.newClientPhone && !isNewClientPhoneValid && (
+                      <p className="text-xs text-red-400 mt-1">Campo obrigatório.</p>
+                    )}
                   </div>
                 </div>
+
+                {/* ✅ Aviso de possível cliente duplicado */}
+                {duplicateMatches.length > 0 && (
+                  <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-orange-400 shrink-0" />
+                      <span className="text-sm font-medium text-orange-400">
+                        Já existe{duplicateMatches.length > 1 ? "m" : ""} cliente
+                        {duplicateMatches.length > 1 ? "s" : ""} parecido{duplicateMatches.length > 1 ? "s" : ""} registado{duplicateMatches.length > 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      {duplicateMatches.slice(0, 3).map((match) => (
+                        <button
+                          type="button"
+                          key={match.id}
+                          onClick={() => handleUseExistingClient(match)}
+                          className="w-full flex items-center justify-between gap-2 p-2 bg-zinc-900/60 rounded border border-zinc-700 hover:bg-zinc-900 text-left"
+                        >
+                          <span className="text-sm text-white truncate">
+                            {match.name}
+                            <span className="text-xs text-zinc-400 ml-2">{match.phone}</span>
+                          </span>
+                          <span className="flex items-center gap-1 text-xs text-green-400 shrink-0">
+                            <UserCheck className="h-3.5 w-3.5" />
+                            Usar este
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -359,11 +492,15 @@ const AddPreAgendamento = () => {
                     name="machineType"
                     value={formData.machineType}
                     onChange={handleChange}
+                    onBlur={() => handleBlur("machineType")}
                     placeholder="Ex: Impressora, Scanner, Multifuncional..."
                     className="pl-10 bg-zinc-900 border-zinc-700 text-white"
                     required
                   />
                 </div>
+                {touched.machineType && !isMachineTypeValid && (
+                  <p className="text-xs text-red-400 mt-1">Campo obrigatório.</p>
+                )}
               </div>
 
               {/* ✅ ALTERADO: Campo manual para tipo de serviço */}
@@ -378,11 +515,15 @@ const AddPreAgendamento = () => {
                     name="serviceType"
                     value={formData.serviceType}
                     onChange={handleChange}
+                    onBlur={() => handleBlur("serviceType")}
                     placeholder="Ex: Manutenção, Reparo, Limpeza..."
                     className="pl-10 bg-zinc-900 border-zinc-700 text-white"
                     required
                   />
                 </div>
+                {touched.serviceType && !isServiceTypeValid && (
+                  <p className="text-xs text-red-400 mt-1">Campo obrigatório.</p>
+                )}
               </div>
             </div>
 
@@ -446,11 +587,11 @@ const AddPreAgendamento = () => {
           type="submit"
           disabled={
             isSaving ||
-            !formData.machineType ||
-            !formData.serviceType ||
+            !isMachineTypeValid ||
+            !isServiceTypeValid ||
             (clientType === "registered" && !formData.clientId) ||
             (clientType === "new" &&
-              (!formData.newClientName || !formData.newClientPhone))
+              (!isNewClientNameValid || !isNewClientPhoneValid))
           }
           className="w-full bg-green-600 hover:bg-green-700"
         >

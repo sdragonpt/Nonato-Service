@@ -1,7 +1,7 @@
 // src/features/clients/ManageClients.jsx
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, getDocs, deleteDoc, doc, query, where } from "firebase/firestore";
+import { collection, getDocs, updateDoc, doc, query, where } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useClients } from "../../context/ClientsContext.jsx";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
@@ -471,7 +471,12 @@ const ManageClients = () => {
     if (!clientToDelete) return;
 
     try {
-      await deleteDoc(doc(db, "clientes", clientToDelete.id));
+      // ✅ Exclusão suave — igual ao resto da app (ordens, inspeções,
+      // relatórios): o cliente fica marcado como eliminado e pode ser
+      // restaurado na Reciclagem, em vez de ser apagado para sempre.
+      await updateDoc(doc(db, "clientes", clientToDelete.id), {
+        eliminadoEm: new Date(),
+      });
       setClients((prev) => prev.filter((client) => client.id !== clientToDelete.id));
       rawClientsRef.current = rawClientsRef.current.filter(
         (client) => client.id !== clientToDelete.id
@@ -812,8 +817,9 @@ const ManageClients = () => {
           <DialogHeader>
             <DialogTitle className="text-white">Confirmar Exclusão</DialogTitle>
             <DialogDescription className="text-zinc-400">
-              Tem certeza que deseja excluir o cliente "{clientToDelete?.name}"?
-              Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir o cliente &ldquo;{clientToDelete?.name}
+              &rdquo;? O cliente vai para a Reciclagem e pode ser restaurado
+              mais tarde, se for preciso.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
