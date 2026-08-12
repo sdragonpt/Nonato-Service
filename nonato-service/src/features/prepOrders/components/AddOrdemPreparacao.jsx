@@ -2,10 +2,12 @@
 // Ordem de Preparação — formulário técnico pré-instalação, com o Código
 // SME_UP a fazer lookup automático no Cadastro de Equipamentos (id ou nº de
 // série) para pré-preencher descrição/modelo/marca.
-import { useState, useEffect, useMemo } from "react";
-import { collection, getDocs, addDoc } from "firebase/firestore";
+import { useState, useEffect } from "react";
+import { collection, addDoc } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useClients } from "../../../context/ClientsContext.jsx";
+import { useEquipments } from "../../../context/EquipmentsContext.jsx";
+import { useUsers } from "../../../context/UsersContext.jsx";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -29,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
+import { ClientCombobox } from "@/components/shared/ClientCombobox.jsx";
 
 import { isStaffRole } from "../../../config/roles.js";
 
@@ -133,6 +136,8 @@ const SingleSelectGroup = ({ options, value, onChange }) => (
 const AddOrdemPreparacao = () => {
   const navigate = useNavigate();
   const { ensureClients } = useClients();
+  const { ensureEquipments } = useEquipments();
+  const { ensureUsers } = useUsers();
   const [formData, setFormData] = useState(emptyForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -146,18 +151,14 @@ const AddOrdemPreparacao = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [clientsData, usersSnap, equipmentsSnap] = await Promise.all([
+        const [clientsData, allUsers, equipmentsData] = await Promise.all([
           ensureClients(),
-          getDocs(collection(db, "users")),
-          getDocs(collection(db, "equipamentos")),
+          ensureUsers(),
+          ensureEquipments(),
         ]);
         setClients(clientsData);
-        setStaffUsers(
-          usersSnap.docs
-            .map((d) => ({ id: d.id, ...d.data() }))
-            .filter((u) => isStaffRole(u.role))
-        );
-        setEquipments(equipmentsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setStaffUsers(allUsers.filter((u) => isStaffRole(u.role)));
+        setEquipments(equipmentsData);
       } catch (err) {
         console.error("Erro ao carregar dados:", err);
       }
@@ -188,11 +189,6 @@ const AddOrdemPreparacao = () => {
       }));
     }
   }, [formData.codigoSmeUp, equipments]);
-
-  const clientOptions = useMemo(
-    () => clients.slice().sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-PT")),
-    [clients]
-  );
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -347,22 +343,13 @@ const AddOrdemPreparacao = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-zinc-400">Cliente</label>
-                <Select
+                <ClientCombobox
+                  clients={clients}
                   value={formData.clientId || "none"}
                   onValueChange={(v) => handleSelectChange("clientId", v)}
-                >
-                  <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
-                    <SelectValue placeholder="Selecione o cliente" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
-                    <SelectItem value="none">Sem cliente</SelectItem>
-                    {clientOptions.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  allowNone
+                  noneLabel="Sem cliente"
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-zinc-400">Técnico Responsável</label>

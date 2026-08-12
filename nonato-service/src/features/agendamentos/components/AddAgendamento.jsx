@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { collection, addDoc, getDocs } from "firebase/firestore";
+import { collection, addDoc } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useClients } from "../../../context/ClientsContext.jsx";
+import { useEquipments } from "../../../context/EquipmentsContext.jsx";
+import { useUsers } from "../../../context/UsersContext.jsx";
 import { useNavigate } from "react-router-dom";
 import {
   Calendar,
@@ -42,6 +44,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+import { ClientCombobox } from "@/components/shared/ClientCombobox.jsx";
 
 import { isStaffRole } from "../../../config/roles.js";
 import {
@@ -54,6 +57,8 @@ import {
 const AddAgendamento = () => {
   const navigate = useNavigate();
   const { ensureClients } = useClients();
+  const { ensureEquipments } = useEquipments();
+  const { ensureUsers } = useUsers();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [clients, setClients] = useState([]);
@@ -85,23 +90,14 @@ const AddAgendamento = () => {
         setIsLoading(true);
         setError(null);
 
-        const [clientsData, equipmentsSnapshot, usersSnapshot] = await Promise.all([
+        const [clientsData, equipmentsData, allUsers] = await Promise.all([
           ensureClients(),
-          getDocs(collection(db, "equipamentos")),
-          getDocs(collection(db, "users")),
+          ensureEquipments(),
+          ensureUsers(),
         ]);
         setClients(clientsData);
-
-        const equipmentsData = equipmentsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
         setEquipments(equipmentsData);
-
-        const usersData = usersSnapshot.docs
-          .map((doc) => ({ id: doc.id, ...doc.data() }))
-          .filter((u) => isStaffRole(u.role));
-        setStaffUsers(usersData);
+        setStaffUsers(allUsers.filter((u) => isStaffRole(u.role)));
       } catch (err) {
         console.error("Erro ao carregar dados:", err);
         setError("Erro ao carregar dados. Por favor, tente novamente.");
@@ -398,27 +394,13 @@ const AddAgendamento = () => {
               <label className="block text-sm font-medium text-zinc-400 mb-1">
                 Cliente
               </label>
-              <Select
+              <ClientCombobox
+                clients={clients}
                 value={formData.clientId}
                 onValueChange={(value) =>
                   setFormData((prev) => ({ ...prev, clientId: value }))
                 }
-              >
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
-                  <SelectValue placeholder="Selecione um cliente" />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  {clients.map((client) => (
-                    <SelectItem
-                      key={client.id}
-                      value={client.id}
-                      className="text-white hover:bg-zinc-700"
-                    >
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
             </div>
 
             <div>

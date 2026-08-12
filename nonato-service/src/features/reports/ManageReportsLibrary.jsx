@@ -4,8 +4,10 @@ import { useNavigate } from "react-router-dom";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useClients } from "../../context/ClientsContext.jsx";
+import { useEquipments } from "../../context/EquipmentsContext.jsx";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { downloadFileFromUrl } from "../../utils/reportStorage.js";
+import { getCached, invalidateCache } from "../../utils/sessionCache.js";
 import {
   Search,
   Loader2,
@@ -64,9 +66,17 @@ const ReportRow = ({ report, onDownload, onDelete, deleting }) => (
   </div>
 );
 
+// ✅ "ordens"/"orcamentos"/"relatorios" são lidos por inteiro para calcular
+// a contagem de documentos por cliente (Firestore não tem forma barata de
+// agregar "quantos documentos tem este cliente" sem isso). Para não repetir
+// esta leitura pesada sempre que a página é aberta na mesma sessão, o
+// resultado fica em cache por 5 minutos (ver src/utils/sessionCache.js).
+const LIBRARY_CACHE_TTL = 5 * 60 * 1000;
+
 const ManageReportsLibrary = () => {
   const navigate = useNavigate();
   const { ensureClients } = useClients();
+  const { ensureEquipments } = useEquipments();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [clients, setClients] = useState([]);
@@ -86,17 +96,23 @@ const ManageReportsLibrary = () => {
       try {
         setLoading(true);
         setError(null);
-        const [allClients, equipmentsSnap, ordersSnap, closuresSnap, reportsSnap] =
+        const [allClients, allEquipments, ordersSnap, closuresSnap, reportsSnap] =
           await Promise.all([
             ensureClients(),
-            getDocs(collection(db, "equipamentos")),
-            getDocs(collection(db, "ordens")),
-            getDocs(collection(db, "orcamentos")),
-            getDocs(collection(db, "relatorios")),
+            ensureEquipments(),
+            getCached("reportsLibrary:ordens", LIBRARY_CACHE_TTL, () =>
+              getDocs(collection(db, "ordens"))
+            ),
+            getCached("reportsLibrary:orcamentos", LIBRARY_CACHE_TTL, () =>
+              getDocs(collection(db, "orcamentos"))
+            ),
+            getCached("reportsLibrary:relatorios", LIBRARY_CACHE_TTL, () =>
+              getDocs(collection(db, "relatorios"))
+            ),
           ]);
 
         setClients(allClients);
-        setEquipments(equipmentsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setEquipments(allEquipments);
         setOrders(
           ordersSnap.docs
             .map((d) => ({ id: d.id, ...d.data() }))
@@ -157,6 +173,10 @@ const ManageReportsLibrary = () => {
       setDeletingReportId(report.id);
       await updateDoc(doc(db, "relatorios", report.id), { eliminadoEm: new Date() });
       setGeneratedReports((prev) => prev.filter((r) => r.id !== report.id));
+      // Cache desatualizada — a próxima visita a esta página (dentro da
+      // janela de 5 min) deve refletir a exclusão em vez de mostrar dados
+      // antigos.
+      invalidateCache("reportsLibrary:relatorios");
     } catch (err) {
       console.error("Erro ao excluir relatório:", err);
     } finally {

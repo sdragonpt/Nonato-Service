@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useClients } from "../../context/ClientsContext.jsx";
+import { useUsers } from "../../context/UsersContext.jsx";
 import {
   UserCog,
   Loader2,
@@ -39,6 +40,7 @@ const initials = (name) => {
 const ManageTechnicianStatus = () => {
   const navigate = useNavigate();
   const { ensureClients } = useClients();
+  const { ensureUsers } = useUsers();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [staffUsers, setStaffUsers] = useState([]);
@@ -50,15 +52,13 @@ const ManageTechnicianStatus = () => {
       setLoading(true);
       setError(null);
 
-      const [usersSnap, appointmentsSnap, allClients] = await Promise.all([
-        getDocs(collection(db, "users")),
+      const [allUsers, appointmentsSnap, allClients] = await Promise.all([
+        ensureUsers(),
         getDocs(collection(db, "agendamentos")),
         ensureClients(),
       ]);
 
-      const staff = usersSnap.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .filter((u) => isStaffRole(u.role));
+      const staff = allUsers.filter((u) => isStaffRole(u.role));
       setStaffUsers(staff);
 
       const cMap = {};

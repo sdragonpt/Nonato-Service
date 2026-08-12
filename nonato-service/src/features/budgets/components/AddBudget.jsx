@@ -36,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
+import { ClientCombobox } from "@/components/shared/ClientCombobox.jsx";
 
 const AddBudget = () => {
   const navigate = useNavigate();
@@ -349,29 +350,15 @@ const AddBudget = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Select
+            <ClientCombobox
+              clients={clients}
               value={selectedClient?.id || ""}
               onValueChange={(value) => {
                 const client = clients.find((c) => c.id === value);
                 setSelectedClient(client);
                 setSelectedOrder(null);
               }}
-            >
-              <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
-                <SelectValue placeholder="Selecione um cliente..." />
-              </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700">
-                {clients.map((client) => (
-                  <SelectItem
-                    key={client.id}
-                    value={client.id}
-                    className="text-white hover:bg-zinc-700"
-                  >
-                    {client.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
           </CardContent>
         </Card>
 

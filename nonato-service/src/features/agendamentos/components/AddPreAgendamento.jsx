@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
-import { collection, addDoc, getDocs } from "firebase/firestore";
+import { collection, addDoc } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useClients } from "../../../context/ClientsContext.jsx";
+import { useEquipments } from "../../../context/EquipmentsContext.jsx";
 import { useNavigate } from "react-router-dom";
 import { searchIncludes } from "../../../utils/normalizeSearch.js";
 import {
@@ -16,7 +17,6 @@ import {
   Zap,
   Package,
   Wrench,
-  Search,
   UserCheck,
 } from "lucide-react";
 
@@ -37,6 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
+import { ClientCombobox } from "@/components/shared/ClientCombobox.jsx";
 import {
   Tabs,
   TabsContent,
@@ -47,6 +48,7 @@ import {
 const AddPreAgendamento = () => {
   const navigate = useNavigate();
   const { ensureClients } = useClients();
+  const { ensureEquipments } = useEquipments();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [clients, setClients] = useState([]);
@@ -54,7 +56,6 @@ const AddPreAgendamento = () => {
   const [filteredEquipments, setFilteredEquipments] = useState([]);
   const [error, setError] = useState(null);
   const [clientType, setClientType] = useState("registered"); // registered ou new
-  const [clientSearch, setClientSearch] = useState("");
   const [touched, setTouched] = useState({});
 
   const [formData, setFormData] = useState({
@@ -77,18 +78,13 @@ const AddPreAgendamento = () => {
         setIsLoading(true);
         setError(null);
 
-        // Buscar clientes (do ClientsContext partilhado) e equipamentos
-        const [clientsData, equipmentsSnapshot] = await Promise.all([
+        // Buscar clientes e equipamentos (dos contextos partilhados)
+        const [clientsData, equipmentsData] = await Promise.all([
           ensureClients(),
-          getDocs(collection(db, "equipamentos")),
+          ensureEquipments(),
         ]);
 
         setClients(clientsData);
-
-        const equipmentsData = equipmentsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
         setEquipments(equipmentsData);
       } catch (err) {
         console.error("Erro ao carregar dados:", err);
@@ -156,15 +152,6 @@ const AddPreAgendamento = () => {
       newClientPhone: "",
     }));
   };
-
-  // ✅ Lista de clientes filtrada pela pesquisa (o placeholder do Select já
-  // prometia "Buscar cliente registrado..." — agora pesquisa mesmo).
-  const filteredClientsForSearch = useMemo(() => {
-    if (!clientSearch.trim()) return clients;
-    return clients.filter(
-      (c) => searchIncludes(c.name, clientSearch) || searchIncludes(c.phone, clientSearch)
-    );
-  }, [clients, clientSearch]);
 
   const isNewClientNameValid = formData.newClientName.trim().length > 0;
   const isNewClientPhoneValid = formData.newClientPhone.trim().length > 0;
@@ -311,47 +298,14 @@ const AddPreAgendamento = () => {
                   <label className="block text-sm font-medium text-zinc-400 mb-1">
                     Selecionar Cliente *
                   </label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                    <Input
-                      type="text"
-                      value={clientSearch}
-                      onChange={(e) => setClientSearch(e.target.value)}
-                      placeholder="Pesquisar por nome ou telefone..."
-                      className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
-                    />
-                  </div>
-                  <Select
+                  <ClientCombobox
+                    clients={clients}
                     value={formData.clientId}
                     onValueChange={(value) =>
                       setFormData((prev) => ({ ...prev, clientId: value }))
                     }
-                  >
-                    <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
-                      <SelectValue placeholder="Selecionar cliente registrado..." />
-                    </SelectTrigger>
-                    <SelectContent className="bg-zinc-800 border-zinc-700 max-h-[200px]">
-                      {filteredClientsForSearch.length === 0 && (
-                        <div className="px-3 py-2 text-sm text-zinc-500">
-                          Nenhum cliente encontrado
-                        </div>
-                      )}
-                      {filteredClientsForSearch.map((client) => (
-                        <SelectItem
-                          key={client.id}
-                          value={client.id}
-                          className="text-white hover:bg-zinc-700"
-                        >
-                          <div className="flex flex-col">
-                            <span>{client.name}</span>
-                            <span className="text-xs text-zinc-400">
-                              {client.phone}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Selecionar cliente registrado..."
+                  />
                   {touched.clientId && clientType === "registered" && !formData.clientId && (
                     <p className="text-xs text-red-400">Seleciona um cliente.</p>
                   )}

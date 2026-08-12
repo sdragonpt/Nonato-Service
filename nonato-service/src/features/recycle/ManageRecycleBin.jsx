@@ -18,6 +18,7 @@ import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../../firebase.jsx";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { fetchPage } from "../../utils/firestorePage.js";
+import { formatDateTime as formatDate } from "../../utils/formatDate.js";
 import {
   Trash2,
   Loader2,
@@ -46,18 +47,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
-
-const formatDate = (timestamp) => {
-  if (!timestamp) return "N/A";
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-  return date.toLocaleDateString("pt-PT", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
 
 const toJsDate = (timestamp) =>
   timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);

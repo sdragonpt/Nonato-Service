@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useClients } from "../../context/ClientsContext.jsx";
+import { formatDate } from "../../utils/formatDate.js";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { fetchPage } from "../../utils/firestorePage.js";
 import {
@@ -393,12 +394,6 @@ const ManagePartsBudgets = () => {
     return totalBeforeVat;
   };
 
-  // Format date
-  const formatDate = (timestamp) => {
-    if (!timestamp) return "N/A";
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString("pt-PT");
-  };
 
   // Get initials for avatar
   const getInitials = (name) => {

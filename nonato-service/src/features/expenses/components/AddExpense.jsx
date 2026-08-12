@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
+import { ClientCombobox } from "@/components/shared/ClientCombobox.jsx";
 
 const AddExpense = () => {
   const navigate = useNavigate();
@@ -241,30 +242,13 @@ const AddExpense = () => {
             {formData.type === "cliente" && (
               <div className="space-y-2">
                 <label className="text-sm font-medium text-zinc-400">Cliente</label>
-                <Select
+                <ClientCombobox
+                  clients={clients}
                   value={formData.clientId}
                   onValueChange={(value) =>
                     setFormData((prev) => ({ ...prev, clientId: value }))
                   }
-                >
-                  <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
-                    <SelectValue placeholder="Selecione o cliente" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
-                    {clients
-                      .slice()
-                      .sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-PT"))
-                      .map((client) => (
-                        <SelectItem
-                          key={client.id}
-                          value={client.id}
-                          className="text-white hover:bg-zinc-700"
-                        >
-                          {client.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                />
               </div>
             )}
 

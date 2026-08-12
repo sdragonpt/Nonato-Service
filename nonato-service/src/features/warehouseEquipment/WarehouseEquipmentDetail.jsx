@@ -13,6 +13,7 @@ import {
 import { db, storage } from "../../firebase.jsx";
 import JsBarcode from "jsbarcode";
 import { compressImage } from "../../utils/imageCompression.js";
+import { formatDateTime } from "../../utils/formatDate.js";
 import {
   ArrowLeft,
   Edit2,
@@ -82,18 +83,6 @@ const TABS = [
 const genId = () =>
   `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-const formatDateTime = (value) => {
-  if (!value) return "N/A";
-  const date = value?.toDate ? value.toDate() : new Date(value);
-  if (Number.isNaN(date.getTime())) return "N/A";
-  return date.toLocaleString("pt-PT", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
 
 const pad2 = (n) => String(n).padStart(2, "0");
 

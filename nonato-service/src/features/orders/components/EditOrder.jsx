@@ -7,11 +7,11 @@ import {
   getDoc,
   updateDoc,
   collection,
-  getDocs,
   setDoc,
 } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useClients } from "../../../context/ClientsContext.jsx";
+import { useEquipments } from "../../../context/EquipmentsContext.jsx";
 import { searchCatalogParts } from "../../../utils/catalogPartSearch.js";
 import { generateDocNumber } from "../../../utils/docNumbering.js";
 import {
@@ -20,7 +20,6 @@ import {
   Save,
   AlertTriangle,
   Calendar,
-  User,
   Printer,
   AlertCircle,
   Clock,
@@ -32,7 +31,9 @@ import {
   Plus,
   X,
   ShoppingCart,
+  ClipboardEdit,
 } from "lucide-react";
+import { ClientCombobox } from "@/components/shared/ClientCombobox.jsx";
 
 // UI Components
 import {
@@ -65,10 +66,22 @@ const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
 const emptyEquipmentEntry = () => ({ id: genId(), equipmentId: "", brand: "", model: "", serialNumber: "" });
 
+// ✅ Bloco reutilizável "label + ícone + campo" — mesmo padrão do AddOrder.jsx/AddClient.jsx.
+const FieldLabel = ({ label, icon: Icon, children }) => (
+  <div className="space-y-2">
+    <label className="text-sm font-medium text-zinc-400">{label}</label>
+    <div className="relative">
+      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+      {children}
+    </div>
+  </div>
+);
+
 const EditOrder = () => {
   const { orderId } = useParams();
   const navigate = useNavigate();
   const { ensureClients } = useClients();
+  const { ensureEquipments } = useEquipments();
 
   const [formData, setFormData] = useState({
     date: "",
@@ -251,11 +264,11 @@ const EditOrder = () => {
         setError(null);
 
         // Fetch order, clients, and equipments in parallel
-        const [orderSnapshot, clientsData, equipmentsSnapshot] =
+        const [orderSnapshot, clientsData, equipmentsData] =
           await Promise.all([
             getDoc(doc(db, "ordens", orderId)),
             ensureClients(),
-            getDocs(collection(db, "equipamentos")),
+            ensureEquipments(),
           ]);
 
         if (!orderSnapshot.exists()) {
@@ -315,11 +328,6 @@ const EditOrder = () => {
 
         // Process clients and equipments
         setClients(clientsData);
-
-        const equipmentsData = equipmentsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
         setEquipments(equipmentsData);
 
         // Filter equipments for selected client
@@ -622,19 +630,24 @@ const EditOrder = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">
-            Editar Ordem de Serviço
-          </h1>
-          <p className="text-sm text-zinc-400">
-            Atualize as informações da ordem de serviço
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+            <ClipboardEdit className="h-5 w-5 text-green-400" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">
+              Editar Ordem de Serviço
+            </h1>
+            <p className="text-sm text-zinc-400">
+              Atualize as informações da ordem de serviço
+            </p>
+          </div>
         </div>
         <Button
           variant="outline"
           size="icon"
           onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
         >
           <ArrowLeft className="h-4 w-4 text-white" />
         </Button>
@@ -685,52 +698,27 @@ const EditOrder = () => {
               {/* ✅ ABA CLIENTE REGISTRADO */}
               <TabsContent value="registered" className="space-y-4">
                 {/* Date Field */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400">
-                    Data
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                    <input
-                      type="date"
-                      name="date"
-                      value={formData.date}
-                      onChange={handleChange}
-                      className="w-full pl-10 p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                </div>
+                <FieldLabel label="Data" icon={Calendar}>
+                  <input
+                    type="date"
+                    name="date"
+                    value={formData.date}
+                    onChange={handleChange}
+                    className="w-full pl-10 p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    required
+                  />
+                </FieldLabel>
 
-                {/* Client Selection */}
+                {/* Client Selection — pesquisável, com foto e por ordem alfabética */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400">
-                    Cliente
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                    <Select
-                      value={formData.clientId}
-                      onValueChange={(value) =>
-                        handleChange({ target: { name: "clientId", value } })
-                      }
-                    >
-                      <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
-                        <SelectValue placeholder="Selecione um Cliente" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-800 border-zinc-700">
-                        {clients.map((client) => (
-                          <SelectItem
-                            key={client.id}
-                            value={client.id}
-                            className="text-white hover:bg-zinc-700"
-                          >
-                            {client.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <label className="text-sm font-medium text-zinc-400">Cliente</label>
+                  <ClientCombobox
+                    clients={clients}
+                    value={formData.clientId}
+                    onValueChange={(value) =>
+                      handleChange({ target: { name: "clientId", value } })
+                    }
+                  />
                 </div>
 
                 {/* Equipment Selection — pode ter mais do que 1 (ordem "especial") */}
@@ -836,22 +824,16 @@ const EditOrder = () => {
                 </div>
 
                 {/* Data */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400">
-                    Data
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                    <input
-                      type="date"
-                      name="date"
-                      value={formData.date}
-                      onChange={handleChange}
-                      className="w-full pl-10 p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                </div>
+                <FieldLabel label="Data" icon={Calendar}>
+                  <input
+                    type="date"
+                    name="date"
+                    value={formData.date}
+                    onChange={handleChange}
+                    className="w-full pl-10 p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </FieldLabel>
 
                 {/* ✅ DADOS DO CLIENTE NÃO REGISTRADO */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1003,104 +985,86 @@ const EditOrder = () => {
             {/* ✅ CAMPOS COMUNS (FORA DAS ABAS) */}
             <div className="mt-6 space-y-4">
               {/* Service Type */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">
-                  Tipo de Serviço
-                </label>
-                <div className="relative">
-                  <Settings className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <Input
-                    type="text"
-                    name="serviceType"
-                    value={formData.serviceType}
-                    onChange={handleChange}
-                    onBlur={() => handleBlur("serviceType")}
-                    placeholder="Descreva o tipo de serviço"
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white"
-                    required
-                  />
-                </div>
-              </div>
+              <FieldLabel label="Tipo de Serviço" icon={Settings}>
+                <Input
+                  type="text"
+                  name="serviceType"
+                  value={formData.serviceType}
+                  onChange={handleChange}
+                  onBlur={() => handleBlur("serviceType")}
+                  placeholder="Descreva o tipo de serviço"
+                  className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                  required
+                />
+              </FieldLabel>
 
               {/* Priority Selection */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">
-                  Prioridade
-                </label>
-                <div className="relative">
-                  <AlertCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <Select
-                    value={formData.priority}
-                    onValueChange={(value) =>
-                      handleChange({ target: { name: "priority", value } })
-                    }
-                  >
-                    <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
-                      <SelectValue placeholder="Selecione a Prioridade" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-zinc-800 border-zinc-700">
-                      <SelectItem
-                        value="low"
-                        className="text-white hover:bg-zinc-700"
-                      >
-                        Baixa
-                      </SelectItem>
-                      <SelectItem
-                        value="normal"
-                        className="text-white hover:bg-zinc-700"
-                      >
-                        Normal
-                      </SelectItem>
-                      <SelectItem
-                        value="high"
-                        className="text-white hover:bg-zinc-700"
-                      >
-                        Alta
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              <FieldLabel label="Prioridade" icon={AlertCircle}>
+                <Select
+                  value={formData.priority}
+                  onValueChange={(value) =>
+                    handleChange({ target: { name: "priority", value } })
+                  }
+                >
+                  <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                    <SelectValue placeholder="Selecione a Prioridade" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-800 border-zinc-700">
+                    <SelectItem
+                      value="low"
+                      className="text-white hover:bg-zinc-700"
+                    >
+                      Baixa
+                    </SelectItem>
+                    <SelectItem
+                      value="normal"
+                      className="text-white hover:bg-zinc-700"
+                    >
+                      Normal
+                    </SelectItem>
+                    <SelectItem
+                      value="high"
+                      className="text-white hover:bg-zinc-700"
+                    >
+                      Alta
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </FieldLabel>
 
               {/* Status Selection */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">
-                  Status
-                </label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value) =>
-                      handleChange({ target: { name: "status", value } })
-                    }
-                  >
-                    <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
-                      <SelectValue placeholder="Selecione o Status" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-zinc-800 border-zinc-700">
-                      <SelectItem
-                        value="Aberto"
-                        className="text-white hover:bg-zinc-700"
-                      >
-                        Aberto
-                      </SelectItem>
-                      <SelectItem
-                        value="Em Andamento"
-                        className="text-white hover:bg-zinc-700"
-                      >
-                        Em Andamento
-                      </SelectItem>
-                      <SelectItem
-                        value="Fechado"
-                        className="text-white hover:bg-zinc-700"
-                      >
-                        Fechado
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              <FieldLabel label="Status" icon={Clock}>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) =>
+                    handleChange({ target: { name: "status", value } })
+                  }
+                >
+                  <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                    <SelectValue placeholder="Selecione o Status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-800 border-zinc-700">
+                    <SelectItem
+                      value="Aberto"
+                      className="text-white hover:bg-zinc-700"
+                    >
+                      Aberto
+                    </SelectItem>
+                    <SelectItem
+                      value="Em Andamento"
+                      className="text-white hover:bg-zinc-700"
+                    >
+                      Em Andamento
+                    </SelectItem>
+                    <SelectItem
+                      value="Fechado"
+                      className="text-white hover:bg-zinc-700"
+                    >
+                      Fechado
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </FieldLabel>
             </div>
           </CardContent>
         </Card>
@@ -1273,7 +1237,7 @@ const EditOrder = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-green-600 text-green-400 hover:bg-green-500/20"
+                          className="bg-zinc-900 border-green-600 text-green-400 hover:bg-green-500/20"
                         >
                           <Plus className="h-4 w-4 mr-1" />
                           Adicionar

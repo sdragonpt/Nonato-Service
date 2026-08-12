@@ -5,11 +5,10 @@ import {
   doc,
   getDoc,
   updateDoc,
-  collection,
-  getDocs,
 } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useClients } from "../../../context/ClientsContext.jsx";
+import { useEquipments } from "../../../context/EquipmentsContext.jsx";
 import { searchCatalogParts } from "../../../utils/catalogPartSearch.js";
 import {
   ArrowLeft,
@@ -41,6 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
+import { ClientCombobox } from "@/components/shared/ClientCombobox.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import {
   Tabs,
@@ -53,6 +53,7 @@ const EditPartBudget = () => {
   const { quoteId } = useParams();
   const navigate = useNavigate();
   const { ensureClients } = useClients();
+  const { ensureEquipments } = useEquipments();
 
   const [formData, setFormData] = useState({
     date: "",
@@ -235,11 +236,11 @@ const EditPartBudget = () => {
         setIsLoading(true);
         setError(null);
 
-        const [quoteSnapshot, allClients, equipmentsSnapshot] =
+        const [quoteSnapshot, allClients, equipmentsData] =
           await Promise.all([
             getDoc(doc(db, "ordens", quoteId)),
             ensureClients(),
-            getDocs(collection(db, "equipamentos")),
+            ensureEquipments(),
           ]);
 
         if (!quoteSnapshot.exists()) {
@@ -283,11 +284,6 @@ const EditPartBudget = () => {
 
         // Process clients and equipments
         setClients(allClients);
-
-        const equipmentsData = equipmentsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
         setEquipments(equipmentsData);
 
         // ✅ CORRIGIDO: Filter equipments for selected client
@@ -703,27 +699,11 @@ const EditPartBudget = () => {
                       <label className="text-sm font-medium text-zinc-400">
                         Cliente *
                       </label>
-                      <Select
+                      <ClientCombobox
+                        clients={clients.filter((client) => client.id && client.id.trim() !== "")}
                         value={formData.clientId}
                         onValueChange={handleClientSelect}
-                      >
-                        <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800 hover:border-zinc-600">
-                          <SelectValue placeholder="Selecione um cliente" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-zinc-800 border-zinc-600 shadow-lg">
-                          {clients
-                            .filter((client) => client.id && client.id.trim() !== "")
-                            .map((client) => (
-                              <SelectItem
-                                key={client.id}
-                                value={client.id}
-                                className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white"
-                              >
-                                {client.name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
+                      />
                     </div>
 
                     <div className="space-y-2">

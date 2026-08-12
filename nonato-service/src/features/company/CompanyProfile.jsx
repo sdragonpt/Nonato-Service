@@ -3,10 +3,12 @@
 // morada, contacto, logo). Usada para gerar documentos/pedidos de pagamento
 // enviados a clientes. Guardada como documento único no Firestore.
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "../../firebase.jsx";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { db, storage } from "../../firebase.jsx";
 import { useAuth } from "../../hooks/useAuth";
+import { compressImage } from "../../utils/imageCompression.js";
 import {
   Building2,
   Loader2,
@@ -67,12 +69,21 @@ const CompanyProfile = () => {
   const [success, setSuccess] = useState(false);
   const [copiedField, setCopiedField] = useState(null);
 
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState("");
+  const [logoRemoved, setLogoRemoved] = useState(false);
+  const [existingLogoStoragePath, setExistingLogoStoragePath] = useState("");
+  const previewUrlRef = useRef(null);
+
   const fetchProfile = useCallback(async () => {
     try {
       setIsLoading(true);
       const snapshot = await getDoc(doc(db, ...COMPANY_DOC_REF));
       if (snapshot.exists()) {
-        setFormData({ ...emptyForm, ...snapshot.data() });
+        const data = snapshot.data();
+        setFormData({ ...emptyForm, ...data });
+        setLogoPreview(data.logo || "");
+        setExistingLogoStoragePath(data.logoStoragePath || "");
       }
       setError(null);
     } catch (err) {
@@ -93,6 +104,13 @@ const CompanyProfile = () => {
     setSuccess(false);
   };
 
+  // Liberta o object URL da pré-visualização quando deixa de ser preciso.
+  useEffect(() => {
+    return () => {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    };
+  }, []);
+
   const handleLogoChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -100,12 +118,43 @@ const CompanyProfile = () => {
       setError("O logo deve ter menos de 2MB");
       return;
     }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData((prev) => ({ ...prev, logo: reader.result }));
-      setError(null);
-    };
-    reader.readAsDataURL(file);
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    const objectUrl = URL.createObjectURL(file);
+    previewUrlRef.current = objectUrl;
+    setLogoPreview(objectUrl);
+    setLogoFile(file);
+    setLogoRemoved(false);
+    setError(null);
+  };
+
+  const removeLogo = () => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    previewUrlRef.current = null;
+    setLogoPreview("");
+    setLogoFile(null);
+    setLogoRemoved(true);
+  };
+
+  // ✅ Mesmo princípio do AddClient/AddEquipment — comprime e envia para o
+  // Storage em vez de gravar um base64 gigante dentro do documento único
+  // da empresa. Só é enviado ao Storage quando o formulário é guardado
+  // (evita ficar com ficheiros órfãos se o utilizador desistir a meio).
+  const uploadLogo = async (file) => {
+    const compressed = await compressImage(file, { maxDimension: 800, quality: 0.85 });
+    const storagePath = `config/companyProfile/logo_${Date.now()}.jpg`;
+    const storageRef = ref(storage, storagePath);
+    await uploadBytes(storageRef, compressed, { contentType: "image/jpeg" });
+    const url = await getDownloadURL(storageRef);
+    return { url, storagePath };
+  };
+
+  const deleteOldLogo = async () => {
+    if (!existingLogoStoragePath) return;
+    try {
+      await deleteObject(ref(storage, existingLogoStoragePath));
+    } catch {
+      // logo antigo pode já não existir no storage
+    }
   };
 
   const handleCopy = (field, value) => {
@@ -122,10 +171,29 @@ const CompanyProfile = () => {
     try {
       setIsSubmitting(true);
       setError(null);
+
+      const dataToSave = { ...formData };
+
+      if (logoFile) {
+        const uploaded = await uploadLogo(logoFile);
+        await deleteOldLogo();
+        dataToSave.logo = uploaded.url;
+        dataToSave.logoStoragePath = uploaded.storagePath;
+        setExistingLogoStoragePath(uploaded.storagePath);
+        setLogoFile(null);
+      } else if (logoRemoved) {
+        await deleteOldLogo();
+        dataToSave.logo = "";
+        dataToSave.logoStoragePath = "";
+        setExistingLogoStoragePath("");
+        setLogoRemoved(false);
+      }
+
       await setDoc(doc(db, ...COMPANY_DOC_REF), {
-        ...formData,
+        ...dataToSave,
         lastUpdate: new Date(),
       });
+      setFormData(dataToSave);
       setSuccess(true);
     } catch (err) {
       console.error("Erro ao guardar dados da empresa:", err);
@@ -187,10 +255,10 @@ const CompanyProfile = () => {
             <CardTitle className="text-lg text-white">Logo</CardTitle>
           </CardHeader>
           <CardContent>
-            {formData.logo ? (
+            {logoPreview ? (
               <div className="relative w-32 h-32">
                 <img
-                  src={formData.logo}
+                  src={logoPreview}
                   alt="Logo da Nonato Service"
                   className="w-full h-full rounded-lg object-contain bg-zinc-900 border border-zinc-700"
                 />
@@ -200,7 +268,7 @@ const CompanyProfile = () => {
                     size="icon"
                     variant="destructive"
                     className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                    onClick={() => setFormData((prev) => ({ ...prev, logo: "" }))}
+                    onClick={removeLogo}
                   >
                     <X className="h-3 w-3" />
                   </Button>

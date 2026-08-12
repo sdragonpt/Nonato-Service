@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useClients } from "../../context/ClientsContext.jsx";
+import { getCached } from "../../utils/sessionCache.js";
 import {
   Bell,
   Loader2,
@@ -37,6 +38,17 @@ const daysSince = (dateRaw) => {
   return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 };
 
+// ✅ "orcamentos", "ordens" (isQuote) e "pedidosArmazem" são lidos por
+// inteiro/filtrados no cliente (Firestore não filtra "devedor"/"pendente há
+// X dias" no servidor). Cache de 5 min para não repetir a leitura sempre
+// que a Central de Alertas é aberta na mesma sessão (ver
+// src/utils/sessionCache.js). As chaves "finances:*" são partilhadas com
+// ManageDebtors.jsx e ManageClients.jsx, que calculam a mesma informação de
+// devedores — visitar mais do que uma destas páginas na mesma sessão só
+// paga a leitura uma vez. "agendamentos" já vai filtrado por hoje no
+// próprio pedido (where "data" == hoje), tal como no Dashboard.
+const ALERTS_CACHE_TTL = 5 * 60 * 1000;
+
 const ManageAlerts = () => {
   const navigate = useNavigate();
   const { ensureClients } = useClients();
@@ -53,6 +65,8 @@ const ManageAlerts = () => {
       setLoading(true);
       setError(null);
 
+      const today = todayStr();
+
       const [
         partsBudgetsSnap,
         closuresSnap,
@@ -61,11 +75,20 @@ const ManageAlerts = () => {
         warehouseSnap,
         onlineQuotesSnap,
       ] = await Promise.all([
-        getDocs(query(collection(db, "ordens"), where("isQuote", "==", true))),
-        getDocs(collection(db, "orcamentos")),
+        getCached("finances:ordensQuotes", ALERTS_CACHE_TTL, () =>
+          getDocs(query(collection(db, "ordens"), where("isQuote", "==", true)))
+        ),
+        getCached("finances:orcamentos", ALERTS_CACHE_TTL, () =>
+          getDocs(collection(db, "orcamentos"))
+        ),
         ensureClients(),
-        getDocs(collection(db, "agendamentos")),
-        getDocs(collection(db, "pedidosArmazem")),
+        // ✅ Filtrado no próprio pedido (equality simples, sem índice
+        // composto necessário) em vez de descarregar todos os agendamentos
+        // de sempre só para ficar com os de hoje — mesmo padrão do Dashboard.
+        getDocs(query(collection(db, "agendamentos"), where("data", "==", today))),
+        getCached("alerts:pedidosArmazem", ALERTS_CACHE_TTL, () =>
+          getDocs(collection(db, "pedidosArmazem"))
+        ),
         getDocs(
           query(collection(db, "orcamentos-online"), where("status", "==", "pending"))
         ),
@@ -101,11 +124,11 @@ const ManageAlerts = () => {
         .sort((a, b) => b.totalOverdue - a.totalOverdue);
       setDebtors(debtorsList);
 
-      // Agendamentos de hoje ainda não concluídos
-      const today = todayStr();
+      // Agendamentos de hoje ainda não concluídos (já vêm filtrados por
+      // data do próprio pedido — só falta excluir os já terminados)
       const todayList = appointmentsSnap.docs
         .map((d) => ({ id: d.id, ...d.data() }))
-        .filter((a) => a.data === today && a.status !== "terminado")
+        .filter((a) => a.status !== "terminado")
         .map((a) => ({ ...a, client: clientsMap[a.clientId] }))
         .sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
       setTodayAppointments(todayList);

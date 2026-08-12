@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { collection, getDocs, doc, setDoc } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
+import { useUsers } from "../../context/UsersContext.jsx";
 import {
   GraduationCap,
   Loader2,
@@ -42,6 +43,7 @@ const initials = (name) => {
 };
 
 const ManageTechnicianSkills = () => {
+  const { ensureUsers } = useUsers();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [staffUsers, setStaffUsers] = useState([]);
@@ -54,13 +56,12 @@ const ManageTechnicianSkills = () => {
       setLoading(true);
       setError(null);
 
-      const [usersSnap, skillsSnap] = await Promise.all([
-        getDocs(collection(db, "users")),
+      const [allUsers, skillsSnap] = await Promise.all([
+        ensureUsers(),
         getDocs(collection(db, "competenciasTecnicos")),
       ]);
 
-      const staff = usersSnap.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
+      const staff = allUsers
         .filter((u) => isStaffRole(u.role))
         .sort((a, b) => (a.displayName || "").localeCompare(b.displayName || "", "pt-PT"));
       setStaffUsers(staff);

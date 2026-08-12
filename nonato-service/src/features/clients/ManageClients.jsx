@@ -4,7 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { collection, getDocs, updateDoc, doc, query, where } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useClients } from "../../context/ClientsContext.jsx";
+import { useEquipments } from "../../context/EquipmentsContext.jsx";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
+import { getCached } from "../../utils/sessionCache.js";
 import {
   Search,
   Plus,
@@ -16,12 +18,10 @@ import {
   Building2,
   UserPlus,
   Download,
-  RefreshCw,
   AlertTriangle,
   Clock,
   CheckCircle,
   CreditCard,
-  Euro,
   MapPin,
   ArrowUpDown,
   ArrowDown,
@@ -65,6 +65,11 @@ import {
 // ===================================
 // HOOK PARA STATUS FINANCEIRO DOS CLIENTES
 // ===================================
+// ✅ "orcamentos" e "ordens" (isQuote) partilhados via sessionCache com as
+// mesmas chaves usadas em ManageAlerts.jsx e ManageDebtors.jsx — visitar
+// mais do que uma destas páginas na mesma sessão só paga a leitura uma vez.
+const CLIENT_FINANCIAL_CACHE_TTL = 5 * 60 * 1000;
+
 const useClientFinancialStatus = (clients) => {
   const [financialStatuses, setFinancialStatuses] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -77,12 +82,16 @@ const useClientFinancialStatus = (clients) => {
 
     const calculateStatuses = async () => {
       setIsLoading(true);
-      
+
       try {
         // Buscar todos os serviços financeiros
         const [partsBudgetsSnapshot, closuresSnapshot] = await Promise.all([
-          getDocs(query(collection(db, "ordens"), where("isQuote", "==", true))),
-          getDocs(collection(db, "orcamentos"))
+          getCached("finances:ordensQuotes", CLIENT_FINANCIAL_CACHE_TTL, () =>
+            getDocs(query(collection(db, "ordens"), where("isQuote", "==", true)))
+          ),
+          getCached("finances:orcamentos", CLIENT_FINANCIAL_CACHE_TTL, () =>
+            getDocs(collection(db, "orcamentos"))
+          ),
         ]);
 
         // Ignora ordens excluídas / na Reciclagem
@@ -275,72 +284,32 @@ const ClientCard = ({ client, onEdit, onDelete, onView, financialStatus }) => {
           </div>
         </div>
 
-        {/* Contact Info */}
-        <div className="space-y-1.5 mb-4">
-          {client.address && (
-            <p className="text-zinc-400 text-xs sm:text-sm truncate flex items-center gap-2">
-              <MapPin className="w-4 h-4 shrink-0" />
-              {client.address}
-            </p>
-          )}
-          {client.nif && (
-            <p className="text-zinc-400 text-xs sm:text-sm truncate flex items-center gap-2">
-              <CreditCard className="w-4 h-4 shrink-0" />
-              NIF: {client.nif}
-            </p>
-          )}
-        </div>
+        {/* Endereço (uma linha só — NIF e detalhe financeiro ficam na ficha do cliente) */}
+        {client.address && (
+          <p className="text-zinc-400 text-xs sm:text-sm truncate flex items-center gap-2 mb-3">
+            <MapPin className="w-4 h-4 shrink-0" />
+            {client.address}
+          </p>
+        )}
 
-        {/* Informações Financeiras */}
+        {/* Resumo financeiro — uma linha, o detalhe fica na ficha do cliente */}
         {financialStatus && financialStatus.servicesCount > 0 && (
-          <div className="pt-3 border-t border-zinc-700">
-            <div className="flex items-center gap-2 mb-2">
-              <Euro className="h-4 w-4 text-zinc-400" />
-              <span className="text-sm font-medium text-zinc-300">
-                Situação Financeira
-              </span>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <p className="text-zinc-400">Total Faturado</p>
-                <p className="text-white font-medium">
-                  {formatPrice(financialStatus.totalAmount)}
-                </p>
-              </div>
-              
-              {financialStatus.pendingAmount > 0 && (
-                <div>
-                  <p className="text-yellow-400">Pendente</p>
-                  <p className="text-yellow-400 font-medium">
-                    {formatPrice(financialStatus.pendingAmount)}
-                  </p>
-                </div>
-              )}
-              
-              {financialStatus.overdueAmount > 0 && (
-                <div>
-                  <p className="text-red-400">Devedor</p>
-                  <p className="text-red-400 font-medium">
-                    {formatPrice(financialStatus.overdueAmount)}
-                  </p>
-                </div>
-              )}
-              
-              {financialStatus.paidAmount > 0 && (
-                <div>
-                  <p className="text-green-400">Pago</p>
-                  <p className="text-green-400 font-medium">
-                    {formatPrice(financialStatus.paidAmount)}
-                  </p>
-                </div>
-              )}
-            </div>
-            
-            <div className="flex items-center gap-1 mt-2 text-xs text-zinc-400">
-              <CreditCard className="h-3 w-3" />
+          <div className="flex items-center justify-between pt-3 border-t border-zinc-700 text-sm">
+            <span className="flex items-center gap-1.5 text-zinc-400">
+              <CreditCard className="h-3.5 w-3.5" />
               {financialStatus.servicesCount} serviço(s)
-            </div>
+            </span>
+            <span
+              className={`font-medium ${
+                financialStatus.status === "overdue"
+                  ? "text-red-400"
+                  : financialStatus.status === "pending"
+                  ? "text-yellow-400"
+                  : "text-white"
+              }`}
+            >
+              {formatPrice(financialStatus.totalAmount)}
+            </span>
           </div>
         )}
       </CardContent>
@@ -376,7 +345,8 @@ const ManageClients = () => {
   // Usar o hook de status financeiro
   const { financialStatuses, isLoading: isLoadingFinancial } = useClientFinancialStatus(clients);
 
-  const { ensureClients, refreshClients, removeClientFromCache } = useClients();
+  const { ensureClients, removeClientFromCache } = useClients();
+  const { ensureEquipments } = useEquipments();
   // Guarda a lista "crua" (com contagem de equipamentos já calculada, mas
   // sem ordenação aplicada) para podermos reordenar em memória quando o
   // utilizador muda o critério de ordenação, sem voltar a ler a Firestore
@@ -396,24 +366,22 @@ const ManageClients = () => {
   );
 
   const fetchClients = useCallback(
-    async (forceRefresh = false) => {
+    async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        // Clientes vêm do ClientsContext partilhado por toda a app, em vez
-        // de uma leitura própria desta página
-        const clientsList = forceRefresh
-          ? await refreshClients()
-          : await ensureClients();
+        // Clientes vêm do ClientsContext partilhado por toda a app (tempo
+        // real), em vez de uma leitura própria desta página
+        const clientsList = await ensureClients();
 
-        // Contagem de equipamentos: uma única leitura da coleção inteira e
-        // agrupamento em memória, em vez de uma query separada por cliente
+        // Contagem de equipamentos: usa o cache partilhado (EquipmentsContext)
+        // e agrupa em memória, em vez de uma query separada por cliente
         // (eram N queries à Firestore, uma por cada cliente na lista)
-        const equipmentsSnapshot = await getDocs(collection(db, "equipamentos"));
+        const allEquipments = await ensureEquipments();
         const countByClient = new Map();
-        equipmentsSnapshot.docs.forEach((docSnap) => {
-          const clientId = docSnap.data().clientId;
+        allEquipments.forEach((equipment) => {
+          const clientId = equipment.clientId;
           if (!clientId) return;
           countByClient.set(clientId, (countByClient.get(clientId) || 0) + 1);
         });
@@ -432,7 +400,7 @@ const ManageClients = () => {
         setIsLoading(false);
       }
     },
-    [ensureClients, refreshClients, applySort]
+    [ensureClients, applySort]
   );
 
   useEffect(() => {
@@ -712,25 +680,16 @@ const ManageClients = () => {
               <Button
                 variant="outline"
                 onClick={() => setSortOrder(prev => prev === "asc" ? "desc" : "asc")}
-                className="flex-1 sm:flex-none border-zinc-700 text-white hover:bg-zinc-700"
+                className="flex-1 sm:flex-none bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-700"
               >
                 <ArrowUpDown className="w-4 h-4 mr-2" />
                 {sortOrder === "asc" ? "A-Z" : "Z-A"}
               </Button>
-              
-              <Button
-                variant="outline"
-                onClick={() => fetchClients(true)}
-                className="flex-1 sm:flex-none border-zinc-700 text-white hover:bg-zinc-700"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Atualizar
-              </Button>
-              
+
               <Button
                 variant="outline"
                 onClick={exportToCSV}
-                className="flex-1 sm:flex-none border-zinc-700 text-white hover:bg-zinc-700"
+                className="flex-1 sm:flex-none bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-700"
               >
                 <Download className="w-4 h-4 mr-2" />
                 Exportar
@@ -839,13 +798,6 @@ const ManageClients = () => {
 
       {/* FAB Menu for Mobile */}
       <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden">
-        <Button
-          onClick={() => fetchClients(true)}
-          size="icon"
-          className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
-        >
-          <RefreshCw className="h-5 w-5" />
-        </Button>
         <Button
           onClick={exportToCSV}
           size="icon"

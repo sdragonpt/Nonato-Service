@@ -11,7 +11,6 @@ import {
   PackageOpen,
   MapPin,
   Hash,
-  User,
   Wrench,
   FileText,
   AlertTriangle,
@@ -29,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
+import { ClientCombobox } from "@/components/shared/ClientCombobox.jsx";
 
 import { ESTADO_META } from "../ManageDisassembledParts.jsx";
 
@@ -92,7 +92,7 @@ const EditDisassembledPart = () => {
   }, [partId]);
 
   const clientOptions = useMemo(
-    () => clients.sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-PT")),
+    () => clients.sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-PT")),
     [clients]
   );
 
@@ -114,7 +114,7 @@ const EditDisassembledPart = () => {
     setFormData((prev) => ({
       ...prev,
       origemClientId: value,
-      origemClientName: client?.nome || "",
+      origemClientName: client?.name || "",
     }));
   };
 
@@ -269,25 +269,13 @@ const EditDisassembledPart = () => {
               <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-0">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-zinc-400">Cliente</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4 z-10" />
-                    <Select
-                      value={formData.origemClientId || "none"}
-                      onValueChange={handleClientChange}
-                    >
-                      <SelectTrigger className="pl-10 bg-zinc-800 border-zinc-700 text-white">
-                        <SelectValue placeholder="Sem cliente associado" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
-                        <SelectItem value="none">Sem cliente associado</SelectItem>
-                        {clientOptions.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <ClientCombobox
+                    clients={clientOptions}
+                    value={formData.origemClientId || "none"}
+                    onValueChange={handleClientChange}
+                    allowNone
+                    noneLabel="Sem cliente associado"
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-zinc-400">Equipamento de Origem</label>

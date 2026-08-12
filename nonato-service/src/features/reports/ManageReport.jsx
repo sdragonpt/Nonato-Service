@@ -13,6 +13,7 @@ import { useClients } from "../../context/ClientsContext.jsx";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { generateAndSaveReport } from "./reportActions.js";
 import { downloadFileFromUrl } from "../../utils/reportStorage.js";
+import { formatDate } from "../../utils/formatDate.js";
 import ReportOrderForm, { emptyReportDraft } from "./components/ReportOrderForm.jsx";
 import {
   FileText,
@@ -36,13 +37,6 @@ import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
-
-const formatDate = (value) => {
-  if (!value) return "N/A";
-  const date = value?.toDate ? value.toDate() : new Date(value);
-  if (Number.isNaN(date.getTime())) return "N/A";
-  return date.toLocaleDateString("pt-PT");
-};
 
 const toDateInputValue = (value) => {
   if (!value) return new Date().toISOString().split("T")[0];

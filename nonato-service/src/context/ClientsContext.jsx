@@ -5,21 +5,31 @@
 // em vez de cada página/formulário fazer o seu próprio getDocs(collection
 // (db, "clientes")).
 //
-// Diferença importante: este cache é PREGUIÇOSO (lazy) — ao contrário das
-// categorias, não busca nada assim que a app abre. Só vai à Firestore
-// quando o primeiro componente que precisa de clientes chama
-// ensureClients() (normalmente dentro de um useEffect). Isto evita leituras
-// desnecessárias em páginas onde o utilizador nunca chega a mexer no campo
-// de cliente.
+// ✅ Tempo real (onSnapshot) em vez de "ler uma vez + cache com prazo de
+// validade": a app fica aberta muitas horas seguidas (não são só 5 min),
+// por isso uma cache com prazo continuava a reler a coleção inteira várias
+// vezes ao longo do dia mesmo sem nada ter mudado. Com onSnapshot, paga-se
+// a leitura completa uma única vez (quando o primeiro componente pede
+// clientes) e, a partir daí, só chegam as alterações pontuais — muito mais
+// barato num dia de uso normal, e os dados ficam sempre atualizados entre
+// todos os que têm a app aberta, sem precisar de refresh.
+//
+// A API pública mantém-se igual à versão anterior (ensureClients,
+// getClientById, addClientToCache, etc.) para não ser preciso tocar nos
+// ficheiros que já a usam.
 
-import { createContext, useContext, useState, useRef, useCallback } from "react";
-import { collection, getDocs, query } from "firebase/firestore";
+import {
+  createContext,
+  useContext,
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+} from "react";
+import { collection, onSnapshot, query } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 
 const ClientsContext = createContext();
-
-// Cache por 5 minutos (igual ao CategoriesContext)
-const CACHE_DURATION = 5 * 60 * 1000;
 
 export const ClientsProvider = ({ children }) => {
   const [clients, setClients] = useState([]);
@@ -27,77 +37,85 @@ export const ClientsProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Refs (não causam re-render) para controlar frescura da cache e evitar
-  // pedidos duplicados quando vários componentes montam ao mesmo tempo
-  const lastFetchRef = useRef(null);
-  const inFlightRef = useRef(null);
+  const unsubscribeRef = useRef(null);
+  const latestListRef = useRef(null);
+  const firstSnapshotPromiseRef = useRef(null);
 
-  const doFetch = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  // Só liga o listener quando o primeiro componente pedir clientes
+  // (ensureClients) — evita gastar uma leitura em sessões que nunca
+  // chegam a mexer em nada relacionado com clientes.
+  const startListening = useCallback(() => {
+    if (unsubscribeRef.current) return firstSnapshotPromiseRef.current;
 
-      const snapshot = await getDocs(query(collection(db, "clientes")));
-      // ✅ Clientes com eliminadoEm (exclusão suave, ver ClientDetail.jsx e
-      // ManageClients.jsx) ficam de fora — desaparecem de imediato de todos
-      // os pickers/selects de cliente em toda a app, sem precisar de tocar
-      // em cada consumidor individualmente.
-      const list = snapshot.docs
-        .map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        }))
-        .filter((c) => !c.eliminadoEm);
-      const map = new Map(list.map((c) => [c.id, c]));
+    setIsLoading(true);
+    firstSnapshotPromiseRef.current = new Promise((resolve) => {
+      let resolved = false;
+      const unsub = onSnapshot(
+        query(collection(db, "clientes")),
+        (snapshot) => {
+          // ✅ Clientes com eliminadoEm (exclusão suave, ver ClientDetail.jsx
+          // e ManageClients.jsx) ficam de fora — desaparecem de imediato de
+          // todos os pickers/selects de cliente em toda a app.
+          const list = snapshot.docs
+            .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+            .filter((c) => !c.eliminadoEm);
+          const map = new Map(list.map((c) => [c.id, c]));
 
-      setClients(list);
-      setClientsMap(map);
-      lastFetchRef.current = Date.now();
+          latestListRef.current = list;
+          setClients(list);
+          setClientsMap(map);
+          setIsLoading(false);
+          setError(null);
 
-      return list;
-    } catch (err) {
-      console.error("Erro ao buscar clientes:", err);
-      setError("Erro ao carregar clientes");
-      return [];
-    } finally {
-      setIsLoading(false);
-      inFlightRef.current = null;
-    }
+          if (!resolved) {
+            resolved = true;
+            resolve(list);
+          }
+        },
+        (err) => {
+          console.error("Erro ao ouvir clientes:", err);
+          setError("Erro ao carregar clientes");
+          setIsLoading(false);
+          if (!resolved) {
+            resolved = true;
+            resolve([]);
+          }
+        }
+      );
+      unsubscribeRef.current = unsub;
+    });
+
+    return firstSnapshotPromiseRef.current;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (unsubscribeRef.current) unsubscribeRef.current();
+    };
   }, []);
 
   // Função principal: chamar isto em vez de getDocs(collection(db, "clientes")).
-  // Só busca à Firestore se ainda não tiver dados, se a cache já tiver mais
-  // de 5 minutos, ou se forceRefresh=true. Se já houver um pedido em curso
-  // (ex.: duas páginas a montar ao mesmo tempo), partilha a mesma promessa
-  // em vez de disparar dois pedidos em paralelo.
-  const ensureClients = useCallback(
-    async (forceRefresh = false) => {
-      const isFresh =
-        !forceRefresh &&
-        lastFetchRef.current &&
-        Date.now() - lastFetchRef.current < CACHE_DURATION;
+  // Devolve os dados mais recentes já disponíveis, ou espera pela 1ª leitura.
+  const ensureClients = useCallback(async () => {
+    startListening();
+    if (latestListRef.current !== null) return latestListRef.current;
+    return firstSnapshotPromiseRef.current;
+  }, [startListening]);
 
-      if (isFresh) return clients;
-
-      if (inFlightRef.current) return inFlightRef.current;
-
-      inFlightRef.current = doFetch();
-      return inFlightRef.current;
-    },
-    [clients, doFetch]
-  );
-
-  // Força atualização (ex.: depois de criar/editar um cliente e quereres
-  // garantir que a lista partilhada fica já correta)
-  const refreshClients = useCallback(() => ensureClients(true), [ensureClients]);
+  // Com tempo real os dados já se atualizam sozinhos — mantido por
+  // compatibilidade com quem já chamava refreshClients() depois de criar/
+  // editar um cliente.
+  const refreshClients = useCallback(() => ensureClients(), [ensureClients]);
 
   const getClientById = useCallback(
     (id) => clientsMap.get(id) || null,
     [clientsMap]
   );
 
-  // Atualizações otimistas da cache (evitam ter de voltar a ler tudo da
-  // Firestore só porque um cliente foi criado/editado/removido nesta sessão)
+  // Atualizações otimistas da cache — com o listener em tempo real já não
+  // são estritamente necessárias (a alteração chega sozinha), mas ficam
+  // para a UI atualizar no instante, sem esperar a viagem de ida e volta
+  // à Firestore.
   const addClientToCache = useCallback((newClient) => {
     setClients((prev) => [...prev, newClient]);
     setClientsMap((prev) => new Map(prev).set(newClient.id, newClient));
@@ -129,11 +147,9 @@ export const ClientsProvider = ({ children }) => {
     clients,
     isLoading,
     error,
-    isCacheValid:
-      !!lastFetchRef.current &&
-      Date.now() - lastFetchRef.current < CACHE_DURATION,
+    isCacheValid: !!unsubscribeRef.current,
 
-    // Buscar (preguiçoso, partilhado)
+    // Buscar (tempo real, partilhado)
     ensureClients,
     refreshClients,
 

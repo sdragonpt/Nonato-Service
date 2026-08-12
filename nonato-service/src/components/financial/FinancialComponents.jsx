@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "../../utils/financialUtils";
+import { formatDate } from "../../utils/formatDate.js";
 
 // ===================================
 // 1. BADGE DE STATUS DE PAGAMENTO
@@ -463,11 +464,6 @@ export const FinancialServiceCard = ({
   calculateServiceFinancials,
   getPaymentStatus,
 }) => {
-  const formatDate = (timestamp) => {
-    if (!timestamp) return "N/A";
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString("pt-PT");
-  };
 
   const financials = calculateServiceFinancials(service);
   const paymentStatus = getPaymentStatus(service);

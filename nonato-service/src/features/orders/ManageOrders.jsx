@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useClients } from "../../context/ClientsContext.jsx";
+import { useEquipments } from "../../context/EquipmentsContext.jsx";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { fetchPage } from "../../utils/firestorePage.js";
 
@@ -183,6 +184,7 @@ const OrderRow = ({ order, client, equipment, onDelete, onEdit, navigate }) => {
 const ManageOrders = () => {
   const navigate = useNavigate();
   const { ensureClients } = useClients();
+  const { ensureEquipments } = useEquipments();
 
   // ✅ Carregado por lotes (cursor do Firestore, ordenado por data), em vez
   // de ler a coleção "ordens" inteira de uma só vez.
@@ -276,10 +278,10 @@ const ManageOrders = () => {
       try {
         setIsLoading(true);
         cursorRef.current = null;
-        const [firstBatch, allClients, equipmentsSnapshot] = await Promise.all([
+        const [firstBatch, allClients, allEquipments] = await Promise.all([
           loadPage(null, "all"),
           ensureClients(),
-          getDocs(collection(db, "equipamentos")),
+          ensureEquipments(),
         ]);
 
         setOrders(firstBatch);
@@ -290,8 +292,8 @@ const ManageOrders = () => {
         }, {});
         setClients(clientsData);
 
-        const equipmentsData = equipmentsSnapshot.docs.reduce((acc, d) => {
-          acc[d.id] = { id: d.id, ...d.data() };
+        const equipmentsData = allEquipments.reduce((acc, equipment) => {
+          acc[equipment.id] = equipment;
           return acc;
         }, {});
         setEquipments(equipmentsData);

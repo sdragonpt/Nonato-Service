@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getAuth, updateProfile, updateEmail } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { db } from "../../../firebase.jsx";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { db, storage } from "../../../firebase.jsx";
+import { compressImage } from "../../../utils/imageCompression.js";
 import {
   ArrowLeft,
   Camera,
@@ -44,11 +46,13 @@ const UserProfile = () => {
     role: "",
   });
 
-  const [, setProfilePic] = useState(null);
+  const [profilePicFile, setProfilePicFile] = useState(null);
   const [profilePicPreview, setProfilePicPreview] = useState("");
+  const [existingStoragePath, setExistingStoragePath] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const previewUrlRef = useRef(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -74,6 +78,7 @@ const UserProfile = () => {
         });
 
         setProfilePicPreview(user.photoURL || "");
+        setExistingStoragePath(userData.profilePicStoragePath || "");
       } catch (err) {
         console.error("Erro ao carregar dados do usuário:", err);
         setError("Erro ao carregar dados do usuário");
@@ -84,6 +89,13 @@ const UserProfile = () => {
 
     fetchUserData();
   }, [user]);
+
+  // Liberta o object URL da pré-visualização quando deixa de ser preciso.
+  useEffect(() => {
+    return () => {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    };
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -96,17 +108,38 @@ const UserProfile = () => {
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        setError("A imagem deve ter menos de 2MB");
+      if (file.size > 8 * 1024 * 1024) {
+        setError("A imagem deve ter menos de 8MB");
         return;
       }
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfilePicPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-      setProfilePic(file);
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+      const objectUrl = URL.createObjectURL(file);
+      previewUrlRef.current = objectUrl;
+      setProfilePicPreview(objectUrl);
+      setProfilePicFile(file);
+      setError(null);
+    }
+  };
+
+  // ✅ Mesmo princípio do AddClient — comprime e envia para o Storage em vez
+  // de gravar um base64 gigante no `photoURL` do Firebase Auth (que tem um
+  // limite de tamanho e ficava a rejeitar fotos maiores).
+  const uploadProfilePic = async (file) => {
+    const compressed = await compressImage(file, { maxDimension: 600, quality: 0.8 });
+    const storagePath = `users/${user.uid}/perfil_${Date.now()}.jpg`;
+    const storageRef = ref(storage, storagePath);
+    await uploadBytes(storageRef, compressed, { contentType: "image/jpeg" });
+    const url = await getDownloadURL(storageRef);
+    return { url, storagePath };
+  };
+
+  const deleteOldProfilePic = async () => {
+    if (!existingStoragePath) return;
+    try {
+      await deleteObject(ref(storage, existingStoragePath));
+    } catch {
+      // foto antiga pode já não existir no storage
     }
   };
 
@@ -121,9 +154,20 @@ const UserProfile = () => {
       const updateData = {
         displayName: formData.displayName,
       };
+      const firestoreUpdate = {
+        phoneNumber: formData.phoneNumber,
+        company: formData.company,
+        role: formData.role,
+        lastUpdate: new Date(),
+      };
 
-      if (profilePicPreview !== user.photoURL) {
-        updateData.photoURL = profilePicPreview;
+      if (profilePicFile) {
+        const uploaded = await uploadProfilePic(profilePicFile);
+        await deleteOldProfilePic();
+        updateData.photoURL = uploaded.url;
+        firestoreUpdate.profilePicStoragePath = uploaded.storagePath;
+        setExistingStoragePath(uploaded.storagePath);
+        setProfilePicFile(null);
       }
 
       await updateProfile(user, updateData);
@@ -135,12 +179,7 @@ const UserProfile = () => {
 
       // Update additional data in Firestore
       const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, {
-        phoneNumber: formData.phoneNumber,
-        company: formData.company,
-        role: formData.role,
-        lastUpdate: new Date(),
-      });
+      await updateDoc(userRef, firestoreUpdate);
 
       // Show success message or redirect
       navigate("/app/manage-clients"); // or wherever you want to redirect after success

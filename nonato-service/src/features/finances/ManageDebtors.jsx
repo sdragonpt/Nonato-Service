@@ -3,6 +3,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
+import { useClients } from "../../context/ClientsContext.jsx";
+import { getCached } from "../../utils/sessionCache.js";
 import {
   AlertTriangle,
   Loader2,
@@ -34,8 +36,15 @@ const buildWhatsAppLink = (phone, message) => {
   return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
 };
 
+// ✅ "orcamentos" e "ordens" (isQuote) são lidos por inteiro/filtrados no
+// cliente. Cache de 5 min partilhada com ManageAlerts.jsx e
+// ManageClients.jsx (mesmas chaves "finances:*") — quem visita mais do que
+// uma destas páginas na mesma sessão só paga a leitura uma vez.
+const DEBTORS_CACHE_TTL = 5 * 60 * 1000;
+
 const ManageDebtors = () => {
   const navigate = useNavigate();
+  const { ensureClients } = useClients();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [services, setServices] = useState([]);
@@ -47,22 +56,19 @@ const ManageDebtors = () => {
         setLoading(true);
         setError(null);
 
-        const partsBudgetsQuery = query(
-          collection(db, "ordens"),
-          where("isQuote", "==", true)
-        );
-        const closuresQuery = collection(db, "orcamentos");
-        const clientsQuery = collection(db, "clientes");
-
-        const [partsSnap, closuresSnap, clientsSnap] = await Promise.all([
-          getDocs(partsBudgetsQuery),
-          getDocs(closuresQuery),
-          getDocs(clientsQuery),
+        const [partsSnap, closuresSnap, allClients] = await Promise.all([
+          getCached("finances:ordensQuotes", DEBTORS_CACHE_TTL, () =>
+            getDocs(query(collection(db, "ordens"), where("isQuote", "==", true)))
+          ),
+          getCached("finances:orcamentos", DEBTORS_CACHE_TTL, () =>
+            getDocs(collection(db, "orcamentos"))
+          ),
+          ensureClients(),
         ]);
 
         const cMap = {};
-        clientsSnap.docs.forEach((d) => {
-          cMap[d.id] = { id: d.id, ...d.data() };
+        allClients.forEach((client) => {
+          cMap[client.id] = client;
         });
         setClientsMap(cMap);
 
@@ -79,7 +85,7 @@ const ManageDebtors = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [ensureClients]);
 
   // Agregação por cliente (devedores)
   const debtorsByClient = useMemo(() => {

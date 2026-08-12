@@ -21,6 +21,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useClients } from "../../context/ClientsContext.jsx";
+import { useUsers } from "../../context/UsersContext.jsx";
 import { isStaffRole, getRoleLabel, getRoleBadgeStyle } from "../../config/roles.js";
 import { timeToMinutes, DEFAULT_DURATION_MINUTES } from "../../features/agendamentos/utils/agendaConflicts.js";
 
@@ -50,6 +51,7 @@ const DashboardPage = () => {
 
   const navigate = useNavigate();
   const { ensureClients } = useClients();
+  const { ensureUsers } = useUsers();
 
   const fetchDashboardData = useCallback(
     async (force = false) => {
@@ -75,12 +77,12 @@ const DashboardPage = () => {
         const todayISO = todayStr();
         const now = new Date();
 
-        const [allClients, appointmentsSnap, usersSnap] = await Promise.all([
+        const [allClients, appointmentsSnap, allUsers] = await Promise.all([
           ensureClients(),
           getDocs(
             query(collection(db, "agendamentos"), where("data", "==", todayISO))
           ),
-          getDocs(collection(db, "users")),
+          ensureUsers(),
         ]);
 
         const todaysAppointments = appointmentsSnap.docs
@@ -92,9 +94,7 @@ const DashboardPage = () => {
           clientsMap[c.id] = c;
         });
 
-        const staff = usersSnap.docs
-          .map((d) => ({ id: d.id, ...d.data() }))
-          .filter((u) => isStaffRole(u.role));
+        const staff = allUsers.filter((u) => isStaffRole(u.role));
 
         const nowMinutes = now.getHours() * 60 + now.getMinutes();
         const board = staff.map((user) => {

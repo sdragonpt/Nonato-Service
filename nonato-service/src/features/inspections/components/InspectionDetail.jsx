@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db, storage } from "../../../firebase.jsx";
+import { compressImage } from "../../../utils/imageCompression.js";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ref,
@@ -177,7 +178,7 @@ const InspectionDetail = () => {
       setIsUploadingGroupImage(true);
 
       // Compress image
-      const compressedFile = await compressImage(file);
+      const compressedFile = await compressImage(file, { maxDimension: 800, quality: 0.8 });
 
       const storageRef = ref(
         storage,
@@ -233,7 +234,7 @@ const InspectionDetail = () => {
     try {
       setIsUploading(true);
 
-      const compressedFile = await compressImage(file);
+      const compressedFile = await compressImage(file, { maxDimension: 800, quality: 0.8 });
       const storageRef = ref(
         storage,
         `inspections/${id}/${groupName}-${characteristicName}-${imageIndex}-${Date.now()}`
@@ -314,40 +315,6 @@ const InspectionDetail = () => {
     } finally {
       setIsDeleting(false);
     }
-  };
-
-  // Image compression utility
-  const compressImage = (file, maxWidth = 800, quality = 0.8) => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target.result;
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          const ratio = maxWidth / img.width;
-          canvas.width = maxWidth;
-          canvas.height = img.height * ratio;
-
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-          canvas.toBlob(
-            (blob) => {
-              resolve(
-                new File([blob], file.name, {
-                  type: "image/jpeg",
-                  lastModified: Date.now(),
-                })
-              );
-            },
-            "image/jpeg",
-            quality
-          );
-        };
-      };
-    });
   };
 
   // State handlers

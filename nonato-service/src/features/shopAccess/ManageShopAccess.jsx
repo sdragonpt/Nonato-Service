@@ -16,6 +16,7 @@ import {
 import { db } from "../../firebase.jsx";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { useAuth } from "../../hooks/useAuth";
+import { formatDateTime } from "../../utils/formatDate.js";
 import {
   Search,
   Plus,
@@ -198,18 +199,7 @@ const ManageShopAccess = () => {
     setVisibleCount(PAGE_SIZE);
   }, [searchTerm, activeTab]);
 
-  // Format date
-  const formatDate = (timestamp) => {
-    if (!timestamp) return "";
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return new Intl.DateTimeFormat("pt-PT", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
-  };
+  const formatDate = (timestamp) => formatDateTime(timestamp, "");
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

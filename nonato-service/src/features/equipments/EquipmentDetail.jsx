@@ -13,6 +13,7 @@ import {
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { db, storage } from "../../firebase.jsx";
 import { compressImage } from "../../utils/imageCompression.js";
+import { formatDate } from "../../utils/formatDate.js";
 import {
   ArrowLeft,
   Camera,
@@ -55,11 +56,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
 
-const formatDate = (timestamp) => {
-  if (!timestamp) return "N/A";
-  const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
-  return date.toLocaleDateString("pt-PT");
-};
 
 // ✅ Uma ordem pode ter vários equipamentos (ordens "especiais" — ver
 // AddOrder.jsx/EditOrder.jsx). O campo singular `equipmentId` continua a ser

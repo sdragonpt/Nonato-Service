@@ -5,6 +5,7 @@ import { collection, doc, deleteDoc, orderBy, query } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { fetchPage } from "../../utils/firestorePage.js";
+import { formatDate } from "../../utils/formatDate.js";
 import {
   Search,
   Plus,
@@ -152,11 +153,6 @@ const ManageProtocols = () => {
     }
   };
 
-  const formatDate = (timestamp) => {
-    if (!timestamp) return "N/A";
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString("pt-PT");
-  };
 
   if (loading) {
     return (

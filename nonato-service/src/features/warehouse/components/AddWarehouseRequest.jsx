@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
+import { ClientCombobox } from "@/components/shared/ClientCombobox.jsx";
 
 let itemIdCounter = 0;
 const nextItemId = () => `item_${Date.now()}_${++itemIdCounter}`;
@@ -225,31 +226,14 @@ const AddWarehouseRequest = () => {
                   <Loader2 className="h-4 w-4 animate-spin" /> A carregar clientes...
                 </div>
               ) : (
-                <Select
+                <ClientCombobox
+                  clients={clients}
                   value={clientId}
                   onValueChange={(value) => {
                     setClientId(value);
                     setOrderId("none");
                   }}
-                >
-                  <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
-                    <SelectValue placeholder="Selecione o cliente" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
-                    {clients
-                      .slice()
-                      .sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-PT"))
-                      .map((client) => (
-                        <SelectItem
-                          key={client.id}
-                          value={client.id}
-                          className="text-white hover:bg-zinc-700"
-                        >
-                          {client.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                />
               )}
             </div>
 

@@ -22,6 +22,7 @@ import {
 import { db, storage } from "../../../firebase";
 import { useClients } from "../../../context/ClientsContext.jsx";
 import { downloadFileFromUrl } from "../../../utils/reportStorage.js";
+import { formatDate } from "../../../utils/formatDate.js";
 import {
   ArrowLeft,
   Loader2,
@@ -86,13 +87,6 @@ import {
   formatPrice,
 } from "../../../utils/financialUtils";
 
-// ✅ Partilhado por todas as secções desta página — antes estava duplicado
-// 4 vezes (uma por secção).
-const formatDate = (timestamp) => {
-  if (!timestamp) return "N/A";
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-  return date.toLocaleDateString("pt-PT");
-};
 
 // ===================================
 // COMPONENTE DE SEÇÃO FINANCEIRA

@@ -13,6 +13,7 @@ import {
 import { db } from "../../firebase.jsx";
 import { generateDocNumber } from "../../utils/docNumbering.js";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
+import { formatDateTime } from "../../utils/formatDate.js";
 import { fetchPage } from "../../utils/firestorePage.js";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
@@ -194,18 +195,7 @@ const ManageOnlineQuotes = () => {
     fetchCounts();
   }, [statusFilter]);
 
-  // Format date
-  const formatDate = (timestamp) => {
-    if (!timestamp) return "";
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return new Intl.DateTimeFormat("pt-PT", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
-  };
+  const formatDate = (timestamp) => formatDateTime(timestamp, "");
 
   // Update quote status
   const updateQuoteStatus = async (quoteId, newStatus) => {

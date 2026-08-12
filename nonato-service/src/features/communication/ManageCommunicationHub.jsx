@@ -19,11 +19,11 @@ import {
   addDoc,
   doc,
   serverTimestamp,
-  getDocs,
   writeBatch,
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useAuth } from "../../hooks/useAuth";
+import { useUsers } from "../../context/UsersContext.jsx";
 import { getRoleLabel, getRoleBadgeStyle, isStaffRole } from "../../config/roles.js";
 import { MessageCircle, Send, Loader2, Search, Users } from "lucide-react";
 
@@ -52,6 +52,7 @@ function getInitials(name) {
 
 const ManageCommunicationHub = () => {
   const { user } = useAuth();
+  const { ensureUsers } = useUsers();
   const [contacts, setContacts] = useState([]);
   const [loadingContacts, setLoadingContacts] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -71,10 +72,10 @@ const ManageCommunicationHub = () => {
     const fetchContacts = async () => {
       try {
         setLoadingContacts(true);
-        const snapshot = await getDocs(collection(db, "users"));
-        const list = snapshot.docs
-          .map((d) => ({ id: d.id, ...d.data() }))
-          .filter((u) => u.uid !== user.uid && isStaffRole(u.role));
+        const allUsers = await ensureUsers();
+        const list = allUsers.filter(
+          (u) => u.uid !== user.uid && isStaffRole(u.role)
+        );
         setContacts(list);
       } catch (err) {
         console.error("Erro ao carregar contactos:", err);

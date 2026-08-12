@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { collection, getDocs, doc, deleteDoc, orderBy, query } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "../../firebase.jsx";
+import { formatDate } from "../../utils/formatDate.js";
 import {
   Plus,
   Loader2,
@@ -107,10 +108,6 @@ const ManageExpenses = () => {
     }
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "N/A";
-    return new Date(dateStr).toLocaleDateString("pt-PT");
-  };
 
   if (loading) {
     return (

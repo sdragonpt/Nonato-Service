@@ -1,8 +1,10 @@
 // QuickAddAppointmentDialog.jsx - Marcação rápida a partir de um clique no dia da Agenda
 import { useState, useEffect, useMemo, useRef } from "react";
-import { collection, getDocs, addDoc } from "firebase/firestore";
+import { collection, addDoc } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useClients } from "../../../context/ClientsContext.jsx";
+import { useEquipments } from "../../../context/EquipmentsContext.jsx";
+import { useUsers } from "../../../context/UsersContext.jsx";
 import {
   Search,
   Clock,
@@ -50,6 +52,8 @@ const DURATION_CHIPS = [30, 60, 90, 120];
  */
 const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
   const { ensureClients } = useClients();
+  const { ensureEquipments } = useEquipments();
+  const { ensureUsers } = useUsers();
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -85,20 +89,14 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
       try {
         setIsLoadingData(true);
         setError(null);
-        const [clientsData, equipmentsSnap, usersSnap] = await Promise.all([
+        const [clientsData, equipmentsData, allUsers] = await Promise.all([
           ensureClients(),
-          getDocs(collection(db, "equipamentos")),
-          getDocs(collection(db, "users")),
+          ensureEquipments(),
+          ensureUsers(),
         ]);
         setClients(clientsData);
-        setEquipments(
-          equipmentsSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
-        );
-        setStaffUsers(
-          usersSnap.docs
-            .map((d) => ({ id: d.id, ...d.data() }))
-            .filter((u) => isStaffRole(u.role))
-        );
+        setEquipments(equipmentsData);
+        setStaffUsers(allUsers.filter((u) => isStaffRole(u.role)));
       } catch (err) {
         console.error("Erro ao carregar dados para marcação rápida:", err);
         setError("Erro ao carregar clientes. Tente novamente.");

@@ -5,6 +5,7 @@ import generateBudgetPDF from "./components/pdf/generateBudgetPDF";
 import formatEuroNumber from "../../utils/formatters/formatEuroNumber";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { fetchPage } from "../../utils/firestorePage.js";
+import { useClients } from "../../context/ClientsContext.jsx";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { FileOpener } from "@capacitor-community/file-opener";
 import {
@@ -14,7 +15,6 @@ import {
   query,
   where,
   orderBy,
-  getDoc,
   getCountFromServer,
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
@@ -192,6 +192,7 @@ const BudgetCard = ({ budget, onDelete, onViewPDF, navigate }) => {
 
 const ManageBudgets = () => {
   const navigate = useNavigate();
+  const { ensureClients, getClientById } = useClients();
 
   // ✅ Lista única, carregada por lotes (cursor do Firestore) em vez de ler
   // a coleção "orcamentos" inteira de uma só vez.
@@ -266,32 +267,31 @@ const ManageBudgets = () => {
   }, []);
 
   // Busca nomes de clientes só para os fechamentos ainda não resolvidos
-  // (populados aos poucos, à medida que novos lotes chegam).
-  const enrichClientNames = useCallback(async (docs) => {
-    const missingIds = [
-      ...new Set(
-        docs
-          .filter((b) => b.clientId && !b.clientData)
-          .map((b) => b.clientId)
-      ),
-    ].filter((id) => !clientNamesRef.current[id]);
-    if (!missingIds.length) return;
+  // (populados aos poucos, à medida que novos lotes chegam). Usa o cache
+  // partilhado (ClientsContext) em vez de um getDoc por cliente — na
+  // maioria dos casos os clientes já estão em cache de outra página desta
+  // sessão, e mesmo numa cache fria isto é 1 leitura (a coleção inteira,
+  // já partilhada com o resto da app) em vez de N leituras individuais.
+  const enrichClientNames = useCallback(
+    async (docs) => {
+      const missingIds = [
+        ...new Set(
+          docs
+            .filter((b) => b.clientId && !b.clientData)
+            .map((b) => b.clientId)
+        ),
+      ].filter((id) => !clientNamesRef.current[id]);
+      if (!missingIds.length) return;
 
-    const entries = await Promise.all(
-      missingIds.map(async (clientId) => {
-        try {
-          const clientDoc = await getDoc(doc(db, "clientes", clientId));
-          return [
-            clientId,
-            clientDoc.exists() ? clientDoc.data().name : "Cliente não encontrado",
-          ];
-        } catch {
-          return [clientId, "Cliente não encontrado"];
-        }
-      })
-    );
-    setClientNames((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
-  }, []);
+      await ensureClients();
+      const entries = missingIds.map((clientId) => [
+        clientId,
+        getClientById(clientId)?.name || "Cliente não encontrado",
+      ]);
+      setClientNames((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+    },
+    [ensureClients, getClientById]
+  );
 
   const loadPage = useCallback(
     async (cursor) => {
