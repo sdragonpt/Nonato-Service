@@ -5,6 +5,7 @@ import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useClients } from "../../context/ClientsContext.jsx";
 import { useEquipments } from "../../context/EquipmentsContext.jsx";
+import { useOrcamentos } from "../../context/OrcamentosContext.jsx";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { downloadFileFromUrl } from "../../utils/reportStorage.js";
 import { getCached, invalidateCache } from "../../utils/sessionCache.js";
@@ -66,17 +67,19 @@ const ReportRow = ({ report, onDownload, onDelete, deleting }) => (
   </div>
 );
 
-// ✅ "ordens"/"orcamentos"/"relatorios" são lidos por inteiro para calcular
-// a contagem de documentos por cliente (Firestore não tem forma barata de
-// agregar "quantos documentos tem este cliente" sem isso). Para não repetir
-// esta leitura pesada sempre que a página é aberta na mesma sessão, o
-// resultado fica em cache por 5 minutos (ver src/utils/sessionCache.js).
+// ✅ "ordens"/"relatorios" são lidos por inteiro para calcular a contagem
+// de documentos por cliente (Firestore não tem forma barata de agregar
+// "quantos documentos tem este cliente" sem isso). Para não repetir esta
+// leitura pesada sempre que a página é aberta na mesma sessão, o resultado
+// fica em cache por 5 minutos (ver src/utils/sessionCache.js). "orcamentos"
+// vem do OrcamentosContext (cache partilhado por toda a app, tempo real).
 const LIBRARY_CACHE_TTL = 5 * 60 * 1000;
 
 const ManageReportsLibrary = () => {
   const navigate = useNavigate();
   const { ensureClients } = useClients();
   const { ensureEquipments } = useEquipments();
+  const { ensureOrcamentos } = useOrcamentos();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [clients, setClients] = useState([]);
@@ -96,16 +99,14 @@ const ManageReportsLibrary = () => {
       try {
         setLoading(true);
         setError(null);
-        const [allClients, allEquipments, ordersSnap, closuresSnap, reportsSnap] =
+        const [allClients, allEquipments, ordersSnap, closuresData, reportsSnap] =
           await Promise.all([
             ensureClients(),
             ensureEquipments(),
             getCached("reportsLibrary:ordens", LIBRARY_CACHE_TTL, () =>
               getDocs(collection(db, "ordens"))
             ),
-            getCached("reportsLibrary:orcamentos", LIBRARY_CACHE_TTL, () =>
-              getDocs(collection(db, "orcamentos"))
-            ),
+            ensureOrcamentos(),
             getCached("reportsLibrary:relatorios", LIBRARY_CACHE_TTL, () =>
               getDocs(collection(db, "relatorios"))
             ),
@@ -118,7 +119,7 @@ const ManageReportsLibrary = () => {
             .map((d) => ({ id: d.id, ...d.data() }))
             .filter((o) => !o.isQuote && !o.eliminadoEm)
         );
-        setClosures(closuresSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setClosures(closuresData);
         setGeneratedReports(
           reportsSnap.docs
             .map((d) => ({ id: d.id, ...d.data() }))
@@ -132,6 +133,7 @@ const ManageReportsLibrary = () => {
       }
     };
     fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Contagem de documentos por cliente

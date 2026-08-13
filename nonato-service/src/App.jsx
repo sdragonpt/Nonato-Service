@@ -64,6 +64,7 @@ import { CategoriesProvider } from "./context/CategoriesContext.jsx";
 import { ClientsProvider } from "./context/ClientsContext.jsx";
 import { EquipmentsProvider } from "./context/EquipmentsContext.jsx";
 import { UsersProvider } from "./context/UsersContext.jsx";
+import { OrcamentosProvider } from "./context/OrcamentosContext.jsx";
 import { NotificationProvider } from "./context/NotificationContext.jsx";
 import { TabsProvider } from "./context/TabsContext.jsx";
 import NotificationsDropdown from "./components/ui/NotificationsDropdown";
@@ -903,6 +904,7 @@ const App = () => {
         <ClientsProvider>
         <EquipmentsProvider>
         <UsersProvider>
+        <OrcamentosProvider>
           <Router>
             <React.Suspense
               fallback={<div className="min-h-screen bg-zinc-900" />}
@@ -1328,6 +1330,7 @@ const App = () => {
               </Routes>
             </React.Suspense>
           </Router>
+        </OrcamentosProvider>
         </UsersProvider>
         </EquipmentsProvider>
         </ClientsProvider>

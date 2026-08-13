@@ -1,8 +1,9 @@
 // src/features/finances/ManageFinances.jsx - Atualizado com sistema de lucro
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../firebase";
+import { useOrcamentos } from "../../context/OrcamentosContext.jsx";
 import {
   TrendingUp,
   TrendingDown,
@@ -47,6 +48,7 @@ import {
 
 const ManageFinances = () => {
   const navigate = useNavigate();
+  const { ensureOrcamentos } = useOrcamentos();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState("month");
@@ -57,7 +59,7 @@ const ManageFinances = () => {
   const [closures, setClosures] = useState([]);
 
   // Fetch all financial data
-  const fetchFinancialData = async () => {
+  const fetchFinancialData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -68,12 +70,11 @@ const ManageFinances = () => {
         where("isQuote", "==", true)
       );
 
-      // Buscar fechamentos (orçamentos regulares)
-      const closuresQuery = collection(db, "orcamentos");
-
-      const [partsBudgetsSnapshot, closuresSnapshot] = await Promise.all([
+      // Buscar fechamentos (orçamentos regulares) — via cache partilhado
+      // (OrcamentosContext) em vez de um getDocs próprio desta página.
+      const [partsBudgetsSnapshot, closuresData] = await Promise.all([
         getDocs(partsBudgetsQuery),
-        getDocs(closuresQuery),
+        ensureOrcamentos(),
       ]);
 
       const partsBudgetsData = partsBudgetsSnapshot.docs
@@ -84,14 +85,13 @@ const ManageFinances = () => {
         }))
         .filter((service) => !service.eliminadoEm);
 
-      const closuresData = closuresSnapshot.docs.map((doc) => ({
-        id: doc.id,
+      const closuresList = closuresData.map((o) => ({
         type: "closure",
-        ...doc.data(),
+        ...o,
       }));
 
       setPartsBudgets(partsBudgetsData);
-      setClosures(closuresData);
+      setClosures(closuresList);
     } catch (err) {
       console.error("Erro ao carregar dados financeiros:", err);
       setError(
@@ -100,11 +100,11 @@ const ManageFinances = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [ensureOrcamentos]);
 
   useEffect(() => {
     fetchFinancialData();
-  }, []);
+  }, [fetchFinancialData]);
 
   // Filter data by selected period
   const filteredData = useMemo(() => {

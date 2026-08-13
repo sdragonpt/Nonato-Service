@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useClients } from "../../context/ClientsContext.jsx";
+import { useOrcamentos } from "../../context/OrcamentosContext.jsx";
 import { getCached } from "../../utils/sessionCache.js";
 import {
   Bell,
@@ -38,20 +39,22 @@ const daysSince = (dateRaw) => {
   return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 };
 
-// ✅ "orcamentos", "ordens" (isQuote) e "pedidosArmazem" são lidos por
-// inteiro/filtrados no cliente (Firestore não filtra "devedor"/"pendente há
-// X dias" no servidor). Cache de 5 min para não repetir a leitura sempre
-// que a Central de Alertas é aberta na mesma sessão (ver
-// src/utils/sessionCache.js). As chaves "finances:*" são partilhadas com
-// ManageDebtors.jsx e ManageClients.jsx, que calculam a mesma informação de
-// devedores — visitar mais do que uma destas páginas na mesma sessão só
-// paga a leitura uma vez. "agendamentos" já vai filtrado por hoje no
-// próprio pedido (where "data" == hoje), tal como no Dashboard.
+// ✅ "ordens" (isQuote) e "pedidosArmazem" são lidos por inteiro/filtrados
+// no cliente (Firestore não filtra "devedor"/"pendente há X dias" no
+// servidor). Cache de 5 min para não repetir a leitura sempre que a Central
+// de Alertas é aberta na mesma sessão (ver src/utils/sessionCache.js). As
+// chaves "finances:*" são partilhadas com ManageDebtors.jsx e
+// ManageClients.jsx, que calculam a mesma informação de devedores — visitar
+// mais do que uma destas páginas na mesma sessão só paga a leitura uma vez.
+// "orcamentos" vem do OrcamentosContext (cache partilhado por toda a app,
+// tempo real). "agendamentos" já vai filtrado por hoje no próprio pedido
+// (where "data" == hoje), tal como no Dashboard.
 const ALERTS_CACHE_TTL = 5 * 60 * 1000;
 
 const ManageAlerts = () => {
   const navigate = useNavigate();
   const { ensureClients } = useClients();
+  const { ensureOrcamentos } = useOrcamentos();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -69,7 +72,7 @@ const ManageAlerts = () => {
 
       const [
         partsBudgetsSnap,
-        closuresSnap,
+        closures,
         allClients,
         appointmentsSnap,
         warehouseSnap,
@@ -78,9 +81,7 @@ const ManageAlerts = () => {
         getCached("finances:ordensQuotes", ALERTS_CACHE_TTL, () =>
           getDocs(query(collection(db, "ordens"), where("isQuote", "==", true)))
         ),
-        getCached("finances:orcamentos", ALERTS_CACHE_TTL, () =>
-          getDocs(collection(db, "orcamentos"))
-        ),
+        ensureOrcamentos(),
         ensureClients(),
         // ✅ Filtrado no próprio pedido (equality simples, sem índice
         // composto necessário) em vez de descarregar todos os agendamentos
@@ -102,7 +103,7 @@ const ManageAlerts = () => {
       // Clientes devedores (ignora ordens excluídas / na Reciclagem)
       const services = [
         ...partsBudgetsSnap.docs.map((d) => ({ id: d.id, type: "parts_budget", ...d.data() })),
-        ...closuresSnap.docs.map((d) => ({ id: d.id, type: "closure", ...d.data() })),
+        ...closures.map((o) => ({ type: "closure", ...o })),
       ].filter((service) => !service.eliminadoEm);
       const debtorsMap = {};
       services.forEach((service) => {
@@ -150,7 +151,7 @@ const ManageAlerts = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ensureClients, ensureOrcamentos]);
 
   useEffect(() => {
     fetchData();

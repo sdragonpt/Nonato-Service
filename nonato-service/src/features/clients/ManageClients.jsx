@@ -5,6 +5,7 @@ import { collection, getDocs, updateDoc, doc, query, where } from "firebase/fire
 import { db } from "../../firebase";
 import { useClients } from "../../context/ClientsContext.jsx";
 import { useEquipments } from "../../context/EquipmentsContext.jsx";
+import { useOrcamentos } from "../../context/OrcamentosContext.jsx";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { getCached } from "../../utils/sessionCache.js";
 import { getInitials } from "../../utils/getInitials.js";
@@ -66,14 +67,16 @@ import {
 // ===================================
 // HOOK PARA STATUS FINANCEIRO DOS CLIENTES
 // ===================================
-// ✅ "orcamentos" e "ordens" (isQuote) partilhados via sessionCache com as
-// mesmas chaves usadas em ManageAlerts.jsx e ManageDebtors.jsx — visitar
-// mais do que uma destas páginas na mesma sessão só paga a leitura uma vez.
+// ✅ "ordens" (isQuote) partilhado via sessionCache com as mesmas chaves
+// usadas em ManageAlerts.jsx e ManageDebtors.jsx — visitar mais do que uma
+// destas páginas na mesma sessão só paga a leitura uma vez. "orcamentos"
+// vem do OrcamentosContext (cache partilhado por toda a app, tempo real).
 const CLIENT_FINANCIAL_CACHE_TTL = 5 * 60 * 1000;
 
 const useClientFinancialStatus = (clients) => {
   const [financialStatuses, setFinancialStatuses] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const { ensureOrcamentos } = useOrcamentos();
 
   useEffect(() => {
     if (!clients?.length) {
@@ -86,19 +89,17 @@ const useClientFinancialStatus = (clients) => {
 
       try {
         // Buscar todos os serviços financeiros
-        const [partsBudgetsSnapshot, closuresSnapshot] = await Promise.all([
+        const [partsBudgetsSnapshot, closures] = await Promise.all([
           getCached("finances:ordensQuotes", CLIENT_FINANCIAL_CACHE_TTL, () =>
             getDocs(query(collection(db, "ordens"), where("isQuote", "==", true)))
           ),
-          getCached("finances:orcamentos", CLIENT_FINANCIAL_CACHE_TTL, () =>
-            getDocs(collection(db, "orcamentos"))
-          ),
+          ensureOrcamentos(),
         ]);
 
         // Ignora ordens excluídas / na Reciclagem
         const allServices = [
           ...partsBudgetsSnapshot.docs.map(doc => ({ id: doc.id, type: 'parts_budget', ...doc.data() })),
-          ...closuresSnapshot.docs.map(doc => ({ id: doc.id, type: 'closure', ...doc.data() }))
+          ...closures.map(o => ({ type: 'closure', ...o }))
         ].filter(service => !service.eliminadoEm);
 
         const statuses = {};
@@ -118,7 +119,7 @@ const useClientFinancialStatus = (clients) => {
     };
 
     calculateStatuses();
-  }, [clients]);
+  }, [clients, ensureOrcamentos]);
 
   return { financialStatuses, isLoading };
 };

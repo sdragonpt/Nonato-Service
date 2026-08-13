@@ -1,0 +1,217 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────
+// Regras de segurança do Firestore — Nonato Service.
+//
+// Substitui um conjunto de regras que já estava em produção (não estava
+// neste repositório). Duas falhas críticas confirmadas nesse conjunto foram
+// corrigidas aqui:
+//
+// 1) A regra geral só verificava "request.auth != null" (sessão Firebase
+//    iniciada), nunca se o email consta em config/authorizedEmails. A
+//    lista de autorizados só era validada no código JS (useAuth.js) — ou
+//    seja, qualquer conta Firebase Auth criada diretamente contra este
+//    projeto (fora da app) tinha acesso de leitura/escrita a quase toda a
+//    base de dados. Corrigido: a função isAuthorized() abaixo passa a ser
+//    exigida em todo o lado onde antes só se pedia sessão iniciada.
+//
+// 2) Nenhuma regra protegia o campo "role" em users/{uid} — um utilizador
+//    comum ("client") podia escrever no seu próprio documento e definir
+//    role: "admin". Corrigido: só quem já é admin pode alterar o "role" de
+//    qualquer utilizador (incluindo o seu próprio).
+//
+// Outras mudanças de comportamento face ao que estava em produção (pedidas
+// explicitamente, ver conversa):
+// - shop_access_tokens deixa de ter leitura pública (a coleção expunha
+//   nome/email/telefone de todos os pedidos de acesso a qualquer visitante
+//   sem sessão). Em troca, foi adicionada uma regra de "create" pública
+//   propriamente validada, porque o fluxo real de pedido de acesso
+//   (ShopAccessWrapper.jsx) faz um addDoc não autenticado que, pelas
+//   regras antigas, não tinha nenhuma permissão explícita de "create" —
+//   ou seja, esse pedido já podia estar a falhar em produção.
+//   ⚠️ IMPORTANTE: o mesmo ficheiro também faz uma LEITURA pública para o
+//   visitante descobrir se o pedido foi aprovado (accessStatus=="approved").
+//   Com a leitura pública fechada, essa verificação deixa de funcionar —
+//   o visitante consegue pedir acesso, mas não há forma de saber que foi
+//   aprovado sem sessão iniciada. É preciso um ajuste de código (ex: mover
+//   essa verificação para uma Cloud Function callable) para repor essa UX
+//   sem reabrir a coleção toda ao público.
+// - pecas deixa de ter leitura pública — a loja pública usa um catálogo
+//   JSON estático (public/pecas-data/), não esta coleção, pelo que a
+//   leitura pública parecia desnecessária.
+//
+// ⚠️ Testar com o Firebase Emulator Suite antes de publicar
+// (`firebase emulators:start`), em particular: login, criação de
+// utilizador, pedido de acesso à loja pública, e envio de orçamento online.
+// ─────────────────────────────────────────────────────────────────────────
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // "Autorizado" = sessão iniciada E o email consta em
+    // config/authorizedEmails. Espelha a verificação feita em useAuth.js —
+    // mas agora aplicada também aqui, não só no código JS.
+    function isAuthorized() {
+      return isSignedIn() &&
+        request.auth.token.email in
+          get(/databases/$(database)/documents/config/authorizedEmails).data.emails;
+    }
+
+    function isAdmin() {
+      return isAuthorized() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // ── config/authorizedEmails — a própria lista de controlo de acesso ──
+    // Leitura pública mantida (necessária para a verificação em useAuth.js
+    // correr antes de sabermos se o utilizador está autorizado). Escrita
+    // restrita aos dois emails administradores, tal como já estava em
+    // produção — evita depender de um "role" gravado no Firestore para
+    // proteger a própria lista que decide quem é de confiança.
+    match /config/authorizedEmails {
+      allow read: if true;
+      allow write: if isSignedIn() &&
+        request.auth.token.email in [
+          "sergionunoribeiro@gmail.com",
+          "service.nonato@gmail.com"
+        ];
+    }
+
+    // ── users/{uid} ──
+    // GOTCHA (auto-elevação de privilégio, corrigido): AddUser.jsx cria o
+    // novo utilizador com createUserWithEmailAndPassword, o que troca a
+    // sessão ativa do browser para o utilizador recém-criado ANTES do
+    // setDoc que grava o "role" escolhido no formulário — esse setDoc
+    // corre como o próprio utilizador novo, não como o admin. A regra
+    // abaixo força role="client" em qualquer auto-criação (incluindo
+    // quando é um admin a criar a conta) e só permite mudar o "role" de
+    // um documento a quem já é admin.
+    // ISTO MUDA COMPORTAMENTO: o dropdown de "papel" em AddUser.jsx deixa
+    // de ter efeito imediato — o admin terá de ajustar o papel depois em
+    // EditUser.jsx (que já corre sob a sessão do admin). Correção correta
+    // a prazo: mover a criação de utilizadores para uma Cloud Function.
+    match /users/{uid} {
+      allow read: if isAuthorized();
+      allow create: if isSignedIn() && request.auth.uid == uid &&
+        request.resource.data.role == 'client';
+      allow update: if isAuthorized() && (
+        (request.auth.uid == uid && request.resource.data.role == resource.data.role) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ── notifications/{id} — só o dono ──
+    match /notifications/{id} {
+      allow read, update, delete: if isAuthorized() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthorized();
+    }
+
+    match /counters/{id} {
+      allow read, write: if isAuthorized();
+    }
+
+    // ── app_data / app_data_meta — existiam nas regras antigas, sem
+    // equivalente encontrado no código atual; mantidas por precaução com o
+    // mesmo nível de acesso que tinham (qualquer autenticado → agora
+    // qualquer autorizado). ──
+    match /app_data/{key} {
+      allow read, write: if isAuthorized();
+    }
+    match /app_data_meta/{doc} {
+      allow read, write: if isAuthorized();
+    }
+
+    // ── categorias — a loja pública precisa disto em tempo real ──
+    match /categorias/{id} {
+      allow read: if true;
+      allow write: if isAuthorized();
+    }
+    match /atribuicoesPecas/{id} {
+      allow read: if true;
+      allow write: if isAuthorized();
+    }
+
+    // ── image_library — só leitura pontual (get), nunca listagem completa.
+    // Não foi encontrado nenhum caminho de escrita a partir do código da
+    // app; se algo externo escreve aqui, ajustar antes de publicar. ──
+    match /image_library/{hash} {
+      allow get: if true;
+      allow list: if false;
+      allow write: if isAdmin();
+    }
+
+    // ── Pedidos de orçamento vindos da loja pública (têm PII do visitante) ──
+    match /orcamentos-online/{id} {
+      allow create: if request.resource.data.clientInfo != null &&
+                     request.resource.data.items != null &&
+                     request.resource.data.items.size() > 0;
+      allow read, update, delete: if isAuthorized();
+    }
+
+    // ── shop_access_tokens — ver nota grande no topo do ficheiro ──
+    match /shop_access_tokens/{id} {
+      allow create: if request.resource.data.token != null &&
+                     request.resource.data.name != null &&
+                     request.resource.data.email != null &&
+                     request.resource.data.status == 'active';
+      allow read, update, delete: if isAuthorized();
+    }
+
+    // ── pecas — legada/interna; a loja pública usa o catálogo JSON estático ──
+    match /pecas/{id} { allow read, write: if isAuthorized(); }
+
+    // ── Coleções internas — qualquer utilizador autenticado e autorizado ──
+    // Reflete o comportamento atual da app: só "manage-users" e
+    // "parts-export" são hoje restritos a admin (ver App.jsx RoleRoute);
+    // todo o resto é acessível a qualquer papel autorizado.
+    match /clientes/{id} {
+      allow read, write: if isAuthorized();
+      match /anexos/{anexoId} {
+        allow read, write: if isAuthorized();
+      }
+    }
+    match /equipamentos/{id} { allow read, write: if isAuthorized(); }
+    match /ordens/{id} { allow read, write: if isAuthorized(); }
+    match /orcamentos/{id} { allow read, write: if isAuthorized(); }
+    match /servicos/{id} { allow read, write: if isAuthorized(); }
+    match /workdays/{id} { allow read, write: if isAuthorized(); }
+    match /familiasChecklist/{id} { allow read, write: if isAuthorized(); }
+    match /checklist_machines/{id} { allow read, write: if isAuthorized(); }
+    match /inspections/{id} { allow read, write: if isAuthorized(); }
+    match /relatorios/{id} { allow read, write: if isAuthorized(); }
+    match /mensagensInternas/{id} { allow read, write: if isAuthorized(); }
+    match /doc_families/{id} { allow read, write: if isAuthorized(); }
+    match /doc_machine_types/{id} { allow read, write: if isAuthorized(); }
+    match /doc_files/{id} { allow read, write: if isAuthorized(); }
+    match /comprovantesDespesas/{id} { allow read, write: if isAuthorized(); }
+    match /pecasDesmontadas/{id} { allow read, write: if isAuthorized(); }
+    match /fornecedores/{id} {
+      allow read, write: if isAuthorized();
+      match /faturas/{faturaId} {
+        allow read, write: if isAuthorized();
+      }
+    }
+    match /agendamentos/{id} { allow read, write: if isAuthorized(); }
+    match /pre_agendamentos/{id} { allow read, write: if isAuthorized(); }
+    match /equipamentosArmazem/{id} { allow read, write: if isAuthorized(); }
+    match /pedidosArmazem/{id} { allow read, write: if isAuthorized(); }
+    match /competenciasTecnicos/{userId} { allow read, write: if isAuthorized(); }
+    match /ordensPreparacao/{id} { allow read, write: if isAuthorized(); }
+    match /protocolosServico/{id} { allow read, write: if isAuthorized(); }
+    match /formulariosChecklistTecnicos/{id} { allow read, write: if isAuthorized(); }
+
+    // Rede de segurança: qualquer coleção não listada explicitamente acima
+    // continua acessível a qualquer utilizador autorizado (mesmo
+    // comportamento do catch-all que já estava em produção), para não
+    // partir nada que eu não tenha mapeado. Coleções novas devem ser
+    // adicionadas explicitamente acima assim que possível.
+    match /{document=**} {
+      allow read, write: if isAuthorized();
+    }
+  }
+}

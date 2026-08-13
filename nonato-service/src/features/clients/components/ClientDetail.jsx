@@ -22,6 +22,7 @@ import {
 import { db, storage } from "../../../firebase";
 import { useClients } from "../../../context/ClientsContext.jsx";
 import { useEquipments } from "../../../context/EquipmentsContext.jsx";
+import { useOrcamentos } from "../../../context/OrcamentosContext.jsx";
 import { downloadFileFromUrl } from "../../../utils/reportStorage.js";
 import { formatDate } from "../../../utils/formatDate.js";
 import { getInitials } from "../../../utils/getInitials.js";
@@ -108,6 +109,7 @@ const ClientFinancialSection = ({ clientId }) => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const { ensureOrcamentos } = useOrcamentos();
 
   // Fetch dados financeiros do cliente
   const fetchFinancialData = async () => {
@@ -121,15 +123,12 @@ const ClientFinancialSection = ({ clientId }) => {
         where("isQuote", "==", true)
       );
 
-      // Buscar fechamentos (orçamentos regulares)
-      const closuresQuery = query(
-        collection(db, "orcamentos"),
-        where("clientId", "==", clientId)
-      );
-
-      const [partsBudgetsSnapshot, closuresSnapshot] = await Promise.all([
+      // Buscar fechamentos (orçamentos regulares) — via cache partilhado
+      // (OrcamentosContext), filtrado por clientId em memória, em vez de
+      // uma query própria desta página.
+      const [partsBudgetsSnapshot, allClosures] = await Promise.all([
         getDocs(partsBudgetsQuery),
-        getDocs(closuresQuery),
+        ensureOrcamentos(),
       ]);
 
       const partsBudgets = partsBudgetsSnapshot.docs.map((doc) => ({
@@ -138,11 +137,9 @@ const ClientFinancialSection = ({ clientId }) => {
         ...doc.data(),
       }));
 
-      const closures = closuresSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        type: "closure",
-        ...doc.data(),
-      }));
+      const closures = allClosures
+        .filter((o) => o.clientId === clientId)
+        .map((o) => ({ type: "closure", ...o }));
 
       // Calcular resumo financeiro
       const allServices = [...partsBudgets, ...closures];
