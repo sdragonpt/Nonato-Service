@@ -62,16 +62,12 @@ const PartsExportTool = () => {
       setError(null);
       setExportResult(null);
 
-      console.log("🔍 Analisando dados das peças...");
-
       // Buscar todas as peças
       const partsSnapshot = await getDocs(collection(db, "pecas"));
       const parts = partsSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-
-      console.log(`📊 Total de peças encontradas: ${parts.length}`);
 
       // Analisar estrutura dos dados
       const analysis = {
@@ -136,7 +132,6 @@ const PartsExportTool = () => {
         },
       };
 
-      console.log("📋 Análise concluída:", analysis);
       setAnalysis(analysis);
     } catch (err) {
       console.error("Erro na análise:", err);
@@ -152,8 +147,6 @@ const PartsExportTool = () => {
       setIsExporting(true);
       setError(null);
 
-      console.log("📤 Iniciando exportação CSV...");
-
       // Buscar todas as peças
       const partsSnapshot = await getDocs(collection(db, "pecas"));
       const parts = partsSnapshot.docs.map((doc) => ({
@@ -161,40 +154,16 @@ const PartsExportTool = () => {
         ...doc.data(),
       }));
 
-      console.log(`🔄 Processando ${parts.length} peças...`);
-
       // Processar cada peça para o formato CSV
       const csvData = [];
-      let processedCount = 0;
       let imagesProcessed = 0;
 
       for (const part of parts) {
-        // Debug: Verificar estrutura da peça
-        if (processedCount < 3) {
-          console.log(`🔍 Debug peça ${processedCount + 1}:`, {
-            id: part.id,
-            code: part.code,
-            hasImageHash: !!part.imageHash,
-            hasImage: !!part.image,
-            imageHashValue: part.imageHash,
-            imageLength: part.image ? part.image.length : 0,
-            keys: Object.keys(part),
-          });
-        }
-
         // Obter URL da imagem se existir
         let imageUrl = "";
         try {
           if (part.imageHash) {
-            console.log(
-              `🖼️ Tentando buscar imagem para ${part.code} com hash: ${part.imageHash}`
-            );
             const imageData = await getImageLibraryData(part.imageHash);
-            console.log(`📊 Resultado da busca:`, {
-              found: !!imageData,
-              hasImage: imageData?.image ? true : false,
-              imageLength: imageData?.image ? imageData.image.length : 0,
-            });
 
             if (imageData?.image) {
               // Verificar se já tem prefixo data:
@@ -202,22 +171,13 @@ const PartsExportTool = () => {
                 ? imageData.image
                 : `data:image/jpeg;base64,${imageData.image}`;
               imagesProcessed++;
-              console.log(`✅ Imagem processada para ${part.code}`);
             }
           } else if (part.image) {
-            console.log(
-              `🖼️ Usando imagem direta para ${part.code}, tamanho: ${part.image.length}`
-            );
             // Verificar se já tem prefixo data:
             imageUrl = part.image.startsWith("data:")
               ? part.image
               : `data:image/jpeg;base64,${part.image}`;
             imagesProcessed++;
-            console.log(`✅ Imagem direta processada para ${part.code}`);
-          } else {
-            if (processedCount < 5) {
-              console.log(`❌ Nenhuma imagem encontrada para ${part.code}`);
-            }
           }
         } catch (imgError) {
           console.warn(
@@ -253,19 +213,7 @@ const PartsExportTool = () => {
         };
 
         csvData.push(csvRow);
-        processedCount++;
-
-        // Log de progresso a cada 50 peças
-        if (processedCount % 50 === 0) {
-          console.log(
-            `🔄 Processadas ${processedCount}/${parts.length} peças (${imagesProcessed} com imagem)`
-          );
-        }
       }
-
-      console.log(
-        `📊 Processamento concluído: ${csvData.length} peças, ${imagesProcessed} com imagens`
-      );
 
       // Gerar conteúdo CSV com encoding UTF-8 BOM
       const csvHeaders = [
@@ -322,7 +270,6 @@ const PartsExportTool = () => {
         encoding: "UTF-8 com BOM",
       };
 
-      console.log("✅ Exportação concluída:", result);
       setExportResult(result);
     } catch (err) {
       console.error("Erro na exportação:", err);

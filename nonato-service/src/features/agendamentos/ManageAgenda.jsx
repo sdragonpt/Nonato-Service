@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   collection,
-  getDocs,
+  onSnapshot,
   doc,
   getDoc,
   updateDoc,
@@ -31,7 +31,6 @@ import {
   Filter,
   MoreVertical,
   Calendar,
-  RefreshCw,
   ClipboardList,
   AlertCircle,
   X,
@@ -415,106 +414,139 @@ const ManageAgenda = () => {
     }
   };
 
-  // ✅ Buscar pré-agendamentos com equipamentos. O cliente registado vem do
-  // cache partilhado (ClientsContext) em vez de um getDoc por item — só o
-  // equipamento (sem cache equivalente) ainda faz uma leitura por item.
-  const fetchPreAgendamentos = useCallback(async () => {
-    try {
-      const preAgendamentosRef = collection(db, "pre_agendamentos");
-      const querySnapshot = await getDocs(preAgendamentosRef);
-      const preAgendamentosData = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      const preAgendamentosWithDetails = await Promise.all(
-        preAgendamentosData.map(async (preAgendamento) => {
-          let updatedPreAgendamento = { ...preAgendamento };
-
-          if (preAgendamento.isRegisteredClient && preAgendamento.clientId) {
-            const cliente = getClientById(preAgendamento.clientId);
-            if (cliente) {
-              updatedPreAgendamento.cliente = cliente;
-            }
-          }
-
-          // ✅ Equipamento: sem cache equivalente ao de clientes, mantém-se
-          // uma leitura por item (lista de pré-agendamentos é tipicamente
-          // pequena — só os pendentes de conversão).
-          if (preAgendamento.equipmentId) {
-            const equipmentDoc = await getDoc(
-              doc(db, "equipamentos", preAgendamento.equipmentId)
-            );
-            if (equipmentDoc.exists()) {
-              updatedPreAgendamento.equipment = equipmentDoc.data();
-            }
-          }
-
-          return updatedPreAgendamento;
-        })
-      );
-
-      setPreAgendamentos(preAgendamentosWithDetails);
-    } catch (err) {
-      console.error("Error fetching pre agendamentos:", err);
-    }
-  }, [getClientById]);
-
-  // ✅ Agendamentos: em vez de ler a coleção inteira (todos os meses, todos
-  // os anos) e filtrar no cliente, a query já vem limitada ao mês
-  // selecionado (campo "data" no formato "AAAA-MM-DD", que ordena bem como
-  // string). Os dados do cliente vêm do cache partilhado (ClientsContext,
-  // já buscado uma vez para toda a app) em vez de um getDoc por agendamento.
-  const fetchAppointments = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const monthStart = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-01`;
-      const lastDay = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-      const monthEnd = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-
-      const appointmentsRef = query(
-        collection(db, "agendamentos"),
-        where("data", ">=", monthStart),
-        where("data", "<=", monthEnd),
-        orderBy("data")
-      );
-
-      const [querySnapshot] = await Promise.all([
-        getDocs(appointmentsRef),
-        ensureClients(),
-      ]);
-
-      const appointmentsData = querySnapshot.docs.map((docSnap) => {
-        const data = { id: docSnap.id, ...docSnap.data() };
-        return {
-          ...data,
-          cliente: data.clientId ? getClientById(data.clientId) : null,
-        };
-      });
-
-      // Atualiza agendamentos passados e define o estado
-      const updatedAppointments = await updatePastAppointments(
-        appointmentsData
-      );
-      setAppointments(updatedAppointments);
-      setVisibleCount(PAGE_SIZE);
-
-      // ✅ Buscar pré-agendamentos também (não é filtrado por mês — são
-      // pendentes de conversão, independentemente da data)
-      await fetchPreAgendamentos();
-    } catch (err) {
-      console.error("Error fetching appointments:", err);
-      setError("Erro ao carregar agendamentos");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedMonth, selectedYear, ensureClients, getClientById, fetchPreAgendamentos]);
-
+  // ✅ Tempo real (onSnapshot): pré-agendamentos com equipamentos. O cliente
+  // registado vem do cache partilhado (ClientsContext) em vez de um getDoc
+  // por item — só o equipamento (sem cache equivalente) ainda faz uma
+  // leitura por item. Atualiza-se sozinho quando um pré-agendamento é
+  // criado/convertido/removido, sem precisar de um botão "Atualizar" manual.
   useEffect(() => {
-    fetchAppointments();
-  }, [fetchAppointments]);
+    let cancelled = false;
+
+    const unsubscribe = onSnapshot(
+      collection(db, "pre_agendamentos"),
+      async (snapshot) => {
+        try {
+          await ensureClients();
+          if (cancelled) return;
+
+          const preAgendamentosData = snapshot.docs.map((docSnap) => ({
+            id: docSnap.id,
+            ...docSnap.data(),
+          }));
+
+          const preAgendamentosWithDetails = await Promise.all(
+            preAgendamentosData.map(async (preAgendamento) => {
+              let updatedPreAgendamento = { ...preAgendamento };
+
+              if (
+                preAgendamento.isRegisteredClient &&
+                preAgendamento.clientId
+              ) {
+                const cliente = getClientById(preAgendamento.clientId);
+                if (cliente) {
+                  updatedPreAgendamento.cliente = cliente;
+                }
+              }
+
+              // ✅ Equipamento: sem cache equivalente ao de clientes, mantém-se
+              // uma leitura por item (lista de pré-agendamentos é tipicamente
+              // pequena — só os pendentes de conversão).
+              if (preAgendamento.equipmentId) {
+                const equipmentDoc = await getDoc(
+                  doc(db, "equipamentos", preAgendamento.equipmentId)
+                );
+                if (equipmentDoc.exists()) {
+                  updatedPreAgendamento.equipment = equipmentDoc.data();
+                }
+              }
+
+              return updatedPreAgendamento;
+            })
+          );
+
+          if (!cancelled) setPreAgendamentos(preAgendamentosWithDetails);
+        } catch (err) {
+          console.error("Error processing pre agendamentos snapshot:", err);
+        }
+      },
+      (err) => {
+        console.error("Error fetching pre agendamentos:", err);
+      }
+    );
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [ensureClients, getClientById]);
+
+  // ✅ Tempo real (onSnapshot): em vez de ler a coleção inteira (todos os
+  // meses, todos os anos) e filtrar no cliente, a query já vem limitada ao
+  // mês selecionado (campo "data" no formato "AAAA-MM-DD", que ordena bem
+  // como string) — o listener resubscreve sempre que o mês selecionado
+  // muda. Os dados do cliente vêm do cache partilhado (ClientsContext, já
+  // buscado uma vez para toda a app) em vez de um getDoc por agendamento.
+  // A lista atualiza-se sozinha quando um agendamento é criado/editado/
+  // removido, sem precisar de um botão "Atualizar" manual.
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+    setVisibleCount(PAGE_SIZE);
+
+    const monthStart = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-01`;
+    const lastDay = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+    const monthEnd = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+    const appointmentsRef = query(
+      collection(db, "agendamentos"),
+      where("data", ">=", monthStart),
+      where("data", "<=", monthEnd),
+      orderBy("data")
+    );
+
+    const unsubscribe = onSnapshot(
+      appointmentsRef,
+      async (snapshot) => {
+        try {
+          await ensureClients();
+          if (cancelled) return;
+
+          const appointmentsData = snapshot.docs.map((docSnap) => {
+            const data = { id: docSnap.id, ...docSnap.data() };
+            return {
+              ...data,
+              cliente: data.clientId ? getClientById(data.clientId) : null,
+            };
+          });
+
+          // Atualiza agendamentos passados e define o estado
+          const updatedAppointments = await updatePastAppointments(
+            appointmentsData
+          );
+          if (!cancelled) {
+            setAppointments(updatedAppointments);
+            setError(null);
+          }
+        } catch (err) {
+          console.error("Error processing appointments snapshot:", err);
+          if (!cancelled) setError("Erro ao carregar agendamentos");
+        } finally {
+          if (!cancelled) setIsLoading(false);
+        }
+      },
+      (err) => {
+        console.error("Error fetching appointments:", err);
+        setError("Erro ao carregar agendamentos");
+        setIsLoading(false);
+      }
+    );
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [selectedMonth, selectedYear, ensureClients, getClientById]);
 
   // ✅ NOVA FUNÇÃO: Converter pré-agendamento
   const handleConvertPreAgendamento = async () => {
@@ -551,8 +583,7 @@ const ManageAgenda = () => {
       // Remover pré-agendamento
       await deleteDoc(doc(db, "pre_agendamentos", preAgendamento.id));
 
-      // Atualizar listas
-      await fetchAppointments();
+      // As listas de agendamentos e pré-agendamentos atualizam-se sozinhas via onSnapshot
       setConvertDialogOpen(false);
       setPreAgendamentoToConvert(null);
       setConvertFormData({ date: "", time: "" });
@@ -565,7 +596,7 @@ const ManageAgenda = () => {
   const handleDelete = async (appointmentId) => {
     try {
       await deleteDoc(doc(db, "agendamentos", appointmentId));
-      setAppointments((prev) => prev.filter((a) => a.id !== appointmentId));
+      // A lista atualiza-se sozinha via onSnapshot
       setDeleteDialogOpen(false);
       setAppointmentToDelete(null);
     } catch (error) {
@@ -578,9 +609,7 @@ const ManageAgenda = () => {
   const handleDeletePreAgendamento = async (preAgendamento) => {
     try {
       await deleteDoc(doc(db, "pre_agendamentos", preAgendamento.id));
-      setPreAgendamentos((prev) =>
-        prev.filter((p) => p.id !== preAgendamento.id)
-      );
+      // A lista atualiza-se sozinha via onSnapshot
     } catch (error) {
       console.error("Erro ao deletar pré-agendamento:", error);
       setError("Erro ao deletar pré-agendamento");
@@ -990,14 +1019,6 @@ const ManageAgenda = () => {
           <div className="hidden sm:flex gap-2 pt-1 border-t border-zinc-700/50">
             <Button
               variant="outline"
-              onClick={fetchAppointments}
-              className="mt-3 border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Atualizar Lista
-            </Button>
-            <Button
-              variant="outline"
               onClick={() => setRemindersDialogOpen(true)}
               disabled={stats.today === 0}
               className="mt-3 border-green-600 text-white hover:bg-green-700 bg-green-600"
@@ -1384,7 +1405,7 @@ const ManageAgenda = () => {
             <Button
               variant="outline"
               onClick={() => setConvertDialogOpen(false)}
-              className="border-zinc-700 text-white hover:bg-zinc-700"
+              className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
             >
               Cancelar
             </Button>
@@ -1500,18 +1521,10 @@ const ManageAgenda = () => {
         open={quickAddOpen}
         onOpenChange={setQuickAddOpen}
         date={quickAddDate}
-        onCreated={fetchAppointments}
       />
 
       {/* FAB Menu for Mobile */}
       <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden">
-        <Button
-          onClick={fetchAppointments}
-          size="icon"
-          className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
-        >
-          <RefreshCw className="h-5 w-5" />
-        </Button>
         <Button
           onClick={() => navigate("/app/add-pre-agendamento")}
           size="icon"

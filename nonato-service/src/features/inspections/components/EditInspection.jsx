@@ -5,11 +5,13 @@ import {
   updateDoc,
   collection,
   query,
-  where,
   getDocs,
   orderBy,
 } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
+import { useClients } from "../../../context/ClientsContext.jsx";
+import { useEquipments } from "../../../context/EquipmentsContext.jsx";
+import { comparePtPt } from "../../../utils/sortHelpers.js";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -28,6 +30,7 @@ import {
   PackageCheck,
   Code,
   Settings,
+  ClipboardEdit,
 } from "lucide-react";
 
 // UI Components
@@ -39,6 +42,8 @@ import { Button } from "@/components/ui/button.jsx";
 const EditInspection = () => {
   const { inspectionId: id } = useParams();
   const navigate = useNavigate();
+  const { ensureClients } = useClients();
+  const { ensureEquipments } = useEquipments();
 
   // Selected data states
   const [selectedClient, setSelectedClient] = useState(null);
@@ -90,25 +95,20 @@ const EditInspection = () => {
         setSelectedGroups(inspectionData.selectedGroups || []);
 
         // Fetch initial lists
-        const [clientsSnapshot, equipmentsSnapshot, typesSnapshot] =
+        const [clientsList, allEquipments, typesSnapshot] =
           await Promise.all([
-            getDocs(query(collection(db, "clientes"), orderBy("name"))),
-            getDocs(
-              query(
-                collection(db, "equipamentos"),
-                where("clientId", "==", inspectionData.clientId)
-              )
-            ),
+            ensureClients(),
+            ensureEquipments(),
             getDocs(
               query(collection(db, "checklist_machines"), orderBy("type"))
             ),
           ]);
 
         setClients(
-          clientsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+          [...clientsList].sort((a, b) => comparePtPt(a.name, b.name))
         );
         setEquipments(
-          equipmentsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+          allEquipments.filter((e) => e.clientId === inspectionData.clientId)
         );
         setTypes(
           typesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
@@ -130,13 +130,9 @@ const EditInspection = () => {
       const fetchEquipments = async () => {
         try {
           setIsLoading(true);
-          const q = query(
-            collection(db, "equipamentos"),
-            where("clientId", "==", selectedClient.id)
-          );
-          const snapshot = await getDocs(q);
+          const allEquipments = await ensureEquipments();
           setEquipments(
-            snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+            allEquipments.filter((e) => e.clientId === selectedClient.id)
           );
         } catch (err) {
           setError("Erro ao carregar equipamentos");
@@ -147,7 +143,7 @@ const EditInspection = () => {
 
       fetchEquipments();
     }
-  }, [selectedClient, currentStep]);
+  }, [selectedClient, currentStep, ensureEquipments]);
 
   // Types fetch on step 3
   useEffect(() => {
@@ -790,17 +786,22 @@ const EditInspection = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Editar Inspeção</h1>
-          <p className="text-sm text-zinc-400">
-            Atualize as informações da inspeção
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+            <ClipboardEdit className="h-5 w-5 text-green-400" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Editar Inspeção</h1>
+            <p className="text-sm text-zinc-400">
+              Atualize as informações da inspeção
+            </p>
+          </div>
         </div>
         <Button
           variant="outline"
           size="icon"
           onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>

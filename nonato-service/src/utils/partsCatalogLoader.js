@@ -10,6 +10,7 @@
 // Biblioteca de Peças atual (Firestore) por esta.
 
 import { useState, useEffect } from "react";
+import { comparePtPt } from "./sortHelpers.js";
 
 let cachedCatalog = null;
 let inFlightPromise = null;
@@ -48,7 +49,7 @@ export async function loadPartsCatalog({ force = false } = {}) {
     }
 
     const merged = Array.from(byCodigo.values()).sort((a, b) =>
-      (a.nome || "").localeCompare(b.nome || "", "pt-PT")
+      comparePtPt(a.nome, b.nome)
     );
 
     cachedCatalog = {

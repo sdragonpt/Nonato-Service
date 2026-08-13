@@ -55,7 +55,6 @@ const ManageFinances = () => {
   // Financial data
   const [partsBudgets, setPartsBudgets] = useState([]);
   const [closures, setClosures] = useState([]);
-  const [financialMetrics, setFinancialMetrics] = useState(null);
 
   // Fetch all financial data
   const fetchFinancialData = async () => {
@@ -145,7 +144,7 @@ const ManageFinances = () => {
         );
         previousPeriodEnd = new Date(now.getFullYear(), now.getMonth(), 0);
         break;
-      case "quarter":
+      case "quarter": {
         const currentQuarter = Math.floor(now.getMonth() / 3);
         currentPeriodStart = new Date(now.getFullYear(), currentQuarter * 3, 1);
         currentPeriodEnd = new Date(
@@ -160,6 +159,7 @@ const ManageFinances = () => {
         );
         previousPeriodEnd = new Date(now.getFullYear(), currentQuarter * 3, 0);
         break;
+      }
       case "year":
         currentPeriodStart = new Date(selectedYear, 0, 1);
         currentPeriodEnd = new Date(selectedYear, 11, 31);
@@ -327,7 +327,7 @@ const ManageFinances = () => {
             variant="outline"
             onClick={exportFinancialData}
             disabled={!metrics}
-            className="border-zinc-700 text-white hover:bg-zinc-700"
+            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
           >
             <Download className="w-4 h-4 mr-2" />
             Exportar

@@ -17,6 +17,9 @@ import {
   Trash2,
   Timer,
   UserCog,
+  CalendarPlus,
+  Printer,
+  AlertCircle,
 } from "lucide-react";
 
 // UI Components
@@ -53,6 +56,19 @@ import {
   minutesToTime,
   timeToMinutes,
 } from "../utils/agendaConflicts.js";
+
+// ✅ Bloco reutilizável "label + ícone + campo" — mesmo padrão do
+// AddOrder.jsx/AddClient.jsx, para reduzir a repetição dos vários blocos
+// de data/equipamento/técnico/prioridade/status.
+const FieldLabel = ({ label, icon: Icon, children }) => (
+  <div className="space-y-1">
+    <label className="block text-sm font-medium text-zinc-400 mb-1">{label}</label>
+    <div className="relative">
+      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+      {children}
+    </div>
+  </div>
+);
 
 const AddAgendamento = () => {
   const navigate = useNavigate();
@@ -229,17 +245,22 @@ const AddAgendamento = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Novo Agendamento</h1>
-          <p className="text-sm text-zinc-400">
-            Adicione um novo agendamento ao sistema
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+            <CalendarPlus className="h-5 w-5 text-green-400" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Novo Agendamento</h1>
+            <p className="text-sm text-zinc-400">
+              Adicione um novo agendamento ao sistema
+            </p>
+          </div>
         </div>
         <Button
           variant="outline"
           size="icon"
           onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
         >
           <ArrowLeft className="h-4 w-4 text-white" />
         </Button>
@@ -306,11 +327,7 @@ const AddAgendamento = () => {
                 {selectedDates.map((date, index) => (
                   <div key={index} className="flex items-center gap-2">
                     <div className="flex-1">
-                      <label className="block text-sm font-medium text-zinc-400 mb-1">
-                        Data {index + 1}
-                      </label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
+                      <FieldLabel label={`Data ${index + 1}`} icon={Calendar}>
                         <Input
                           type="date"
                           value={date}
@@ -320,7 +337,7 @@ const AddAgendamento = () => {
                           className="pl-10 bg-zinc-900 border-zinc-700 text-white"
                           required
                         />
-                      </div>
+                      </FieldLabel>
                     </div>
                     {selectedDates.length > 1 && (
                       <Button
@@ -346,39 +363,27 @@ const AddAgendamento = () => {
                 </Button>
               </>
             ) : (
-              <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">
-                  Data
-                </label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
-                  <Input
-                    type="date"
-                    value={singleDate}
-                    onChange={(e) => setSingleDate(e.target.value)}
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white"
-                    required
-                  />
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">
-                Hora
-              </label>
-              <div className="relative">
-                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
+              <FieldLabel label="Data" icon={Calendar}>
                 <Input
-                  type="time"
-                  name="hora"
-                  value={formData.hora}
-                  onChange={handleChange}
+                  type="date"
+                  value={singleDate}
+                  onChange={(e) => setSingleDate(e.target.value)}
                   className="pl-10 bg-zinc-900 border-zinc-700 text-white"
                   required
                 />
-              </div>
-            </div>
+              </FieldLabel>
+            )}
+
+            <FieldLabel label="Hora" icon={Clock}>
+              <Input
+                type="time"
+                name="hora"
+                value={formData.hora}
+                onChange={handleChange}
+                className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                required
+              />
+            </FieldLabel>
           </CardContent>
         </Card>
 
@@ -403,10 +408,7 @@ const AddAgendamento = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">
-                Equipamento
-              </label>
+            <FieldLabel label="Equipamento" icon={Printer}>
               <Select
                 value={formData.equipmentId}
                 onValueChange={(value) =>
@@ -414,7 +416,7 @@ const AddAgendamento = () => {
                 }
                 disabled={!formData.clientId}
               >
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
                   <SelectValue placeholder="Selecione um equipamento" />
                 </SelectTrigger>
                 <SelectContent className="bg-zinc-800 border-zinc-700">
@@ -429,31 +431,22 @@ const AddAgendamento = () => {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </FieldLabel>
 
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">
-                Tipo de Serviço
-              </label>
-              <div className="relative">
-                <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
-                <Input
-                  type="text"
-                  name="tipoServico"
-                  value={formData.tipoServico}
-                  onChange={handleChange}
-                  placeholder="Descreva o tipo de serviço"
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white"
-                  required
-                />
-              </div>
-            </div>
+            <FieldLabel label="Tipo de Serviço" icon={FileText}>
+              <Input
+                type="text"
+                name="tipoServico"
+                value={formData.tipoServico}
+                onChange={handleChange}
+                placeholder="Descreva o tipo de serviço"
+                className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                required
+              />
+            </FieldLabel>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">
-                  Técnico Responsável
-                </label>
+              <FieldLabel label="Técnico Responsável" icon={UserCog}>
                 <Select
                   value={formData.tecnicoId || "none"}
                   onValueChange={(value) =>
@@ -463,8 +456,7 @@ const AddAgendamento = () => {
                     }))
                   }
                 >
-                  <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white pl-10 relative">
-                    <UserCog className="absolute left-3 h-4 w-4 text-zinc-400" />
+                  <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
                     <SelectValue placeholder="Por atribuir" />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-800 border-zinc-700">
@@ -482,14 +474,10 @@ const AddAgendamento = () => {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </FieldLabel>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">
-                  Duração (minutos)
-                </label>
-                <div className="relative">
-                  <Timer className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
+                <FieldLabel label="Duração (minutos)" icon={Timer}>
                   <Input
                     type="number"
                     min="15"
@@ -499,7 +487,7 @@ const AddAgendamento = () => {
                     onChange={handleChange}
                     className="pl-10 bg-zinc-900 border-zinc-700 text-white"
                   />
-                </div>
+                </FieldLabel>
                 {formData.hora && (
                   <p className="text-xs text-zinc-500 mt-1">
                     Termina às{" "}
@@ -522,17 +510,14 @@ const AddAgendamento = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">
-                Prioridade
-              </label>
+            <FieldLabel label="Prioridade" icon={AlertCircle}>
               <Select
                 value={formData.prioridade}
                 onValueChange={(value) =>
                   setFormData((prev) => ({ ...prev, prioridade: value }))
                 }
               >
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
                   <SelectValue placeholder="Selecione a prioridade" />
                 </SelectTrigger>
                 <SelectContent className="bg-zinc-800 border-zinc-700">
@@ -556,19 +541,16 @@ const AddAgendamento = () => {
                   </SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </FieldLabel>
 
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">
-                Status
-              </label>
+            <FieldLabel label="Status" icon={Clock}>
               <Select
                 value={formData.status}
                 onValueChange={(value) =>
                   setFormData((prev) => ({ ...prev, status: value }))
                 }
               >
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
                   <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
                 <SelectContent className="bg-zinc-800 border-zinc-700">
@@ -592,7 +574,7 @@ const AddAgendamento = () => {
                   </SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </FieldLabel>
           </CardContent>
         </Card>
 

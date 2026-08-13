@@ -388,7 +388,7 @@ const CompanyProfile = () => {
                     variant="outline"
                     size="icon"
                     onClick={() => handleCopy(name, formData[name])}
-                    className="border-zinc-700 text-white hover:bg-zinc-700 shrink-0"
+                    className="border-zinc-700 text-white bg-zinc-800 hover:bg-zinc-700 shrink-0"
                     title="Copiar"
                   >
                     {copiedField === name ? (

@@ -7,6 +7,7 @@ import { useClients } from "../../context/ClientsContext.jsx";
 import { useEquipments } from "../../context/EquipmentsContext.jsx";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { getCached } from "../../utils/sessionCache.js";
+import { getInitials } from "../../utils/getInitials.js";
 import {
   Search,
   Plus,
@@ -197,17 +198,6 @@ const calculateClientFinancialStatus = (clientServices) => {
 // COMPONENTE ClientCard OTIMIZADO
 // ===================================
 const ClientCard = ({ client, onEdit, onDelete, onView, financialStatus }) => {
-  const getInitials = (name) => {
-    return (
-      name
-        ?.split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2) || "??"
-    );
-  };
-
   const confirmDelete = (e) => {
     e.stopPropagation();
     onDelete(client.id);
@@ -785,7 +775,7 @@ const ManageClients = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+              className="bg-zinc-900 border-zinc-600 text-zinc-300 hover:bg-zinc-700"
             >
               Cancelar
             </Button>

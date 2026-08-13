@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { collection, getDocs, doc, setDoc } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useUsers } from "../../context/UsersContext.jsx";
+import { comparePtPt } from "../../utils/sortHelpers.js";
 import {
   GraduationCap,
   Loader2,
@@ -63,7 +64,7 @@ const ManageTechnicianSkills = () => {
 
       const staff = allUsers
         .filter((u) => isStaffRole(u.role))
-        .sort((a, b) => (a.displayName || "").localeCompare(b.displayName || "", "pt-PT"));
+        .sort((a, b) => comparePtPt(a.displayName, b.displayName));
       setStaffUsers(staff);
 
       const sMap = {};

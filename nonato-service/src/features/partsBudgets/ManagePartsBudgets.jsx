@@ -16,6 +16,7 @@ import { useClients } from "../../context/ClientsContext.jsx";
 import { formatDate } from "../../utils/formatDate.js";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { fetchPage } from "../../utils/firestorePage.js";
+import { getInitials } from "../../utils/getInitials.js";
 import {
   Search,
   Plus,
@@ -395,18 +396,6 @@ const ManagePartsBudgets = () => {
   };
 
 
-  // Get initials for avatar
-  const getInitials = (name) => {
-    return (
-      name
-        ?.split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2) || "??"
-    );
-  };
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
@@ -684,7 +673,7 @@ const ManagePartsBudgets = () => {
                               updateQuoteStatus(quote.id, "Aberto")
                             }
                             disabled={isUpdating}
-                            className="border-yellow-500 text-yellow-400 hover:bg-yellow-500/20 hover:text-yellow-300 hover:border-yellow-400"
+                            className="border-yellow-500 text-yellow-400 hover:bg-yellow-500/20 hover:text-yellow-300 hover:border-yellow-400 bg-amber-600"
                           >
                             <ArrowLeft className="w-3 h-3 mr-1" />
                             Voltar
@@ -710,7 +699,7 @@ const ManagePartsBudgets = () => {
                             updateQuoteStatus(quote.id, "Em Andamento")
                           }
                           disabled={isUpdating}
-                          className="border-blue-500 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 hover:border-blue-400"
+                          className="border-blue-500 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 hover:border-blue-400 bg-blue-600"
                         >
                           <Undo2 className="w-3 h-3 mr-1" />
                           Reabrir
@@ -847,7 +836,7 @@ const ManagePartsBudgets = () => {
             <Button
               variant="outline"
               onClick={() => setNoteDialogOpen(false)}
-              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700 hover:text-white hover:border-zinc-500"
+              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700 hover:text-white hover:border-zinc-500 bg-zinc-800"
             >
               Cancelar
             </Button>
@@ -883,7 +872,7 @@ const ManagePartsBudgets = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700 hover:text-white hover:border-zinc-500"
+              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700 hover:text-white hover:border-zinc-500 bg-zinc-800"
             >
               Cancelar
             </Button>

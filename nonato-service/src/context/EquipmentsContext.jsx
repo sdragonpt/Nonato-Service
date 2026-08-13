@@ -45,6 +45,23 @@ export const EquipmentsProvider = ({ children }) => {
     setIsLoading(true);
     firstSnapshotPromiseRef.current = new Promise((resolve) => {
       let resolved = false;
+      const resolveOnce = (list) => {
+        if (!resolved) {
+          resolved = true;
+          resolve(list);
+        }
+      };
+
+      // ✅ Se algum código tiver feito um getDoc a um equipamento específico
+      // antes disto, esse documento fica na cache local da Firestore e
+      // pode gerar um 1º snapshot "fromCache" incompleto. Só resolve com
+      // um snapshot confirmado pelo servidor, para quem chamou
+      // ensureEquipments() não ficar com uma lista parcial; o timeout evita
+      // bloquear para sempre se não houver ligação.
+      const fallbackTimer = setTimeout(() => {
+        if (latestListRef.current !== null) resolveOnce(latestListRef.current);
+      }, 4000);
+
       const unsub = onSnapshot(
         query(collection(db, "equipamentos")),
         (snapshot) => {
@@ -61,19 +78,17 @@ export const EquipmentsProvider = ({ children }) => {
           setIsLoading(false);
           setError(null);
 
-          if (!resolved) {
-            resolved = true;
-            resolve(list);
+          if (!snapshot.metadata.fromCache) {
+            clearTimeout(fallbackTimer);
+            resolveOnce(list);
           }
         },
         (err) => {
           console.error("Erro ao ouvir equipamentos:", err);
           setError("Erro ao carregar equipamentos");
           setIsLoading(false);
-          if (!resolved) {
-            resolved = true;
-            resolve([]);
-          }
+          clearTimeout(fallbackTimer);
+          resolveOnce([]);
         }
       );
       unsubscribeRef.current = unsub;

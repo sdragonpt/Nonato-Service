@@ -3,8 +3,9 @@
 // (distinto de "equipamentos", que são os equipamentos instalados nos clientes)
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, getDocs, deleteDoc, doc, query, orderBy } from "firebase/firestore";
+import { collection, onSnapshot, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
+import { comparePtPt } from "../../utils/sortHelpers.js";
 import {
   Search,
   Plus,
@@ -14,7 +15,6 @@ import {
   Eye,
   Wrench,
   Download,
-  RefreshCw,
   MapPin,
   Hash,
   Barcode,
@@ -164,25 +164,36 @@ const ManageWarehouseEquipment = () => {
   const PAGE_SIZE = 10;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  const fetchItems = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const q = query(collection(db, "equipamentosArmazem"), orderBy("nome", sortOrder));
-      const snapshot = await getDocs(q);
-      setItems(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
-    } catch (err) {
-      console.error("Erro ao carregar equipamentos do armazém:", err);
-      setError("Erro ao carregar equipamentos do armazém. Por favor, tente novamente.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [sortOrder]);
-
+  // ✅ Tempo real (onSnapshot): a lista de equipamentos do armazém
+  // atualiza-se sozinha quando alguém adiciona/edita/remove um equipamento,
+  // sem precisar de um botão "Atualizar" manual nem de reler a coleção a
+  // cada troca de ordenação (isso agora é feito em memória, ver sortedItems).
   useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+    setIsLoading(true);
+    const unsubscribe = onSnapshot(
+      collection(db, "equipamentosArmazem"),
+      (snapshot) => {
+        setItems(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setError(null);
+        setIsLoading(false);
+      },
+      (err) => {
+        console.error("Erro ao carregar equipamentos do armazém:", err);
+        setError("Erro ao carregar equipamentos do armazém. Por favor, tente novamente.");
+        setIsLoading(false);
+      }
+    );
+    return () => unsubscribe();
+  }, []);
+
+  const sortedItems = useMemo(() => {
+    const list = [...items];
+    list.sort((a, b) => {
+      const cmp = comparePtPt(a.nome, b.nome);
+      return sortOrder === "asc" ? cmp : -cmp;
+    });
+    return list;
+  }, [items, sortOrder]);
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
@@ -199,7 +210,7 @@ const ManageWarehouseEquipment = () => {
     if (!itemToDelete) return;
     try {
       await deleteDoc(doc(db, "equipamentosArmazem", itemToDelete.id));
-      setItems((prev) => prev.filter((i) => i.id !== itemToDelete.id));
+      // A lista atualiza-se sozinha via onSnapshot
       setDeleteDialogOpen(false);
       setItemToDelete(null);
     } catch (err) {
@@ -210,7 +221,7 @@ const ManageWarehouseEquipment = () => {
 
   const filteredItems = useMemo(() => {
     const searchLower = searchTerm.toLowerCase();
-    return items.filter((i) => {
+    return sortedItems.filter((i) => {
       const matchesSearch =
         (i.nome && i.nome.toLowerCase().includes(searchLower)) ||
         (i.equipmentCode && i.equipmentCode.toLowerCase().includes(searchLower)) ||
@@ -221,7 +232,7 @@ const ManageWarehouseEquipment = () => {
       const matchesEstado = estadoFilter === "all" || i.estado === estadoFilter;
       return matchesSearch && matchesEstado;
     });
-  }, [items, searchTerm, estadoFilter]);
+  }, [sortedItems, searchTerm, estadoFilter]);
 
   const currentItems = filteredItems.slice(0, visibleCount);
   const hasMoreVisible = visibleCount < filteredItems.length;
@@ -375,23 +386,15 @@ const ManageWarehouseEquipment = () => {
               <Button
                 variant="outline"
                 onClick={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
-                className="flex-1 sm:flex-none border-zinc-700 text-white hover:bg-zinc-700"
+                className="flex-1 sm:flex-none bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-700"
               >
                 <ArrowUpDown className="w-4 h-4 mr-2" />
                 {sortOrder === "asc" ? "A-Z" : "Z-A"}
               </Button>
               <Button
                 variant="outline"
-                onClick={fetchItems}
-                className="flex-1 sm:flex-none border-zinc-700 text-white hover:bg-zinc-700"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Atualizar
-              </Button>
-              <Button
-                variant="outline"
                 onClick={exportToCSV}
-                className="flex-1 sm:flex-none border-zinc-700 text-white hover:bg-zinc-700"
+                className="flex-1 sm:flex-none bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-700"
               >
                 <Download className="w-4 h-4 mr-2" />
                 Exportar
@@ -479,7 +482,7 @@ const ManageWarehouseEquipment = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+              className="bg-zinc-900 border-zinc-600 text-zinc-300 hover:bg-zinc-700"
             >
               Cancelar
             </Button>

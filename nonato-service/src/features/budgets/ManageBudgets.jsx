@@ -795,7 +795,7 @@ const ManageBudgets = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700 bg-zinc-800"
             >
               Cancelar
             </Button>

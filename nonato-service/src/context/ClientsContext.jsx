@@ -50,6 +50,23 @@ export const ClientsProvider = ({ children }) => {
     setIsLoading(true);
     firstSnapshotPromiseRef.current = new Promise((resolve) => {
       let resolved = false;
+      const resolveOnce = (list) => {
+        if (!resolved) {
+          resolved = true;
+          resolve(list);
+        }
+      };
+
+      // ✅ Se algum código tiver feito um getDoc a um cliente específico
+      // antes disto, esse documento fica na cache local da Firestore e
+      // pode gerar um 1º snapshot "fromCache" incompleto. Só resolve com
+      // um snapshot confirmado pelo servidor, para quem chamou
+      // ensureClients() não ficar com uma lista parcial; o timeout evita
+      // bloquear para sempre se não houver ligação.
+      const fallbackTimer = setTimeout(() => {
+        if (latestListRef.current !== null) resolveOnce(latestListRef.current);
+      }, 4000);
+
       const unsub = onSnapshot(
         query(collection(db, "clientes")),
         (snapshot) => {
@@ -67,19 +84,17 @@ export const ClientsProvider = ({ children }) => {
           setIsLoading(false);
           setError(null);
 
-          if (!resolved) {
-            resolved = true;
-            resolve(list);
+          if (!snapshot.metadata.fromCache) {
+            clearTimeout(fallbackTimer);
+            resolveOnce(list);
           }
         },
         (err) => {
           console.error("Erro ao ouvir clientes:", err);
           setError("Erro ao carregar clientes");
           setIsLoading(false);
-          if (!resolved) {
-            resolved = true;
-            resolve([]);
-          }
+          clearTimeout(fallbackTimer);
+          resolveOnce([]);
         }
       );
       unsubscribeRef.current = unsub;

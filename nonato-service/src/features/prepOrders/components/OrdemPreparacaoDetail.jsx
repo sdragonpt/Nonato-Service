@@ -396,7 +396,7 @@ const OrdemPreparacaoDetail = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteOpen(false)}
-              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+              className="border-zinc-600 text-zinc-300 bg-zinc-800 hover:bg-zinc-700"
             >
               Cancelar
             </Button>

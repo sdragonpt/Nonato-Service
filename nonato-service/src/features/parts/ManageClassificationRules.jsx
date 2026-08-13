@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase.jsx";
 import { useCategories } from "../../context/CategoriesContext.jsx";
 import { loadPartsCatalog } from "../../utils/partsCatalogLoader.js";
+import { comparePtPt } from "../../utils/sortHelpers.js";
 import {
   loadPartAssignments,
   bulkApplyAssignments,
@@ -458,7 +459,7 @@ const ManageClassificationRules = () => {
                 <SelectContent className="bg-zinc-800 border-zinc-700">
                   {categories
                     .slice()
-                    .sort((a, b) => a.name.localeCompare(b.name, "pt-PT"))
+                    .sort((a, b) => comparePtPt(a.name, b.name))
                     .map((cat) => (
                       <SelectItem
                         key={cat.id}
@@ -492,7 +493,7 @@ const ManageClassificationRules = () => {
                     </SelectItem>
                     {subcategoriesForForm
                       .slice()
-                      .sort((a, b) => a.name.localeCompare(b.name, "pt-PT"))
+                      .sort((a, b) => comparePtPt(a.name, b.name))
                       .map((sub) => (
                         <SelectItem
                           key={sub.id}

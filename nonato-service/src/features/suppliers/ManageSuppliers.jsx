@@ -1,9 +1,11 @@
 // src/features/suppliers/ManageSuppliers.jsx
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, getDocs, deleteDoc, doc, query, orderBy } from "firebase/firestore";
+import { collection, onSnapshot, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
+import { getInitials } from "../../utils/getInitials.js";
+import { comparePtPt } from "../../utils/sortHelpers.js";
 import {
   Search,
   Plus,
@@ -14,7 +16,6 @@ import {
   Edit2,
   Truck,
   Download,
-  RefreshCw,
   MapPin,
   CreditCard,
   Mail,
@@ -43,14 +44,6 @@ import {
 } from "@/components/ui/dialog.jsx";
 
 const SupplierCard = ({ supplier, onEdit, onDelete, onView }) => {
-  const getInitials = (name) =>
-    (name || "")
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2) || "??";
-
   const confirmDelete = (e) => {
     e.stopPropagation();
     onDelete(supplier.id);
@@ -146,25 +139,35 @@ const ManageSuppliers = () => {
   const PAGE_SIZE = 10;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  const fetchSuppliers = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const q = query(collection(db, "fornecedores"), orderBy("nomeEmpresa", sortOrder));
-      const snapshot = await getDocs(q);
-      setSuppliers(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
-    } catch (err) {
-      console.error("Erro ao carregar fornecedores:", err);
-      setError("Erro ao carregar fornecedores. Por favor, tente novamente.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [sortOrder]);
-
+  // ✅ Tempo real (onSnapshot): a lista atualiza-se sozinha quando um
+  // fornecedor é criado/editado/removido, sem precisar de um botão
+  // "Atualizar" manual. A ordenação é feita em memória (ver sortedSuppliers).
   useEffect(() => {
-    fetchSuppliers();
-  }, [fetchSuppliers]);
+    setIsLoading(true);
+    const unsubscribe = onSnapshot(
+      collection(db, "fornecedores"),
+      (snapshot) => {
+        setSuppliers(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setError(null);
+        setIsLoading(false);
+      },
+      (err) => {
+        console.error("Erro ao carregar fornecedores:", err);
+        setError("Erro ao carregar fornecedores. Por favor, tente novamente.");
+        setIsLoading(false);
+      }
+    );
+    return () => unsubscribe();
+  }, []);
+
+  const sortedSuppliers = useMemo(() => {
+    const list = [...suppliers];
+    list.sort((a, b) => {
+      const cmp = comparePtPt(a.nomeEmpresa, b.nomeEmpresa);
+      return sortOrder === "asc" ? cmp : -cmp;
+    });
+    return list;
+  }, [suppliers, sortOrder]);
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
@@ -181,7 +184,7 @@ const ManageSuppliers = () => {
     if (!supplierToDelete) return;
     try {
       await deleteDoc(doc(db, "fornecedores", supplierToDelete.id));
-      setSuppliers((prev) => prev.filter((s) => s.id !== supplierToDelete.id));
+      // A lista atualiza-se sozinha via onSnapshot
       setDeleteDialogOpen(false);
       setSupplierToDelete(null);
     } catch (err) {
@@ -191,7 +194,7 @@ const ManageSuppliers = () => {
   };
 
   const filteredSuppliers = useMemo(() => {
-    return suppliers.filter(
+    return sortedSuppliers.filter(
       (s) =>
         searchIncludes(s.nomeEmpresa, searchTerm) ||
         searchIncludes(s.localidade, searchTerm) ||
@@ -199,7 +202,7 @@ const ManageSuppliers = () => {
         searchIncludes(s.email, searchTerm) ||
         (s.telefones && s.telefones.includes(searchTerm))
     );
-  }, [suppliers, searchTerm]);
+  }, [sortedSuppliers, searchTerm]);
 
   const currentSuppliers = filteredSuppliers.slice(0, visibleCount);
   const hasMoreVisible = visibleCount < filteredSuppliers.length;
@@ -314,23 +317,15 @@ const ManageSuppliers = () => {
               <Button
                 variant="outline"
                 onClick={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
-                className="flex-1 sm:flex-none border-zinc-700 text-white hover:bg-zinc-700"
+                className="flex-1 sm:flex-none bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-700"
               >
                 <ArrowUpDown className="w-4 h-4 mr-2" />
                 {sortOrder === "asc" ? "A-Z" : "Z-A"}
               </Button>
               <Button
                 variant="outline"
-                onClick={fetchSuppliers}
-                className="flex-1 sm:flex-none border-zinc-700 text-white hover:bg-zinc-700"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Atualizar
-              </Button>
-              <Button
-                variant="outline"
                 onClick={exportToCSV}
-                className="flex-1 sm:flex-none border-zinc-700 text-white hover:bg-zinc-700"
+                className="flex-1 sm:flex-none bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-700"
               >
                 <Download className="w-4 h-4 mr-2" />
                 Exportar
@@ -416,7 +411,7 @@ const ManageSuppliers = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+              className="bg-zinc-900 border-zinc-600 text-zinc-300 hover:bg-zinc-700"
             >
               Cancelar
             </Button>

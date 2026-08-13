@@ -261,7 +261,7 @@ const UserSettings = () => {
             <Button
               variant="outline"
               onClick={() => setReAuthDialogOpen(false)}
-              className="border-zinc-700 text-white hover:bg-zinc-700"
+              className="border-zinc-700 text-white bg-zinc-800 hover:bg-zinc-700"
             >
               Cancelar
             </Button>

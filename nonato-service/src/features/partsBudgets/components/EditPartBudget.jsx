@@ -20,6 +20,7 @@ import {
   Plus,
   Trash2,
   Percent, // ✅ NOVO: Para cálculos
+  ClipboardEdit,
 } from "lucide-react";
 
 // UI Components
@@ -359,17 +360,6 @@ const EditPartBudget = () => {
     }));
   };
 
-  // Handler para dados de equipamento manual
-  const handleManualEquipmentChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      manualEquipment: {
-        ...prev.manualEquipment,
-        [field]: value,
-      },
-    }));
-  };
-
   // Toggle entre cliente registrado e não registrado
   const handleClientTypeToggle = (isUnregistered) => {
     setFormData((prev) => ({
@@ -455,19 +445,24 @@ const EditPartBudget = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">
-            Editar Orçamento de Peças
-          </h1>
-          <p className="text-sm text-zinc-400">
-            Atualize as informações do orçamento de peças
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+            <ClipboardEdit className="h-5 w-5 text-green-400" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">
+              Editar Orçamento de Peças
+            </h1>
+            <p className="text-sm text-zinc-400">
+              Atualize as informações do orçamento de peças
+            </p>
+          </div>
         </div>
         <Button
           variant="outline"
           size="icon"
           onClick={() => navigate("/app/parts-budgets")}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
         >
           <ArrowLeft className="h-4 w-4 text-white" />
         </Button>
@@ -814,7 +809,7 @@ const EditPartBudget = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="border-green-500 text-green-400 hover:bg-green-500/20 hover:text-green-300 hover:border-green-400"
+                            className="bg-zinc-900 border-green-500 text-green-400 hover:bg-green-500/20 hover:text-green-300 hover:border-green-400"
                           >
                             <Plus className="h-4 w-4 mr-1" />
                             Adicionar
@@ -1115,7 +1110,7 @@ const EditPartBudget = () => {
               type="button"
               variant="outline"
               onClick={() => navigate("/app/parts-budgets")}
-              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700 hover:text-white hover:border-zinc-500"
+              className="bg-zinc-900 border-zinc-600 text-zinc-300 hover:bg-zinc-700 hover:text-white hover:border-zinc-500"
             >
               Cancelar
             </Button>

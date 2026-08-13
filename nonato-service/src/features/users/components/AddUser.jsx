@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   Eye,
   EyeOff,
+  UserPlus,
 } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -105,17 +106,22 @@ const AddUser = ({ onClose }) => {
   return (
     <div className="space-y-6 p-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Novo Usuário</h2>
-          <p className="text-sm text-zinc-400">
-            Adicione um novo usuário ao sistema
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+            <UserPlus className="h-5 w-5 text-green-400" />
+          </div>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">Novo Usuário</h2>
+            <p className="text-sm text-zinc-400">
+              Adicione um novo usuário ao sistema
+            </p>
+          </div>
         </div>
         <Button
           variant="outline"
           size="icon"
           onClick={onClose}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 shrink-0"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>

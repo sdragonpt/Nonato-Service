@@ -21,14 +21,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.jsx";
 import { cn } from "@/lib/utils";
 import { searchIncludes } from "@/utils/normalizeSearch.js";
-
-const getInitials = (name) =>
-  name
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) || "??";
+import { getInitials } from "@/utils/getInitials.js";
+import { comparePtPt } from "@/utils/sortHelpers.js";
 
 export const ClientCombobox = ({
   clients = [],
@@ -50,7 +44,7 @@ export const ClientCombobox = ({
   // ✅ Sempre por ordem alfabética (pt-PT), independentemente da ordem em
   // que os clientes vieram da Firestore.
   const sortedClients = useMemo(
-    () => [...clients].sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-PT")),
+    () => [...clients].sort((a, b) => comparePtPt(a.name, b.name)),
     [clients]
   );
 

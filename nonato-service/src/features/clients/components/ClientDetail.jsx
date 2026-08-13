@@ -21,8 +21,10 @@ import {
 } from "firebase/storage";
 import { db, storage } from "../../../firebase";
 import { useClients } from "../../../context/ClientsContext.jsx";
+import { useEquipments } from "../../../context/EquipmentsContext.jsx";
 import { downloadFileFromUrl } from "../../../utils/reportStorage.js";
 import { formatDate } from "../../../utils/formatDate.js";
+import { getInitials } from "../../../utils/getInitials.js";
 import {
   ArrowLeft,
   Loader2,
@@ -749,7 +751,7 @@ const ClientInspectionsSection = ({ clientId }) => {
                 <Button
                   variant="outline"
                   onClick={() => navigate(`/app/manage-inspection?clientId=${clientId}`)}
-                  className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                  className="border-zinc-600 text-zinc-300 bg-zinc-800 hover:bg-zinc-700"
                 >
                   Ver todas ({inspections.length})
                 </Button>
@@ -893,6 +895,7 @@ const ClientDetail = () => {
   const { clientId } = useParams();
   const navigate = useNavigate();
   const { removeClientFromCache } = useClients();
+  const { ensureEquipments } = useEquipments();
   const [client, setClient] = useState(null);
   const [services, setServices] = useState([]);
   const [equipments, setEquipments] = useState([]);
@@ -907,18 +910,13 @@ const ClientDetail = () => {
         setIsLoading(true);
         setError(null);
 
-        const [clientDoc, servicesSnapshot, equipmentsSnapshot] =
+        const [clientDoc, servicesSnapshot, allEquipments] =
           await Promise.all([
             getDoc(doc(db, "clientes", clientId)),
             getDocs(
               query(collection(db, "ordens"), where("clientId", "==", clientId))
             ),
-            getDocs(
-              query(
-                collection(db, "equipamentos"),
-                where("clientId", "==", clientId)
-              )
-            ),
+            ensureEquipments(),
           ]);
 
         if (!clientDoc.exists()) {
@@ -936,11 +934,7 @@ const ClientDetail = () => {
           .filter((service) => !service.eliminadoEm);
         setServices(servicesList);
 
-        const equipmentsList = equipmentsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setEquipments(equipmentsList);
+        setEquipments(allEquipments.filter((e) => e.clientId === clientId));
       } catch (err) {
         console.error("Erro ao carregar dados:", err);
         setError(
@@ -952,7 +946,7 @@ const ClientDetail = () => {
     };
 
     fetchData();
-  }, [clientId]);
+  }, [clientId, ensureEquipments]);
 
   // ✅ Exclusão suave — igual ao resto da app (ordens, inspeções,
   // relatórios): o cliente e as suas ordens ficam marcados como eliminados
@@ -995,17 +989,6 @@ const ClientDetail = () => {
       setIsSubmitting(false);
       setDeleteDialogOpen(false);
     }
-  };
-
-  const getInitials = (name) => {
-    return (
-      name
-        ?.split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2) || "??"
-    );
   };
 
   if (isLoading) {
@@ -1240,7 +1223,7 @@ const ClientDetail = () => {
                       <Button
                         variant="outline"
                         onClick={() => navigate("/app/manage-orders")}
-                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                        className="border-zinc-600 text-zinc-300 bg-zinc-800 hover:bg-zinc-700"
                       >
                         Ver todos os serviços ({services.length})
                       </Button>
@@ -1363,7 +1346,7 @@ const ClientDetail = () => {
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
               disabled={isSubmitting}
-              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+              className="border-zinc-600 text-zinc-300 bg-zinc-800 hover:bg-zinc-700"
             >
               Cancelar
             </Button>

@@ -10,6 +10,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useClients } from "../../context/ClientsContext.jsx";
+import { useEquipments } from "../../context/EquipmentsContext.jsx";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { generateAndSaveReport } from "./reportActions.js";
 import { downloadFileFromUrl } from "../../utils/reportStorage.js";
@@ -68,6 +69,7 @@ const StepHeader = ({ title, subtitle, onBack }) => (
 
 const ManageReport = () => {
   const { ensureClients } = useClients();
+  const { ensureEquipments } = useEquipments();
 
   // step: "landing" | "clientes" | "ordens" | "formulario" | "sucesso"
   const [step, setStep] = useState("landing");
@@ -137,9 +139,9 @@ const ManageReport = () => {
     setStep("ordens");
     setOrdersLoading(true);
     try {
-      const [ordersSnap, equipSnap] = await Promise.all([
+      const [ordersSnap, allEquipments] = await Promise.all([
         getDocs(query(collection(db, "ordens"), where("clientId", "==", client.id))),
-        getDocs(query(collection(db, "equipamentos"), where("clientId", "==", client.id))),
+        ensureEquipments(),
       ]);
       const list = ordersSnap.docs
         .map((d) => ({ id: d.id, ...d.data() }))
@@ -150,14 +152,16 @@ const ManageReport = () => {
           return dbb - da;
         });
       setClientOrders(list);
-      setClientEquipments(equipSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setClientEquipments(
+        allEquipments.filter((e) => e.clientId === client.id)
+      );
     } catch (err) {
       console.error("Erro ao carregar dados do cliente:", err);
       setGenError("Erro ao carregar as ordens de serviço deste cliente.");
     } finally {
       setOrdersLoading(false);
     }
-  }, []);
+  }, [ensureEquipments]);
 
   const buildDraftFromOrder = useCallback(async (order) => {
     const workdaysSnap = await getDocs(

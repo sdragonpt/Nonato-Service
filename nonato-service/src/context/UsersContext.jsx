@@ -43,6 +43,25 @@ export const UsersProvider = ({ children }) => {
     setIsLoading(true);
     firstSnapshotPromiseRef.current = new Promise((resolve) => {
       let resolved = false;
+      const resolveOnce = (list) => {
+        if (!resolved) {
+          resolved = true;
+          resolve(list);
+        }
+      };
+
+      // ✅ useAuth.js faz um getDoc ao próprio utilizador antes disto (para
+      // verificar/criar o documento em "users"), o que deixa esse único
+      // documento na cache local da Firestore. Se resolvêssemos logo no 1º
+      // snapshot, podíamos apanhar um snapshot "fromCache" com só esse
+      // utilizador — e quem chamou ensureUsers() (ex.: o Dashboard) ficava
+      // com uma lista de 1 pessoa em vez da equipa toda. Por isso só
+      // resolve com um snapshot confirmado pelo servidor; se não houver
+      // ligação, o timeout evita ficar bloqueado para sempre.
+      const fallbackTimer = setTimeout(() => {
+        if (latestListRef.current !== null) resolveOnce(latestListRef.current);
+      }, 4000);
+
       const unsub = onSnapshot(
         query(collection(db, "users")),
         (snapshot) => {
@@ -59,19 +78,17 @@ export const UsersProvider = ({ children }) => {
           setIsLoading(false);
           setError(null);
 
-          if (!resolved) {
-            resolved = true;
-            resolve(list);
+          if (!snapshot.metadata.fromCache) {
+            clearTimeout(fallbackTimer);
+            resolveOnce(list);
           }
         },
         (err) => {
           console.error("Erro ao ouvir utilizadores:", err);
           setError("Erro ao carregar utilizadores");
           setIsLoading(false);
-          if (!resolved) {
-            resolved = true;
-            resolve([]);
-          }
+          clearTimeout(fallbackTimer);
+          resolveOnce([]);
         }
       );
       unsubscribeRef.current = unsub;

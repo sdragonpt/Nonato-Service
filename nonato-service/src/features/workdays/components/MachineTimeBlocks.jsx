@@ -214,7 +214,7 @@ const MachineTimeBlocks = ({ blocks, onChange, equipmentOptions, disabled }) => 
         variant="outline"
         onClick={addBlock}
         disabled={disabled}
-        className="w-full border-dashed border-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-800"
+        className="w-full border-dashed border-zinc-700 bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700"
       >
         <Wrench className="w-4 h-4 mr-2" />
         Adicionar Máquina

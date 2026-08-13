@@ -13,6 +13,7 @@ import {
   doc,
 } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
+import { comparePtPt } from "../../../utils/sortHelpers.js";
 import {
   ArrowLeft,
   Plus,
@@ -77,11 +78,11 @@ const ManageEquipmentFamilies = () => {
 
   const families = items
     .filter((i) => !i.parentId)
-    .sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-PT"));
+    .sort((a, b) => comparePtPt(a.name, b.name));
   const getGroups = (familyId) =>
     items
       .filter((i) => i.parentId === familyId)
-      .sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-PT"));
+      .sort((a, b) => comparePtPt(a.name, b.name));
 
   const openAddFamily = () => {
     setDialogMode("family");

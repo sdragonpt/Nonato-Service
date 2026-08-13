@@ -15,6 +15,7 @@ import {
   Calculator,
   Percent,
   Package,
+  FileSpreadsheet,
 } from "lucide-react";
 
 // UI Components
@@ -245,6 +246,7 @@ const AddPartBudget = () => {
     }
 
     try {
+      setIsLoading(true);
       setIsSubmitting(true);
       setError(null);
 
@@ -267,6 +269,7 @@ const AddPartBudget = () => {
       setError("Erro ao criar orçamento. Por favor, tente novamente.");
     } finally {
       setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
@@ -290,20 +293,25 @@ const AddPartBudget = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">
-            Novo Orçamento de Peças
-          </h1>
-          <p className="text-sm text-zinc-400">
-            ✅ Crie um orçamento para enviar à empresa e solicitar valores das
-            peças
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+            <FileSpreadsheet className="h-5 w-5 text-green-400" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">
+              Novo Orçamento de Peças
+            </h1>
+            <p className="text-sm text-zinc-400">
+              Crie um orçamento para enviar à empresa e solicitar valores das
+              peças
+            </p>
+          </div>
         </div>
         <Button
           variant="outline"
           size="icon"
           onClick={() => navigate("/app/parts-budgets")}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
         >
           <ArrowLeft className="h-4 w-4 text-white" />
         </Button>
@@ -450,7 +458,7 @@ const AddPartBudget = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-green-500 text-green-400 hover:bg-green-500/20 hover:text-green-300 hover:border-green-400"
+                        className="bg-zinc-900 border-green-500 text-green-400 hover:bg-green-500/20 hover:text-green-300 hover:border-green-400"
                       >
                         <Plus className="h-4 w-4 mr-1" />
                         Adicionar
@@ -743,7 +751,7 @@ const AddPartBudget = () => {
             type="button"
             variant="outline"
             onClick={() => navigate("/app/parts-budgets")}
-            className="border-zinc-600 text-zinc-300 hover:bg-zinc-700 hover:text-white hover:border-zinc-500"
+            className="bg-zinc-900 border-zinc-600 text-zinc-300 hover:bg-zinc-700 hover:text-white hover:border-zinc-500"
           >
             Cancelar
           </Button>

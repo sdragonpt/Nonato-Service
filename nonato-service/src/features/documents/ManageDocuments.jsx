@@ -691,7 +691,7 @@ const ManageDocuments = () => {
                 </SelectContent>
               </Select>
               <Button variant="outline" size="icon" onClick={() => { setShowUpload(false); setShowNewFamily(true); }}
-                className="border-zinc-700 text-zinc-400 hover:text-green-400 hover:border-green-500/50"><Plus className="w-4 h-4" /></Button>
+                className="border-zinc-700 text-zinc-400 hover:text-green-400 hover:border-green-500/50 bg-zinc-800"><Plus className="w-4 h-4" /></Button>
             </div>
             <div className="flex gap-2">
               <Select value={uploadMachine} onValueChange={setUploadMachine} disabled={!uploadFamily}>
@@ -703,7 +703,7 @@ const ManageDocuments = () => {
               <Button variant="outline" size="icon"
                 onClick={() => { if (!uploadFamily) return; setNewMachineFamilyId(uploadFamily); setShowUpload(false); setShowNewMachine(true); }}
                 disabled={!uploadFamily}
-                className="border-zinc-700 text-zinc-400 hover:text-green-400 hover:border-green-500/50"><Plus className="w-4 h-4" /></Button>
+                className="border-zinc-700 text-zinc-400 hover:text-green-400 hover:border-green-500/50 bg-zinc-800"><Plus className="w-4 h-4" /></Button>
             </div>
             <Select value={uploadCat} onValueChange={setUploadCat}>
               <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white"><SelectValue placeholder="Categoria..." /></SelectTrigger>
@@ -723,7 +723,7 @@ const ManageDocuments = () => {
             )}
             <div className="flex gap-2 pt-1">
               <Button variant="outline" onClick={() => setShowUpload(false)} disabled={uploading}
-                className="flex-1 border-zinc-700 text-zinc-400 hover:text-white">Cancelar</Button>
+                className="flex-1 border-zinc-700 text-zinc-400 hover:text-white bg-zinc-800">Cancelar</Button>
               <Button onClick={handleUpload}
                 disabled={!uploadFile || !uploadFamily || !uploadMachine || !uploadCat || uploading}
                 className="flex-1 bg-green-600 hover:bg-green-500 text-white disabled:opacity-50">
@@ -744,7 +744,7 @@ const ManageDocuments = () => {
               onChange={(e) => setNewFamilyName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && createFamily()}
               className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500" autoFocus />
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setShowNewFamily(false)} className="border-zinc-700 text-zinc-400 hover:text-white">Cancelar</Button>
+              <Button variant="outline" onClick={() => setShowNewFamily(false)} className="border-zinc-700 text-zinc-400 hover:text-white bg-zinc-800">Cancelar</Button>
               <Button onClick={createFamily} className="bg-green-600 hover:bg-green-500">Criar Família</Button>
             </div>
           </div>
@@ -761,7 +761,7 @@ const ManageDocuments = () => {
               onChange={(e) => setNewMachineName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && createMachineType()}
               className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500" autoFocus />
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setShowNewMachine(false)} className="border-zinc-700 text-zinc-400 hover:text-white">Cancelar</Button>
+              <Button variant="outline" onClick={() => setShowNewMachine(false)} className="border-zinc-700 text-zinc-400 hover:text-white bg-zinc-800">Cancelar</Button>
               <Button onClick={createMachineType} className="bg-green-600 hover:bg-green-500">Criar Tipo</Button>
             </div>
           </div>

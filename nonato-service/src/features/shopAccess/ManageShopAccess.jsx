@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   collection,
-  getDocs,
+  onSnapshot,
   doc,
   addDoc,
   updateDoc,
@@ -24,7 +24,6 @@ import {
   Trash2,
   AlertTriangle,
   Store,
-  RefreshCw,
   Copy,
   Mail,
   Phone,
@@ -79,8 +78,6 @@ const generateToken = () => {
   return token;
 };
 
-let isMounted = true;
-
 const ManageShopAccess = () => {
   const [accessTokens, setAccessTokens] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -113,14 +110,6 @@ const ManageShopAccess = () => {
   // Estado para exibição de detalhes do token
   const [expandedTokens, setExpandedTokens] = useState({});
 
-  useEffect(() => {
-    isMounted = true;
-    // Função de limpeza para quando o componente for desmontado
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
   // Form state for new token - Agora simplificado com apenas nome
   const [formData, setFormData] = useState({
     name: "",
@@ -128,72 +117,57 @@ const ManageShopAccess = () => {
 
   const { user, loading } = useAuth();
 
-  const fetchAccessTokens = async () => {
+  // ✅ Tempo real (onSnapshot): a lista de tokens atualiza-se sozinha quando
+  // alguém cria/edita/aprova/rejeita/remove um token, sem precisar de um
+  // botão "Atualizar" manual.
+  useEffect(() => {
     if (loading) return;
 
-    try {
-      setIsLoading(true);
-      setError(null);
+    if (user?.role !== "admin" && !user?.uid) {
+      setError("Usuário não autenticado");
+      setIsLoading(false);
+      return;
+    }
 
-      let q;
-      // Admin vê todos os tokens, outros usuários só veem os que criaram
-      if (user?.role === "admin") {
-        q = query(
-          collection(db, "shop_access_tokens"),
-          orderBy("createdAt", "desc")
+    setIsLoading(true);
+    setError(null);
+
+    // Admin vê todos os tokens, outros usuários só veem os que criaram
+    const q =
+      user?.role === "admin"
+        ? query(collection(db, "shop_access_tokens"), orderBy("createdAt", "desc"))
+        : query(
+            collection(db, "shop_access_tokens"),
+            where("createdBy", "==", user.uid),
+            orderBy("createdAt", "desc")
+          );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        setAccessTokens(
+          snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
         );
-      } else {
-        if (!user?.uid) {
-          setError("Usuário não autenticado");
-          setIsLoading(false);
-          return;
-        }
-
-        q = query(
-          collection(db, "shop_access_tokens"),
-          where("createdBy", "==", user.uid),
-          orderBy("createdAt", "desc")
-        );
-      }
-
-      try {
-        const snapshot = await getDocs(q);
-        const tokensData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        if (isMounted) {
-          setAccessTokens(tokensData);
-        }
-      } catch (err) {
+        setError(null);
+        setIsLoading(false);
+      },
+      (err) => {
         if (err.code === "failed-precondition" || err.code === "not-found") {
-          setAccessTokens([]);
           console.log(
             "A coleção de tokens ainda não existe ou índices não estão prontos"
           );
+          setAccessTokens([]);
+          setIsLoading(false);
+          return;
         }
-        if (isMounted) {
-          throw err;
-        }
-      }
-    } catch (err) {
-      console.error("Erro ao buscar tokens de acesso:", err);
-      // Verificar se o componente ainda está montado
-      if (isMounted) {
+        console.error("Erro ao buscar tokens de acesso:", err);
         setError("Erro ao carregar dados. Por favor, tente novamente.");
-      }
-    } finally {
-      if (isMounted) {
         setIsLoading(false);
       }
-    }
-  };
+    );
 
-  useEffect(() => {
-    if (!loading) {
-      fetchAccessTokens();
-    }
-  }, [loading, user?.uid]);
+    return () => unsubscribe();
+  }, [loading, user?.role, user?.uid]);
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
@@ -244,9 +218,7 @@ const ManageShopAccess = () => {
         name: "",
       });
       setShowAddDialog(false);
-
-      // Atualizar lista
-      fetchAccessTokens();
+      // A lista atualiza-se sozinha via onSnapshot
     } catch (err) {
       console.error("Erro ao adicionar token de acesso:", err);
       setError("Erro ao adicionar token. Por favor, tente novamente.");
@@ -269,8 +241,7 @@ const ManageShopAccess = () => {
           revokedAt: serverTimestamp(),
         });
       }
-
-      fetchAccessTokens();
+      // A lista atualiza-se sozinha via onSnapshot
     } catch (err) {
       console.error("Erro ao atualizar status:", err);
       setError("Erro ao atualizar status. Por favor, tente novamente.");
@@ -292,7 +263,7 @@ const ManageShopAccess = () => {
 
       setShowApproveDialog(false);
       setTokenToApprove(null);
-      fetchAccessTokens();
+      // A lista atualiza-se sozinha via onSnapshot
 
       // Opcional: Enviar notificação para o usuário
       // await sendApprovalNotification(tokenToApprove.email);
@@ -321,7 +292,7 @@ const ManageShopAccess = () => {
       setShowRejectDialog(false);
       setTokenToReject(null);
       setRejectionReason("");
-      fetchAccessTokens();
+      // A lista atualiza-se sozinha via onSnapshot
 
       // Opcional: Enviar notificação para o usuário
       // await sendRejectionNotification(tokenToReject.email, rejectionReason);
@@ -345,7 +316,7 @@ const ManageShopAccess = () => {
       await deleteDoc(doc(db, "shop_access_tokens", tokenToDelete.id));
       setShowDeleteDialog(false);
       setTokenToDelete(null);
-      fetchAccessTokens();
+      // A lista atualiza-se sozinha via onSnapshot
     } catch (err) {
       console.error("Erro ao excluir token:", err);
       setError("Erro ao excluir token. Por favor, tente novamente.");
@@ -584,15 +555,6 @@ const ManageShopAccess = () => {
                 className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
               />
             </div>
-
-            <Button
-              variant="outline"
-              onClick={fetchAccessTokens}
-              className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Atualizar
-            </Button>
           </div>
 
           {error && (
@@ -1122,7 +1084,7 @@ const ManageShopAccess = () => {
                 />
                 <Button
                   variant="outline"
-                  className="ml-2 border-zinc-600"
+                  className="ml-2 bg-zinc-800 border-zinc-600 text-white hover:bg-zinc-700"
                   onClick={() => {
                     navigator.clipboard.writeText(shareUrl);
                     alert("Link copiado!");

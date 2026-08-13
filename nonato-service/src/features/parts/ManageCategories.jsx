@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { doc, updateDoc, writeBatch } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
+import { comparePtPt } from "../../utils/sortHelpers.js";
 import { useNavigate } from "react-router-dom";
 import { useCategories } from "../../context/CategoriesContext.jsx";
 import {
@@ -23,7 +24,6 @@ import {
   AlertTriangle,
   Tag,
   ArrowLeft,
-  RefreshCw,
   Folder,
   FolderOpen,
   TrendingUp,
@@ -102,7 +102,7 @@ const CategoryItem = React.memo(
     );
 
     const sortedSubcategories = useMemo(
-      () => subcategories.sort((a, b) => a.name.localeCompare(b.name, "pt-PT")),
+      () => subcategories.sort((a, b) => comparePtPt(a.name, b.name)),
       [subcategories]
     );
 
@@ -252,7 +252,6 @@ const ManageCategories = () => {
   const {
     categories,
     getSubcategoriesByParent,
-    refreshCategories,
     removeCategoryFromCache,
     updateCategoryInCache,
     isLoading: categoriesLoading,
@@ -277,10 +276,10 @@ const ManageCategories = () => {
   // ✅ MEMOIZED VALUES - Organizadas e ordenadas
   const organizedCategories = useMemo(() => {
     return categories
-      .sort((a, b) => a.name.localeCompare(b.name, "pt-PT"))
+      .sort((a, b) => comparePtPt(a.name, b.name))
       .map((category) => {
         const subcategories = getSubcategoriesByParent(category.id).sort(
-          (a, b) => a.name.localeCompare(b.name, "pt-PT")
+          (a, b) => comparePtPt(a.name, b.name)
         );
         return { ...category, subcategories };
       });
@@ -485,13 +484,14 @@ const ManageCategories = () => {
     }
   }, [categoryToEdit, editName, updateCategoryInCache]);
 
-  const handleRefresh = useCallback(() => {
-    refreshCategories();
-    if (Object.keys(categoryStats).length > 0) {
-      setCategoryStats({});
-      fetchCategoryStats();
-    }
-  }, [refreshCategories, categoryStats, fetchCategoryStats]);
+  // As categorias já chegam em tempo real (onSnapshot no CategoriesContext);
+  // só as estatísticas de peças por categoria são calculadas à parte (ver
+  // fetchCategoryStats) e podem ficar desatualizadas se uma peça mudar de
+  // categoria noutro sítio — por isso mantém-se um botão para as recalcular.
+  const handleRefreshStats = useCallback(() => {
+    setCategoryStats({});
+    fetchCategoryStats();
+  }, [fetchCategoryStats]);
 
   // ✅ EARLY RETURN
   if (categoriesLoading) {
@@ -575,14 +575,16 @@ const ManageCategories = () => {
           )}
 
           <div className="flex items-center justify-between">
-            <Button
-              variant="outline"
-              onClick={handleRefresh}
-              className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Atualizar Lista
-            </Button>
+            {Object.keys(categoryStats).length > 0 && (
+              <Button
+                variant="outline"
+                onClick={handleRefreshStats}
+                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
+              >
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Atualizar Estatísticas
+              </Button>
+            )}
 
             {statsLoading && (
               <div className="flex items-center gap-2 text-sm text-zinc-400">

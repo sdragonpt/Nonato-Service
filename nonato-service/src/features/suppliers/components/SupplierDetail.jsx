@@ -175,7 +175,7 @@ const SupplierDetail = () => {
         <p className="text-white">{error}</p>
         <Button
           variant="outline"
-          className="mt-4 border-zinc-700 text-white hover:bg-zinc-700"
+          className="mt-4 border-zinc-700 text-white bg-zinc-800 hover:bg-zinc-700"
           onClick={() => navigate("/app/manage-suppliers")}
         >
           Voltar à lista
@@ -204,7 +204,7 @@ const SupplierDetail = () => {
             variant="outline"
             size="icon"
             onClick={() => navigate("/app/manage-suppliers")}
-            className="border-zinc-700 text-white hover:bg-zinc-700"
+            className="border-zinc-700 text-white bg-zinc-800 hover:bg-zinc-700"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -212,7 +212,7 @@ const SupplierDetail = () => {
             variant="outline"
             size="icon"
             onClick={() => navigate(`/app/edit-supplier/${supplierId}`)}
-            className="border-zinc-700 text-white hover:bg-zinc-700"
+            className="border-zinc-700 text-white bg-zinc-800 hover:bg-zinc-700"
           >
             <Edit2 className="h-4 w-4" />
           </Button>
@@ -220,7 +220,7 @@ const SupplierDetail = () => {
             variant="outline"
             size="icon"
             onClick={() => setDeleteDialogOpen(true)}
-            className="border-red-500/40 text-red-400 hover:bg-red-500/10"
+            className="border-red-500/40 text-red-400 bg-zinc-800 hover:bg-red-500/10"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -381,7 +381,7 @@ const SupplierDetail = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+              className="border-zinc-600 text-zinc-300 bg-zinc-800 hover:bg-zinc-700"
             >
               Cancelar
             </Button>

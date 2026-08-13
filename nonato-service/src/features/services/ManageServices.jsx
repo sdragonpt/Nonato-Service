@@ -1,13 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   collection,
-  getDocs,
+  onSnapshot,
   doc,
   deleteDoc,
-  query,
-  orderBy,
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
+import { comparePtPt } from "../../utils/sortHelpers.js";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -20,7 +19,6 @@ import {
   AlertTriangle,
   Wrench,
   MoreVertical,
-  RefreshCw,
   Download,
   Euro,
   ClipboardList,
@@ -70,31 +68,40 @@ const ManageServices = () => {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const navigate = useNavigate();
 
-  const fetchServices = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const q = query(
-        collection(db, "servicos"),
-        orderBy(sortField, sortOrder)
-      );
-      const snapshot = await getDocs(q);
-      const servicesData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setServices(servicesData);
-      setError(null);
-    } catch (err) {
-      console.error("Erro ao buscar serviços:", err);
-      setError("Erro ao carregar serviços. Por favor, tente novamente.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [sortField, sortOrder]);
-
+  // ✅ Tempo real (onSnapshot): a lista de serviços atualiza-se sozinha
+  // quando alguém adiciona/edita/remove um serviço, sem precisar de um
+  // botão "Atualizar" manual nem de reler a coleção a cada troca de
+  // ordenação (isso agora é feito em memória, ver sortedServices).
   useEffect(() => {
-    fetchServices();
-  }, [fetchServices]);
+    setIsLoading(true);
+    const unsubscribe = onSnapshot(
+      collection(db, "servicos"),
+      (snapshot) => {
+        setServices(
+          snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+        );
+        setError(null);
+        setIsLoading(false);
+      },
+      (err) => {
+        console.error("Erro ao buscar serviços:", err);
+        setError("Erro ao carregar serviços. Por favor, tente novamente.");
+        setIsLoading(false);
+      }
+    );
+    return () => unsubscribe();
+  }, []);
+
+  const sortedServices = useMemo(() => {
+    const list = [...services];
+    list.sort((a, b) => {
+      const aVal = (a[sortField] ?? "").toString();
+      const bVal = (b[sortField] ?? "").toString();
+      const cmp = comparePtPt(aVal, bVal);
+      return sortOrder === "asc" ? cmp : -cmp;
+    });
+    return list;
+  }, [services, sortField, sortOrder]);
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
@@ -127,7 +134,7 @@ const ManageServices = () => {
       km: "Por Km",
     }[type] || type);
 
-  const filteredServices = services.filter((service) => {
+  const filteredServices = sortedServices.filter((service) => {
     const matchesSearch = service.name
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
@@ -348,15 +355,6 @@ const ManageServices = () => {
       <div className="hidden sm:flex gap-2">
         <Button
           variant="outline"
-          onClick={() => fetchServices()}
-          className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
-        >
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Atualizar Lista
-        </Button>
-
-        <Button
-          variant="outline"
           onClick={() => {
             const csvContent = convertToCSV(services);
             downloadCSV(csvContent, "servicos.csv");
@@ -494,13 +492,6 @@ const ManageServices = () => {
 
       {/* FAB Menu for Mobile */}
       <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden">
-        <Button
-          onClick={() => fetchServices()}
-          size="icon"
-          className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
-        >
-          <RefreshCw className="h-5 w-5" />
-        </Button>
         <Button
           onClick={() => {
             const csvContent = convertToCSV(services);

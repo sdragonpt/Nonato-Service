@@ -1,7 +1,13 @@
 // CategoriesContext.jsx - Cache global para reduzir leituras do Firebase
+//
+// ✅ Tempo real (onSnapshot) em vez de "ler uma vez + cache com prazo de 5
+// min": mesmo raciocínio do ClientsContext/EquipmentsContext/UsersContext —
+// sessões longas não se beneficiavam de uma cache curta, e assim os dados
+// ficam sempre atualizados entre todos os que têm a app aberta, sem
+// precisar de um botão "Atualizar" manual.
 
-import { createContext, useContext, useState, useEffect } from "react";
-import { collection, getDocs, query } from "firebase/firestore";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { collection, onSnapshot, query } from "firebase/firestore";
 import { db } from "../firebase.jsx";
 
 const CategoriesContext = createContext();
@@ -13,89 +19,53 @@ export const CategoriesProvider = ({ children }) => {
   const [subcategoriesMap, setSubcategoriesMap] = useState(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [lastFetch, setLastFetch] = useState(null);
 
-  // Cache por 5 minutos
-  const CACHE_DURATION = 5 * 60 * 1000;
-
-  const fetchAllCategories = async (forceRefresh = false) => {
-    // Se já tem dados e não passou do tempo de cache, não busca novamente
-    if (!forceRefresh && lastFetch && Date.now() - lastFetch < CACHE_DURATION) {
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Buscar TODAS as categorias de uma vez só
-      const allCategoriesQuery = query(collection(db, "categorias"));
-      const allCategoriesSnapshot = await getDocs(allCategoriesQuery);
-
-      const mainCats = [];
-      const subCats = [];
-      const catsMap = new Map();
-      const subCatsMap = new Map();
-
-      // Organizar em uma única passagem
-      allCategoriesSnapshot.docs.forEach((doc) => {
-        const data = { id: doc.id, ...doc.data() };
-
-        if (data.parentId === null || data.parentId === undefined) {
-          // É uma categoria principal
-          mainCats.push(data);
-          catsMap.set(data.id, data);
-        } else {
-          // É uma subcategoria
-          subCats.push(data);
-
-          // Organizar subcategorias por categoria pai
-          if (!subCatsMap.has(data.parentId)) {
-            subCatsMap.set(data.parentId, []);
-          }
-          subCatsMap.get(data.parentId).push(data);
-        }
-      });
-
-      setCategories(mainCats);
-      setSubcategories(subCats);
-      setCategoriesMap(catsMap);
-      setSubcategoriesMap(subCatsMap);
-      setLastFetch(Date.now());
-    } catch (err) {
-      console.error("Erro ao buscar categorias:", err);
-      setError("Erro ao carregar categorias");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Buscar na primeira vez
   useEffect(() => {
-    fetchAllCategories();
+    setIsLoading(true);
+    const unsubscribe = onSnapshot(
+      query(collection(db, "categorias")),
+      (snapshot) => {
+        const mainCats = [];
+        const subCats = [];
+        const catsMap = new Map();
+        const subCatsMap = new Map();
 
-    // ✅ OTIMIZAÇÃO: Limpar cache quando a aba for fechada/minimizada
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        // Opcional: limpar cache quando não está visível há muito tempo
-        const timeSinceLastFetch = Date.now() - (lastFetch || 0);
-        if (timeSinceLastFetch > CACHE_DURATION * 2) {
-          console.log("🧹 Limpando cache de categorias por inatividade");
-          setCategories([]);
-          setSubcategories([]);
-          setCategoriesMap(new Map());
-          setSubcategoriesMap(new Map());
-          setLastFetch(null);
-        }
+        // Organizar em uma única passagem
+        snapshot.docs.forEach((docSnap) => {
+          const data = { id: docSnap.id, ...docSnap.data() };
+
+          if (data.parentId === null || data.parentId === undefined) {
+            // É uma categoria principal
+            mainCats.push(data);
+            catsMap.set(data.id, data);
+          } else {
+            // É uma subcategoria
+            subCats.push(data);
+
+            // Organizar subcategorias por categoria pai
+            if (!subCatsMap.has(data.parentId)) {
+              subCatsMap.set(data.parentId, []);
+            }
+            subCatsMap.get(data.parentId).push(data);
+          }
+        });
+
+        setCategories(mainCats);
+        setSubcategories(subCats);
+        setCategoriesMap(catsMap);
+        setSubcategoriesMap(subCatsMap);
+        setIsLoading(false);
+        setError(null);
+      },
+      (err) => {
+        console.error("Erro ao ouvir categorias:", err);
+        setError("Erro ao carregar categorias");
+        setIsLoading(false);
       }
-    };
+    );
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [lastFetch]);
+    return () => unsubscribe();
+  }, []);
 
   // Função para buscar categoria por ID (do cache)
   const getCategoryById = (id) => {
@@ -133,10 +103,9 @@ export const CategoriesProvider = ({ children }) => {
     );
   };
 
-  // Função para invalidar cache e recarregar
-  const refreshCategories = () => {
-    return fetchAllCategories(true);
-  };
+  // Com tempo real os dados já se atualizam sozinhos — mantida por
+  // compatibilidade com quem já chamava refreshCategories() manualmente.
+  const refreshCategories = useCallback(() => {}, []);
 
   // Função para adicionar nova categoria ao cache (quando criar uma nova)
   const addCategoryToCache = (newCategory) => {
@@ -304,8 +273,7 @@ export const CategoriesProvider = ({ children }) => {
     categoryNameExists,
 
     // Informações do cache
-    lastFetch,
-    isCacheValid: lastFetch && Date.now() - lastFetch < CACHE_DURATION,
+    isCacheValid: true,
   };
 
   return (

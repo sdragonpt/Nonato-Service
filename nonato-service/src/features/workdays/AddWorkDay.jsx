@@ -1,16 +1,9 @@
 // AddWorkDay.jsx
 import { useState, useEffect } from "react";
 import { db } from "../../firebase";
-import {
-  collection,
-  addDoc,
-  doc,
-  getDoc,
-  query,
-  where,
-  getDocs,
-} from "firebase/firestore";
+import { collection, addDoc, doc, getDoc } from "firebase/firestore";
 import { useNavigate, useParams } from "react-router-dom";
+import { useEquipments } from "../../context/EquipmentsContext.jsx";
 import {
   ArrowLeft,
   Loader2,
@@ -39,6 +32,7 @@ import MachineTimeBlocks, {
 const AddWorkday = () => {
   const { orderId } = useParams();
   const navigate = useNavigate();
+  const { ensureEquipments } = useEquipments();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingEquipments, setIsLoadingEquipments] = useState(true);
   const [error, setError] = useState(null);
@@ -72,14 +66,9 @@ const AddWorkday = () => {
         const orderData = orderSnap.data();
         if (!orderData.clientId || orderData.isUnregisteredClient) return;
 
-        const equipmentsSnap = await getDocs(
-          query(
-            collection(db, "equipamentos"),
-            where("clientId", "==", orderData.clientId)
-          )
-        );
+        const allEquipments = await ensureEquipments();
         setEquipmentOptions(
-          equipmentsSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+          allEquipments.filter((e) => e.clientId === orderData.clientId)
         );
       } catch (err) {
         console.error("Erro ao carregar máquinas do cliente:", err);
@@ -89,7 +78,7 @@ const AddWorkday = () => {
     };
 
     fetchClientEquipments();
-  }, [orderId]);
+  }, [orderId, ensureEquipments]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -148,19 +137,24 @@ const AddWorkday = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">
-            Novo Dia de Trabalho
-          </h1>
-          <p className="text-sm text-zinc-400">
-            Adicione um novo dia de trabalho à ordem de serviço
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+            <Clock className="h-5 w-5 text-green-400" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">
+              Novo Dia de Trabalho
+            </h1>
+            <p className="text-sm text-zinc-400">
+              Adicione um novo dia de trabalho à ordem de serviço
+            </p>
+          </div>
         </div>
         <Button
           variant="outline"
           size="icon"
           onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
         >
           <ArrowLeft className="h-4 w-4 text-white" />
         </Button>

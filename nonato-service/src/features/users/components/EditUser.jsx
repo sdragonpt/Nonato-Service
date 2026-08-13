@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   Info,
+  UserCog,
 } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -61,15 +62,20 @@ const EditUser = ({ user, onClose, onUpdated }) => {
   return (
     <div className="space-y-6 p-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Editar Usuário</h2>
-          <p className="text-sm text-zinc-400">Atualize o nome e a função do usuário</p>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+            <UserCog className="h-5 w-5 text-green-400" />
+          </div>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">Editar Usuário</h2>
+            <p className="text-sm text-zinc-400">Atualize o nome e a função do usuário</p>
+          </div>
         </div>
         <Button
           variant="outline"
           size="icon"
           onClick={onClose}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 shrink-0"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { collection, getDocs, query, where, addDoc } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
+import { useClients } from "../../../context/ClientsContext.jsx";
 import formatEuroNumber from "../../../utils/formatters/formatEuroNumber";
 import { generateDocNumber } from "../../../utils/docNumbering.js";
 import {
@@ -15,6 +16,7 @@ import {
   Clock,
   Receipt,
   Calculator,
+  FileSignature,
 } from "lucide-react";
 import generateBudgetPDF from "./pdf/generateBudgetPDF.jsx";
 import ServiceInput from "../../../components/shared/ServiceInput.jsx";
@@ -40,6 +42,7 @@ import { ClientCombobox } from "@/components/shared/ClientCombobox.jsx";
 
 const AddBudget = () => {
   const navigate = useNavigate();
+  const { ensureClients } = useClients();
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -55,17 +58,13 @@ const AddBudget = () => {
   const [totalAmount, setTotalAmount] = useState(0);
   const [ivaRate, setIvaRate] = useState(23);
 
-  // Fetch clients
+  // Clientes vêm do ClientsContext partilhado (tempo real), em vez de uma
+  // leitura própria desta página
   useEffect(() => {
     const fetchClients = async () => {
       try {
         setIsLoading(true);
-        const clientsRef = collection(db, "clientes");
-        const querySnapshot = await getDocs(clientsRef);
-        const clientsData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const clientsData = await ensureClients();
         setClients(clientsData);
       } catch (err) {
         setError("Erro ao carregar clientes");
@@ -75,7 +74,7 @@ const AddBudget = () => {
       }
     };
     fetchClients();
-  }, []);
+  }, [ensureClients]);
 
   // Fetch orders when client is selected
   useEffect(() => {
@@ -317,17 +316,22 @@ const AddBudget = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Novo Fechamento</h1>
-          <p className="text-sm text-zinc-400">
-            Gere um fechamento para uma ordem de serviço
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+            <FileSignature className="h-5 w-5 text-green-400" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Novo Fechamento</h1>
+            <p className="text-sm text-zinc-400">
+              Gere um fechamento para uma ordem de serviço
+            </p>
+          </div>
         </div>
         <Button
           variant="outline"
           size="icon"
           onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
         >
           <ArrowLeft className="h-4 w-4 text-white" />
         </Button>

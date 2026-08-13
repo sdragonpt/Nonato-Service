@@ -9,6 +9,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useCategories } from "../../context/CategoriesContext.jsx";
 import { useCatalogParts } from "../../hooks/useCatalogParts.js";
+import { comparePtPt } from "../../utils/sortHelpers.js";
 import PartImage from "../../components/ui/PartImage.jsx";
 import AssignPartCategoryDialog from "./components/AssignPartCategoryDialog.jsx";
 import {
@@ -335,9 +336,9 @@ const ManagePartsLibrary = () => {
     return [...list].sort((a, b) => {
       let result = 0;
       if (sortField === "name") {
-        result = (a.name || "").localeCompare(b.name || "", "pt-PT");
+        result = comparePtPt(a.name, b.name);
       } else if (sortField === "code") {
-        result = (a.code || "").localeCompare(b.code || "", "pt-PT");
+        result = comparePtPt(a.code, b.code);
       }
       return sortOrder === "asc" ? result : -result;
     });
@@ -466,14 +467,14 @@ const ManagePartsLibrary = () => {
   const getSubcategories = useCallback(
     (categoryId) => {
       return getSubcategoriesByParent(categoryId).sort((a, b) =>
-        a.name.localeCompare(b.name, "pt-PT")
+        comparePtPt(a.name, b.name)
       );
     },
     [getSubcategoriesByParent]
   );
 
   const sortedCategories = useMemo(
-    () => categories.slice().sort((a, b) => a.name.localeCompare(b.name, "pt-PT")),
+    () => categories.slice().sort((a, b) => comparePtPt(a.name, b.name)),
     [categories]
   );
 

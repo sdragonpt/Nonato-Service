@@ -21,6 +21,7 @@ import {
   Trash2,
   Eye,
   Wrench,
+  FileCheck,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.jsx";
@@ -310,6 +311,9 @@ const EditProtocol = () => {
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
+          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+            <FileCheck className="h-5 w-5 text-green-400" />
+          </div>
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold text-white truncate">
               Editar Protocolo

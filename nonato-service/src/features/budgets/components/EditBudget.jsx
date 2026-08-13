@@ -3,8 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   collection,
   getDocs,
-  query,
-  where,
   getDoc,
   doc,
   updateDoc,
@@ -21,6 +19,7 @@ import {
   ArrowLeft,
   Receipt,
   Calculator,
+  ClipboardEdit,
 } from "lucide-react";
 import generateBudgetPDF from "./pdf/generateBudgetPDF.jsx";
 import ServiceInput from "../../../components/shared/ServiceInput.jsx";
@@ -41,15 +40,11 @@ import { Button } from "@/components/ui/button.jsx";
 const EditBudget = () => {
   const { budgetId } = useParams();
   const navigate = useNavigate();
-  const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
-  const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [order, setOrder] = useState(null);
   const [services, setServices] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [orderTotals, setOrderTotals] = useState(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState("");
   const [selectedServices, setSelectedServices] = useState([]);
@@ -85,7 +80,6 @@ const EditBudget = () => {
           const orderDoc = await getDoc(doc(db, "ordens", budgetData.orderId));
           if (orderDoc.exists()) {
             setSelectedOrder({ id: orderDoc.id, ...orderDoc.data() });
-            setOrder({ id: orderDoc.id, ...orderDoc.data() });
           }
         }
       } catch (err) {
@@ -98,50 +92,6 @@ const EditBudget = () => {
 
     fetchBudget();
   }, [budgetId]);
-
-  // Fetch clients
-  useEffect(() => {
-    const fetchClients = async () => {
-      try {
-        const clientsRef = collection(db, "clientes");
-        const querySnapshot = await getDocs(clientsRef);
-        const clientsData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setClients(clientsData);
-      } catch (err) {
-        setError("Erro ao carregar clientes");
-        console.error(err);
-      }
-    };
-    fetchClients();
-  }, []);
-
-  // Fetch orders when client is selected
-  useEffect(() => {
-    const fetchOrders = async () => {
-      if (!selectedClient) return;
-
-      try {
-        setIsLoading(true);
-        const ordersRef = collection(db, "ordens");
-        const q = query(ordersRef, where("clientId", "==", selectedClient.id));
-        const querySnapshot = await getDocs(q);
-        const ordersData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setOrders(ordersData);
-      } catch (err) {
-        setError("Erro ao carregar ordens");
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchOrders();
-  }, [selectedClient]);
 
   // Fetch services
   useEffect(() => {
@@ -161,95 +111,6 @@ const EditBudget = () => {
     };
     fetchServices();
   }, []);
-
-  // Calculate order totals when order is selected
-  useEffect(() => {
-    const fetchOrderTotals = async () => {
-      if (!selectedOrder) return;
-
-      try {
-        setIsLoading(true);
-        const workdaysRef = collection(db, "workdays");
-        const q = query(workdaysRef, where("orderId", "==", selectedOrder.id));
-        const workdaysSnapshot = await getDocs(q);
-        const workdays = workdaysSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        let totalWorkMinutes = 0;
-        let totalTravelMinutes = 0;
-        let totalKm = 0;
-
-        workdays.forEach((day) => {
-          // Calculate work hours — se o dia tiver máquinas registadas
-          // (Máquinas Trabalhadas), soma a duração real de cada bloco em vez
-          // do intervalo único início/fim (que contaria os intervalos entre
-          // máquinas como se fossem horas trabalhadas). A pausa/almoço do dia
-          // é sempre descontada, com ou sem máquinas registadas.
-          let dayWorkMinutes = 0;
-          if (day.machineEntries && day.machineEntries.length > 0) {
-            day.machineEntries.forEach((entry) => {
-              if (!entry.startHour || !entry.endHour) return;
-              const [hours, minutes] = calculateHours(
-                entry.startHour,
-                entry.endHour
-              )
-                .split(":")
-                .map(Number);
-              dayWorkMinutes += hours * 60 + (minutes || 0);
-            });
-          } else if (day.startHour && day.endHour) {
-            const [hours, minutes] = calculateHours(day.startHour, day.endHour)
-              .split(":")
-              .map(Number);
-            dayWorkMinutes = hours * 60 + minutes;
-          }
-          const [pauseHours, pauseMinutes] = (day.pauseHours || "0:00")
-            .split(":")
-            .map(Number);
-          dayWorkMinutes -= (pauseHours || 0) * 60 + (pauseMinutes || 0);
-          if (dayWorkMinutes > 0) totalWorkMinutes += dayWorkMinutes;
-
-          // Calculate travel hours and KMs
-          if (day.departureTime && day.arrivalTime) {
-            const [idaHours, idaMinutes] = calculateHours(
-              day.departureTime,
-              day.arrivalTime
-            )
-              .split(":")
-              .map(Number);
-            totalTravelMinutes += idaHours * 60 + idaMinutes;
-          }
-
-          if (day.returnDepartureTime && day.returnArrivalTime) {
-            const [retHours, retMinutes] = calculateHours(
-              day.returnDepartureTime,
-              day.returnArrivalTime
-            )
-              .split(":")
-              .map(Number);
-            totalTravelMinutes += retHours * 60 + retMinutes;
-          }
-
-          totalKm +=
-            parseFloat(day.kmDeparture || 0) + parseFloat(day.kmReturn || 0);
-        });
-
-        setOrderTotals({
-          totalWorkHours: totalWorkMinutes / 60,
-          totalTravelHours: totalTravelMinutes / 60,
-          totalKm: totalKm.toFixed(2),
-        });
-      } catch (err) {
-        console.error("Erro ao calcular totais:", err);
-        setError("Erro ao calcular totais");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchOrderTotals();
-  }, [selectedOrder]);
 
   const handleAddService = (serviceData) => {
     if (!serviceData) return;
@@ -337,17 +198,22 @@ const EditBudget = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Editar Fechamento</h1>
-          <p className="text-sm text-zinc-400">
-            Edite os dados do fechamento da ordem de serviço
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+            <ClipboardEdit className="h-5 w-5 text-green-400" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Editar Fechamento</h1>
+            <p className="text-sm text-zinc-400">
+              Edite os dados do fechamento da ordem de serviço
+            </p>
+          </div>
         </div>
         <Button
           variant="outline"
           size="icon"
           onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
         >
           <ArrowLeft className="h-4 w-4 text-white" />
         </Button>
@@ -495,18 +361,6 @@ const EditBudget = () => {
       </div>
     </div>
   );
-};
-
-// Helper functions for time calculations
-const calculateHours = (start, end) => {
-  if (!start || !end) return "0:00";
-  const startTime = new Date(`1970-01-01T${start}:00`);
-  let endTime = new Date(`1970-01-01T${end}:00`);
-  if (endTime < startTime) endTime.setDate(endTime.getDate() + 1);
-  const diff = (endTime - startTime) / 1000 / 3600;
-  const hours = Math.floor(diff);
-  const minutes = Math.round((diff - hours) * 60);
-  return `${hours}:${minutes.toString().padStart(2, "0")}`;
 };
 
 export default EditBudget;

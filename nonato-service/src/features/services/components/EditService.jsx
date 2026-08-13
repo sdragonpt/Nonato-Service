@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Tag,
   Wrench,
+  ClipboardEdit,
 } from "lucide-react";
 
 // UI Components
@@ -137,17 +138,22 @@ const EditService = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Editar Serviço</h1>
-          <p className="text-sm text-zinc-400">
-            Atualize as informações do serviço
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+            <ClipboardEdit className="h-5 w-5 text-green-400" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Editar Serviço</h1>
+            <p className="text-sm text-zinc-400">
+              Atualize as informações do serviço
+            </p>
+          </div>
         </div>
         <Button
           variant="outline"
           size="icon"
           onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>

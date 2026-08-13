@@ -1,14 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   collection,
-  getDocs,
+  onSnapshot,
   doc,
   deleteDoc,
-  query,
-  orderBy,
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useNavigate } from "react-router-dom";
+import { comparePtPt } from "../../utils/sortHelpers.js";
 import {
   Search,
   Plus,
@@ -26,7 +25,6 @@ import {
   ClipboardList,
   ListChecksIcon,
   FolderIcon,
-  RefreshCw,
   PackageCheck, // Para recepção
   GraduationCap,
   Wrench,
@@ -242,32 +240,40 @@ const ManageChecklist = () => {
   const PAGE_SIZE = 10;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  const fetchTypes = async () => {
-    try {
-      setIsLoading(true);
-      const q = query(
-        collection(db, "checklist_machines"),
-        orderBy("type", "asc")
-      );
-      const snapshot = await getDocs(q);
-      setTypes(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
-      setError(null);
-    } catch (err) {
-      console.error("Erro ao carregar tipos:", err);
-      setError("Erro ao carregar tipos. Por favor, tente novamente.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // ✅ Tempo real (onSnapshot): a lista de tipos de checklist atualiza-se
+  // sozinha quando alguém adiciona/edita/remove um tipo, sem precisar de um
+  // botão "Atualizar" manual. A ordenação é feita em memória (ver sortedTypes)
+  // para não precisar reler a coleção.
   useEffect(() => {
-    fetchTypes();
+    setIsLoading(true);
+    const unsubscribe = onSnapshot(
+      collection(db, "checklist_machines"),
+      (snapshot) => {
+        setTypes(
+          snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+        );
+        setError(null);
+        setIsLoading(false);
+      },
+      (err) => {
+        console.error("Erro ao carregar tipos:", err);
+        setError("Erro ao carregar tipos. Por favor, tente novamente.");
+        setIsLoading(false);
+      }
+    );
+    return () => unsubscribe();
   }, []);
+
+  const sortedTypes = useMemo(() => {
+    const list = [...types];
+    list.sort((a, b) => comparePtPt(a.type, b.type));
+    return list;
+  }, [types]);
 
   const handleDelete = async (typeId) => {
     try {
       await deleteDoc(doc(db, "checklist_machines", typeId));
-      setTypes(types.filter((type) => type.id !== typeId));
+      // A lista atualiza-se sozinha via onSnapshot
       setDeleteDialogOpen(false);
       setTypeToDelete(null);
     } catch (error) {
@@ -286,7 +292,7 @@ const ManageChecklist = () => {
     setExpandedTypes((prev) => ({ ...prev, [typeId]: !prev[typeId] }));
   };
 
-  const filteredTypes = types.filter((type) => {
+  const filteredTypes = sortedTypes.filter((type) => {
     const matchesSearch = type.type
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
@@ -449,18 +455,6 @@ const ManageChecklist = () => {
         </CardContent>
       </Card>
 
-      {/* Quick Actions - Desktop Only */}
-      <div className="hidden sm:flex gap-2">
-        <Button
-          variant="outline"
-          onClick={fetchTypes}
-          className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
-        >
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Atualizar Lista
-        </Button>
-      </div>
-
       {/* Checklist Types Grid */}
       <div className="space-y-4">
         {filteredTypes.length > 0 ? (
@@ -540,13 +534,6 @@ const ManageChecklist = () => {
 
       {/* FAB Menu for Mobile */}
       <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden">
-        <Button
-          onClick={fetchTypes}
-          size="icon"
-          className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
-        >
-          <RefreshCw className="h-5 w-5" />
-        </Button>
         <Button
           onClick={() => navigate("/app/add-checklist-type")}
           size="icon"

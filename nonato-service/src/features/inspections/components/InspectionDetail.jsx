@@ -392,6 +392,7 @@ const InspectionDetail = () => {
     onImageSelect,
     hasImage,
     imageIndex,
+    isUploading: isUploadingImage,
   }) => {
     const [showOptions, setShowOptions] = useState(false);
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -407,6 +408,7 @@ const InspectionDetail = () => {
       return (
         <Button
           variant="outline"
+          disabled={isUploadingImage}
           onClick={() =>
             document
               .getElementById(`${groupName}-${characterName}-image`)
@@ -414,7 +416,16 @@ const InspectionDetail = () => {
           }
           className="bg-zinc-700 hover:bg-zinc-600 text-white border-zinc-700"
         >
-          {hasImage ? "Alterar Imagem" : "Adicionar Imagem"}
+          {isUploadingImage ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              A carregar...
+            </>
+          ) : hasImage ? (
+            "Alterar Imagem"
+          ) : (
+            "Adicionar Imagem"
+          )}
           <input
             type="file"
             accept="image/*"
@@ -430,10 +441,20 @@ const InspectionDetail = () => {
       <div className="relative">
         <Button
           variant="outline"
+          disabled={isUploadingImage}
           onClick={() => setShowOptions(!showOptions)}
           className="bg-zinc-700 hover:bg-zinc-600"
         >
-          {hasImage ? "Alterar Imagem" : "Adicionar Imagem"}
+          {isUploadingImage ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              A carregar...
+            </>
+          ) : hasImage ? (
+            "Alterar Imagem"
+          ) : (
+            "Adicionar Imagem"
+          )}
         </Button>
 
         {showOptions && (
@@ -763,6 +784,7 @@ const InspectionDetail = () => {
                         handleUploadGroupImage(group.name, file)
                       }
                       hasImage={!!group.imageUrl}
+                      isUploading={isUploadingGroupImage}
                     />
                     {group.imageUrl && (
                       <div className="relative">
@@ -862,6 +884,7 @@ const InspectionDetail = () => {
                               }
                               hasImage={!!char.imageUrls[imageIndex]}
                               imageIndex={imageIndex}
+                              isUploading={isUploading}
                             />
                             {char.imageUrls[imageIndex] && (
                               <div className="relative">

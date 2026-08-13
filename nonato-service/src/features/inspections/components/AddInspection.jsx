@@ -5,13 +5,15 @@ import {
   getDoc,
   collection,
   query,
-  where,
   getDocs,
   increment,
   orderBy,
 } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
+import { useClients } from "../../../context/ClientsContext.jsx";
+import { useEquipments } from "../../../context/EquipmentsContext.jsx";
 import { formatDocNumber } from "../../../utils/docNumbering.js";
+import { comparePtPt } from "../../../utils/sortHelpers.js";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -40,6 +42,8 @@ import { Button } from "@/components/ui/button.jsx";
 
 const AddInspection = () => {
   const navigate = useNavigate();
+  const { ensureClients } = useClients();
+  const { ensureEquipments } = useEquipments();
   const [selectedClient, setSelectedClient] = useState(null);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
@@ -59,14 +63,9 @@ const AddInspection = () => {
     const fetchClients = async () => {
       try {
         setIsLoading(true);
-        const clientsRef = collection(db, "clientes");
-        const q = query(clientsRef, orderBy("name"));
-        const querySnapshot = await getDocs(q);
+        const list = await ensureClients();
         setClients(
-          querySnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }))
+          [...list].sort((a, b) => comparePtPt(a.name, b.name))
         );
       } catch (err) {
         setError("Erro ao carregar clientes");
@@ -83,17 +82,9 @@ const AddInspection = () => {
       if (!selectedClient) return;
       try {
         setIsLoading(true);
-        const equipmentsRef = collection(db, "equipamentos");
-        const q = query(
-          equipmentsRef,
-          where("clientId", "==", selectedClient.id)
-        );
-        const querySnapshot = await getDocs(q);
+        const allEquipments = await ensureEquipments();
         setEquipments(
-          querySnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }))
+          allEquipments.filter((e) => e.clientId === selectedClient.id)
         );
       } catch (err) {
         setError("Erro ao carregar equipamentos");
@@ -103,7 +94,7 @@ const AddInspection = () => {
     };
 
     fetchEquipments();
-  }, [selectedClient]);
+  }, [selectedClient, ensureEquipments]);
 
   useEffect(() => {
     const fetchTypes = async () => {
@@ -762,17 +753,22 @@ const AddInspection = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Nova Inspeção</h1>
-          <p className="text-sm text-zinc-400">
-            Adicione uma nova inspeção ao sistema
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+            <ClipboardCheck className="h-5 w-5 text-green-400" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Nova Inspeção</h1>
+            <p className="text-sm text-zinc-400">
+              Adicione uma nova inspeção ao sistema
+            </p>
+          </div>
         </div>
         <Button
           variant="outline"
           size="icon"
           onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>

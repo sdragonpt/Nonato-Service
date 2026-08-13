@@ -167,7 +167,7 @@ const RequestAccessModal = ({
               type="button"
               variant="outline"
               onClick={onClose}
-              className="flex-1 border-zinc-600 text-white hover:bg-zinc-700"
+              className="flex-1 border-zinc-600 text-white bg-zinc-800 hover:bg-zinc-700"
             >
               Cancelar
             </Button>
@@ -263,7 +263,7 @@ const AccessRejectedScreen = ({ rejectionReason, onClose }) => {
           </Button>
           <Button
             variant="outline"
-            className="w-full border-red-600 hover:bg-red-600/20 text-white"
+            className="w-full border-red-600 bg-zinc-800 hover:bg-red-600/20 text-white"
             onClick={() => {
               window.location.href = `mailto:suporte@nonatoservice.com?subject=Sobre%20o%20acesso%20ao%20carrinho&body=Olá,%0A%0AEntro%20em%20contato%20referente%20ao%20meu%20pedido%20de%20acesso%20ao%20carrinho%20que%20foi%20rejeitado.%0A%0AAtenciosamente.`;
             }}

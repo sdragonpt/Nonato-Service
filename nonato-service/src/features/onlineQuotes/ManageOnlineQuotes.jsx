@@ -683,7 +683,7 @@ const ManageOnlineQuotes = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="border-zinc-600 text-zinc-600 hover:bg-zinc-700"
+                          className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-600"
                           onClick={() => viewDetails(quote)}
                         >
                           <Eye className="h-4 w-4 mr-2" />
@@ -1010,7 +1010,7 @@ const ManageOnlineQuotes = () => {
             <Button
               variant="outline"
               onClick={() => setNoteDialogOpen(false)}
-              className="border-zinc-600 text-white hover:bg-zinc-700"
+              className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-600"
             >
               Cancelar
             </Button>

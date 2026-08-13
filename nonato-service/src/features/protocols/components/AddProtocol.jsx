@@ -1,9 +1,10 @@
 // AddProtocol.jsx - Passo inicial: escolher cliente + equipamento e criar o protocolo
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, getDocs, addDoc, query, where } from "firebase/firestore";
+import { collection, addDoc } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useClients } from "../../../context/ClientsContext.jsx";
+import { useEquipments } from "../../../context/EquipmentsContext.jsx";
 import { generateDocNumber } from "../../../utils/docNumbering.js";
 import {
   ArrowLeft,
@@ -11,6 +12,7 @@ import {
   Plus,
   AlertTriangle,
   Printer,
+  FileCheck,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.jsx";
@@ -29,6 +31,7 @@ import { ClientCombobox } from "@/components/shared/ClientCombobox.jsx";
 const AddProtocol = () => {
   const navigate = useNavigate();
   const { ensureClients } = useClients();
+  const { ensureEquipments } = useEquipments();
   const [clients, setClients] = useState([]);
   const [equipments, setEquipments] = useState([]);
   const [loadingClients, setLoadingClients] = useState(true);
@@ -64,12 +67,8 @@ const AddProtocol = () => {
     const fetchEquipments = async () => {
       try {
         setLoadingEquipments(true);
-        const q = query(
-          collection(db, "equipamentos"),
-          where("clientId", "==", clientId)
-        );
-        const snap = await getDocs(q);
-        setEquipments(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        const allEquipments = await ensureEquipments();
+        setEquipments(allEquipments.filter((e) => e.clientId === clientId));
       } catch (err) {
         console.error("Erro ao carregar equipamentos:", err);
       } finally {
@@ -77,7 +76,7 @@ const AddProtocol = () => {
       }
     };
     fetchEquipments();
-  }, [clientId]);
+  }, [clientId, ensureEquipments]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -131,17 +130,22 @@ const AddProtocol = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Novo Protocolo de Serviço</h1>
-          <p className="text-sm text-zinc-400">
-            Escolha o cliente e o equipamento para começar
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+            <FileCheck className="h-5 w-5 text-green-400" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Novo Protocolo de Serviço</h1>
+            <p className="text-sm text-zinc-400">
+              Escolha o cliente e o equipamento para começar
+            </p>
+          </div>
         </div>
         <Button
           variant="outline"
           size="icon"
           onClick={() => navigate("/app/protocols")}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
         >
           <ArrowLeft className="h-4 w-4 text-white" />
         </Button>

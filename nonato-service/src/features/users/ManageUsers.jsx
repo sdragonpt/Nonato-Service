@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import {
-  getDocs,
-  collection,
   deleteDoc,
   doc,
   getDoc,
   setDoc,
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
+import { useUsers } from "../../context/UsersContext.jsx";
 import {
   Table,
   TableBody,
@@ -38,7 +37,6 @@ import {
   Loader2,
   AlertTriangle,
   Users,
-  RefreshCw,
   UserPlus,
   Shield,
 } from "lucide-react";
@@ -48,7 +46,9 @@ import EditUser from "./components/EditUser.jsx";
 import { getRoleLabel, getRoleBadgeStyle, isStaffRole } from "../../config/roles.js";
 
 const ManageUsers = () => {
-  const [users, setUsers] = useState([]);
+  // ✅ Tempo real (onSnapshot) via UsersContext partilhado — a lista
+  // atualiza-se sozinha, sem precisar de um botão "Atualizar" manual.
+  const { users, error: usersError, ensureUsers } = useUsers();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -57,30 +57,13 @@ const ManageUsers = () => {
   const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState(null);
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const usersCollection = collection(db, "users");
-      const userDocs = await getDocs(usersCollection);
-      const usersList = userDocs.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setUsers(usersList);
-    } catch (err) {
-      console.error("Erro ao carregar usuários:", err);
-      setError(
-        "Erro ao carregar usuários. Por favor, tente novamente mais tarde."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    ensureUsers().finally(() => setLoading(false));
+  }, [ensureUsers]);
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (usersError) setError(usersError);
+  }, [usersError]);
 
   const confirmDelete = (user) => {
     setUserToDelete(user);
@@ -117,9 +100,7 @@ const ManageUsers = () => {
       // Não é possível deletar outros usuários diretamente do cliente por questões de segurança
       // Você precisará criar uma API ou Cloud Function para fazer esta operação
 
-      setUsers((prevUsers) =>
-        prevUsers.filter((user) => user.id !== userToDelete.id)
-      );
+      // A lista atualiza-se sozinha via onSnapshot (UsersContext)
       setDeleteDialogOpen(false);
       setUserToDelete(null);
     } catch (err) {
@@ -211,18 +192,6 @@ const ManageUsers = () => {
           <AlertDescription className="text-red-400">{error}</AlertDescription>
         </Alert>
       )}
-
-      {/* Quick Actions */}
-      <div className="hidden sm:flex gap-2">
-        <Button
-          variant="outline"
-          onClick={fetchUsers}
-          className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
-        >
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Atualizar Lista
-        </Button>
-      </div>
 
       {/* Users Table */}
       <Card className="bg-zinc-800 border-zinc-700">
@@ -329,20 +298,12 @@ const ManageUsers = () => {
               setEditUserDialogOpen(false);
               setUserToEdit(null);
             }}
-            onUpdated={fetchUsers}
           />
         </DialogContent>
       </Dialog>
 
       {/* FAB Menu for Mobile */}
       <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden">
-        <Button
-          onClick={fetchUsers}
-          size="icon"
-          className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
-        >
-          <RefreshCw className="h-5 w-5" />
-        </Button>
         <Button
           onClick={() => setAddUserDialogOpen(true)}
           size="icon"

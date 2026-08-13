@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from "react";
 import { useCategories } from "../../../context/CategoriesContext.jsx";
+import { comparePtPt } from "../../../utils/sortHelpers.js";
 import {
   setPartCategory,
   clearPartCategory,
@@ -41,12 +42,12 @@ const AssignPartCategoryDialog = ({ open, onOpenChange, part, onSaved }) => {
 
   const sortedCategories = categories
     .slice()
-    .sort((a, b) => a.name.localeCompare(b.name, "pt-PT"));
+    .sort((a, b) => comparePtPt(a.name, b.name));
 
   const subcategories =
     categoryId !== "none"
       ? getSubcategoriesByParent(categoryId).sort((a, b) =>
-          a.name.localeCompare(b.name, "pt-PT")
+          comparePtPt(a.name, b.name)
         )
       : [];
 

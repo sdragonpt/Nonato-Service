@@ -25,6 +25,7 @@ import { db } from "../../firebase.jsx";
 import { useAuth } from "../../hooks/useAuth";
 import { useUsers } from "../../context/UsersContext.jsx";
 import { getRoleLabel, getRoleBadgeStyle, isStaffRole } from "../../config/roles.js";
+import { getInitials } from "../../utils/getInitials.js";
 import { MessageCircle, Send, Loader2, Search, Users } from "lucide-react";
 
 import { Card } from "@/components/ui/card.jsx";
@@ -37,17 +38,6 @@ import { ScrollArea } from "@/components/ui/scroll-area.jsx";
 
 function conversationIdFor(uidA, uidB) {
   return [uidA, uidB].sort().join("_");
-}
-
-function getInitials(name) {
-  return (
-    (name || "")
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2) || "??"
-  );
 }
 
 const ManageCommunicationHub = () => {

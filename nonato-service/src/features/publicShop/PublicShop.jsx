@@ -10,6 +10,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
+import { comparePtPt } from "../../utils/sortHelpers.js";
 import { useCategories } from "../../context/CategoriesContext.jsx";
 import { useCatalogParts } from "../../hooks/useCatalogParts.js";
 import PartImage from "../../components/ui/PartImage.jsx";
@@ -216,9 +217,9 @@ const PublicShop = ({
 
     return [...list].sort((a, b) => {
       if (sortBy === "code") {
-        return (a.code || "").localeCompare(b.code || "", "pt-PT");
+        return comparePtPt(a.code, b.code);
       }
-      return (a.name || "").localeCompare(b.name || "", "pt-PT");
+      return comparePtPt(a.name, b.name);
     });
   }, [
     catalogParts,
@@ -546,6 +547,82 @@ const PublicShop = ({
               </div>
             );
           })}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+
+  // Mobile Filters Menu (ordenação e modo de visualização)
+  const MobileFiltersMenu = () => (
+    <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+      <SheetContent
+        side="right"
+        className="bg-zinc-800 border-zinc-700 text-white w-72"
+      >
+        <SheetHeader className="pb-4">
+          <SheetTitle className="text-white">Filtros</SheetTitle>
+        </SheetHeader>
+
+        <div className="space-y-6 mt-2">
+          <div className="space-y-2">
+            <p className="text-sm text-zinc-400">Ordenar por</p>
+            <div className="space-y-1">
+              <SheetClose asChild>
+                <button
+                  onClick={() => setSortBy("name")}
+                  className={`w-full text-left px-3 py-3 rounded-lg transition-colors ${
+                    sortBy === "name"
+                      ? "bg-zinc-700 text-white"
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-700/50"
+                  }`}
+                >
+                  Nome (A-Z)
+                </button>
+              </SheetClose>
+              <SheetClose asChild>
+                <button
+                  onClick={() => setSortBy("code")}
+                  className={`w-full text-left px-3 py-3 rounded-lg transition-colors ${
+                    sortBy === "code"
+                      ? "bg-zinc-700 text-white"
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-700/50"
+                  }`}
+                >
+                  Código
+                </button>
+              </SheetClose>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm text-zinc-400">Visualização</p>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setViewMode("grid")}
+                className={`flex-1 text-white ${
+                  viewMode === "grid"
+                    ? "bg-zinc-700 hover:bg-zinc-600"
+                    : "hover:bg-zinc-700/50"
+                }`}
+              >
+                <Grid className="h-4 w-4 mr-2" />
+                Grade
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setViewMode("list")}
+                className={`flex-1 text-white ${
+                  viewMode === "list"
+                    ? "bg-zinc-700 hover:bg-zinc-600"
+                    : "hover:bg-zinc-700/50"
+                }`}
+              >
+                <List className="h-4 w-4 mr-2" />
+                Lista
+              </Button>
+            </div>
+          </div>
         </div>
       </SheetContent>
     </Sheet>
@@ -1081,7 +1158,7 @@ const PublicShop = ({
                     setError(null);
                     refreshCatalog();
                   }}
-                  className="border-red-500/50 text-red-300 hover:bg-red-500/20 hover:text-white"
+                  className="border-red-500/50 text-red-300 bg-zinc-800 hover:bg-red-500/20 hover:text-white"
                 >
                   Tentar novamente
                 </Button>
@@ -1338,6 +1415,7 @@ const PublicShop = ({
 
       {/* Mobile Menus */}
       <MobileCategoryMenu />
+      <MobileFiltersMenu />
 
       {/* Access Info Modal */}
       <Dialog open={showAccessInfo} onOpenChange={setShowAccessInfo}>
