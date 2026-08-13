@@ -5,7 +5,7 @@ import {
   collection,
   onSnapshot,
   doc,
-  addDoc,
+  setDoc,
   updateDoc,
   query,
   orderBy,
@@ -197,8 +197,10 @@ const ManageShopAccess = () => {
       // Gerar token único
       const token = generateToken();
 
-      // Adicionar token ao Firestore
-      await addDoc(collection(db, "shop_access_tokens"), {
+      // ✅ O ID do documento é o próprio token — permite ao visitante
+      // confirmar o seu acesso com um getDoc por ID (leitura pública
+      // restrita a "get", nunca a listagem da coleção inteira).
+      await setDoc(doc(db, "shop_access_tokens", token), {
         token,
         name: formData.name,
         company: "",

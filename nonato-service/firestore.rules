@@ -18,24 +18,27 @@ rules_version = '2';
 // 2) Nenhuma regra protegia o campo "role" em users/{uid} — um utilizador
 //    comum ("client") podia escrever no seu próprio documento e definir
 //    role: "admin". Corrigido: só quem já é admin pode alterar o "role" de
-//    qualquer utilizador (incluindo o seu próprio).
+//    qualquer utilizador (incluindo o seu próprio). AddUser.jsx foi também
+//    ajustado para criar a conta Firebase Auth numa instância secundária
+//    da app, para que o setDoc que grava o "role" escolhido no formulário
+//    continue a correr com a sessão do admin (ver nota junto de
+//    users/{uid} mais abaixo).
 //
 // Outras mudanças de comportamento face ao que estava em produção (pedidas
 // explicitamente, ver conversa):
-// - shop_access_tokens deixa de ter leitura pública (a coleção expunha
-//   nome/email/telefone de todos os pedidos de acesso a qualquer visitante
-//   sem sessão). Em troca, foi adicionada uma regra de "create" pública
-//   propriamente validada, porque o fluxo real de pedido de acesso
-//   (ShopAccessWrapper.jsx) faz um addDoc não autenticado que, pelas
-//   regras antigas, não tinha nenhuma permissão explícita de "create" —
-//   ou seja, esse pedido já podia estar a falhar em produção.
-//   ⚠️ IMPORTANTE: o mesmo ficheiro também faz uma LEITURA pública para o
-//   visitante descobrir se o pedido foi aprovado (accessStatus=="approved").
-//   Com a leitura pública fechada, essa verificação deixa de funcionar —
-//   o visitante consegue pedir acesso, mas não há forma de saber que foi
-//   aprovado sem sessão iniciada. É preciso um ajuste de código (ex: mover
-//   essa verificação para uma Cloud Function callable) para repor essa UX
-//   sem reabrir a coleção toda ao público.
+// - shop_access_tokens deixa de permitir LISTAGEM pública (a coleção
+//   expunha nome/email/telefone de todos os pedidos de acesso a qualquer
+//   visitante sem sessão). Para não perder a funcionalidade de "verificar
+//   se o meu pedido foi aprovado" sem sessão iniciada, o ID do documento
+//   passou a ser o próprio token (ShopAccessWrapper.jsx e
+//   ManageShopAccess.jsx foram ajustados para usar setDoc/getDoc por ID em
+//   vez de addDoc + query), e a leitura pública ficou restrita a "get" (um
+//   documento concreto, cujo ID só quem já tem o token conhece) — nunca
+//   "list". De caminho, foi também adicionada uma regra de "create"
+//   pública devidamente validada: o pedido de acesso público fazia um
+//   addDoc não autenticado que, pelas regras antigas, não tinha nenhuma
+//   permissão explícita de "create", ou seja, esse pedido já podia estar
+//   a falhar em produção antes desta revisão.
 // - pecas deixa de ter leitura pública — a loja pública usa um catálogo
 //   JSON estático (public/pecas-data/), não esta coleção, pelo que a
 //   leitura pública parecia desnecessária.
@@ -82,22 +85,25 @@ service cloud.firestore {
     }
 
     // ── users/{uid} ──
-    // GOTCHA (auto-elevação de privilégio, corrigido): AddUser.jsx cria o
-    // novo utilizador com createUserWithEmailAndPassword, o que troca a
-    // sessão ativa do browser para o utilizador recém-criado ANTES do
-    // setDoc que grava o "role" escolhido no formulário — esse setDoc
-    // corre como o próprio utilizador novo, não como o admin. A regra
-    // abaixo força role="client" em qualquer auto-criação (incluindo
-    // quando é um admin a criar a conta) e só permite mudar o "role" de
-    // um documento a quem já é admin.
-    // ISTO MUDA COMPORTAMENTO: o dropdown de "papel" em AddUser.jsx deixa
-    // de ter efeito imediato — o admin terá de ajustar o papel depois em
-    // EditUser.jsx (que já corre sob a sessão do admin). Correção correta
-    // a prazo: mover a criação de utilizadores para uma Cloud Function.
+    // AddUser.jsx foi corrigido para criar a conta Firebase Auth numa
+    // instância secundária da app (isolada), por isso o setDoc que grava
+    // o novo utilizador continua a correr com a sessão do admin — a regra
+    // "isAdmin()" abaixo cobre esse caso, permitindo definir qualquer role.
+    // O ramo de auto-criação (uid == request.auth.uid) fica limitado a
+    // role="client" como rede de segurança para qualquer outro caminho de
+    // auto-registo que possa vir a existir, evitando auto-elevação de
+    // privilégio. Só quem já é admin pode mudar o "role" de um utilizador
+    // depois de criado.
     match /users/{uid} {
       allow read: if isAuthorized();
-      allow create: if isSignedIn() && request.auth.uid == uid &&
-        request.resource.data.role == 'client';
+      // Auto-criação (primeiro login, useAuth.js): role tem de bater certo
+      // com a mesma regra hardcoded que useAuth.js usa para decidir o role
+      // inicial — só o email do dono fica admin, todos os outros client.
+      allow create: if isAdmin() ||
+        (isSignedIn() && request.auth.uid == uid &&
+          request.resource.data.role == (
+            request.auth.token.email == 'sergionunoribeiro@gmail.com' ? 'admin' : 'client'
+          ));
       allow update: if isAuthorized() && (
         (request.auth.uid == uid && request.resource.data.role == resource.data.role) ||
         isAdmin()
@@ -153,13 +159,21 @@ service cloud.firestore {
       allow read, update, delete: if isAuthorized();
     }
 
-    // ── shop_access_tokens — ver nota grande no topo do ficheiro ──
+    // ── shop_access_tokens ──
+    // O ID do documento é agora o próprio token (ver ShopAccessWrapper.jsx
+    // e ManageShopAccess.jsx) — {id} == token. Isto permite restringir a
+    // leitura pública a "get" (um documento concreto, conhecido de quem já
+    // tem o token) sem nunca permitir "list" (listar/consultar a coleção
+    // inteira), o que antes expunha nome/email/telefone de todos os
+    // pedidos de acesso pendentes a qualquer visitante.
     match /shop_access_tokens/{id} {
+      allow get: if true;
+      allow list: if isAuthorized();
       allow create: if request.resource.data.token != null &&
                      request.resource.data.name != null &&
                      request.resource.data.email != null &&
                      request.resource.data.status == 'active';
-      allow read, update, delete: if isAuthorized();
+      allow update, delete: if isAuthorized();
     }
 
     // ── pecas — legada/interna; a loja pública usa o catálogo JSON estático ──

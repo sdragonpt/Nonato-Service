@@ -1,8 +1,55 @@
 rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────
+// Regras de segurança do Firebase Storage — Nonato Service.
+//
+// A regra anterior era "allow read, write: if request.auth != null" para
+// o bucket inteiro — qualquer utilizador com sessão Firebase iniciada
+// (mesmo sem constar em config/authorizedEmails) podia ler ou escrever
+// QUALQUER ficheiro. É a mesma falha corrigida no firestore.rules: a
+// lista de emails autorizados nunca era verificada aqui, só no código JS.
+//
+// Pastas conhecidas (mapeadas a partir do código em src/, grep por
+// `ref(storage, ...)`): clientes/, equipamentos/, equipamentosArmazem/,
+// config/companyProfile/, documents/, protocolos/, despesas/, users/,
+// relatorios/, inspections/. Nenhum caminho de Storage é lido pela loja
+// pública sem sessão — as imagens de peças aí vêm de um catálogo JSON
+// estático (public/pecas-data/), não do Storage.
+//
+// ⚠️ Testar com o Firebase Emulator Suite antes de publicar.
+// ─────────────────────────────────────────────────────────────────────────
+
 service firebase.storage {
   match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Espelha a função equivalente em firestore.rules.
+    function isAuthorized() {
+      return isSignedIn() &&
+        request.auth.token.email in
+          firestore.get(/databases/(default)/documents/config/authorizedEmails).data.emails;
+    }
+
+    function isAdmin() {
+      return isAuthorized() &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Logo/dados da empresa — leitura para qualquer autorizado, escrita só
+    // para admin (o mesmo padrão usado em CompanyProfile.jsx/App.jsx, onde
+    // a página "company-profile" já é uma rota admin-only).
+    match /config/companyProfile/{allPaths=**} {
+      allow read: if isAuthorized();
+      allow write: if isAdmin();
+    }
+
+    // Todo o resto — qualquer utilizador autenticado E autorizado (mesmo
+    // nível de acesso que o resto da app usa hoje para as suas coleções).
     match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAuthorized();
     }
   }
 }

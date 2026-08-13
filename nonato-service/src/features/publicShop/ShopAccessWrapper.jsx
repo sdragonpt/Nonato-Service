@@ -1,15 +1,7 @@
 // ShopAccessWrapper.jsx - Modificado: Usuários logados têm acesso direto
 
 import React, { useState, useEffect } from "react";
-import {
-  collection,
-  getDocs,
-  addDoc,
-  query,
-  where,
-  limit,
-  serverTimestamp,
-} from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { getAuth } from "firebase/auth";
 import { useAuth } from "../../hooks/useAuth"; // ✅ NOVO: Importar hook de autenticação
@@ -332,17 +324,19 @@ const ShopAccessWrapper = ({ children }) => {
           const savedToken = localStorage.getItem("shop_access_token");
 
           if (savedToken) {
-            const tokenQuery = query(
-              collection(db, "shop_access_tokens"),
-              where("token", "==", savedToken),
-              where("status", "==", "active"),
-              limit(1)
+            // ✅ Leitura por ID (get), não por query — o ID do documento é
+            // o próprio token. As regras de segurança só permitem leitura
+            // pública "get" nesta coleção (nunca listagem completa), por
+            // isso já não é possível fazer uma query where("token", ...).
+            const tokenSnapshot = await getDoc(
+              doc(db, "shop_access_tokens", savedToken)
             );
 
-            const tokenSnapshot = await getDocs(tokenQuery);
-
-            if (!tokenSnapshot.empty) {
-              const tokenData = tokenSnapshot.docs[0].data();
+            if (
+              tokenSnapshot.exists() &&
+              tokenSnapshot.data().status === "active"
+            ) {
+              const tokenData = tokenSnapshot.data();
               setUserToken(tokenData);
 
               if (tokenData.accessStatus === "approved") {
@@ -433,8 +427,10 @@ const ShopAccessWrapper = ({ children }) => {
 
       const token = generateToken();
 
-      // Criar token de acesso
-      await addDoc(collection(db, "shop_access_tokens"), {
+      // ✅ O ID do documento é o próprio token (ver nota na verificação
+      // acima) — permite ao visitante confirmar o seu acesso com um getDoc
+      // por ID em vez de uma query pública sobre a coleção inteira.
+      await setDoc(doc(db, "shop_access_tokens", token), {
         token,
         name: formData.name,
         company: formData.company,

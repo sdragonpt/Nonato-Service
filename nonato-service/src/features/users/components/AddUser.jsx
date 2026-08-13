@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import { initializeApp, deleteApp } from "firebase/app";
+import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-import { db } from "../../../firebase";
+import { db, firebaseApp } from "../../../firebase";
 import { addAuthorizedEmail } from "../../../hooks/useAuth";
 import {
   Mail,
@@ -37,7 +38,6 @@ const AddUser = ({ onClose }) => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const auth = getAuth();
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -59,18 +59,33 @@ const AddUser = ({ onClose }) => {
     setIsLoading(true);
     setError("");
 
+    // ✅ Criar o novo utilizador numa instância secundária da app Firebase,
+    // isolada da sessão principal. createUserWithEmailAndPassword autentica
+    // automaticamente como o utilizador recém-criado NA INSTÂNCIA em que
+    // corre — antes desta correção isso fazia o admin perder a sua própria
+    // sessão (ficava autenticado como o novo utilizador assim que a app
+    // recarregava). Usando uma instância à parte, a sessão do admin na app
+    // principal nunca muda, por isso o setDoc abaixo corre como admin e as
+    // regras de segurança permitem gravar o "role" escolhido no formulário.
+    const secondaryApp = initializeApp(
+      firebaseApp.options,
+      `AddUser-${Date.now()}`
+    );
+    const secondaryAuth = getAuth(secondaryApp);
+
     try {
       // 1. Adicionar o email à lista de autorizados
       await addAuthorizedEmail(formData.email);
 
-      // 2. Criar usuário no Firebase Auth
+      // 2. Criar usuário no Firebase Auth (sessão secundária, isolada)
       const userCredential = await createUserWithEmailAndPassword(
-        auth,
+        secondaryAuth,
         formData.email,
         formData.password
       );
 
-      // 3. Adicionar informações adicionais no Firestore
+      // 3. Adicionar informações adicionais no Firestore — corre com a
+      // sessão do admin (instância principal), por isso pode definir o role.
       await setDoc(doc(db, "users", userCredential.user.uid), {
         uid: userCredential.user.uid,
         email: formData.email,
@@ -82,7 +97,6 @@ const AddUser = ({ onClose }) => {
       });
 
       onClose();
-      window.location.reload();
     } catch (err) {
       console.error("Erro ao criar usuário:", err);
       switch (err.code) {
@@ -99,6 +113,13 @@ const AddUser = ({ onClose }) => {
           setError("Erro ao criar usuário. Por favor, tente novamente.");
       }
     } finally {
+      // Limpar a instância secundária, sem afetar a sessão principal
+      try {
+        await signOut(secondaryAuth);
+      } catch {
+        // instância vai ser destruída de seguida de qualquer forma
+      }
+      await deleteApp(secondaryApp).catch(() => {});
       setIsLoading(false);
     }
   };
