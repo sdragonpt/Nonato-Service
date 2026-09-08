@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// build-catalog.js - Converte CSV(s) de peças (ex.: exports da HOMAG) num
+// build-catalog.js - Converte ficheiros de peças (CSV ou JSON, ex.: exports da HOMAG) num
 // "lote" JSON dentro de public/pecas-data/, e atualiza o manifest.json que
 // lista todos os lotes existentes.
 //
@@ -16,8 +16,10 @@
 //
 // Exemplos:
 //   node scripts/parts-catalog/build-catalog.js ~/Transferências/shop-homag-com-2026-08-05-2.csv --name=ferragens
+//   node scripts/parts-catalog/build-catalog.js ~/Transferências/pecas-antigas.json --name=lote-3
 //   node scripts/parts-catalog/build-catalog.js ~/Transferências --name=lote-agosto-2026
-//   (passar uma pasta lê todos os .csv diretamente dentro dela)
+//   (passar uma pasta lê todos os .csv e .json diretamente dentro dela;
+//    também podes misturar CSVs e JSONs no mesmo lote)
 //
 // Resultado:
 //   public/pecas-data/<nome-do-lote>.json   <- peças deste lote (nome, codigo, imagem)
@@ -31,8 +33,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUTPUT_DIR = path.join(__dirname, "..", "..", "public", "pecas-data");
 const MANIFEST_PATH = path.join(OUTPUT_DIR, "manifest.json");
 
-// ─── Reconhecimento de colunas (mesmos aliases usados em ImportParts.jsx,
-// para o resultado ficar sempre consistente com o que a app já entende) ───
+// ─── Reconhecimento de colunas/campos: aceita os nomes mais comuns tanto em
+// CSVs (cabeçalhos) como em JSONs (chaves), para o lote sair sempre no mesmo
+// formato que a app já entende ───
 
 const FIELD_ALIASES = {
   name: ["nome", "name", "descricao_curta", "designacao", "designação"],
@@ -115,6 +118,44 @@ function rowsFromCsvText(text) {
   });
 }
 
+/**
+ * Lê um ficheiro .json com um array de peças. Aceita tanto um array à cabeça
+ * como um objeto que embrulhe o array (ex.: { pecas: [...] }, { items: [...] }),
+ * e reconhece os mesmos aliases de campos usados nos CSVs — por isso tanto
+ * funciona um lote já no formato final ({ nome, codigo, imagem }) como um
+ * export de outra ferramenta ({ name, code, imageUrl }).
+ */
+function rowsFromJsonText(text) {
+  const data = JSON.parse(text.replace(/^\uFEFF/, ""));
+
+  const list = Array.isArray(data)
+    ? data
+    : Object.values(data).find((v) => Array.isArray(v));
+
+  if (!Array.isArray(list)) {
+    throw new Error("JSON não contém nenhum array de peças.");
+  }
+
+  return list.map((item) => {
+    const obj = {};
+    for (const [key, value] of Object.entries(item || {})) {
+      const field = resolveField(key);
+      if (field && obj[field] === undefined && value != null) {
+        obj[field] = String(value).trim();
+      }
+    }
+    return obj;
+  });
+}
+
+/** Escolhe o leitor certo a partir da extensão do ficheiro. */
+function rowsFromFile(file) {
+  const text = fs.readFileSync(file, "utf-8");
+  return file.toLowerCase().endsWith(".json")
+    ? rowsFromJsonText(text)
+    : rowsFromCsvText(text);
+}
+
 // ─── Leitura de argumentos da linha de comandos ───
 
 function parseArgs(argv) {
@@ -132,7 +173,12 @@ function parseArgs(argv) {
   return { inputs, name };
 }
 
-function collectCsvFiles(inputPaths) {
+const SUPPORTED_EXTENSIONS = [".csv", ".json"];
+
+const isSupported = (f) =>
+  SUPPORTED_EXTENSIONS.some((ext) => f.toLowerCase().endsWith(ext));
+
+function collectInputFiles(inputPaths) {
   const files = [];
   for (const inputPath of inputPaths) {
     const resolved = path.resolve(inputPath);
@@ -144,13 +190,13 @@ function collectCsvFiles(inputPaths) {
     if (stat.isDirectory()) {
       const entries = fs
         .readdirSync(resolved)
-        .filter((f) => f.toLowerCase().endsWith(".csv"))
+        .filter(isSupported)
         .map((f) => path.join(resolved, f));
       files.push(...entries);
-    } else if (resolved.toLowerCase().endsWith(".csv")) {
+    } else if (isSupported(resolved)) {
       files.push(resolved);
     } else {
-      console.warn(`Aviso: não é um .csv, a ignorar: ${resolved}`);
+      console.warn(`Aviso: não é um .csv nem um .json, a ignorar: ${resolved}`);
     }
   }
   return files;
@@ -210,20 +256,25 @@ function main() {
     process.exit(1);
   }
 
-  const csvFiles = collectCsvFiles(inputs);
-  if (csvFiles.length === 0) {
-    console.error("Nenhum ficheiro .csv encontrado nos caminhos indicados.");
+  const inputFiles = collectInputFiles(inputs);
+  if (inputFiles.length === 0) {
+    console.error("Nenhum ficheiro .csv ou .json encontrado nos caminhos indicados.");
     process.exit(1);
   }
 
-  console.log(`A ler ${csvFiles.length} ficheiro(s) CSV...`);
+  console.log(`A ler ${inputFiles.length} ficheiro(s)...`);
 
-  const seen = new Map(); // codigo -> peça (último a aparecer vence, mesma lógica do ImportParts.jsx)
+  const seen = new Map(); // codigo -> peça (último a aparecer vence)
   let totalRowsRead = 0;
 
-  for (const file of csvFiles) {
-    const text = fs.readFileSync(file, "utf-8");
-    const rows = rowsFromCsvText(text);
+  for (const file of inputFiles) {
+    let rows;
+    try {
+      rows = rowsFromFile(file);
+    } catch (err) {
+      console.warn(`Aviso: falhou a leitura de ${file} (${err.message}), a ignorar.`);
+      continue;
+    }
     totalRowsRead += rows.length;
 
     for (const row of rows) {
@@ -255,7 +306,7 @@ function main() {
   const totalCatalog = manifest.reduce((sum, entry) => sum + entry.count, 0);
 
   console.log("");
-  console.log(`Linhas lidas nos CSVs: ${totalRowsRead}`);
+  console.log(`Linhas lidas nos ficheiros: ${totalRowsRead}`);
   console.log(`Peças únicas neste lote (por código): ${pecas.length}`);
   console.log(`Lote guardado em: public/pecas-data/${batchName}.json`);
   console.log(`Manifest atualizado: public/pecas-data/manifest.json (${manifest.length} lote(s), ${totalCatalog} peças no total)`);
