@@ -2,6 +2,8 @@ import { useState } from "react";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useNavigate } from "react-router-dom";
+import { SingleGroupField } from "../../../components/shared/GroupFields.jsx";
+import { GROUP_KINDS } from "../../../services/groupsStore.js";
 import {
   ArrowLeft,
   Loader2,
@@ -37,6 +39,7 @@ const AddService = () => {
     name: "",
     type: "base",
     description: "",
+    grupoId: "",
   });
   const [touched, setTouched] = useState({});
 
@@ -152,6 +155,13 @@ const AddService = () => {
                 <p className="text-sm text-red-500">Nome é obrigatório</p>
               )}
             </div>
+
+            <SingleGroupField
+              kind={GROUP_KINDS.SERVICOS}
+              value={formData.grupoId}
+              onChange={(grupoId) => setFormData((prev) => ({ ...prev, grupoId }))}
+              dialogTitle="Grupos de serviços"
+            />
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-400">

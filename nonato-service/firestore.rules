@@ -232,6 +232,15 @@ service cloud.firestore {
     match /doc_files/{id} { allow read, write: if isAuthorized(); }
     match /comprovantesDespesas/{id} { allow read, write: if isAuthorized(); }
     match /pecasDesmontadas/{id} { allow read, write: if isAuthorized(); }
+    // Stock interno de peças (ver services/stockService.js): 8 documentos
+    // "lote" com os artigos, e o histórico de movimentos. O histórico só
+    // aceita registos novos — ninguém o pode alterar nem apagar, para as
+    // entradas e saídas ficarem sempre rastreáveis.
+    match /stockPecas/{lote} { allow read, write: if isAuthorized(); }
+    match /movimentosStock/{id} {
+      allow read, create: if isAuthorized();
+      allow update, delete: if false;
+    }
     match /fornecedores/{id} {
       allow read, write: if isAuthorized();
       match /faturas/{faturaId} {

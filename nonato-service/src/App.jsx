@@ -420,6 +420,7 @@ const ImportBackupClassification = React.lazy(() =>
   import("./features/parts/ImportBackupClassification")
 );
 const ImportContacts = React.lazy(() => import("./features/clients/ImportContacts"));
+const ManageStock = React.lazy(() => import("./features/stock/ManageStock"));
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ⚙️ CONSTANTES E CONFIGURAÇÕES
@@ -1108,6 +1109,7 @@ const App = () => {
                             path="warehouse"
                             element={<ManageWarehouse />}
                           />
+                          <Route path="stock" element={<ManageStock />} />
                           <Route
                             path="add-warehouse-request"
                             element={<AddWarehouseRequest />}

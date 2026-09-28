@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, Fragment } from "react";
 import {
   collection,
   onSnapshot,
@@ -8,7 +8,11 @@ import {
 import { db } from "../../firebase.jsx";
 import { comparePtPt } from "../../utils/sortHelpers.js";
 import { useNavigate } from "react-router-dom";
+import { useGroups, GROUP_KINDS } from "../../services/groupsStore.js";
+import ManageGroupsDialog from "../../components/shared/ManageGroupsDialog.jsx";
 import {
+  FolderCog,
+  Folder,
   Search,
   Plus,
   Loader2,
@@ -59,6 +63,9 @@ const ManageServices = () => {
   const [sortOrder, setSortOrder] = useState("asc");
   const [sortField, setSortField] = useState("name");
   const [filterType, setFilterType] = useState("all");
+  const [filterGroup, setFilterGroup] = useState("all"); // "all" | "none" | id do grupo
+  const [manageGroupsOpen, setManageGroupsOpen] = useState(false);
+  const { groups, byId: groupsById } = useGroups(GROUP_KINDS.SERVICOS);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState(null);
   // Scroll infinito: lista pequena e sempre lida por inteiro, por isso não
@@ -92,20 +99,35 @@ const ManageServices = () => {
     return () => unsubscribe();
   }, []);
 
+  // Nome do grupo de um serviço ("" se não tiver grupo ou o grupo foi apagado).
+  const groupNameOf = useCallback(
+    (service) => groupsById.get(service.grupoId)?.nome || "",
+    [groupsById]
+  );
+
+  // Organizado por grupo (por ordem alfabética, "Sem grupo" no fim) e,
+  // dentro de cada grupo, pelo campo/ordem escolhidos.
   const sortedServices = useMemo(() => {
     const list = [...services];
     list.sort((a, b) => {
+      const ga = groupNameOf(a);
+      const gb = groupNameOf(b);
+      if (ga !== gb) {
+        if (!ga) return 1;
+        if (!gb) return -1;
+        return comparePtPt(ga, gb);
+      }
       const aVal = (a[sortField] ?? "").toString();
       const bVal = (b[sortField] ?? "").toString();
       const cmp = comparePtPt(aVal, bVal);
       return sortOrder === "asc" ? cmp : -cmp;
     });
     return list;
-  }, [services, sortField, sortOrder]);
+  }, [services, sortField, sortOrder, groupNameOf]);
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [searchTerm, filterType]);
+  }, [searchTerm, filterType, filterGroup]);
 
   const handleDelete = async (serviceId) => {
     try {
@@ -138,13 +160,17 @@ const ManageServices = () => {
     const matchesSearch = service.name
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
-    if (filterType === "all") return matchesSearch;
-    return matchesSearch && service.type === filterType;
+    const matchesType = filterType === "all" || service.type === filterType;
+    const matchesGroup =
+      filterGroup === "all" ||
+      (filterGroup === "none" ? !groupNameOf(service) : service.grupoId === filterGroup);
+    return matchesSearch && matchesType && matchesGroup;
   });
 
   const convertToCSV = (services) => {
-    const headers = ["Nome", "Tipo"];
+    const headers = ["Grupo", "Nome", "Tipo"];
     const rows = services.map((service) => [
+      groupNameOf(service),
       service.name,
       getTypeLabel(service.type),
     ]);
@@ -259,6 +285,36 @@ const ManageServices = () => {
             />
           </div>
 
+          {/* Grupo */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Select value={filterGroup} onValueChange={setFilterGroup}>
+              <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                <SelectValue placeholder="Filtrar por grupo" />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectItem value="all" className="text-white hover:bg-zinc-700">
+                  Todos os grupos
+                </SelectItem>
+                {groups.map((g) => (
+                  <SelectItem key={g.id} value={g.id} className="text-white hover:bg-zinc-700">
+                    {g.nome}
+                  </SelectItem>
+                ))}
+                <SelectItem value="none" className="text-zinc-400 hover:bg-zinc-700">
+                  Sem grupo
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              onClick={() => setManageGroupsOpen(true)}
+              className="border-zinc-700 bg-zinc-900 text-white hover:bg-zinc-700 shrink-0"
+            >
+              <FolderCog className="w-4 h-4 mr-2" />
+              Gerir grupos
+            </Button>
+          </div>
+
           {/* Filters Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select value={filterType} onValueChange={setFilterType}>
@@ -356,7 +412,7 @@ const ManageServices = () => {
         <Button
           variant="outline"
           onClick={() => {
-            const csvContent = convertToCSV(services);
+            const csvContent = convertToCSV(sortedServices);
             downloadCSV(csvContent, "servicos.csv");
           }}
           className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
@@ -368,9 +424,19 @@ const ManageServices = () => {
 
       {/* Services Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {currentServices.map((service) => (
+        {currentServices.map((service, index) => {
+          const groupName = groupNameOf(service);
+          const startsGroup =
+            index === 0 || groupName !== groupNameOf(currentServices[index - 1]);
+          return (
+          <Fragment key={service.id}>
+          {startsGroup && (
+            <h2 className="md:col-span-2 lg:col-span-3 flex items-center gap-2 pt-2 text-sm font-semibold uppercase tracking-wide text-zinc-400">
+              <Folder className="h-4 w-4" />
+              {groupName || "Sem grupo"}
+            </h2>
+          )}
           <Card
-            key={service.id}
             className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-default"
           >
             <CardContent className="p-4">
@@ -427,7 +493,9 @@ const ManageServices = () => {
               </div>
             </CardContent>
           </Card>
-        ))}
+          </Fragment>
+          );
+        })}
 
         {filteredServices.length === 0 && (
           <Card className="md:col-span-2 lg:col-span-3 bg-zinc-800 border-zinc-700">
@@ -490,11 +558,19 @@ const ManageServices = () => {
         </DialogContent>
       </Dialog>
 
+      <ManageGroupsDialog
+        open={manageGroupsOpen}
+        onOpenChange={setManageGroupsOpen}
+        kind={GROUP_KINDS.SERVICOS}
+        title="Grupos de serviços"
+        description="Ex: Manutenção, Reparação, Deslocações. Cada serviço pertence a um grupo."
+      />
+
       {/* FAB Menu for Mobile */}
       <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden">
         <Button
           onClick={() => {
-            const csvContent = convertToCSV(services);
+            const csvContent = convertToCSV(sortedServices);
             downloadCSV(csvContent, "servicos.csv");
           }}
           size="icon"

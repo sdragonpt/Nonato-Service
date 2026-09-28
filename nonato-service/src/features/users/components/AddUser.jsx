@@ -38,6 +38,10 @@ const AddUser = ({ onClose }) => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  // Contas Google (ex: @gmail.com) não precisam de senha: basta autorizar o
+  // email. A conta e o documento em "users" são criados no primeiro login
+  // com o botão "Entrar com Google" (ver useAuth.js).
+  const [googleOnly, setGoogleOnly] = useState(false);
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -58,6 +62,19 @@ const AddUser = ({ onClose }) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+
+    if (googleOnly) {
+      try {
+        await addAuthorizedEmail(formData.email.trim().toLowerCase());
+        onClose();
+      } catch (err) {
+        console.error("Erro ao autorizar email:", err);
+        setError("Erro ao autorizar o email. Por favor, tente novamente.");
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
 
     // ✅ Criar o novo utilizador numa instância secundária da app Firebase,
     // isolada da sessão principal. createUserWithEmailAndPassword autentica
@@ -188,6 +205,24 @@ const AddUser = ({ onClose }) => {
           </div>
         </div>
 
+        <label className="flex items-start gap-2 text-sm text-zinc-300 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={googleOnly}
+            onChange={(e) => setGoogleOnly(e.target.checked)}
+            className="mt-1"
+          />
+          <span>
+            Entra com Google (sem senha)
+            <span className="block text-zinc-500">
+              Para contas Gmail/Google. A pessoa entra com o botão &quot;Entrar com Google&quot;.
+              Fica com a função &quot;Cliente&quot; no primeiro login; depois pode mudá-la na
+              lista de utilizadores.
+            </span>
+          </span>
+        </label>
+
+        {!googleOnly && (
         <div className="space-y-2">
           <label className="text-sm font-medium text-zinc-400">Senha</label>
           <div className="relative">
@@ -216,7 +251,9 @@ const AddUser = ({ onClose }) => {
             </Button>
           </div>
         </div>
+        )}
 
+        {!googleOnly && (
         <div className="space-y-2">
           <label className="text-sm font-medium text-zinc-400">Função</label>
           <Select value={formData.role} onValueChange={handleRoleChange}>
@@ -236,6 +273,7 @@ const AddUser = ({ onClose }) => {
             </SelectContent>
           </Select>
         </div>
+        )}
 
         <Button
           type="submit"

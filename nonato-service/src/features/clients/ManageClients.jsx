@@ -9,7 +9,10 @@ import { useOrcamentos } from "../../context/OrcamentosContext.jsx";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { getCached } from "../../utils/sessionCache.js";
 import { getInitials } from "../../utils/getInitials.js";
+import { useGroups, GROUP_KINDS } from "../../services/groupsStore.js";
+import ManageGroupsDialog from "../../components/shared/ManageGroupsDialog.jsx";
 import {
+  FolderCog,
   Search,
   Plus,
   Loader2,
@@ -198,7 +201,7 @@ const calculateClientFinancialStatus = (clientServices) => {
 // ===================================
 // COMPONENTE ClientCard OTIMIZADO
 // ===================================
-const ClientCard = ({ client, onEdit, onDelete, onView, financialStatus }) => {
+const ClientCard = ({ client, onEdit, onDelete, onView, financialStatus, groupNames }) => {
   const confirmDelete = (e) => {
     e.stopPropagation();
     onDelete(client.id);
@@ -275,6 +278,19 @@ const ClientCard = ({ client, onEdit, onDelete, onView, financialStatus }) => {
           </div>
         </div>
 
+        {groupNames?.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {groupNames.map((nome) => (
+              <span
+                key={nome}
+                className="rounded-full border border-zinc-600 bg-zinc-900 px-2 py-0.5 text-xs text-zinc-300"
+              >
+                {nome}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Endereço (uma linha só — NIF e detalhe financeiro ficam na ficha do cliente) */}
         {client.address && (
           <p className="text-zinc-400 text-xs sm:text-sm truncate flex items-center gap-2 mb-3">
@@ -318,6 +334,9 @@ const ManageClients = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [groupFilter, setGroupFilter] = useState("all"); // "all" | "none" | id do grupo
+  const [manageGroupsOpen, setManageGroupsOpen] = useState(false);
+  const { groups, byId: groupsById } = useGroups(GROUP_KINDS.CLIENTES);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState(null);
   const [sortField, setSortField] = useState("name");
@@ -410,7 +429,16 @@ const ManageClients = () => {
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [searchTerm, statusFilter, sortField, sortOrder]);
+  }, [searchTerm, statusFilter, groupFilter, sortField, sortOrder]);
+
+  // Nomes dos grupos de um cliente (ignora grupos que entretanto foram apagados).
+  const groupNamesOf = useCallback(
+    (client) =>
+      (client.grupoIds || [])
+        .map((id) => groupsById.get(id)?.nome)
+        .filter(Boolean),
+    [groupsById]
+  );
 
   const handleEdit = (clientId) => {
     navigate(`/app/edit-client/${clientId}`);
@@ -491,7 +519,16 @@ const ManageClients = () => {
         (client.postalCode && client.postalCode.includes(searchTerm));
       
       const financialStatus = financialStatuses[client.id];
-      
+
+      if (groupFilter === "none" && groupNamesOf(client).length > 0) return false;
+      if (
+        groupFilter !== "all" &&
+        groupFilter !== "none" &&
+        !(client.grupoIds || []).includes(groupFilter)
+      ) {
+        return false;
+      }
+
       switch (statusFilter) {
         case 'overdue':
           return matchesSearch && financialStatus?.status === 'overdue';
@@ -503,7 +540,7 @@ const ManageClients = () => {
           return matchesSearch;
       }
     });
-  }, [clients, searchTerm, statusFilter, financialStatuses]);
+  }, [clients, searchTerm, statusFilter, groupFilter, groupNamesOf, financialStatuses]);
 
   // Scroll infinito: mostra só os primeiros `visibleCount` da lista já
   // filtrada/ordenada (que está inteira em memória).
@@ -516,11 +553,12 @@ const ManageClients = () => {
 
   const exportToCSV = () => {
     const csvContent = [
-      ["Nome da Empresa", "Telefone", "Endereço", "Código Postal", "NIF", "Equipamentos", "Status Financeiro", "Total Faturado", "Pendente", "Devedor"],
+      ["Nome da Empresa", "Grupos", "Telefone", "Endereço", "Código Postal", "NIF", "Equipamentos", "Status Financeiro", "Total Faturado", "Pendente", "Devedor"],
       ...filteredClients.map(client => {
         const financial = financialStatuses[client.id];
         return [
           client.name || "",
+          groupNamesOf(client).join(" / "),
           client.phone || "",
           client.address || "",
           client.postalCode || "",
@@ -656,6 +694,21 @@ const ManageClients = () => {
                 </SelectContent>
               </Select>
 
+              <Select value={groupFilter} onValueChange={setGroupFilter}>
+                <SelectTrigger className="w-full sm:w-48 bg-zinc-700 border-zinc-600 text-white">
+                  <SelectValue placeholder="Filtrar por grupo" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-800 border-zinc-700">
+                  <SelectItem value="all">Todos os grupos</SelectItem>
+                  {groups.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.nome}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="none">Sem grupo</SelectItem>
+                </SelectContent>
+              </Select>
+
               <Select value={sortField} onValueChange={setSortField}>
                 <SelectTrigger className="w-full sm:w-32 bg-zinc-700 border-zinc-600 text-white">
                   <SelectValue placeholder="Ordenar" />
@@ -668,6 +721,15 @@ const ManageClients = () => {
             </div>
 
             <div className="flex gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                onClick={() => setManageGroupsOpen(true)}
+                className="flex-1 sm:flex-none bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-700"
+              >
+                <FolderCog className="w-4 h-4 mr-2" />
+                Grupos
+              </Button>
+
               <Button
                 variant="outline"
                 onClick={() => setSortOrder(prev => prev === "asc" ? "desc" : "asc")}
@@ -715,6 +777,7 @@ const ManageClients = () => {
             key={client.id}
             client={client}
             financialStatus={financialStatuses[client.id]}
+            groupNames={groupNamesOf(client)}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onView={handleView}
@@ -786,6 +849,14 @@ const ManageClients = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ManageGroupsDialog
+        open={manageGroupsOpen}
+        onOpenChange={setManageGroupsOpen}
+        kind={GROUP_KINDS.CLIENTES}
+        title="Grupos de clientes"
+        description="Ex: Marcenarias, Revendedores, Contrato de manutenção. Um cliente pode estar em vários grupos."
+      />
 
       {/* FAB Menu for Mobile */}
       <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden">

@@ -34,6 +34,7 @@ import {
   HelpCircle,
   FolderTree,
   Contact,
+  Boxes,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -73,6 +74,7 @@ export const ICON_MAP = {
   HelpCircle,
   FolderTree,
   Contact,
+  Boxes,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -119,6 +121,7 @@ export const NAVIGATION_ITEMS = [
     icon: Package,
     items: [
       { path: "/app/parts-library", icon: Book, iconKey: "Book", label: "Biblioteca de Peças" },
+      { path: "/app/stock", icon: Boxes, iconKey: "Boxes", label: "Stock Interno de Peças" },
       { path: "/app/ordens-preparacao", icon: ClipboardCheck, iconKey: "ClipboardCheck", label: "Mapa Visual de Separação de Peças / Cliente" },
       { path: "/app/warehouse", icon: Package, iconKey: "Package", label: "Almoxarifado / Armazém" },
       { path: "/app/warehouse-equipment", icon: Wrench, iconKey: "Wrench", label: "Cadastrar Equipamentos e Visualizar Equipamentos do Armazém" },
@@ -229,6 +232,7 @@ export const ROUTE_META = [
 
   // Almoxarifado / Armazém
   { pattern: "/app/warehouse", label: "Almoxarifado / Armazém", iconKey: "Package" },
+  { pattern: "/app/stock", label: "Stock Interno", iconKey: "Boxes" },
   { pattern: "/app/add-warehouse-request", label: "Novo Pedido de Armazém", iconKey: "Package" },
   { pattern: "/app/alerts", label: "Central de Alertas", iconKey: "Bell" },
   { pattern: "/app/technician-status", label: "Estado Visual do Técnico", iconKey: "UserCog" },

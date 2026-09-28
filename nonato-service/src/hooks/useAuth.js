@@ -34,7 +34,7 @@ export function useAuth() {
           if (!configDoc.exists()) {
             // Criar documento de configuração se não existir
             await setDoc(doc(db, 'config', 'authorizedEmails'), {
-              emails: ["sergionunoribeiro@gmail.com", "service.nonato@gmail.com"]
+              emails: ["sergionunoribeiro@gmail.com","bicanonato@gmail.com","service.nonato@gmail.com"]
             });
           }
 
@@ -103,7 +103,7 @@ export async function addAuthorizedEmail(email) {
     if (!configDoc.exists()) {
       // Se o documento não existir, criar com o array inicial
       await setDoc(configRef, {
-        emails: [email, "sergionunoribeiro@gmail.com", "service.nonato@gmail.com"]
+        emails: [email, "sergionunoribeiro@gmail.com","bicanonato@gmail.com","service.nonato@gmail.com"]
       });
     } else {
       // Se existir, adicionar o novo email

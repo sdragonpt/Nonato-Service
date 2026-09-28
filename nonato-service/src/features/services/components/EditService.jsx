@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useNavigate, useParams } from "react-router-dom";
+import { SingleGroupField } from "../../../components/shared/GroupFields.jsx";
+import { GROUP_KINDS } from "../../../services/groupsStore.js";
 import {
   ArrowLeft,
   Loader2,
@@ -40,6 +42,7 @@ const EditService = () => {
     name: "",
     type: "base",
     description: "",
+    grupoId: "",
   });
   const [touched, setTouched] = useState({});
   const [originalData, setOriginalData] = useState(null);
@@ -57,6 +60,7 @@ const EditService = () => {
             name: serviceData.name || "",
             type: serviceData.type || "base",
             description: serviceData.description || "",
+            grupoId: serviceData.grupoId || "",
           };
           setFormData(formattedData);
           setOriginalData(formattedData);
@@ -197,6 +201,13 @@ const EditService = () => {
                 <p className="text-sm text-red-500">Nome é obrigatório</p>
               )}
             </div>
+
+            <SingleGroupField
+              kind={GROUP_KINDS.SERVICOS}
+              value={formData.grupoId}
+              onChange={(grupoId) => setFormData((prev) => ({ ...prev, grupoId }))}
+              dialogTitle="Grupos de serviços"
+            />
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-400">
