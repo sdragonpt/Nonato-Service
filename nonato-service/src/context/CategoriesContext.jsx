@@ -5,10 +5,19 @@
 // sessões longas não se beneficiavam de uma cache curta, e assim os dados
 // ficam sempre atualizados entre todos os que têm a app aberta, sem
 // precisar de um botão "Atualizar" manual.
+//
+// As categorias vivem num único documento (ver services/categoriesStore.js):
+// abrir a app custa 1 leitura em vez de uma por categoria. Enquanto esse
+// documento não existir (antes de correr "Importar Categorias do Backup"),
+// lê uma vez a coleção antiga "categorias" para a app não ficar sem elas.
 
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { collection, onSnapshot, query } from "firebase/firestore";
-import { db } from "../firebase.jsx";
+import { onSnapshot } from "firebase/firestore";
+import {
+  CATEGORIES_DOC,
+  categoriesFromSnapshot,
+  loadLegacyCategories,
+} from "../services/categoriesStore.js";
 
 const CategoriesContext = createContext();
 
@@ -22,49 +31,68 @@ export const CategoriesProvider = ({ children }) => {
 
   useEffect(() => {
     setIsLoading(true);
-    const unsubscribe = onSnapshot(
-      query(collection(db, "categorias")),
-      (snapshot) => {
-        const mainCats = [];
-        const subCats = [];
-        const catsMap = new Map();
-        const subCatsMap = new Map();
+    let cancelled = false;
 
-        // Organizar em uma única passagem
-        snapshot.docs.forEach((docSnap) => {
-          const data = { id: docSnap.id, ...docSnap.data() };
+    const apply = (list) => {
+      if (cancelled) return;
+      const mainCats = [];
+      const subCats = [];
+      const catsMap = new Map();
+      const subCatsMap = new Map();
 
-          if (data.parentId === null || data.parentId === undefined) {
-            // É uma categoria principal
-            mainCats.push(data);
-            catsMap.set(data.id, data);
-          } else {
-            // É uma subcategoria
-            subCats.push(data);
+      // Organizar em uma única passagem
+      list.forEach((data) => {
+        if (data.parentId === null || data.parentId === undefined) {
+          // É uma categoria principal
+          mainCats.push(data);
+          catsMap.set(data.id, data);
+        } else {
+          // É uma subcategoria
+          subCats.push(data);
 
-            // Organizar subcategorias por categoria pai
-            if (!subCatsMap.has(data.parentId)) {
-              subCatsMap.set(data.parentId, []);
-            }
-            subCatsMap.get(data.parentId).push(data);
+          // Organizar subcategorias por categoria pai
+          if (!subCatsMap.has(data.parentId)) {
+            subCatsMap.set(data.parentId, []);
           }
-        });
+          subCatsMap.get(data.parentId).push(data);
+        }
+      });
 
-        setCategories(mainCats);
-        setSubcategories(subCats);
-        setCategoriesMap(catsMap);
-        setSubcategoriesMap(subCatsMap);
-        setIsLoading(false);
-        setError(null);
+      setCategories(mainCats);
+      setSubcategories(subCats);
+      setCategoriesMap(catsMap);
+      setSubcategoriesMap(subCatsMap);
+      setIsLoading(false);
+      setError(null);
+    };
+
+    const fail = (err) => {
+      console.error("Erro ao ouvir categorias:", err);
+      if (cancelled) return;
+      setError("Erro ao carregar categorias");
+      setIsLoading(false);
+    };
+
+    let legacyLoaded = false;
+    const unsubscribe = onSnapshot(
+      CATEGORIES_DOC,
+      (snap) => {
+        if (snap.exists()) {
+          apply(categoriesFromSnapshot(snap));
+        } else if (!legacyLoaded) {
+          legacyLoaded = true;
+          loadLegacyCategories()
+            .then(({ list }) => apply(list))
+            .catch(fail);
+        }
       },
-      (err) => {
-        console.error("Erro ao ouvir categorias:", err);
-        setError("Erro ao carregar categorias");
-        setIsLoading(false);
-      }
+      fail
     );
 
-    return () => unsubscribe();
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, []);
 
   // Função para buscar categoria por ID (do cache)

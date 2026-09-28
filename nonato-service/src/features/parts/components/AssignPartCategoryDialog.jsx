@@ -1,8 +1,8 @@
 // AssignPartCategoryDialog.jsx
 // Dialog partilhado para atribuir (ou remover) a categoria/subcategoria de
 // uma peça do catálogo HOMAG. Usado na Biblioteca de Peças (lista) e na
-// página de detalhe da peça. Grava na coleção leve "atribuicoesPecas" —
-// ver src/services/partCategoryAssignments.js.
+// página de detalhe da peça. Grava através de
+// src/services/partCategoryAssignments.js.
 
 import { useState, useEffect } from "react";
 import { useCategories } from "../../../context/CategoriesContext.jsx";

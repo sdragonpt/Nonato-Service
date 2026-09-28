@@ -1,8 +1,7 @@
 // ManageCategories.jsx - OTIMIZADO: React.memo + Lazy Stats + Zero Logs
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { doc, updateDoc, writeBatch } from "firebase/firestore";
-import { db } from "../../firebase.jsx";
+import { updateCategory, deleteCategories } from "../../services/categoriesStore.js";
 import { comparePtPt } from "../../utils/sortHelpers.js";
 import { useNavigate } from "react-router-dom";
 import { useCategories } from "../../context/CategoriesContext.jsx";
@@ -413,27 +412,22 @@ const ManageCategories = () => {
 
     try {
       setIsSubmitting(true);
-      const batch = writeBatch(db);
+      const idsToDelete = [categoryToDelete.id];
 
       if (categoryToDelete.isMainCategory) {
         const subcategories = getSubcategoriesByParent(categoryToDelete.id);
 
         // Desclassificar peças do catálogo que tinham esta categoria atribuída
+        // (inclui as das subcategorias, que pertencem a esta categoria)
         await clearCategoryFromAssignments(categoryToDelete.id);
 
-        // Apagar todas as subcategorias (e desclassificar as peças de cada uma)
-        for (const subcategory of subcategories) {
-          await clearSubcategoryFromAssignments(subcategory.id);
-          batch.delete(doc(db, "categorias", subcategory.id));
-        }
-
-        batch.delete(doc(db, "categorias", categoryToDelete.id));
+        // Apagar também todas as subcategorias
+        subcategories.forEach((subcategory) => idsToDelete.push(subcategory.id));
       } else {
         await clearSubcategoryFromAssignments(categoryToDelete.id);
-        batch.delete(doc(db, "categorias", categoryToDelete.id));
       }
 
-      await batch.commit();
+      await deleteCategories(idsToDelete);
       removeCategoryFromCache(categoryToDelete.id);
 
       setDeleteDialogOpen(false);
@@ -462,8 +456,7 @@ const ManageCategories = () => {
     try {
       setIsSubmitting(true);
 
-      const categoryRef = doc(db, "categorias", categoryToEdit.id);
-      await updateDoc(categoryRef, { name: editName });
+      await updateCategory(categoryToEdit.id, { name: editName });
 
       // Atualizar o nome já guardado nas atribuições de categoria das peças do catálogo
       if (categoryToEdit.isMainCategory) {

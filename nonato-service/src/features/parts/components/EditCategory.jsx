@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "../../../firebase.jsx";
+import { updateCategory } from "../../../services/categoriesStore.js";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCategories } from "../../../context/CategoriesContext.jsx"; // NOVO
 import {
@@ -118,10 +117,8 @@ const EditCategory = () => {
       setIsSubmitting(true);
       setError(null);
 
-      const categoryRef = doc(db, "categorias", categoryId);
-
       // Update category data
-      await updateDoc(categoryRef, {
+      await updateCategory(categoryId, {
         ...formData,
         lastUpdate: new Date(),
       });

@@ -6,26 +6,37 @@
 // O que faz:
 // 1. Lê o backup no browser (nada é enviado para lado nenhum até carregar
 //    em "Importar").
-// 2. Compara com o que já existe na coleção "categorias": reaproveita uma
+// 2. Compara com as categorias que já existem: reaproveita uma
 //    categoria se já existir com o mesmo ID ou com o mesmo nome, e só cria
 //    as que faltam (com o ID do backup). O mesmo para as subcategorias,
 //    dentro da categoria-mãe.
-// 3. Grava a categoria/subcategoria de cada peça na coleção
-//    "atribuicoesPecas" (a mesma que o diálogo "Atribuir Categoria" usa).
-//    Por omissão não mexe em peças que já tenham categoria atribuída.
+// 3. Grava a categoria/subcategoria de cada peça através de
+//    services/partCategoryAssignments.js (o mesmo que o diálogo "Atribuir
+//    Categoria" usa). Por omissão não mexe em peças que já tenham
+//    categoria atribuída.
 // 4. Opcionalmente ("Apagar todas as categorias atuais"), apaga antes todas
 //    as categorias, subcategorias e classificações de peças que existam, e
 //    importa o backup do zero.
+// 5. Migra o que ainda esteja nas coleções antigas ("categorias", um
+//    documento por categoria, e "atribuicoesPecas", um por peça) para o
+//    formato novo e apaga-as.
 //
 // Pode ser corrida mais do que uma vez sem duplicar nada.
 
 import { useState } from "react";
-import { collection, getDocs, doc, writeBatch } from "firebase/firestore";
+import { writeBatch } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
+import {
+  loadCategories,
+  loadLegacyCategories,
+  replaceAllCategories,
+} from "../../services/categoriesStore.js";
 import { loadPartsCatalog } from "../../utils/partsCatalogLoader.js";
 import {
   loadPartAssignments,
   bulkApplyAssignments,
+  clearAllAssignments,
+  loadLegacyAssignments,
 } from "../../services/partCategoryAssignments.js";
 import {
   Loader2,
@@ -52,10 +63,8 @@ const normName = (s) =>
     .trim()
     .toUpperCase();
 
-/** Apaga todos os documentos de uma coleção, em lotes. */
-async function deleteAllDocs(collectionName, onProgress) {
-  const snap = await getDocs(collection(db, collectionName));
-  const refs = snap.docs.map((d) => d.ref);
+/** Apaga uma lista de documentos, em lotes. */
+async function deleteRefs(refs, onProgress) {
   for (let i = 0; i < refs.length; i += 450) {
     onProgress?.(i, refs.length);
     const batch = writeBatch(db);
@@ -239,24 +248,45 @@ const ImportBackupClassification = () => {
       setAnalyzing(true);
       setError(null);
       setDone(null);
-      const [snap, catalog, assignments] = await Promise.all([
-        getDocs(collection(db, "categorias")),
+      const [currentCats, legacyCats, catalog, assignments, legacy] = await Promise.all([
+        loadCategories(),
+        loadLegacyCategories(),
         loadPartsCatalog(),
         loadPartAssignments({ force: true }),
+        loadLegacyAssignments(),
       ]);
-      const existingDocs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      // Categorias atuais = formato novo + o que ainda está na coleção antiga.
+      const existingDocs = [
+        ...new Map(
+          [...legacyCats.list, ...currentCats].map((c) => [c.id, c])
+        ).values(),
+      ];
       const codes = new Set(catalog.pecas.map((p) => p.codigo));
+      // Classificação atual = formato novo + o que ainda está na coleção antiga.
+      const current = new Map([...legacy.map, ...assignments]);
+
+      let next;
       if (replace) {
         // Tudo o que existe vai ser apagado: o plano parte do zero.
-        const fresh = buildPlan(data, [], codes, new Map(), true);
-        fresh.toDelete = {
+        next = buildPlan(data, [], codes, new Map(), true);
+        next.toDelete = {
           categorias: existingDocs.length,
-          atribuicoes: assignments.size,
+          atribuicoes: current.size,
         };
-        setPlan(fresh);
+        next.migrate = [];
+        next.keepCategories = [];
       } else {
-        setPlan(buildPlan(data, existingDocs, codes, assignments, overwriteExisting));
+        next = buildPlan(data, existingDocs, codes, current, overwriteExisting);
+        // Peças classificadas só na coleção antiga que o backup não toca:
+        // passam para o formato novo tal como estão.
+        const touched = new Set(next.matches.map((m) => m.codigo));
+        next.migrate = [...legacy.map.values()].filter(
+          (a) => !assignments.has(a.codigo) && !touched.has(a.codigo)
+        );
+        next.keepCategories = existingDocs;
       }
+      next.legacyRefs = [...legacy.refs, ...legacyCats.refs];
+      setPlan(next);
     } catch (err) {
       console.error("Erro ao analisar backup:", err);
       setError("Não foi possível ler as categorias atuais. Verifique a ligação.");
@@ -301,29 +331,32 @@ const ImportBackupClassification = () => {
       setError(null);
 
       if (plan.toDelete) {
-        await deleteAllDocs("atribuicoesPecas", (i, n) =>
-          setProgress(`A apagar classificações antigas (${i}/${n})…`)
-        );
-        await deleteAllDocs("categorias", (i, n) =>
-          setProgress(`A apagar categorias antigas (${i}/${n})…`)
-        );
+        setProgress("A apagar classificações atuais…");
+        await clearAllAssignments();
       }
 
-      for (let i = 0; i < plan.toCreate.length; i += 450) {
-        setProgress(`A criar categorias (${i}/${plan.toCreate.length})…`);
-        const batch = writeBatch(db);
-        plan.toCreate.slice(i, i + 450).forEach((c) => {
-          batch.set(doc(db, "categorias", c.id), {
-            name: c.name,
-            createdAt: new Date(),
-            parentId: c.parentId,
-          });
-        });
-        await batch.commit();
-      }
+      // Lista final de categorias num único documento: as que ficam + as novas
+      // (com "Apagar todas", só as novas).
+      setProgress("A gravar categorias…");
+      const now = new Date();
+      await replaceAllCategories([
+        ...plan.keepCategories,
+        ...plan.toCreate.map((c) => ({
+          id: c.id,
+          name: c.name,
+          createdAt: now,
+          parentId: c.parentId,
+        })),
+      ]);
 
       setProgress(`A classificar ${plan.matches.length} peças…`);
-      await bulkApplyAssignments(plan.matches);
+      await bulkApplyAssignments([...plan.migrate, ...plan.matches]);
+
+      // As coleções antigas (um documento por categoria e por peça) já não
+      // são lidas pela app. Só se apagam depois de o formato novo estar gravado.
+      await deleteRefs(plan.legacyRefs, (i, n) =>
+        setProgress(`A limpar o formato antigo (${i}/${n})…`)
+      );
 
       setDone({
         categorias: plan.toCreate.length,
@@ -505,7 +538,7 @@ const ImportBackupClassification = () => {
 
             <Button
               onClick={runImport}
-              disabled={importing || (plan.toCreate.length === 0 && plan.matches.length === 0)}
+              disabled={importing}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
               {importing ? (

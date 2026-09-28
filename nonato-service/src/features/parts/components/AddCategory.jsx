@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { doc, setDoc, getDoc, increment } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
+import { saveCategory } from "../../../services/categoriesStore.js";
 import { useNavigate } from "react-router-dom";
 import { useCategories } from "../../../context/CategoriesContext.jsx"; // NOVO
 import { ArrowLeft, Loader2, Plus, AlertTriangle, Tag } from "lucide-react";
@@ -81,7 +82,7 @@ const AddCategory = () => {
         parentId: null, // Indica que é uma categoria principal
       };
 
-      await setDoc(doc(db, "categorias", newCategoryId.toString()), {
+      await saveCategory(newCategoryId.toString(), {
         ...formData,
         createdAt: new Date(),
         parentId: null,

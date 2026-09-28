@@ -132,14 +132,33 @@ service cloud.firestore {
       allow read, write: if isAuthorized();
     }
 
-    // ── categorias — a loja pública precisa disto em tempo real ──
+    // ── Categorias e subcategorias de peças: um único documento
+    // (categoriasPecas/todas, ver services/categoriesStore.js). A loja
+    // pública precisa disto em tempo real — 1 leitura por visita. ──
+    match /categoriasPecas/{id} {
+      allow read: if true;
+      allow write: if isAuthorized();
+    }
+    // Formato antigo (um documento por categoria). A app só o lê enquanto
+    // categoriasPecas/todas não existir; a importação do backup migra-o e
+    // apaga-o. Leitura pública mantida até lá, para a loja não ficar sem
+    // categorias.
     match /categorias/{id} {
       allow read: if true;
       allow write: if isAuthorized();
     }
-    match /atribuicoesPecas/{id} {
+    // Classificação das peças: 16 documentos ("lotes") com um mapa
+    // código → categoria (ver services/partCategoryAssignments.js). A loja
+    // pública lê-os todos em cada visita — 16 leituras em vez de uma por peça.
+    match /classificacaoPecas/{lote} {
       allow read: if true;
       allow write: if isAuthorized();
+    }
+    // Formato antigo (um documento por peça). A app já não o lê; a
+    // importação do backup migra o que lá estiver e apaga-o. Leitura
+    // restrita a autorizados porque só essa ferramenta de admin a usa.
+    match /atribuicoesPecas/{id} {
+      allow read, write: if isAuthorized();
     }
 
     // ── pecasEditadas — alterações de nome/imagem/descrição feitas na app
