@@ -1,32 +1,33 @@
 // src/utils/partsCatalogLoader.js
 // Lê o catálogo estático de peças (public/pecas-data/), gerado pelo script
-// scripts/parts-catalog/build-catalog.js a partir de CSVs (ex.: exports da
-// HOMAG). Suporta múltiplos "lotes" — basta correr o script outra vez com um
-// novo CSV para acrescentar mais peças, sem tocar nos lotes já existentes.
+// scripts/parts-catalog/build-catalog.js a partir de CSVs ou JSONs (ex.:
+// exports da HOMAG). Suporta múltiplos "lotes" listados no manifest.json.
 //
-// PROTÓTIPO: esta função ainda não está ligada a nenhuma página da app.
-// Serve para validar a abordagem (ver useStaticPartsCatalog mais abaixo,
-// ou chamar loadPartsCatalog() diretamente) antes de decidir substituir a
-// Biblioteca de Peças atual (Firestore) por esta.
+// Por cima do catálogo aplica as edições feitas na app (coleção
+// "pecasEditadas", ver services/partEdits.js) — assim todos os sítios que
+// usam o catálogo (Biblioteca de Peças, loja pública, pesquisa de peças nos
+// formulários) veem o nome/imagem/descrição já editados.
 
 import { useState, useEffect } from "react";
 import { comparePtPt } from "./sortHelpers.js";
+import { loadPartEdits } from "../services/partEdits.js";
 
-let cachedCatalog = null;
+let baseCatalog = null; // catálogo tal como vem dos JSONs
+let baseInFlight = null;
+let cachedCatalog = null; // catálogo com as edições aplicadas
 let inFlightPromise = null;
 
 /**
  * Vai buscar o manifest.json e todos os lotes que ele lista, junta tudo
  * numa única lista e remove duplicados por código (o lote que aparecer
  * depois no manifest "ganha" em caso de código repetido entre lotes).
- * O resultado fica em cache em memória — só faz os pedidos de rede uma vez
- * por sessão da app.
+ * Os ficheiros só são pedidos uma vez por sessão da app.
  */
-export async function loadPartsCatalog({ force = false } = {}) {
-  if (cachedCatalog && !force) return cachedCatalog;
-  if (inFlightPromise && !force) return inFlightPromise;
+async function loadBaseCatalog({ force = false } = {}) {
+  if (baseCatalog && !force) return baseCatalog;
+  if (baseInFlight && !force) return baseInFlight;
 
-  inFlightPromise = (async () => {
+  baseInFlight = (async () => {
     const manifestRes = await fetch("/pecas-data/manifest.json");
     if (!manifestRes.ok) {
       throw new Error("Não foi possível carregar o manifest do catálogo de peças.");
@@ -48,13 +49,55 @@ export async function loadPartsCatalog({ force = false } = {}) {
       }
     }
 
-    const merged = Array.from(byCodigo.values()).sort((a, b) =>
-      comparePtPt(a.nome, b.nome)
-    );
+    baseCatalog = { byCodigo, lotes: manifest };
+    return baseCatalog;
+  })();
+
+  try {
+    return await baseInFlight;
+  } finally {
+    baseInFlight = null;
+  }
+}
+
+/** Aplica uma edição a uma peça, guardando os valores originais. */
+function applyEdit(peca, edit) {
+  if (!edit) return peca;
+  const original = {
+    nome: peca.nome,
+    imagem: peca.imagem || "",
+    descricao: peca.descricao || "",
+  };
+  const merged = { ...peca, editada: true, original };
+  if (edit.nome !== undefined) merged.nome = edit.nome;
+  if (edit.imagem !== undefined) merged.imagem = edit.imagem;
+  if (edit.descricao !== undefined) merged.descricao = edit.descricao;
+  return merged;
+}
+
+export async function loadPartsCatalog({ force = false } = {}) {
+  if (cachedCatalog && !force) return cachedCatalog;
+  if (inFlightPromise && !force) return inFlightPromise;
+
+  inFlightPromise = (async () => {
+    const base = await loadBaseCatalog({ force });
+
+    // Se as edições não carregarem (ex.: sem rede para a Firestore, ou
+    // regras ainda não publicadas), o catálogo continua a funcionar.
+    let edits = new Map();
+    try {
+      edits = await loadPartEdits({ force });
+    } catch (err) {
+      console.warn("Não foi possível carregar as edições de peças:", err);
+    }
+
+    const merged = Array.from(base.byCodigo.values())
+      .map((p) => applyEdit(p, edits.get(p.codigo)))
+      .sort((a, b) => comparePtPt(a.nome, b.nome));
 
     cachedCatalog = {
       pecas: merged,
-      lotes: manifest,
+      lotes: base.lotes,
       total: merged.length,
     };
     return cachedCatalog;
@@ -65,6 +108,14 @@ export async function loadPartsCatalog({ force = false } = {}) {
   } finally {
     inFlightPromise = null;
   }
+}
+
+/**
+ * Obriga a próxima chamada a loadPartsCatalog() a reaplicar as edições
+ * (os JSONs não voltam a ser pedidos). Chamar depois de editar uma peça.
+ */
+export function invalidatePartsCatalogEdits() {
+  cachedCatalog = null;
 }
 
 /** Hook de conveniência para usar o catálogo diretamente num componente React. */

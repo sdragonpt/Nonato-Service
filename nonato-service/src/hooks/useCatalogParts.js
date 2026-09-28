@@ -7,7 +7,11 @@
 // na Firestore — esse conceito deixou de existir.
 
 import { useState, useEffect, useCallback } from "react";
-import { loadPartsCatalog } from "../utils/partsCatalogLoader.js";
+import {
+  loadPartsCatalog,
+  invalidatePartsCatalogEdits,
+} from "../utils/partsCatalogLoader.js";
+import { invalidatePartEditsCache } from "../services/partEdits.js";
 import {
   loadPartAssignments,
   invalidatePartAssignmentsCache,
@@ -23,6 +27,12 @@ function mergePart(catalogPart, assignment) {
     imagem: catalogPart.imagem || "",
     image: catalogPart.imagem || null,
     imageHash: null,
+    descricao: catalogPart.descricao || "",
+    description: catalogPart.descricao || "",
+    codigosRelacionados: catalogPart.codigosRelacionados || [],
+    relatedCodes: catalogPart.codigosRelacionados || [],
+    editada: Boolean(catalogPart.editada),
+    original: catalogPart.original || null,
     categoryId: assignment?.categoryId || "",
     categoryName: assignment?.categoryName || "",
     subcategoryId: assignment?.subcategoryId || "",
@@ -84,6 +94,8 @@ export function useCatalogParts() {
 
   const refresh = useCallback(() => {
     invalidatePartAssignmentsCache();
+    invalidatePartEditsCache();
+    invalidatePartsCatalogEdits();
     setReloadToken((t) => t + 1);
   }, []);
 

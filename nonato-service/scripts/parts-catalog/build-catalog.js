@@ -22,7 +22,9 @@
 //    também podes misturar CSVs e JSONs no mesmo lote)
 //
 // Resultado:
-//   public/pecas-data/<nome-do-lote>.json   <- peças deste lote (nome, codigo, imagem)
+//   public/pecas-data/<nome-do-lote>.json   <- peças deste lote (nome, codigo, imagem
+//                                              e, quando existirem, descricao e
+//                                              codigosRelacionados)
 //   public/pecas-data/manifest.json          <- lista de todos os lotes existentes
 
 import fs from "fs";
@@ -41,6 +43,8 @@ const FIELD_ALIASES = {
   name: ["nome", "name", "descricao_curta", "designacao", "designação"],
   code: ["codigo", "código", "code", "ref", "referencia", "referência", "number", "número"],
   imageUrl: ["imagem", "imagemurl", "imagem_url", "urlimagem", "image", "imageurl", "image_url"],
+  description: ["descricao", "descrição", "description"],
+  relatedCodes: ["codigosrelacionados", "codigos_relacionados", "relatedcodes"],
 };
 
 function normalizeHeader(h) {
@@ -141,7 +145,9 @@ function rowsFromJsonText(text) {
     for (const [key, value] of Object.entries(item || {})) {
       const field = resolveField(key);
       if (field && obj[field] === undefined && value != null) {
-        obj[field] = String(value).trim();
+        obj[field] = Array.isArray(value)
+          ? value.map((v) => String(v).trim()).filter(Boolean)
+          : String(value).trim();
       }
     }
     return obj;
@@ -154,6 +160,44 @@ function rowsFromFile(file) {
   return file.toLowerCase().endsWith(".json")
     ? rowsFromJsonText(text)
     : rowsFromCsvText(text);
+}
+
+// ─── Campos opcionais ───
+
+/**
+ * Muitas exportações repetem o nome e o código dentro da descrição
+ * (ex.: "ROLL D=18 | COD: 2007453750 | ROLL D=18"). Aqui só fica o texto que
+ * acrescenta alguma coisa ao nome — o resto é descartado.
+ */
+function cleanDescription(descricao, nome, codigo) {
+  if (!descricao || typeof descricao !== "string") return "";
+  const n = nome.replace(/\s+/g, " ").trim().toUpperCase();
+  const c = codigo.trim().toUpperCase();
+  return descricao
+    .split(/\||\n/)
+    .map((s) => s.replace(/\s+/g, " ").trim())
+    .filter((s) => {
+      const u = s.toUpperCase();
+      return s && u !== n && u !== c && u !== `COD: ${c}`;
+    })
+    .join(" | ");
+}
+
+function cleanRelatedCodes(codes, codigo) {
+  if (!codes) return [];
+  const list = Array.isArray(codes) ? codes : String(codes).split(/[;,]/);
+  const dig = (v) => String(v).toUpperCase().replace(/[^0-9A-Z]/g, "");
+  const own = dig(codigo);
+  const seen = new Set([own, `R${own}`, `${own}R`]);
+  const out = [];
+  for (const v of list) {
+    const d = dig(v);
+    if (d && !seen.has(d)) {
+      seen.add(d);
+      out.push(d);
+    }
+  }
+  return out;
 }
 
 // ─── Leitura de argumentos da linha de comandos ───
@@ -282,11 +326,17 @@ function main() {
       const nome = (row.name || "").trim();
       if (!codigo || !nome) continue; // linha sem código ou nome não é utilizável
 
-      seen.set(codigo, {
+      const peca = {
         nome,
         codigo,
         imagem: (row.imageUrl || "").trim(),
-      });
+      };
+      const descricao = cleanDescription(row.description, nome, codigo);
+      if (descricao) peca.descricao = descricao;
+      const codigosRelacionados = cleanRelatedCodes(row.relatedCodes, codigo);
+      if (codigosRelacionados.length) peca.codigosRelacionados = codigosRelacionados;
+
+      seen.set(codigo, peca);
     }
   }
 
@@ -297,7 +347,7 @@ function main() {
     process.exit(1);
   }
 
-  const batchName = slugify(name || defaultBatchName(csvFiles));
+  const batchName = slugify(name || defaultBatchName(inputFiles));
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   const outputPath = path.join(OUTPUT_DIR, `${batchName}.json`);
   fs.writeFileSync(outputPath, JSON.stringify(pecas, null, 2) + "\n", "utf-8");

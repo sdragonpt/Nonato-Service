@@ -1,13 +1,15 @@
 // PartDetail.jsx
 // Detalhe de uma peça do catálogo HOMAG. Todas as peças vêm do catálogo
-// estático (ver useCatalogParts.js) — não há mais peças "geridas" na
-// Firestore, por isso não há edição de nome/preço/imagem nem exclusão
-// aqui. A única coisa editável é a categoria/subcategoria atribuída.
+// estático (ver useCatalogParts.js). Nome, descrição e imagem podem ser
+// editados (EditPartDialog → coleção "pecasEditadas"), e a categoria/
+// subcategoria é atribuída à parte (AssignPartCategoryDialog). Não há
+// exclusão: a peça continua sempre no catálogo.
 
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useCatalogParts } from "../../../hooks/useCatalogParts.js";
 import AssignPartCategoryDialog from "./AssignPartCategoryDialog.jsx";
+import EditPartDialog from "./EditPartDialog.jsx";
 
 import {
   Loader2,
@@ -15,6 +17,7 @@ import {
   Tag,
   AlertTriangle,
   Package,
+  Pencil,
 } from "lucide-react";
 
 // UI Components
@@ -36,6 +39,7 @@ const PartDetail = () => {
 
   const [imageFailed, setImageFailed] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const part = parts.find((p) => p.id === partId);
 
@@ -105,6 +109,11 @@ const PartDetail = () => {
                 <Badge className="bg-blue-500/10 text-blue-500">
                   {part.code}
                 </Badge>
+                {part.editada && (
+                  <Badge className="bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                    Editada
+                  </Badge>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -132,14 +141,45 @@ const PartDetail = () => {
           </div>
         </CardHeader>
 
-        <CardContent>
-          <Button
-            onClick={() => setAssignDialogOpen(true)}
-            className="bg-green-600 hover:bg-green-700 text-white"
-          >
-            <Tag className="w-4 h-4 mr-2" />
-            {part.categoryName ? "Editar Categoria" : "Atribuir Categoria"}
-          </Button>
+        <CardContent className="space-y-5">
+          {part.descricao && (
+            <div>
+              <p className="text-sm font-medium text-zinc-400 mb-1">Descrição</p>
+              <p className="text-zinc-200 whitespace-pre-line">{part.descricao}</p>
+            </div>
+          )}
+
+          {part.relatedCodes?.length > 0 && (
+            <div>
+              <p className="text-sm font-medium text-zinc-400 mb-2">
+                Códigos relacionados
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {part.relatedCodes.map((c) => (
+                  <Badge key={c} className="bg-zinc-700 text-zinc-300">
+                    {c}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => setEditDialogOpen(true)}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Pencil className="w-4 h-4 mr-2" />
+              Editar Peça
+            </Button>
+            <Button
+              onClick={() => setAssignDialogOpen(true)}
+              className="bg-zinc-700 hover:bg-zinc-600 text-white"
+            >
+              <Tag className="w-4 h-4 mr-2" />
+              {part.categoryName ? "Editar Categoria" : "Atribuir Categoria"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -148,6 +188,16 @@ const PartDetail = () => {
         onOpenChange={setAssignDialogOpen}
         part={part}
         onSaved={refreshCatalog}
+      />
+
+      <EditPartDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        part={part}
+        onSaved={() => {
+          setImageFailed(false);
+          refreshCatalog();
+        }}
       />
     </div>
   );

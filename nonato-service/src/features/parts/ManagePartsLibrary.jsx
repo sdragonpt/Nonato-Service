@@ -329,7 +329,8 @@ const ManagePartsLibrary = () => {
       list = list.filter(
         (p) =>
           p.name?.toLowerCase().includes(term) ||
-          p.code?.toLowerCase().includes(term)
+          p.code?.toLowerCase().includes(term) ||
+          p.relatedCodes?.some((c) => c.toLowerCase().includes(term))
       );
     }
 

@@ -22,7 +22,10 @@ export async function searchCatalogParts(term, { limit = 10 } = {}) {
   for (const p of pecas) {
     const nome = (p.nome || "").toLowerCase();
     const codigo = (p.codigo || "").toLowerCase();
-    if (nome.includes(t) || codigo.includes(t)) {
+    const relacionado = (p.codigosRelacionados || []).some((c) =>
+      c.toLowerCase().includes(t)
+    );
+    if (nome.includes(t) || codigo.includes(t) || relacionado) {
       results.push({
         id: p.codigo,
         name: p.nome,

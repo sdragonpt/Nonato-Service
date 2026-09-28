@@ -416,6 +416,9 @@ const ManageCommunicationHub = React.lazy(() =>
 );
 
 const PartsExportTool = React.lazy(() => import("./context/PartsExportTool"));
+const ImportBackupClassification = React.lazy(() =>
+  import("./features/parts/ImportBackupClassification")
+);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ⚙️ CONSTANTES E CONFIGURAÇÕES
@@ -1318,6 +1321,14 @@ const App = () => {
                             element={
                               <RoleRoute allowedRoles={["admin"]}>
                                 <PartsExportTool />
+                              </RoleRoute>
+                            }
+                          />
+                          <Route
+                            path="parts-import-categories"
+                            element={
+                              <RoleRoute allowedRoles={["admin"]}>
+                                <ImportBackupClassification />
                               </RoleRoute>
                             }
                           />

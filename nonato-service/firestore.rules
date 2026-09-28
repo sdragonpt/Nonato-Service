@@ -142,6 +142,15 @@ service cloud.firestore {
       allow write: if isAuthorized();
     }
 
+    // ── pecasEditadas — alterações de nome/imagem/descrição feitas na app
+    // por cima do catálogo estático (ver src/services/partEdits.js). Leitura
+    // pública pelo mesmo motivo que atribuicoesPecas: a loja pública mostra
+    // as peças já com as edições aplicadas. ──
+    match /pecasEditadas/{id} {
+      allow read: if true;
+      allow write: if isAuthorized();
+    }
+
     // ── image_library — só leitura pontual (get), nunca listagem completa.
     // Não foi encontrado nenhum caminho de escrita a partir do código da
     // app; se algo externo escreve aqui, ajustar antes de publicar. ──

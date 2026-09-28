@@ -32,6 +32,7 @@ import {
   GraduationCap,
   Trash2,
   HelpCircle,
+  FolderTree,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -69,6 +70,7 @@ export const ICON_MAP = {
   GraduationCap,
   Trash2,
   HelpCircle,
+  FolderTree,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -157,6 +159,7 @@ export const NAVIGATION_ITEMS = [
     items: [
       { path: "/app/company-profile", icon: Building2, iconKey: "Building2", label: "Cadastro da Nonato Service", adminOnly: true },
       { path: "/app/parts-export", icon: FileSpreadsheet, iconKey: "FileSpreadsheet", label: "Exportar Peças CSV", adminOnly: true },
+      { path: "/app/parts-import-categories", icon: FolderTree, iconKey: "FolderTree", label: "Importar Categorias do Backup", adminOnly: true },
     ],
   },
 ];
@@ -289,6 +292,7 @@ export const ROUTE_META = [
   // Administração
   { pattern: "/app/manage-users", label: "Utilizadores", iconKey: "UserCog" },
   { pattern: "/app/parts-export", label: "Exportar Peças CSV", iconKey: "FileSpreadsheet" },
+  { pattern: "/app/parts-import-categories", label: "Importar Categorias", iconKey: "FolderTree" },
   { pattern: "/app/manual", label: "Manual do Programa", iconKey: "HelpCircle" },
 ];
 
