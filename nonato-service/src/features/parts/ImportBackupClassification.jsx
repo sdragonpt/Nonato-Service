@@ -13,6 +13,9 @@
 // 3. Grava a categoria/subcategoria de cada peça na coleção
 //    "atribuicoesPecas" (a mesma que o diálogo "Atribuir Categoria" usa).
 //    Por omissão não mexe em peças que já tenham categoria atribuída.
+// 4. Opcionalmente ("Apagar todas as categorias atuais"), apaga antes todas
+//    as categorias, subcategorias e classificações de peças que existam, e
+//    importa o backup do zero.
 //
 // Pode ser corrida mais do que uma vez sem duplicar nada.
 
@@ -48,6 +51,18 @@ const normName = (s) =>
     .replace(/\s+/g, " ")
     .trim()
     .toUpperCase();
+
+/** Apaga todos os documentos de uma coleção, em lotes. */
+async function deleteAllDocs(collectionName, onProgress) {
+  const snap = await getDocs(collection(db, collectionName));
+  const refs = snap.docs.map((d) => d.ref);
+  for (let i = 0; i < refs.length; i += 450) {
+    onProgress?.(i, refs.length);
+    const batch = writeBatch(db);
+    refs.slice(i, i + 450).forEach((r) => batch.delete(r));
+    await batch.commit();
+  }
+}
 
 const cleanName = (s) => String(s || "").replace(/\s+/g, " ").trim();
 
@@ -211,6 +226,7 @@ const ImportBackupClassification = () => {
   const [backup, setBackup] = useState(null);
   const [fileName, setFileName] = useState("");
   const [overwrite, setOverwrite] = useState(false);
+  const [replaceAll, setReplaceAll] = useState(false);
   const [plan, setPlan] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -218,7 +234,7 @@ const ImportBackupClassification = () => {
   const [done, setDone] = useState(null);
   const [error, setError] = useState(null);
 
-  const analyze = async (data, overwriteExisting) => {
+  const analyze = async (data, { overwriteExisting, replace }) => {
     try {
       setAnalyzing(true);
       setError(null);
@@ -230,7 +246,17 @@ const ImportBackupClassification = () => {
       ]);
       const existingDocs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       const codes = new Set(catalog.pecas.map((p) => p.codigo));
-      setPlan(buildPlan(data, existingDocs, codes, assignments, overwriteExisting));
+      if (replace) {
+        // Tudo o que existe vai ser apagado: o plano parte do zero.
+        const fresh = buildPlan(data, [], codes, new Map(), true);
+        fresh.toDelete = {
+          categorias: existingDocs.length,
+          atribuicoes: assignments.size,
+        };
+        setPlan(fresh);
+      } else {
+        setPlan(buildPlan(data, existingDocs, codes, assignments, overwriteExisting));
+      }
     } catch (err) {
       console.error("Erro ao analisar backup:", err);
       setError("Não foi possível ler as categorias atuais. Verifique a ligação.");
@@ -253,7 +279,7 @@ const ImportBackupClassification = () => {
       }
       setBackup(data);
       setFileName(file.name);
-      await analyze(data, overwrite);
+      await analyze(data, { overwriteExisting: overwrite, replace: replaceAll });
     } catch {
       setError("O ficheiro não é um JSON válido.");
     }
@@ -261,9 +287,27 @@ const ImportBackupClassification = () => {
 
   const runImport = async () => {
     if (!plan) return;
+    if (
+      plan.toDelete &&
+      !window.confirm(
+        `Vão ser apagadas ${plan.toDelete.categorias} categorias/subcategorias e ` +
+          `${plan.toDelete.atribuicoes} classificações de peças. Não é possível desfazer. Continuar?`
+      )
+    ) {
+      return;
+    }
     try {
       setImporting(true);
       setError(null);
+
+      if (plan.toDelete) {
+        await deleteAllDocs("atribuicoesPecas", (i, n) =>
+          setProgress(`A apagar classificações antigas (${i}/${n})…`)
+        );
+        await deleteAllDocs("categorias", (i, n) =>
+          setProgress(`A apagar categorias antigas (${i}/${n})…`)
+        );
+      }
 
       for (let i = 0; i < plan.toCreate.length; i += 450) {
         setProgress(`A criar categorias (${i}/${plan.toCreate.length})…`);
@@ -356,11 +400,13 @@ const ImportBackupClassification = () => {
           <label className="flex items-start gap-2 text-sm text-zinc-300">
             <input
               type="checkbox"
-              checked={overwrite}
-              disabled={analyzing || importing}
+              checked={overwrite || replaceAll}
+              disabled={analyzing || importing || replaceAll}
               onChange={(e) => {
                 setOverwrite(e.target.checked);
-                if (backup) analyze(backup, e.target.checked);
+                if (backup) {
+                  analyze(backup, { overwriteExisting: e.target.checked, replace: replaceAll });
+                }
               }}
               className="mt-1"
             />
@@ -368,6 +414,28 @@ const ImportBackupClassification = () => {
               Substituir a categoria de peças que já foram classificadas na app
               <span className="block text-zinc-500">
                 Desligado: essas peças ficam como estão.
+              </span>
+            </span>
+          </label>
+
+          <label className="flex items-start gap-2 text-sm text-zinc-300">
+            <input
+              type="checkbox"
+              checked={replaceAll}
+              disabled={analyzing || importing}
+              onChange={(e) => {
+                setReplaceAll(e.target.checked);
+                if (backup) {
+                  analyze(backup, { overwriteExisting: overwrite, replace: e.target.checked });
+                }
+              }}
+              className="mt-1"
+            />
+            <span>
+              Apagar todas as categorias atuais antes de importar
+              <span className="block text-zinc-500">
+                Apaga todas as categorias, subcategorias e classificações de peças
+                que existem hoje e fica só com as do backup. Não é possível desfazer.
               </span>
             </span>
           </label>
@@ -388,6 +456,14 @@ const ImportBackupClassification = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+              {plan.toDelete && (
+                <>
+                  <dt className="text-red-400">A apagar: categorias e subcategorias</dt>
+                  <dd className="text-red-300">{plan.toDelete.categorias}</dd>
+                  <dt className="text-red-400">A apagar: classificações de peças</dt>
+                  <dd className="text-red-300">{plan.toDelete.atribuicoes}</dd>
+                </>
+              )}
               <dt className="text-zinc-400">Categorias novas</dt>
               <dd className="text-white">{plan.newCats}</dd>
               <dt className="text-zinc-400">Subcategorias novas</dt>
