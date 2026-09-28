@@ -33,6 +33,7 @@ import {
   Trash2,
   HelpCircle,
   FolderTree,
+  Contact,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -71,6 +72,7 @@ export const ICON_MAP = {
   Trash2,
   HelpCircle,
   FolderTree,
+  Contact,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -96,6 +98,7 @@ export const NAVIGATION_ITEMS = [
     icon: Users,
     items: [
       { path: "/app/manage-clients", icon: Users, iconKey: "Users", label: "Cadastro de Clientes" },
+      { path: "/app/import-contacts", icon: Contact, iconKey: "Contact", label: "Importar Contactos", adminOnly: true },
       { path: "/app/manage-suppliers", icon: Truck, iconKey: "Truck", label: "Cadastro de Fornecedores" },
     ],
   },
@@ -293,6 +296,7 @@ export const ROUTE_META = [
   { pattern: "/app/manage-users", label: "Utilizadores", iconKey: "UserCog" },
   { pattern: "/app/parts-export", label: "Exportar Peças CSV", iconKey: "FileSpreadsheet" },
   { pattern: "/app/parts-import-categories", label: "Importar Categorias", iconKey: "FolderTree" },
+  { pattern: "/app/import-contacts", label: "Importar Contactos", iconKey: "Contact" },
   { pattern: "/app/manual", label: "Manual do Programa", iconKey: "HelpCircle" },
 ];
 

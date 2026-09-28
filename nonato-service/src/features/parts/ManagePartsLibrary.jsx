@@ -83,6 +83,22 @@ const loadFromStorage = (key, defaultValue) => {
 
 const PAGE_SIZE = 24;
 
+// ✅ Miniatura da peça com zoom ao passar o rato: a imagem cresce por cima
+// do resto do cartão e volta ao tamanho normal quando o rato sai.
+const ZoomablePartImage = ({ part, sizeClassName }) => (
+  <div className={`relative shrink-0 ${sizeClassName}`}>
+    <div className="absolute inset-0 rounded-lg overflow-hidden bg-zinc-900 origin-left transition-transform duration-200 ease-out hover:z-30 hover:scale-[3] hover:shadow-2xl hover:ring-1 hover:ring-zinc-600">
+      <PartImage
+        src={part.image}
+        imageHash={part.imageHash}
+        alt={part.name}
+        className="w-full h-full object-contain"
+        defaultImage="/default-part.png"
+      />
+    </div>
+  </div>
+);
+
 // ✅ PART CARD — todas as peças vêm do catálogo; a única ação é atribuir categoria.
 const PartCard = React.memo(({ part, viewMode, onAssign, onView }) => {
   const handleAssign = useCallback(
@@ -139,15 +155,7 @@ const PartCard = React.memo(({ part, viewMode, onAssign, onView }) => {
       >
         <CardContent className="p-3">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg overflow-hidden">
-              <PartImage
-                src={part.image}
-                imageHash={part.imageHash}
-                alt={part.name}
-                className="w-full h-full object-cover"
-                defaultImage="/default-part.png"
-              />
-            </div>
+            <ZoomablePartImage part={part} sizeClassName="h-16 w-16" />
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-base text-white truncate">
                 {part.name}
@@ -173,15 +181,7 @@ const PartCard = React.memo(({ part, viewMode, onAssign, onView }) => {
     >
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg overflow-hidden">
-            <PartImage
-              src={part.image}
-              imageHash={part.imageHash}
-              alt={part.name}
-              className="w-full h-full object-cover"
-              defaultImage="/default-part.png"
-            />
-          </div>
+          <ZoomablePartImage part={part} sizeClassName="h-20 w-20 sm:h-24 sm:w-24" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-base sm:text-lg text-white truncate">
@@ -321,7 +321,11 @@ const ManagePartsLibrary = () => {
     const term = debouncedSearchTerm.trim().toLowerCase();
     let list = catalogParts;
 
-    if (filterCategory !== "all") {
+    if (filterCategory === "with-category") {
+      list = list.filter((p) => p.categoryId);
+    } else if (filterCategory === "without-category") {
+      list = list.filter((p) => !p.categoryId);
+    } else if (filterCategory !== "all") {
       list = list.filter((p) => p.categoryId === filterCategory);
     }
 
@@ -647,6 +651,12 @@ const ManagePartsLibrary = () => {
                   <SelectContent className="bg-zinc-800 border-zinc-700">
                     <SelectItem value="all" className="text-white hover:bg-zinc-700">
                       Todas as Categorias
+                    </SelectItem>
+                    <SelectItem value="with-category" className="text-white hover:bg-zinc-700">
+                      Só peças com categoria
+                    </SelectItem>
+                    <SelectItem value="without-category" className="text-white hover:bg-zinc-700">
+                      Só peças sem categoria
                     </SelectItem>
                     {sortedCategories.length > 0 ? (
                       sortedCategories.map((category) => (
