@@ -12,7 +12,7 @@ rules_version = '2';
 // Pastas conhecidas (mapeadas a partir do código em src/, grep por
 // `ref(storage, ...)`): clientes/, equipamentos/, equipamentosArmazem/,
 // config/companyProfile/, documents/, protocolos/, despesas/, users/,
-// relatorios/, inspections/, pecas/.
+// relatorios/, inspections/, pecas/, stock/.
 //
 // A loja pública (sem sessão) só vê ficheiros do Storage em pecas/: as
 // fotografias carregadas ao editar uma peça (services/partEdits.js). Essas
@@ -22,7 +22,7 @@ rules_version = '2';
 //
 // ATENÇÃO: no Storage, quando várias regras "match" apanham o mesmo
 // ficheiro, basta UMA permitir para o pedido passar. Por isso as pastas
-// com regras mais apertadas (config/companyProfile/, pecas/) têm de ficar
+// com regras mais apertadas (config/companyProfile/, pecas/, stock/) têm de ficar
 // de fora da regra geral — senão a regra geral anulava as restrições.
 //
 // ⚠️ Testar com o Firebase Emulator Suite antes de publicar.
@@ -69,11 +69,20 @@ service firebase.storage {
         request.resource.contentType.matches('image/.*');
     }
 
+    // Fotografias do stock interno (services/stockService.js). Mesmos
+    // limites que as fotografias de peças.
+    match /stock/{artigo}/{ficheiro} {
+      allow read, delete: if isAuthorized();
+      allow create, update: if isAuthorized() &&
+        request.resource.size < 5 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+
     // Todo o resto — qualquer utilizador autenticado E autorizado (mesmo
     // nível de acesso que o resto da app usa hoje para as suas coleções).
     match /{pasta}/{allPaths=**} {
       allow read, write: if isAuthorized() &&
-        pasta != 'config' && pasta != 'pecas';
+        pasta != 'config' && pasta != 'pecas' && pasta != 'stock';
     }
   }
 }

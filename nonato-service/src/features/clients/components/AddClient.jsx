@@ -6,6 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { useClients } from "../../../context/ClientsContext.jsx";
 import { searchIncludes } from "../../../utils/normalizeSearch.js";
 import { compressImage } from "../../../utils/imageCompression.js";
+import { MultiGroupField } from "../../../components/shared/GroupFields.jsx";
+import { GROUP_KINDS } from "../../../services/groupsStore.js";
 import {
   ArrowLeft,
   Camera,
@@ -66,6 +68,7 @@ const AddClient = () => {
     nif: "",
     type: "individual", // individual ou company
     company: "",
+    grupoIds: [],
   });
   const [photoFile, setPhotoFile] = useState(null);
   const [profilePicPreview, setProfilePicPreview] = useState("");
@@ -412,6 +415,13 @@ const AddClient = () => {
                 />
               </div>
             </div>
+
+            <MultiGroupField
+              kind={GROUP_KINDS.CLIENTES}
+              value={formData.grupoIds}
+              onChange={(grupoIds) => setFormData((prev) => ({ ...prev, grupoIds }))}
+              dialogTitle="Grupos de clientes"
+            />
           </CardContent>
         </Card>
 

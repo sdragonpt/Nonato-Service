@@ -12,7 +12,11 @@ import {
   moveStock,
   setStockQuantity,
   loadStockMovements,
+  uploadStockPhoto,
+  deleteStockPhoto,
 } from "../../services/stockService.js";
+import { loadPartAssignments } from "../../services/partCategoryAssignments.js";
+import { useCategories } from "../../context/CategoriesContext.jsx";
 import { searchCatalogParts } from "../../utils/catalogPartSearch.js";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { comparePtPt } from "../../utils/sortHelpers.js";
@@ -31,6 +35,8 @@ import {
   ClipboardCheck,
   MapPin,
   X,
+  Camera,
+  Tag,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card.jsx";
@@ -80,15 +86,33 @@ const StockImage = ({ item }) => (
 
 // ─── Criar / editar artigo ─────────────────────────────────────────────
 
-const emptyForm = { codigo: "", nome: "", imagem: "", quantidade: "0", minimo: "0", localizacao: "", notas: "" };
+const emptyForm = {
+  codigo: "",
+  nome: "",
+  imagem: "",
+  imagemStoragePath: "",
+  categoryId: "",
+  subcategoryId: "",
+  quantidade: "0",
+  minimo: "0",
+  localizacao: "",
+  notas: "",
+};
+
+const NONE = "__none__";
 
 const ItemFormDialog = ({ open, onOpenChange, item, existingCodes }) => {
   const isEdit = Boolean(item);
+  const { categories, getSubcategoriesByParent } = useCategories();
   const [form, setForm] = useState(emptyForm);
   const [catalogTerm, setCatalogTerm] = useState("");
   const [catalogResults, setCatalogResults] = useState([]);
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  // ID do artigo novo, fixado ao abrir (a foto é carregada para stock/<id>/).
+  const newIdRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
@@ -97,10 +121,28 @@ const ItemFormDialog = ({ open, onOpenChange, item, existingCodes }) => {
         ? { ...emptyForm, ...item, quantidade: String(item.quantidade), minimo: String(item.minimo || 0) }
         : emptyForm
     );
+    newIdRef.current = item ? null : newStockItemId();
     setCatalogTerm("");
     setCatalogResults([]);
+    setPhotoFile(null);
+    setPhotoPreview("");
     setError(null);
   }, [open, item]);
+
+  // Liberta a pré-visualização da foto quando deixa de ser precisa.
+  useEffect(() => () => photoPreview && URL.revokeObjectURL(photoPreview), [photoPreview]);
+
+  const sortedCategories = useMemo(
+    () => [...categories].sort((a, b) => comparePtPt(a.name, b.name)),
+    [categories]
+  );
+  const subcategories = useMemo(
+    () =>
+      form.categoryId
+        ? [...getSubcategoriesByParent(form.categoryId)].sort((a, b) => comparePtPt(a.name, b.name))
+        : [],
+    [form.categoryId, getSubcategoriesByParent]
+  );
 
   // Pesquisa no catálogo HOMAG para preencher código, nome e imagem.
   useEffect(() => {
@@ -123,9 +165,43 @@ const ItemFormDialog = ({ open, onOpenChange, item, existingCodes }) => {
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
   const pickCatalogPart = (p) => {
-    setForm((f) => ({ ...f, codigo: p.code, nome: p.name, imagem: p.image || "" }));
+    setForm((f) => ({
+      ...f,
+      codigo: p.code,
+      nome: p.name,
+      // Se já foi tirada uma foto, fica a foto; senão usa a imagem do catálogo.
+      imagem: photoFile ? f.imagem : p.image || "",
+    }));
     setCatalogTerm("");
     setCatalogResults([]);
+    // Se a peça já está classificada na Biblioteca de Peças, traz a categoria.
+    loadPartAssignments()
+      .then((assignments) => {
+        const a = assignments.get(p.code);
+        if (a?.categoryId) {
+          setForm((f) => ({ ...f, categoryId: a.categoryId, subcategoryId: a.subcategoryId || "" }));
+        }
+      })
+      .catch((err) => console.warn("Não foi possível ler a categoria da peça:", err));
+  };
+
+  const handlePhoto = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Escolha uma imagem.");
+      return;
+    }
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+    setError(null);
+  };
+
+  const removePhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview("");
+    setForm((f) => ({ ...f, imagem: "" }));
   };
 
   const handleSave = async () => {
@@ -141,8 +217,24 @@ const ItemFormDialog = ({ open, onOpenChange, item, existingCodes }) => {
     try {
       setSaving(true);
       setError(null);
-      if (isEdit) await updateStockItem(item.id, form);
-      else await createStockItem(newStockItemId(), form);
+      const id = isEdit ? item.id : newIdRef.current;
+      const data = { ...form };
+
+      if (photoFile) {
+        const uploaded = await uploadStockPhoto(id, photoFile);
+        data.imagem = uploaded.url;
+        data.imagemStoragePath = uploaded.storagePath;
+      } else if (!data.imagem) {
+        data.imagemStoragePath = "";
+      }
+
+      if (isEdit) await updateStockItem(id, data);
+      else await createStockItem(id, data);
+
+      // A foto própria anterior deixou de ser usada (substituída ou removida).
+      const oldPath = item?.imagemStoragePath;
+      if (oldPath && oldPath !== data.imagemStoragePath) await deleteStockPhoto(oldPath);
+
       onOpenChange(false);
     } catch (err) {
       console.error("Erro ao guardar artigo de stock:", err);
@@ -163,7 +255,7 @@ const ItemFormDialog = ({ open, onOpenChange, item, existingCodes }) => {
           {!isEdit && (
             <div className="space-y-2">
               <label className="text-sm text-zinc-400">
-                Procurar no catálogo HOMAG (preenche código, nome e imagem)
+                Procurar no catálogo HOMAG (preenche código, nome, imagem e categoria)
               </label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
@@ -193,6 +285,36 @@ const ItemFormDialog = ({ open, onOpenChange, item, existingCodes }) => {
             </div>
           )}
 
+          {/* Foto */}
+          <div className="flex items-center gap-3">
+            <div className="h-24 w-24 shrink-0 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-700">
+              <PartImage
+                src={photoPreview || form.imagem || null}
+                alt={form.nome}
+                className="w-full h-full object-contain"
+                defaultImage="/default-part.png"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="inline-flex">
+                <input type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+                <span className="inline-flex items-center rounded-md border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm text-white hover:bg-zinc-700 cursor-pointer">
+                  <Camera className="h-4 w-4 mr-2" />
+                  {photoPreview || form.imagem ? "Trocar foto" : "Tirar / carregar foto"}
+                </span>
+              </label>
+              {(photoPreview || form.imagem) && (
+                <button
+                  type="button"
+                  onClick={removePhoto}
+                  className="text-left text-sm text-red-400 hover:text-red-300"
+                >
+                  Remover foto
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1 sm:col-span-2">
               <label className="text-sm text-zinc-400">Nome *</label>
@@ -201,6 +323,47 @@ const ItemFormDialog = ({ open, onOpenChange, item, existingCodes }) => {
             <div className="space-y-1">
               <label className="text-sm text-zinc-400">Código</label>
               <Input value={form.codigo} onChange={set("codigo")} className={fieldClass} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm text-zinc-400">Categoria</label>
+              <Select
+                value={form.categoryId || NONE}
+                onValueChange={(v) =>
+                  setForm((f) => ({ ...f, categoryId: v === NONE ? "" : v, subcategoryId: "" }))
+                }
+              >
+                <SelectTrigger className={fieldClass}>
+                  <SelectValue placeholder="Sem categoria" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-800 border-zinc-700">
+                  <SelectItem value={NONE} className="text-zinc-400">Sem categoria</SelectItem>
+                  {sortedCategories.map((c) => (
+                    <SelectItem key={c.id} value={c.id} className="text-white">
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm text-zinc-400">Subcategoria</label>
+              <Select
+                value={form.subcategoryId || NONE}
+                onValueChange={(v) => setForm((f) => ({ ...f, subcategoryId: v === NONE ? "" : v }))}
+                disabled={subcategories.length === 0}
+              >
+                <SelectTrigger className={fieldClass}>
+                  <SelectValue placeholder="Sem subcategoria" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-800 border-zinc-700">
+                  <SelectItem value={NONE} className="text-zinc-400">Sem subcategoria</SelectItem>
+                  {subcategories.map((s) => (
+                    <SelectItem key={s.id} value={s.id} className="text-white">
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <label className="text-sm text-zinc-400">Localização (prateleira)</label>
@@ -428,6 +591,12 @@ const ManageStock = () => {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all"); // "all" | "none" | id
+  const { categories, getCategoryById, getSubcategoryById } = useCategories();
+  const sortedCategories = useMemo(
+    () => [...categories].sort((a, b) => comparePtPt(a.name, b.name)),
+    [categories]
+  );
 
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -475,6 +644,8 @@ const ManageStock = () => {
     let list = items;
     if (filter === "low") list = list.filter(isLow);
     else if (filter === "empty") list = list.filter((i) => i.quantidade <= 0);
+    if (categoryFilter === "none") list = list.filter((i) => !getCategoryById(i.categoryId));
+    else if (categoryFilter !== "all") list = list.filter((i) => i.categoryId === categoryFilter);
     const t = search.trim();
     if (t) {
       list = list.filter(
@@ -482,14 +653,22 @@ const ManageStock = () => {
       );
     }
     return [...list].sort((a, b) => comparePtPt(a.nome, b.nome));
-  }, [items, filter, search]);
+  }, [items, filter, categoryFilter, getCategoryById, search]);
+
+  /** "Categoria / Subcategoria" do artigo, ou "" se não tiver. */
+  const categoryLabel = (item) => {
+    const cat = getCategoryById(item.categoryId);
+    if (!cat) return "";
+    const sub = item.subcategoryId ? getSubcategoryById(item.subcategoryId) : null;
+    return sub ? `${cat.name} / ${sub.name}` : cat.name;
+  };
 
   const openMove = (item, mode) => setMoveState({ open: true, item, mode });
 
   const handleDelete = async (item) => {
     if (!window.confirm(`Apagar "${item.nome}" do stock? O histórico de movimentos fica guardado.`)) return;
     try {
-      await deleteStockItem(item.id);
+      await deleteStockItem(item);
     } catch (err) {
       console.error("Erro ao apagar artigo:", err);
       setError("Não foi possível apagar o artigo.");
@@ -545,7 +724,7 @@ const ManageStock = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-[1fr_16rem] gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_16rem_16rem] gap-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
           <Input
@@ -573,6 +752,20 @@ const ManageStock = () => {
             <SelectItem value="all" className="text-white">Todos os artigos</SelectItem>
             <SelectItem value="low" className="text-white">Abaixo do mínimo</SelectItem>
             <SelectItem value="empty" className="text-white">Sem stock</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className={fieldClass}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-800 border-zinc-700">
+            <SelectItem value="all" className="text-white">Todas as categorias</SelectItem>
+            {sortedCategories.map((c) => (
+              <SelectItem key={c.id} value={c.id} className="text-white">
+                {c.name}
+              </SelectItem>
+            ))}
+            <SelectItem value="none" className="text-zinc-400">Sem categoria</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -608,6 +801,12 @@ const ManageStock = () => {
                       )}
                       {item.minimo > 0 && <span>Mínimo: {item.minimo}</span>}
                     </div>
+                    {categoryLabel(item) && (
+                      <span className="inline-flex items-center gap-1 mt-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-400">
+                        <Tag className="h-3 w-3" />
+                        {categoryLabel(item)}
+                      </span>
+                    )}
                   </div>
 
                   <div className="text-center shrink-0 w-16">

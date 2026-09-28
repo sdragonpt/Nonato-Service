@@ -27,7 +27,9 @@ import {
   deleteField,
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import { db, firebaseApp } from "../firebase.jsx";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { db, firebaseApp, storage } from "../firebase.jsx";
+import { compressImage } from "../utils/imageCompression.js";
 
 export const STOCK_COLLECTION = "stockPecas";
 export const STOCK_MOVEMENTS_COLLECTION = "movimentosStock";
@@ -85,6 +87,11 @@ const cleanFields = (data) => ({
   codigo: (data.codigo || "").trim(),
   nome: (data.nome || "").trim(),
   imagem: data.imagem || "",
+  // Só preenchido quando a foto foi carregada para o Storage (e não vem do catálogo).
+  imagemStoragePath: data.imagemStoragePath || "",
+  // As mesmas categorias da Biblioteca de Peças (ver categoriesStore.js).
+  categoryId: data.categoryId || "",
+  subcategoryId: data.subcategoryId || "",
   minimo: Math.max(0, Number(data.minimo) || 0),
   localizacao: (data.localizacao || "").trim(),
   notas: (data.notas || "").trim(),
@@ -116,11 +123,12 @@ export async function updateStockItem(id, data) {
   await batch.commit();
 }
 
-/** Apaga o artigo. O histórico de movimentos fica guardado. */
-export async function deleteStockItem(id) {
+/** Apaga o artigo (e a foto própria, se tiver). O histórico de movimentos fica guardado. */
+export async function deleteStockItem(item) {
   const batch = writeBatch(db);
-  batch.set(bucketRef(id), { itens: { [id]: deleteField() } }, { merge: true });
+  batch.set(bucketRef(item.id), { itens: { [item.id]: deleteField() } }, { merge: true });
   await batch.commit();
+  await deleteStockPhoto(item.imagemStoragePath);
 }
 
 /** Entrada (delta positivo) ou saída (delta negativo) de stock. */
@@ -156,6 +164,28 @@ export async function setStockQuantity(item, novaQuantidade, motivo) {
     motivo: motivo || "Acerto de inventário",
   });
   await batch.commit();
+}
+
+/**
+ * Carrega uma foto do artigo para o Storage (comprimida). Devolve
+ * { url, storagePath } para gravar em imagem / imagemStoragePath.
+ */
+export async function uploadStockPhoto(itemId, file) {
+  const compressed = await compressImage(file);
+  const storagePath = `stock/${itemId}/${Date.now()}.jpg`;
+  const storageRef = ref(storage, storagePath);
+  await uploadBytes(storageRef, compressed, { contentType: "image/jpeg" });
+  return { url: await getDownloadURL(storageRef), storagePath };
+}
+
+/** Apaga uma foto antiga do Storage. Falhar aqui não é grave (fica só o ficheiro órfão). */
+export async function deleteStockPhoto(storagePath) {
+  if (!storagePath) return;
+  try {
+    await deleteObject(ref(storage, storagePath));
+  } catch (err) {
+    console.warn("Não foi possível apagar a foto antiga do stock:", err);
+  }
 }
 
 /** Histórico de um artigo, mais recente primeiro. */

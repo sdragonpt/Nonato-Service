@@ -271,7 +271,11 @@ const EditClient = () => {
 
   const hasChanges =
     (originalData &&
-      Object.keys(formData).some((key) => formData[key] !== originalData[key])) ||
+      Object.keys(formData).some((key) =>
+        key === "grupoIds"
+          ? [...formData.grupoIds].sort().join() !== [...(originalData.grupoIds || [])].sort().join()
+          : formData[key] !== originalData[key]
+      )) ||
     !!photoFile ||
     photoRemoved;
 
