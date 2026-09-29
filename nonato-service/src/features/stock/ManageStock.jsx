@@ -833,7 +833,7 @@ const ManageStock = () => {
                       title="Dar saída"
                       onClick={() => openMove(item, "saida")}
                       disabled={item.quantidade <= 0}
-                      className="h-9 w-9 bg-red-600/80 hover:bg-red-600 text-white"
+                      className="h-9 w-9 border border-red-500/40 bg-red-500/15 text-red-400 hover:bg-red-500/30 hover:text-red-300"
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
@@ -841,7 +841,7 @@ const ManageStock = () => {
                       size="icon"
                       title="Dar entrada"
                       onClick={() => openMove(item, "entrada")}
-                      className="h-9 w-9 bg-green-600 hover:bg-green-700 text-white"
+                      className="h-9 w-9 border border-green-500/40 bg-green-500/15 text-green-400 hover:bg-green-500/30 hover:text-green-300"
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
