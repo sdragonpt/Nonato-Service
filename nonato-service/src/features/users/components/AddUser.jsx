@@ -56,6 +56,37 @@ const AddUser = ({ onClose }) => {
     }));
   };
 
+  // Mensagem clara para cada motivo de erro, em vez de um "tente novamente" genérico.
+  const errorMessage = (err) => {
+    switch (err?.code) {
+      case "permission-denied":
+        return "A sua conta não tem permissão para adicionar utilizadores. É preciso ter a função Administrador.";
+      case "auth/email-already-in-use":
+        return "Este email já tem conta (por exemplo, já entrou com o Google). Marque \"Entra com Google (sem senha)\" para só lhe dar acesso.";
+      case "auth/invalid-email":
+        return "Email inválido.";
+      case "auth/weak-password":
+        return "A senha deve ter pelo menos 6 caracteres.";
+      case "auth/operation-not-allowed":
+        return "O login com email e senha está desligado no Firebase. Use a opção \"Entra com Google\".";
+      case "unavailable":
+      case "auth/network-request-failed":
+        return "Sem ligação à internet. Tente de novo.";
+      default:
+        return `Erro ao criar utilizador${err?.code ? ` (${err.code})` : ""}. Tente novamente.`;
+    }
+  };
+
+  // Convite: guarda o nome e a função escolhidos; aplicados no primeiro
+  // login (useAuth.js). Com id = email.
+  const saveInvite = (cleanEmail) =>
+    setDoc(doc(db, "authorized_profiles", cleanEmail), {
+      email: cleanEmail,
+      displayName: formData.displayName,
+      role: formData.role,
+      createdAt: new Date(),
+    });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -66,21 +97,14 @@ const AddUser = ({ onClose }) => {
     // FLUXO: GOOGLE APENAS
     if (googleOnly) {
       try {
-        // 1. Adicionar email à lista de autorizados
+        // 1. Guardar o convite (função escolhida) e 2. dar acesso ao email
+        await saveInvite(cleanEmail);
         await addAuthorizedEmail(cleanEmail);
-
-        // 2. Pré-criar o perfil no Firestore (com id = email) para guardar a função definida pelo admin
-        await setDoc(doc(db, "authorized_profiles", cleanEmail), {
-          email: cleanEmail,
-          displayName: formData.displayName,
-          role: formData.role,
-          createdAt: new Date(),
-        });
 
         onClose();
       } catch (err) {
         console.error("Erro ao autorizar email:", err);
-        setError("Erro ao autorizar o email. Por favor, tente novamente.");
+        setError(errorMessage(err));
       } finally {
         setIsLoading(false);
       }
@@ -95,7 +119,8 @@ const AddUser = ({ onClose }) => {
     const secondaryAuth = getAuth(secondaryApp);
 
     try {
-      // 1. Adicionar o email à lista de autorizados
+      // 1. Guardar o convite e adicionar o email à lista de autorizados
+      await saveInvite(cleanEmail);
       await addAuthorizedEmail(cleanEmail);
 
       // 2. Criar usuário no Firebase Auth (instância secundária)
@@ -119,19 +144,7 @@ const AddUser = ({ onClose }) => {
       onClose();
     } catch (err) {
       console.error("Erro ao criar usuário:", err);
-      switch (err.code) {
-        case "auth/email-already-in-use":
-          setError("Este email já está em uso.");
-          break;
-        case "auth/invalid-email":
-          setError("Email inválido.");
-          break;
-        case "auth/weak-password":
-          setError("A senha deve ter pelo menos 6 caracteres.");
-          break;
-        default:
-          setError("Erro ao criar usuário. Por favor, tente novamente.");
-      }
+      setError(errorMessage(err));
     } finally {
       try {
         await signOut(secondaryAuth);

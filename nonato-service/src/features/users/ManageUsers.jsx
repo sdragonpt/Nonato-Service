@@ -1,12 +1,8 @@
-import { useState, useEffect } from "react";
-import {
-  deleteDoc,
-  doc,
-  getDoc,
-  setDoc,
-} from "firebase/firestore";
+import { useState, useEffect, useMemo } from "react";
+import { collection, deleteDoc, doc, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useUsers } from "../../context/UsersContext.jsx";
+import { OWNER_EMAILS, revokeAuthorizedEmail } from "../../hooks/useAuth.js";
 import {
   Table,
   TableBody,
@@ -39,6 +35,8 @@ import {
   Users,
   UserPlus,
   Shield,
+  Clock,
+  X,
 } from "lucide-react";
 
 import AddUser from "./components/AddUser.jsx";
@@ -65,6 +63,48 @@ const ManageUsers = () => {
     if (usersError) setError(usersError);
   }, [usersError]);
 
+  // Emails com acesso e convites (nome/função escolhidos ao autorizar).
+  const [authorizedEmails, setAuthorizedEmails] = useState([]);
+  const [invites, setInvites] = useState(new Map());
+  useEffect(() => {
+    const unsubEmails = onSnapshot(
+      doc(db, "config", "authorizedEmails"),
+      (snap) => setAuthorizedEmails(snap.data()?.emails || []),
+      (err) => console.error("Erro ao ler emails autorizados:", err)
+    );
+    const unsubInvites = onSnapshot(
+      collection(db, "authorized_profiles"),
+      (snap) => setInvites(new Map(snap.docs.map((d) => [d.id, d.data()]))),
+      (err) => console.error("Erro ao ler convites:", err)
+    );
+    return () => {
+      unsubEmails();
+      unsubInvites();
+    };
+  }, []);
+
+  // Convites pendentes: emails com acesso que ainda não entraram na app.
+  const pendingInvites = useMemo(() => {
+    const registered = new Set(users.map((u) => (u.email || "").toLowerCase()));
+    return authorizedEmails
+      .filter((email) => !registered.has(email.toLowerCase()) && !OWNER_EMAILS.includes(email))
+      .map((email) => ({ email, ...invites.get(email) }));
+  }, [authorizedEmails, invites, users]);
+
+  const cancelInvite = async (email) => {
+    if (!window.confirm(`Retirar o acesso a ${email}?`)) return;
+    try {
+      await revokeAuthorizedEmail(email);
+    } catch (err) {
+      console.error("Erro ao cancelar convite:", err);
+      setError(
+        err?.code === "permission-denied"
+          ? "A sua conta não tem permissão para gerir acessos. É preciso ter a função Administrador."
+          : "Não foi possível retirar o acesso. Tente novamente."
+      );
+    }
+  };
+
   const confirmDelete = (user) => {
     setUserToDelete(user);
     setDeleteDialogOpen(true);
@@ -84,16 +124,9 @@ const ManageUsers = () => {
       // 1. Delete from Firestore users collection
       await deleteDoc(doc(db, "users", userToDelete.id));
 
-      // 2. Remove from authorized emails config
-      const configRef = doc(db, "config", "authorizedEmails");
-      const configDoc = await getDoc(configRef);
-      if (configDoc.exists()) {
-        const currentEmails = configDoc.data().emails;
-        const updatedEmails = currentEmails.filter(
-          (email) => email !== userToDelete.email
-        );
-        await setDoc(configRef, { emails: updatedEmails });
-      }
+      // 2. Retirar o acesso (lista de emails autorizados + convite).
+      // As contas dono nunca são retiradas.
+      if (userToDelete.email) await revokeAuthorizedEmail(userToDelete.email);
 
       // 3. Delete from Firebase Authentication
       // IMPORTANTE: Isto deve ser feito através de uma função do backend/Cloud Function
@@ -105,7 +138,11 @@ const ManageUsers = () => {
       setUserToDelete(null);
     } catch (err) {
       console.error("Erro ao deletar usuário:", err);
-      setError("Erro ao deletar usuário. Por favor, tente novamente.");
+      setError(
+        err?.code === "permission-denied"
+          ? "A sua conta não tem permissão para apagar utilizadores. É preciso ter a função Administrador."
+          : "Erro ao deletar usuário. Por favor, tente novamente."
+      );
     } finally {
       setLoading(false);
     }
@@ -251,6 +288,48 @@ const ManageUsers = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Convites pendentes — autorizados que ainda não entraram */}
+      {pendingInvites.length > 0 && (
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white flex items-center gap-2">
+              <Clock className="h-5 w-5 text-amber-400" />
+              Convites pendentes
+            </CardTitle>
+            <p className="text-sm text-zinc-400">
+              Estas pessoas já têm acesso mas ainda não entraram na app. Ficam com a função
+              indicada no primeiro login.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y divide-zinc-700">
+              {pendingInvites.map((inv) => (
+                <li key={inv.email} className="flex items-center gap-3 py-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white truncate">{inv.displayName || inv.email}</p>
+                    {inv.displayName && (
+                      <p className="text-sm text-zinc-400 truncate">{inv.email}</p>
+                    )}
+                  </div>
+                  <Badge className={getRoleBadgeStyle(inv.role || "client")}>
+                    {getRoleLabel(inv.role || "client")}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    title="Retirar acesso"
+                    onClick={() => cancelInvite(inv.email)}
+                    className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

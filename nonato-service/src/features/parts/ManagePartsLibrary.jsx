@@ -59,6 +59,7 @@ import {
 const STORAGE_KEYS = {
   SEARCH_TERM: "parts_search",
   FILTER_CATEGORY: "parts_filter",
+  FILTER_CLASSIFIED: "parts_filter_classified",
   SORT_FIELD: "parts_sort",
   VIEW_MODE: "parts_view",
   ACTIVE_TAB: "parts_tab",
@@ -84,10 +85,18 @@ const loadFromStorage = (key, defaultValue) => {
 const PAGE_SIZE = 24;
 
 // ✅ Miniatura da peça com zoom ao passar o rato: a imagem cresce por cima
-// do resto do cartão e volta ao tamanho normal quando o rato sai.
+// do resto do cartão e volta ao tamanho normal quando o rato sai. Só há
+// zoom quando a peça tem imagem — ampliar a imagem genérica não serve de nada.
+const ZOOM_CLASSES =
+  "transition-transform duration-200 ease-out hover:z-30 hover:scale-[3] hover:shadow-2xl hover:ring-1 hover:ring-zinc-600";
+
 const ZoomablePartImage = ({ part, sizeClassName }) => (
   <div className={`relative shrink-0 ${sizeClassName}`}>
-    <div className="absolute inset-0 rounded-lg overflow-hidden bg-zinc-900 origin-left transition-transform duration-200 ease-out hover:z-30 hover:scale-[3] hover:shadow-2xl hover:ring-1 hover:ring-zinc-600">
+    <div
+      className={`absolute inset-0 rounded-lg overflow-hidden bg-zinc-900 origin-left ${
+        part.image ? ZOOM_CLASSES : ""
+      }`}
+    >
       <PartImage
         src={part.image}
         imageHash={part.imageHash}
@@ -252,8 +261,14 @@ const ManagePartsLibrary = () => {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(() =>
     loadFromStorage(STORAGE_KEYS.SEARCH_TERM, "")
   );
-  const [filterCategory, setFilterCategory] = useState(() =>
-    loadFromStorage(STORAGE_KEYS.FILTER_CATEGORY, "all")
+  const [filterCategory, setFilterCategory] = useState(() => {
+    const saved = loadFromStorage(STORAGE_KEYS.FILTER_CATEGORY, "all");
+    // Valores antigos, de quando "com/sem categoria" estavam nesta lista.
+    return saved === "with-category" || saved === "without-category" ? "all" : saved;
+  });
+  // "all" | "with" | "without" — peças com / sem categoria atribuída.
+  const [filterClassified, setFilterClassified] = useState(() =>
+    loadFromStorage(STORAGE_KEYS.FILTER_CLASSIFIED, "all")
   );
   const [sortField, setSortField] = useState(() =>
     loadFromStorage(STORAGE_KEYS.SORT_FIELD, "name")
@@ -302,6 +317,10 @@ const ManagePartsLibrary = () => {
     [filterCategory]
   );
   useEffect(
+    () => saveToStorage(STORAGE_KEYS.FILTER_CLASSIFIED, filterClassified),
+    [filterClassified]
+  );
+  useEffect(
     () => saveToStorage(STORAGE_KEYS.SORT_FIELD, sortField),
     [sortField]
   );
@@ -321,11 +340,14 @@ const ManagePartsLibrary = () => {
     const term = debouncedSearchTerm.trim().toLowerCase();
     let list = catalogParts;
 
-    if (filterCategory === "with-category") {
+    if (filterClassified === "with") {
       list = list.filter((p) => p.categoryId);
-    } else if (filterCategory === "without-category") {
+    } else if (filterClassified === "without") {
       list = list.filter((p) => !p.categoryId);
-    } else if (filterCategory !== "all") {
+    }
+
+    // Uma categoria concreta não faz sentido junto com "sem categoria".
+    if (filterCategory !== "all" && filterClassified !== "without") {
       list = list.filter((p) => p.categoryId === filterCategory);
     }
 
@@ -347,11 +369,11 @@ const ManagePartsLibrary = () => {
       }
       return sortOrder === "asc" ? result : -result;
     });
-  }, [catalogParts, filterCategory, debouncedSearchTerm, sortField, sortOrder]);
+  }, [catalogParts, filterCategory, filterClassified, debouncedSearchTerm, sortField, sortOrder]);
 
   useEffect(() => {
     setAllTabPage(1);
-  }, [debouncedSearchTerm, filterCategory, sortField, sortOrder]);
+  }, [debouncedSearchTerm, filterCategory, filterClassified, sortField, sortOrder]);
 
   const allTabTotalPages = Math.max(
     1,
@@ -377,6 +399,7 @@ const ManagePartsLibrary = () => {
     setSearchTerm("");
     setDebouncedSearchTerm("");
     setFilterCategory("all");
+    setFilterClassified("all");
     setSelectedCategory(null);
     setSelectedSubcategory(null);
     setSortField("name");
@@ -487,9 +510,10 @@ const ManagePartsLibrary = () => {
     () =>
       searchTerm ||
       filterCategory !== "all" ||
+      filterClassified !== "all" ||
       sortField !== "name" ||
       sortOrder !== "asc",
-    [searchTerm, filterCategory, sortField, sortOrder]
+    [searchTerm, filterCategory, filterClassified, sortField, sortOrder]
   );
 
   // Peças por categoria/subcategoria (em memória, calculado a cada render dos dados)
@@ -643,20 +667,49 @@ const ManagePartsLibrary = () => {
                 )}
               </div>
 
+              {/* Com / sem categoria — botões à parte, para não se perderem no meio das categorias */}
+              <div className="grid grid-cols-3 gap-2" role="group" aria-label="Classificação das peças">
+                {[
+                  ["all", "Todas as peças", total],
+                  ["with", "Com categoria", classifiedCount],
+                  ["without", "Sem categoria", total - classifiedCount],
+                ].map(([value, label, count]) => {
+                  const active = filterClassified === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setFilterClassified(value)}
+                      aria-pressed={active}
+                      className={`rounded-lg border-2 px-2 py-2.5 text-center transition-colors ${
+                        active
+                          ? value === "without"
+                            ? "border-amber-500 bg-amber-500/15 text-amber-300"
+                            : "border-green-500 bg-green-500/15 text-green-300"
+                          : "border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-700"
+                      }`}
+                    >
+                      <span className="block text-sm sm:text-base font-semibold">{label}</span>
+                      <span className="block text-xs opacity-80">
+                        {catalogLoading ? "…" : count.toLocaleString("pt-PT")}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Select value={filterCategory} onValueChange={setFilterCategory}>
+                <Select
+                  value={filterCategory}
+                  onValueChange={setFilterCategory}
+                  disabled={filterClassified === "without"}
+                >
                   <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
                     <SelectValue placeholder="Filtrar por categoria" />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-800 border-zinc-700">
                     <SelectItem value="all" className="text-white hover:bg-zinc-700">
                       Todas as Categorias
-                    </SelectItem>
-                    <SelectItem value="with-category" className="text-white hover:bg-zinc-700">
-                      Só peças com categoria
-                    </SelectItem>
-                    <SelectItem value="without-category" className="text-white hover:bg-zinc-700">
-                      Só peças sem categoria
                     </SelectItem>
                     {sortedCategories.length > 0 ? (
                       sortedCategories.map((category) => (

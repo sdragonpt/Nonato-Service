@@ -70,10 +70,17 @@ const fieldClass = "bg-zinc-900 border-zinc-700 text-white";
 
 const isLow = (item) => item.minimo > 0 && item.quantidade <= item.minimo;
 
-// Miniatura com zoom ao passar o rato (igual à Biblioteca de Peças).
+// Miniatura com zoom ao passar o rato (igual à Biblioteca de Peças) — só
+// quando o artigo tem imagem.
 const StockImage = ({ item }) => (
   <div className="relative shrink-0 h-16 w-16">
-    <div className="absolute inset-0 rounded-lg overflow-hidden bg-zinc-900 origin-left transition-transform duration-200 ease-out hover:z-30 hover:scale-[3] hover:shadow-2xl hover:ring-1 hover:ring-zinc-600">
+    <div
+      className={`absolute inset-0 rounded-lg overflow-hidden bg-zinc-900 origin-left ${
+        item.imagem
+          ? "transition-transform duration-200 ease-out hover:z-30 hover:scale-[3] hover:shadow-2xl hover:ring-1 hover:ring-zinc-600"
+          : ""
+      }`}
+    >
       <PartImage
         src={item.imagem || null}
         alt={item.nome}

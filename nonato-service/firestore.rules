@@ -69,19 +69,42 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // ── config/authorizedEmails — a própria lista de controlo de acesso ──
-    // Leitura pública mantida (necessária para a verificação em useAuth.js
-    // correr antes de sabermos se o utilizador está autorizado). Escrita
-    // restrita aos dois emails administradores, tal como já estava em
-    // produção — evita depender de um "role" gravado no Firestore para
-    // proteger a própria lista que decide quem é de confiança.
-    match /config/authorizedEmails {
-      allow read: if true;
-      allow write: if isSignedIn() &&
+    // Contas "dono": as ÚNICAS escritas no código. Podem sempre gerir a
+    // lista de acessos, mesmo que alguém lhes tire o papel de admin ou as
+    // retire da lista — assim ninguém fica trancado fora da app. Todos os
+    // outros utilizadores são geridos na app (Gerir Utilizadores).
+    function isOwner() {
+      return isSignedIn() &&
         request.auth.token.email in [
           "sergionunoribeiro@gmail.com",
           "service.nonato@gmail.com"
         ];
+    }
+
+    // Função com que um convidado fica no primeiro login: a que o admin
+    // escolheu ao convidá-lo (authorized_profiles/<email>), ou "client".
+    function invitedRole() {
+      let profile = /databases/$(database)/documents/authorized_profiles/$(request.auth.token.email);
+      return exists(profile) ? get(profile).data.role : 'client';
+    }
+
+    // ── config/authorizedEmails — a própria lista de controlo de acesso ──
+    // Leitura pública mantida (necessária para a verificação em useAuth.js
+    // correr antes de sabermos se o utilizador está autorizado). Escrita:
+    // contas dono e qualquer utilizador com papel de Administrador.
+    match /config/authorizedEmails {
+      allow read: if true;
+      allow write: if isOwner() || isAdmin();
+    }
+
+    // ── authorized_profiles/{email} — convites ──
+    // Criado pelo admin ao autorizar alguém (AddUser.jsx) com o nome e a
+    // função escolhidos. Lido pelo próprio convidado no primeiro login
+    // (useAuth.js) e pela regra invitedRole() acima.
+    match /authorized_profiles/{email} {
+      allow read: if isOwner() || isAdmin() ||
+        (isSignedIn() && request.auth.token.email == email);
+      allow write: if isOwner() || isAdmin();
     }
 
     // ── users/{uid} ──
@@ -96,13 +119,15 @@ service cloud.firestore {
     // depois de criado.
     match /users/{uid} {
       allow read: if isAuthorized();
-      // Auto-criação (primeiro login, useAuth.js): role tem de bater certo
-      // com a mesma regra hardcoded que useAuth.js usa para decidir o role
-      // inicial — só o email do dono fica admin, todos os outros client.
+      // Auto-criação (primeiro login, useAuth.js): só para emails
+      // autorizados, e o role tem de bater certo com o que useAuth.js
+      // escolhe — o email do dono fica admin, os convidados ficam com a
+      // função do convite, todos os outros client. Ninguém se promove a si
+      // próprio: o convite só pode ser escrito por um admin.
       allow create: if isAdmin() ||
-        (isSignedIn() && request.auth.uid == uid &&
+        (isAuthorized() && request.auth.uid == uid &&
           request.resource.data.role == (
-            request.auth.token.email == 'sergionunoribeiro@gmail.com' ? 'admin' : 'client'
+            request.auth.token.email == 'sergionunoribeiro@gmail.com' ? 'admin' : invitedRole()
           ));
       allow update: if isAuthorized() && (
         (request.auth.uid == uid && request.resource.data.role == resource.data.role) ||
