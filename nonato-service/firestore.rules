@@ -262,6 +262,9 @@ service cloud.firestore {
     // aceita registos novos — ninguém o pode alterar nem apagar, para as
     // entradas e saídas ficarem sempre rastreáveis.
     match /stockPecas/{lote} { allow read, write: if isAuthorized(); }
+    // Imagens de peças guardadas para os PDFs (ver src/utils/pdf/partImage.js):
+    // cópia reduzida das imagens alojadas noutros sites, uma por código.
+    match /imagensPecas/{codigo} { allow read, write: if isAuthorized(); }
     // Listas de grupos (gruposCadastro/servicos, gruposCadastro/clientes —
     // ver services/groupsStore.js).
     match /gruposCadastro/{tipo} { allow read, write: if isAuthorized(); }

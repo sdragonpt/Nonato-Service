@@ -17,6 +17,15 @@
 
 export const CHANGELOG = [
   {
+    n: 17,
+    versao: "1.9.1",
+    data: "2026-10-12",
+    titulo: "Imagens das peças HOMAG no PDF dos orçamentos",
+    itens: [
+      { tipo: "correcao", texto: "As peças cuja imagem vem do site da HOMAG apareciam como \"N/A\" no PDF do orçamento de peças. Agora a imagem é descarregada na primeira vez que a peça entra num PDF e fica guardada na app para as vezes seguintes." },
+    ],
+  },
+  {
     n: 16,
     versao: "1.9.0",
     data: "2026-10-12",

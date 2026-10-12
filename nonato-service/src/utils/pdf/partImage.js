@@ -12,20 +12,34 @@
 //    é aí que se vai buscar a imagem atual, pelo código da peça.
 // 3. Formatos que o pdf-lib não aceita (WebP, GIF) são convertidos para PNG.
 //
-// Limite que este ficheiro NÃO resolve sozinho: imagens servidas por outro
-// site sem autorização CORS (ex.: shop.homag.com) não podem ser descarregadas
-// pelo browser — ver IMAGE_PROXY abaixo.
+// Imagens alojadas noutros sites (ex.: shop.homag.com — a maior parte do
+// catálogo): o browser mostra-as, mas o site não autoriza que a app
+// descarregue o ficheiro (CORS). Por isso:
+// - a primeira vez que uma peça dessas entra num PDF, a imagem é pedida
+//   através de um intermediário (IMAGE_PROXY), já reduzida para JPEG pequeno;
+// - fica guardada na Firestore (coleção "imagensPecas", um documento por
+//   código de peça) e, daí em diante, vem sempre de lá — 1 leitura, sem
+//   depender de terceiros nem do site de origem.
 
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { loadPartsCatalog } from "../partsCatalogLoader.js";
 
 /**
- * Função opcional (url) => url para ir buscar imagens de outros sites
- * através de um intermediário que autorize o download. null = desligado:
- * imagens de sites sem CORS ficam sem imagem no PDF.
+ * Intermediário para o PRIMEIRO download de imagens de outros sites: wsrv.nl
+ * (images.weserv.nl), um serviço público e de código aberto de
+ * redimensionamento de imagens. Só recebe o endereço público da imagem da
+ * peça — nenhum dado da app, de clientes ou de orçamentos. Devolve um JPEG
+ * com 700px de largura máxima. Pôr a null para desligar (as imagens de
+ * outros sites que ainda não estejam guardadas saem "N/A" no PDF).
  */
-export const IMAGE_PROXY = null;
+export const IMAGE_PROXY = (url) =>
+  `https://wsrv.nl/?url=${encodeURIComponent(url)}&output=jpg&w=700&q=82`;
+
+export const PART_IMAGE_CACHE_COLLECTION = "imagensPecas";
+// Um documento da Firestore não pode passar de 1 MB; as imagens reduzidas
+// ficam por volta de 10–60 KB. Acima disto não se guarda (usa-se só desta vez).
+const MAX_CACHE_BYTES = 400 * 1024;
 
 const startsWith = (bytes, signature) => signature.every((b, i) => bytes[i] === b);
 
@@ -63,34 +77,21 @@ async function fetchBytes(url) {
   return new Uint8Array(await response.arrayBuffer());
 }
 
-/** Bytes de uma imagem a partir de um data URL ou de um endereço. */
-async function loadBytes(src) {
-  if (src.startsWith("data:")) {
-    const base64 = src.split(",")[1] || "";
-    return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-  }
-  try {
-    return await fetchBytes(src);
-  } catch (err) {
-    // Tipicamente CORS: o site de origem não autoriza o download pelo browser.
-    const isOtherSite = /^https?:\/\//i.test(src) && !src.startsWith(window.location.origin);
-    if (isOtherSite && IMAGE_PROXY) {
-      try {
-        return await fetchBytes(IMAGE_PROXY(src));
-      } catch (proxyErr) {
-        console.warn("Imagem não disponível nem pelo intermediário:", src, proxyErr);
-        return null;
-      }
-    }
-    console.warn("Imagem de outro site sem autorização de download (CORS):", src, err);
-    return null;
-  }
-}
+const bytesFromBase64 = (base64) => Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 
-/** { data, isJpeg } pronto para pdfDoc.embedJpg/embedPng, ou null. */
-async function toPdfImage(src) {
-  if (!src) return null;
-  const bytes = await loadBytes(src);
+const base64FromBytes = (bytes) => {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(binary);
+};
+
+const isOtherSite = (src) =>
+  /^https?:\/\//i.test(src) && !src.startsWith(window.location.origin);
+
+/** { data, isJpeg } pronto para pdfDoc.embedJpg/embedPng a partir de bytes, ou null. */
+async function toPdfImage(bytes) {
   const format = sniffImageFormat(bytes);
   if (format === "jpeg") return { data: bytes, isJpeg: true };
   if (format === "png") return { data: bytes, isJpeg: false };
@@ -99,6 +100,91 @@ async function toPdfImage(src) {
   }
   // SVG = desenho genérico "sem imagem" da HOMAG; outros formatos: sem imagem.
   return null;
+}
+
+// ── Imagens guardadas na Firestore (uma por código de peça) ────────────────
+
+const cacheRef = (code) =>
+  doc(db, PART_IMAGE_CACHE_COLLECTION, encodeURIComponent(String(code)));
+
+/** Imagem já guardada para esta peça E para este endereço de origem, ou null. */
+async function readCachedImage(code, src) {
+  try {
+    const snap = await getDoc(cacheRef(code));
+    if (!snap.exists()) return null;
+    const data = snap.data();
+    // Se a imagem da peça mudou no catálogo, a guardada já não serve.
+    if (data.origem !== src || !data.base64) return null;
+    return bytesFromBase64(data.base64);
+  } catch (err) {
+    console.warn("Erro ao ler a imagem guardada da peça:", err);
+    return null;
+  }
+}
+
+async function saveCachedImage(code, src, bytes) {
+  if (bytes.length > MAX_CACHE_BYTES) return;
+  try {
+    await setDoc(cacheRef(code), {
+      codigo: String(code),
+      origem: src,
+      base64: base64FromBytes(bytes),
+      bytes: bytes.length,
+      guardadaEm: new Date(),
+    });
+  } catch (err) {
+    // Não é grave: a imagem entra neste PDF e volta a ser pedida no próximo.
+    console.warn("Não foi possível guardar a imagem da peça:", err);
+  }
+}
+
+/** Imagem de outro site: da Firestore se já lá estiver; senão descarrega-a (uma vez) e guarda. */
+async function loadOtherSiteImage(code, src) {
+  if (code) {
+    const cached = await readCachedImage(code, src);
+    if (cached) return cached;
+  }
+  if (!IMAGE_PROXY) {
+    console.warn("Imagem de outro site sem autorização de download (CORS):", src);
+    return null;
+  }
+  let bytes = null;
+  try {
+    bytes = await fetchBytes(IMAGE_PROXY(src));
+  } catch (err) {
+    console.warn("Não foi possível descarregar a imagem pelo intermediário:", src, err);
+    return null;
+  }
+  // Só se guarda o que for mesmo uma imagem que o PDF aceita.
+  const format = sniffImageFormat(bytes);
+  if (format !== "jpeg" && format !== "png") return null;
+  if (code) await saveCachedImage(code, src, bytes);
+  return bytes;
+}
+
+/** Bytes de uma imagem a partir de um data URL ou de um endereço. */
+async function loadBytes(src, code) {
+  if (src.startsWith("data:")) return bytesFromBase64(src.split(",")[1] || "");
+  if (isOtherSite(src)) {
+    // Firebase Storage e afins autorizam o download; a HOMAG não. Tenta
+    // direto só nos primeiros, para não encher a consola de erros de CORS.
+    const blocksDownloads = /(^|\.)homag\.com$/i.test(new URL(src).hostname);
+    if (!blocksDownloads) {
+      try {
+        const direct = await fetchBytes(src);
+        if (direct) return direct;
+      } catch {
+        // CORS — segue para o caminho de "outro site".
+      }
+    }
+    return loadOtherSiteImage(code, src);
+  }
+  try {
+    return await fetchBytes(src);
+  } catch (err) {
+    console.warn("Não foi possível carregar a imagem:", src, err);
+    return null;
+  }
 }
 
 /** Imagem guardada na coleção antiga image_library (orçamentos antigos). */
@@ -113,8 +199,7 @@ async function loadFromImageLibrary(imageHash) {
 }
 
 /** Imagem atual da peça no catálogo (já com as edições feitas na app). */
-async function catalogImageFor(item) {
-  const code = item.code || item.codigo;
+async function catalogImageFor(code) {
   if (!code) return null;
   try {
     const { pecas } = await loadPartsCatalog();
@@ -131,8 +216,9 @@ async function catalogImageFor(item) {
  * image_library antiga. Devolve { data: Uint8Array, isJpeg } ou null.
  */
 export async function loadPartImageForPdf(item) {
+  const code = item.code || item.codigo || "";
   const candidates = [
-    await catalogImageFor(item),
+    await catalogImageFor(code),
     item.image,
     item.imageUrl,
     item.img,
@@ -143,7 +229,8 @@ export async function loadPartImageForPdf(item) {
     if (!src || typeof src !== "string" || tried.has(src)) continue;
     tried.add(src);
     try {
-      const image = await toPdfImage(src);
+      const bytes = await loadBytes(src, code);
+      const image = bytes ? await toPdfImage(bytes) : null;
       if (image) return image;
     } catch (err) {
       console.warn("Erro ao preparar imagem para o PDF:", err);
