@@ -81,6 +81,9 @@ import {
   timeToMinutes,
 } from "./utils/agendaConflicts.js";
 import QuickAddAppointmentDialog from "./components/QuickAddAppointmentDialog.jsx";
+import { toDateKey } from "../../utils/formatDate.js";
+import PendingWorkConfirmation from "./components/PendingWorkConfirmation.jsx";
+import { STATUS_LABELS, STATUS_COLORS } from "./utils/workConfirmation.js";
 
 // ✅ NOVO: Lembretes via WhatsApp
 const buildWhatsAppLink = (phone, message) => {
@@ -189,14 +192,9 @@ const AppointmentCard = ({
   onEdit,
   onToggleComplete,
 }) => {
-  const statusColors = {
-    agendado: "text-blue-400 bg-blue-500/10",
-    confirmado: "text-yellow-400 bg-yellow-500/10",
-    cancelado: "text-red-400 bg-red-500/10",
-    terminado: "text-green-400 bg-green-500/10",
-  };
+  const statusColors = STATUS_COLORS;
 
-  const isToday = appointment.data === new Date().toISOString().split("T")[0];
+  const isToday = appointment.data === toDateKey();
   const isUrgent = appointment.prioridade === "alta";
   const phone = appointment.cliente?.phone || appointment.newClientPhone;
   const whatsappLink = buildWhatsAppLink(phone, buildReminderMessage(appointment));
@@ -233,7 +231,7 @@ const AppointmentCard = ({
               </p>
               <div className="flex flex-wrap gap-2 mt-1">
                 <Badge className={statusColors[appointment.status]}>
-                  {appointment.status}
+                  {STATUS_LABELS[appointment.status] || appointment.status}
                 </Badge>
                 {isToday && (
                   <Badge
@@ -380,40 +378,6 @@ const ManageAgenda = () => {
     "Dezembro",
   ];
 
-  const updatePastAppointments = async (appointments) => {
-    const today = new Date().toISOString().split("T")[0];
-    const updatesNeeded = appointments.filter(
-      (appointment) =>
-        appointment.data < today &&
-        (appointment.status === "agendado" ||
-          appointment.status === "confirmado")
-    );
-
-    if (updatesNeeded.length === 0) return appointments;
-
-    try {
-      await Promise.all(
-        updatesNeeded.map((appointment) =>
-          updateDoc(doc(db, "agendamentos", appointment.id), {
-            status: "terminado",
-            concluido: true,
-          })
-        )
-      );
-
-      return appointments.map((appointment) =>
-        appointment.data < today &&
-        (appointment.status === "agendado" ||
-          appointment.status === "confirmado")
-          ? { ...appointment, status: "terminado", concluido: true }
-          : appointment
-      );
-    } catch (error) {
-      console.error("Erro ao atualizar agendamentos passados:", error);
-      return appointments;
-    }
-  };
-
   // ✅ Tempo real (onSnapshot): pré-agendamentos com equipamentos. O cliente
   // registado vem do cache partilhado (ClientsContext) em vez de um getDoc
   // por item — só o equipamento (sem cache equivalente) ainda faz uma
@@ -520,12 +484,10 @@ const ManageAgenda = () => {
             };
           });
 
-          // Atualiza agendamentos passados e define o estado
-          const updatedAppointments = await updatePastAppointments(
-            appointmentsData
-          );
+          // Os agendamentos passados já NÃO são marcados como "terminado"
+          // sozinhos: ficam por confirmar (ver PendingWorkConfirmation).
           if (!cancelled) {
-            setAppointments(updatedAppointments);
+            setAppointments(appointmentsData);
             setError(null);
           }
         } catch (err) {
@@ -728,7 +690,7 @@ const ManageAgenda = () => {
   const stats = {
     total: filteredAppointments.length,
     today: filteredAppointments.filter(
-      (app) => app.data === new Date().toISOString().split("T")[0]
+      (app) => app.data === toDateKey()
     ).length,
     urgent: filteredAppointments.filter((app) => app.prioridade === "alta")
       .length,
@@ -775,6 +737,9 @@ const ManageAgenda = () => {
           </Button>
         </div>
       </div>
+
+      {/* Trabalhos por confirmar (cartão + pop-up) */}
+      <PendingWorkConfirmation />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -978,7 +943,13 @@ const ManageAgenda = () => {
                   value="terminado"
                   className="text-white hover:bg-zinc-700"
                 >
-                  Terminado
+                  Realizado
+                </SelectItem>
+                <SelectItem
+                  value="nao_realizado"
+                  className="text-white hover:bg-zinc-700"
+                >
+                  Não realizado
                 </SelectItem>
                 <SelectItem
                   value="cancelado"
@@ -1081,12 +1052,12 @@ const ManageAgenda = () => {
                     selectedMonth,
                     date
                   );
-                  const dateStr = currentDate.toISOString().split("T")[0];
+                  const dateStr = toDateKey(currentDate);
                   const dayAppointments = filteredAppointments.filter(
                     (app) => app.data === dateStr
                   );
                   const isToday =
-                    dateStr === new Date().toISOString().split("T")[0];
+                    dateStr === toDateKey();
 
                   days.push(
                     <div
@@ -1126,6 +1097,8 @@ const ManageAgenda = () => {
                                   return (
                                     <CheckCircle2 className="h-3 w-3 text-green-400" />
                                   );
+                                case "nao_realizado":
+                                  return <X className="h-3 w-3 text-orange-400" />;
                                 case "cancelado":
                                   return <X className="h-3 w-3 text-red-400" />;
                                 case "agendado":
@@ -1437,7 +1410,7 @@ const ManageAgenda = () => {
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {appointments
               .filter(
-                (a) => a.data === new Date().toISOString().split("T")[0]
+                (a) => a.data === toDateKey()
               )
               .sort((a, b) => a.hora?.localeCompare(b.hora))
               .map((appointment) => {

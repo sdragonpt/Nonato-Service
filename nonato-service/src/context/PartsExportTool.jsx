@@ -25,6 +25,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { Separator } from "@/components/ui/separator.jsx";
+import { toDateKey } from "../utils/formatDate.js";
 
 const PartsExportTool = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -246,7 +247,7 @@ const PartsExportTool = () => {
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
       const filename = `pecas-export-${
-        new Date().toISOString().split("T")[0]
+        toDateKey()
       }.csv`;
 
       if (link.download !== undefined) {

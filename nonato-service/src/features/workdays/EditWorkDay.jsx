@@ -37,6 +37,7 @@ import MachineTimeBlocks, {
   sanitizeBlocksForSave,
   totalBlocksDurationMinutes,
 } from "./components/MachineTimeBlocks.jsx";
+import { toDateKey } from "../../utils/formatDate.js";
 
 const EditWorkday = () => {
   const { workdayId } = useParams();
@@ -78,7 +79,7 @@ const EditWorkday = () => {
         const data = workdayDoc.data();
         // If workDate is a Firestore timestamp, convert it
         if (data.workDate?.toDate) {
-          data.workDate = data.workDate.toDate().toISOString().split("T")[0];
+          data.workDate = toDateKey(data.workDate.toDate());
         }
         setFormData(data);
 

@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select.jsx";
 import { ClientCombobox } from "@/components/shared/ClientCombobox.jsx";
+import { toDateKey } from "../../../utils/formatDate.js";
 
 const AddExpense = () => {
   const navigate = useNavigate();
@@ -39,7 +40,7 @@ const AddExpense = () => {
   const [formData, setFormData] = useState({
     description: "",
     amount: "",
-    date: new Date().toISOString().split("T")[0],
+    date: toDateKey(),
     type: "pessoal",
     clientId: "",
   });

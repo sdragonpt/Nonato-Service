@@ -24,13 +24,15 @@ import { useClients } from "../../context/ClientsContext.jsx";
 import { useUsers } from "../../context/UsersContext.jsx";
 import { isStaffRole, getRoleLabel, getRoleBadgeStyle } from "../../config/roles.js";
 import { timeToMinutes, DEFAULT_DURATION_MINUTES } from "../../features/agendamentos/utils/agendaConflicts.js";
+import PendingWorkConfirmation from "../../features/agendamentos/components/PendingWorkConfirmation.jsx";
+import { toDateKey } from "../../utils/formatDate.js";
 
 // Dashboard reduzido ao essencial do dia-a-dia: agendamentos de hoje +
 // estado da equipa. De propósito — nada aqui lê coleções inteiras
 // (ordens/orçamentos/etc.); só uma query "data == hoje" (equality simples,
 // barata) e a coleção "users" (pequena, poucos membros de equipa).
 
-const todayStr = () => new Date().toISOString().split("T")[0];
+const todayStr = () => toDateKey();
 
 // Cache curta em sessionStorage: evita repetir as mesmas 2 leituras sempre
 // que se salta entre páginas e se volta ao Dashboard pouco depois. TTL
@@ -217,6 +219,9 @@ const DashboardPage = () => {
           </Button>
         </div>
       </div>
+
+      {/* Trabalhos por confirmar (cartão + pop-up) */}
+      <PendingWorkConfirmation />
 
       {/* AGENDAMENTOS DE HOJE */}
       <Card className="bg-zinc-800 border-zinc-700">

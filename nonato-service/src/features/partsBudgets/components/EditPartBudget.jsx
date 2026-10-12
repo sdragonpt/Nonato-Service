@@ -49,6 +49,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs.jsx";
+import { toDateKey } from "../../../utils/formatDate.js";
 
 const EditPartBudget = () => {
   const { quoteId } = useParams();
@@ -253,7 +254,7 @@ const EditPartBudget = () => {
 
         // ✅ INCLUIR CAMPOS DE MARGEM NO FORM DATA
         setFormData({
-          date: quoteData.date || new Date().toISOString().split("T")[0],
+          date: quoteData.date || toDateKey(),
           clientId: quoteData.clientId || "",
           equipmentId: quoteData.equipmentId || "",
           serviceType: quoteData.serviceType || "",

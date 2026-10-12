@@ -5,6 +5,11 @@
 //
 // Só guarda { id, path, label, iconKey, closable } em cada aba — nunca o
 // componente de ícone em si — para dar para persistir em localStorage.
+//
+// Abas fixas vs. temporárias: só as páginas do menu (NAVIGATION_ITEMS)
+// ficam abertas como abas. Páginas de detalhe/novo/editar (ex.: uma Ordem
+// de Serviço concreta) abrem numa aba temporária que fecha sozinha assim que
+// se sai dela — antes cada OS aberta ficava como aba e acumulavam-se.
 
 import {
   createContext,
@@ -15,10 +20,16 @@ import {
   useState,
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { getTabMetaForPath } from "@/config/navigationItems.jsx";
+import { getTabMetaForPath, NAVIGATION_ITEMS } from "@/config/navigationItems.jsx";
 
 const TABS_STORAGE_KEY = "nonato-open-tabs";
 const MAX_OPEN_TABS = 12;
+
+// Páginas do menu lateral — as únicas que ficam como abas fixas.
+const MENU_PATHS = new Set(
+  NAVIGATION_ITEMS.flatMap((section) => section.items.map((item) => item.path))
+);
+const isPinnedPath = (path) => path === "/app/dashboard" || MENU_PATHS.has(path);
 
 const DASHBOARD_TAB = {
   id: "/app/dashboard",
@@ -37,7 +48,10 @@ function loadPersistedTabs() {
     if (!Array.isArray(parsed) || parsed.length === 0) return [DASHBOARD_TAB];
     // Garante que a aba do Dashboard existe sempre e não é fechável,
     // mesmo que o localStorage tenha ficado com dados antigos/corrompidos.
-    const withoutDashboard = parsed.filter((t) => t && t.path && t.path !== DASHBOARD_TAB.path);
+    // Abas temporárias de sessões anteriores não voltam a abrir.
+    const withoutDashboard = parsed.filter(
+      (t) => t && t.path && t.path !== DASHBOARD_TAB.path && isPinnedPath(t.path)
+    );
     return [DASHBOARD_TAB, ...withoutDashboard];
   } catch {
     return [DASHBOARD_TAB];
@@ -68,8 +82,12 @@ export function TabsProvider({ children }) {
     if (!pathname.startsWith("/app/")) return;
 
     setActivePath(pathname);
-    setTabs((prev) => {
-      if (prev.some((t) => t.path === pathname)) return prev;
+    setTabs((prevTabs) => {
+      // Ao sair de uma página temporária (detalhe/novo/editar), a aba dela fecha.
+      const prev = prevTabs.filter((t) => isPinnedPath(t.path) || t.path === pathname);
+      if (prev.some((t) => t.path === pathname)) {
+        return prev.length === prevTabs.length ? prevTabs : prev;
+      }
 
       const meta = getTabMetaForPath(pathname);
       const newTab = {

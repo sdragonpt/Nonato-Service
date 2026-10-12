@@ -14,6 +14,7 @@ import generateServiceOrderPDF from "./pdf/generateServiceOrderPDF";
 import generateQuotePDF from "./pdf/generateQuotePDF";
 import generateMachineHoursReportPDF from "./pdf/generateMachineHoursReportPDF";
 import { generateDocNumber } from "../../../utils/docNumbering.js";
+import OrderDiariasCard from "./OrderDiariasCard.jsx";
 import { totalBlocksDurationLabel } from "../../workdays/components/MachineTimeBlocks.jsx";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { FileOpener } from "@capacitor-community/file-opener";
@@ -243,6 +244,7 @@ const OrderDetail = () => {
           workDate: new Date(workday.workDate).toLocaleDateString(),
         })),
         partsQuoteItems: order.partsQuoteItems || [],
+        diarias: order.diarias || null,
       };
 
       const generator = isSpecialOrder ? generateMachineHoursReportPDF : generateServiceOrderPDF;
@@ -954,6 +956,14 @@ const OrderDetail = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Diárias — ligar/desligar, valor e nº de diárias (ver OrderDiariasCard) */}
+      <OrderDiariasCard
+        orderId={orderId}
+        order={order}
+        workdays={workdays}
+        onChange={(diarias) => setOrder((prev) => ({ ...prev, diarias }))}
+      />
 
       {/* Workdays Card */}
       <Card className="bg-zinc-800 border-zinc-700">

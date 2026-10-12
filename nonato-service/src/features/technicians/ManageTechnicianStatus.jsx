@@ -23,8 +23,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 
 import { isStaffRole, getRoleLabel, getRoleBadgeStyle } from "../../config/roles.js";
 import { timeToMinutes, DEFAULT_DURATION_MINUTES } from "../agendamentos/utils/agendaConflicts.js";
+import { toDateKey } from "../../utils/formatDate.js";
 
-const todayStr = () => new Date().toISOString().split("T")[0];
+const todayStr = () => toDateKey();
 
 const currentMinutesNow = () => {
   const now = new Date();

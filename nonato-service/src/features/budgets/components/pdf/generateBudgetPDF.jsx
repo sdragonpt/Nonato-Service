@@ -3,6 +3,15 @@ import formatEuroNumber from "../../../../utils/formatters/formatEuroNumber";
 import { calculateTotalsWithIVA } from "@/utils/formatters/budgetCalculations";
 import { createPdfKit } from "../../../../utils/pdf/pdfKit.js";
 
+// Tipos de serviço (servicos.type) → texto da coluna "Unidade" no PDF.
+const UNIT_LABELS = {
+  base: "Valor base",
+  hour: "Hora",
+  day: "Dia",
+  km: "Km",
+  un: "Despesa",
+};
+
 const generateBudgetPDF = async (order, client, selectedServices, orderNumber) => {
   const pdfDoc = await PDFDocument.create();
 
@@ -43,7 +52,7 @@ const generateBudgetPDF = async (order, client, selectedServices, orderNumber) =
       columns,
       {
         name: service.name || "-",
-        type: service.type || "-",
+        type: UNIT_LABELS[service.type] || service.type || "-",
         unit: `${formatEuroNumber(service.value || 0)} €`,
         qty: String(service.quantity ?? 0),
         total: `${formatEuroNumber(service.total || 0)} €`,

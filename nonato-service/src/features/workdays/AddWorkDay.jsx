@@ -28,6 +28,7 @@ import MachineTimeBlocks, {
   sanitizeBlocksForSave,
   totalBlocksDurationMinutes,
 } from "./components/MachineTimeBlocks.jsx";
+import { toDateKey } from "../../utils/formatDate.js";
 
 const AddWorkday = () => {
   const { orderId } = useParams();
@@ -39,7 +40,7 @@ const AddWorkday = () => {
   const [equipmentOptions, setEquipmentOptions] = useState([]);
 
   const [formData, setFormData] = useState({
-    workDate: new Date().toISOString().split("T")[0],
+    workDate: toDateKey(),
     departureTime: "",
     arrivalTime: "",
     kmDeparture: "",

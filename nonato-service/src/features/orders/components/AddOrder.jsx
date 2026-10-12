@@ -46,6 +46,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toDateKey } from "../../../utils/formatDate.js";
 
 const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -70,7 +71,7 @@ const AddOrder = () => {
   const clientId = queryParams.get("clientId");
 
   const initialForm = {
-    date: new Date().toISOString().split("T")[0],
+    date: toDateKey(),
     clientId: clientId || "",
     equipmentId: "",
     serviceType: "",

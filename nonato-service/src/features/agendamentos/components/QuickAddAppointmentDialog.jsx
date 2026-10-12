@@ -37,12 +37,38 @@ import {
 } from "@/components/ui/select.jsx";
 
 import { isStaffRole } from "../../../config/roles.js";
+import { toDateKey } from "../../../utils/formatDate.js";
 import {
   checkAgendaConflict,
   DEFAULT_DURATION_MINUTES,
 } from "../utils/agendaConflicts.js";
 
 const DURATION_CHIPS = [30, 60, 90, 120];
+const MAX_DAYS = 60;
+
+/** "AAAA-MM-DD" → Date à meia-noite LOCAL (new Date("AAAA-MM-DD") seria UTC). */
+const parseDateKey = (key) => {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d);
+};
+
+/** Dias de `from` a `to` (inclusive), opcionalmente sem sábados e domingos. */
+function listDays(from, to, skipWeekends) {
+  if (!from) return [];
+  if (!to || to < from) return [from];
+  const days = [];
+  const cursor = parseDateKey(from);
+  const end = parseDateKey(to);
+  while (cursor <= end && days.length < MAX_DAYS) {
+    const weekday = cursor.getDay();
+    if (!skipWeekends || (weekday !== 0 && weekday !== 6)) days.push(toDateKey(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return days;
+}
+
+const formatShort = (key) =>
+  parseDateKey(key).toLocaleDateString("pt-PT", { weekday: "short", day: "2-digit", month: "2-digit" });
 
 /**
  * Diálogo compacto para criar um agendamento a partir de um clique num dia
@@ -70,6 +96,17 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
   const searchBoxRef = useRef(null);
 
   const [showMoreOptions, setShowMoreOptions] = useState(false);
+
+  // Vários dias seguidos a partir do dia clicado.
+  const [endDate, setEndDate] = useState("");
+  const [skipWeekends, setSkipWeekends] = useState(false);
+  useEffect(() => {
+    if (open) {
+      setEndDate(date || "");
+      setSkipWeekends(false);
+    }
+  }, [open, date]);
+  const days = useMemo(() => listDays(date, endDate, skipWeekends), [date, endDate, skipWeekends]);
 
   const [formData, setFormData] = useState({
     hora: "",
@@ -180,16 +217,26 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
       setError("Escolha uma hora para o agendamento.");
       return;
     }
+    if (days.length === 0) {
+      setError("Não há dias para marcar (só fins de semana no intervalo escolhido).");
+      return;
+    }
 
     try {
       setIsSaving(true);
 
-      const foundConflicts = await checkAgendaConflict({
-        date,
-        hora: formData.hora,
-        duracaoMinutos: formData.duracaoMinutos,
-        tecnicoId: formData.tecnicoId,
-      });
+      const foundConflicts = (
+        await Promise.all(
+          days.map((day) =>
+            checkAgendaConflict({
+              date: day,
+              hora: formData.hora,
+              duracaoMinutos: formData.duracaoMinutos,
+              tecnicoId: formData.tecnicoId,
+            })
+          )
+        )
+      ).flat();
 
       if (foundConflicts.length > 0) {
         setConflicts(foundConflicts);
@@ -211,22 +258,27 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
       setIsSaving(true);
       const tecnico = staffUsers.find((u) => u.id === formData.tecnicoId);
 
-      await addDoc(collection(db, "agendamentos"), {
-        data: date,
-        hora: formData.hora,
-        clientId: selectedClient.id,
-        tipoServico: formData.tipoServico,
-        observacoes: formData.observacoes,
-        status: "agendado",
-        prioridade: formData.prioridade,
-        equipmentId: formData.equipmentId,
-        tecnicoId: formData.tecnicoId,
-        tecnicoNome: tecnico?.displayName || "",
-        duracaoMinutos:
-          parseInt(formData.duracaoMinutos, 10) || DEFAULT_DURATION_MINUTES,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      // Uma marcação por dia (mesmos dados, mesma hora).
+      await Promise.all(
+        days.map((day) =>
+          addDoc(collection(db, "agendamentos"), {
+            data: day,
+            hora: formData.hora,
+            clientId: selectedClient.id,
+            tipoServico: formData.tipoServico,
+            observacoes: formData.observacoes,
+            status: "agendado",
+            prioridade: formData.prioridade,
+            equipmentId: formData.equipmentId,
+            tecnicoId: formData.tecnicoId,
+            tecnicoNome: tecnico?.displayName || "",
+            duracaoMinutos:
+              parseInt(formData.duracaoMinutos, 10) || DEFAULT_DURATION_MINUTES,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+        )
+      );
 
       onCreated?.();
       onOpenChange(false);
@@ -328,6 +380,33 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
                   required
                 />
               </div>
+            </div>
+
+            {/* Vários dias */}
+            <div className="rounded-lg border border-zinc-700 bg-zinc-900/60 p-3 space-y-2">
+              <label className="block text-sm font-medium text-zinc-400">
+                Até ao dia (para marcar vários dias seguidos)
+              </label>
+              <Input
+                type="date"
+                value={endDate}
+                min={date}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="bg-zinc-900 border-zinc-700 text-white"
+              />
+              <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={skipWeekends}
+                  onChange={(e) => setSkipWeekends(e.target.checked)}
+                />
+                Não marcar sábados e domingos
+              </label>
+              {days.length > 1 && (
+                <p className="text-xs text-green-400">
+                  Vão ser criadas {days.length} marcações: {days.map(formatShort).join(", ")}
+                </p>
+              )}
             </div>
 
             {/* Tipo de Serviço */}
@@ -542,7 +621,7 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
                 ) : (
                   <>
                     <Save className="w-4 h-4 mr-2" />
-                    Criar Agendamento
+                    {days.length > 1 ? `Criar ${days.length} Agendamentos` : "Criar Agendamento"}
                   </>
                 )}
               </Button>

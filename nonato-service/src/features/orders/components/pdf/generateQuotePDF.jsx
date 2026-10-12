@@ -3,6 +3,7 @@ import { PDFDocument, rgb } from "pdf-lib";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../../../firebase.jsx";
 import { createPdfKit } from "../../../../utils/pdf/pdfKit.js";
+import { loadPartImageForPdf } from "../../../../utils/pdf/partImage.js";
 
 const generateQuotePDF = async (orderId, order, client, fileName) => {
   const pdfDoc = await PDFDocument.create();
@@ -48,56 +49,6 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     return enrichedItems;
   };
 
-  const loadImageFromLibrary = async (imageHash) => {
-    try {
-      if (!imageHash) return null;
-      const imageRef = doc(db, "image_library", imageHash);
-      const imageDoc = await getDoc(imageRef);
-      return imageDoc.exists() ? imageDoc.data().data : null;
-    } catch (error) {
-      console.error("Erro ao carregar imagem da biblioteca:", error);
-      return null;
-    }
-  };
-
-  const loadImageData = async (imageSrc) => {
-    try {
-      if (!imageSrc) return null;
-      if (imageSrc.startsWith("data:image/")) {
-        const base64Data = imageSrc.split(",")[1];
-        const isJpeg = imageSrc.includes("jpeg") || imageSrc.includes("jpg");
-        return { data: Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0)), isJpeg };
-      }
-      const response = await fetch(imageSrc);
-      if (!response.ok) return null;
-      const arrayBuffer = await response.arrayBuffer();
-      const isJpeg = imageSrc.toLowerCase().includes("jpg") || imageSrc.toLowerCase().includes("jpeg");
-      return { data: new Uint8Array(arrayBuffer), isJpeg };
-    } catch (error) {
-      console.error("Erro ao carregar dados da imagem:", error);
-      return null;
-    }
-  };
-
-  const processItemImage = async (item) => {
-    const imageFields = ["imageHash", "image", "imageUrl", "img"];
-    for (const field of imageFields) {
-      if (!item[field]) continue;
-      try {
-        let imageData = null;
-        if (field === "imageHash") {
-          const libraryImageData = await loadImageFromLibrary(item[field]);
-          if (libraryImageData) imageData = await loadImageData(libraryImageData);
-        } else {
-          imageData = await loadImageData(item[field]);
-        }
-        if (imageData) return imageData;
-      } catch (error) {
-        console.error(`Erro ao processar campo '${field}':`, error);
-      }
-    }
-    return null;
-  };
 
   const fetchEquipmentData = async (equipmentId) => {
     try {
@@ -243,7 +194,7 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     // Imagem
     kit.rect(xPos, kit.y - itemHeight, columns[0].width, itemHeight, bg, kit.colors.lineSoft, 0.5);
     try {
-      const imageData = await processItemImage(item);
+      const imageData = await loadPartImageForPdf(item);
       if (imageData) {
         const partImage = imageData.isJpeg ? await pdfDoc.embedJpg(imageData.data) : await pdfDoc.embedPng(imageData.data);
         const maxImgWidth = columns[0].width - 8;

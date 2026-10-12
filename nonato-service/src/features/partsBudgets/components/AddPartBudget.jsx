@@ -36,13 +36,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
+import { toDateKey } from "../../../utils/formatDate.js";
 
 const AddPartBudget = () => {
   const navigate = useNavigate();
 
   // ✅ SIMPLIFICADO: Form state sem cliente
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split("T")[0],
+    date: toDateKey(),
     serviceType: "Orçamento de Peças",
     status: "Aberto",
     description: "",

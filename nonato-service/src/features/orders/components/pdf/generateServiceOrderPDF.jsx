@@ -2,6 +2,8 @@ import { PDFDocument } from "pdf-lib";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../../../firebase.jsx";
 import { createPdfKit } from "../../../../utils/pdf/pdfKit.js";
+import { computeStay, formatStayPeriod, resolveDiarias } from "../../../../utils/diarias.js";
+import formatEuroNumber from "../../../../utils/formatters/formatEuroNumber";
 
 const generateServiceOrderPDF = async (
   orderIdForPDF,
@@ -553,6 +555,25 @@ const generateServiceOrderPDF = async (
       { label: "Km's Percorridos", value: `${calculateTotalKm(workdays)} km` },
       { label: "Horas de Viagem", value: `${calculateTotalTravelHours(workdays)}h` },
     ]);
+
+    // Diárias = todos os dias no cliente (com fins de semana), ver utils/diarias.js.
+    // Diárias: só saem no PDF se "Mostrar no PDF" estiver ligado na OS (por
+    // omissão são registo interno). Nº = o escrito à mão, ou a conta automática.
+    const stay = computeStay(workdays);
+    const diarias = resolveDiarias(order.diarias, stay);
+    if (diarias.mostrarNoPdf && diarias.quantidade > 0) {
+      const period = formatStayPeriod(stay);
+      kit.statRow([
+        { label: "Dias Trabalhados", value: String(stay.diasTrabalhados) },
+        { label: period ? `Diárias · ${period}` : "Diárias", value: String(diarias.quantidade) },
+        ...(diarias.cobrar && diarias.valor > 0
+          ? [{
+              label: `Diárias · ${formatEuroNumber(diarias.valor)} €/dia`,
+              value: `${formatEuroNumber(diarias.total)} €`,
+            }]
+          : []),
+      ]);
+    }
 
     kit.sectionTitle("Resultados do Trabalho");
 

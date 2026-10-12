@@ -40,6 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
+import { toDateKey } from "../../../utils/formatDate.js";
 
 const CHECKLIST_LABELS = {
   concluido: "Serviço Concluído",
@@ -62,7 +63,7 @@ export const emptyEquipmentEntry = () => ({
 
 export const emptyReportDraft = () => ({
   equipamentos: [],
-  date: new Date().toISOString().split("T")[0],
+  date: toDateKey(),
   serviceType: "",
   priority: "normal",
   checklist: {
@@ -81,7 +82,7 @@ export const emptyReportDraft = () => ({
 
 const emptyWorkday = () => ({
   id: genId(),
-  workDate: new Date().toISOString().split("T")[0],
+  workDate: toDateKey(),
   departureTime: "",
   arrivalTime: "",
   kmDeparture: "",

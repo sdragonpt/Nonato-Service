@@ -14,7 +14,7 @@ import { useEquipments } from "../../context/EquipmentsContext.jsx";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { generateAndSaveReport } from "./reportActions.js";
 import { downloadFileFromUrl } from "../../utils/reportStorage.js";
-import { formatDate } from "../../utils/formatDate.js";
+import { formatDate, toDateKey } from "../../utils/formatDate.js";
 import ReportOrderForm, { emptyReportDraft } from "./components/ReportOrderForm.jsx";
 import {
   FileText,
@@ -40,10 +40,10 @@ import { Badge } from "@/components/ui/badge.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 
 const toDateInputValue = (value) => {
-  if (!value) return new Date().toISOString().split("T")[0];
+  if (!value) return toDateKey();
   const date = value?.toDate ? value.toDate() : new Date(value);
-  if (Number.isNaN(date.getTime())) return new Date().toISOString().split("T")[0];
-  return date.toISOString().split("T")[0];
+  if (Number.isNaN(date.getTime())) return toDateKey();
+  return toDateKey(date);
 };
 
 const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;

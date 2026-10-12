@@ -13,7 +13,7 @@ import {
 import { db } from "../../firebase.jsx";
 import { generateDocNumber } from "../../utils/docNumbering.js";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
-import { formatDateTime } from "../../utils/formatDate.js";
+import { formatDateTime, toDateKey } from "../../utils/formatDate.js";
 import { fetchPage } from "../../utils/firestorePage.js";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
@@ -234,7 +234,7 @@ const ManageOnlineQuotes = () => {
       const quoteNumber = await generateDocNumber("orp");
       const partsQuoteData = {
         quoteNumber,
-        date: new Date().toISOString().split("T")[0],
+        date: toDateKey(),
 
         // ✅ CLIENTE NÃO REGISTRADO (mais apropriado para orçamentos online)
         isUnregisteredClient: true,

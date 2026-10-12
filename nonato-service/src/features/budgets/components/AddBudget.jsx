@@ -17,10 +17,14 @@ import {
   Receipt,
   Calculator,
   FileSignature,
+  CalendarDays,
 } from "lucide-react";
 import generateBudgetPDF from "./pdf/generateBudgetPDF.jsx";
 import ServiceInput from "../../../components/shared/ServiceInput.jsx";
 import IVASelector from "./IVASelector.jsx";
+import { computeStay, formatStayPeriod, resolveDiarias } from "../../../utils/diarias.js";
+
+const DIARIAS_SERVICE_ID = "diarias";
 
 // UI Components
 import {
@@ -57,6 +61,13 @@ const AddBudget = () => {
   const [selectedServices, setSelectedServices] = useState([]);
   const [totalAmount, setTotalAmount] = useState(0);
   const [ivaRate, setIvaRate] = useState(23);
+
+  // Diárias (ver utils/diarias.js): dias no cliente, incluindo fins de
+  // semana. Há clientes que pagam um preço fechado por dia — nesse caso
+  // liga-se "Cobrar diárias" e entra uma linha própria no fechamento.
+  const [chargeDiarias, setChargeDiarias] = useState(false);
+  const [diariasQty, setDiariasQty] = useState("");
+  const [diariaValue, setDiariaValue] = useState("");
 
   // Clientes vêm do ClientsContext partilhado (tempo real), em vez de uma
   // leitura própria desta página
@@ -203,11 +214,19 @@ const AddBudget = () => {
             (parseFloat(day.kmReturn) || 0);
         });
 
+        const stay = computeStay(workdays);
         setOrderTotals({
           totalWorkHours: totalWorkMinutes / 60,
           totalTravelHours: totalTravelMinutes / 60,
           totalKm: totalKm.toFixed(2),
+          stay,
         });
+        // Diárias: vêm como ficaram configuradas na OS (cartão "Diárias");
+        // aqui ainda se podem mudar só para este fechamento.
+        const diarias = resolveDiarias(selectedOrder.diarias, stay);
+        setChargeDiarias(diarias.cobrar);
+        setDiariasQty(diarias.quantidade ? String(diarias.quantidade) : "");
+        setDiariaValue(diarias.valor ? String(diarias.valor) : "");
       } catch (err) {
         setError("Erro ao calcular totais");
         console.error(err);
@@ -225,6 +244,7 @@ const AddBudget = () => {
   };
 
   const handleRemoveService = (serviceId) => {
+    if (serviceId === DIARIAS_SERVICE_ID) setChargeDiarias(false);
     setSelectedServices((prev) => prev.filter((s) => s.id !== serviceId));
   };
 
@@ -294,6 +314,29 @@ const AddBudget = () => {
       setIsGeneratingPDF(false);
     }
   };
+
+  // Mantém a linha "Diárias" na lista de serviços conforme a opção e os
+  // valores escolhidos (entra no total, no PDF e no registo do fechamento).
+  useEffect(() => {
+    const qty = parseFloat(String(diariasQty).replace(",", ".")) || 0;
+    const value = parseFloat(String(diariaValue).replace(",", ".")) || 0;
+    const period = orderTotals?.stay ? formatStayPeriod(orderTotals.stay) : "";
+    setSelectedServices((prev) => {
+      const others = prev.filter((s) => s.id !== DIARIAS_SERVICE_ID);
+      if (!chargeDiarias || qty <= 0 || value <= 0) return others;
+      return [
+        ...others,
+        {
+          id: DIARIAS_SERVICE_ID,
+          name: period ? `Diárias (${period})` : "Diárias",
+          type: "day",
+          value,
+          quantity: qty,
+          total: Math.round(value * qty * 100) / 100,
+        },
+      ];
+    });
+  }, [chargeDiarias, diariasQty, diariaValue, orderTotals]);
 
   // Calculate total amount
   useEffect(() => {
@@ -468,6 +511,84 @@ const AddBudget = () => {
                   </p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Diárias */}
+        {selectedOrder && orderTotals && (
+          <Card className="bg-zinc-800 border-zinc-700">
+            <CardHeader>
+              <CardTitle className="text-lg text-white flex items-center gap-2">
+                <CalendarDays className="w-5 h-5" />
+                Diárias
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-zinc-400">
+                {orderTotals.stay.diarias > 0 ? (
+                  <>
+                    {orderTotals.stay.diasTrabalhados} dias trabalhados ·{" "}
+                    <span className="text-white font-medium">
+                      {orderTotals.stay.diarias} dias no cliente
+                    </span>{" "}
+                    ({formatStayPeriod(orderTotals.stay)}, incluindo fins de semana)
+                  </>
+                ) : (
+                  "Esta OS não tem dias de trabalho registados — indique o nº de diárias à mão."
+                )}
+              </p>
+              <p className="text-xs text-zinc-500">
+                Os valores vêm do cartão &quot;Diárias&quot; da Ordem de Serviço. Pode alterá-los aqui só para este fechamento.
+              </p>
+
+              <label className="flex items-center gap-2 text-white cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={chargeDiarias}
+                  onChange={(e) => setChargeDiarias(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                Cobrar diárias
+              </label>
+
+              {chargeDiarias && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                  <div className="space-y-1">
+                    <label className="text-sm text-zinc-400">Nº de diárias</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={diariasQty}
+                      onChange={(e) => setDiariasQty(e.target.value)}
+                      className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm text-zinc-400">Valor por diária (€)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={diariaValue}
+                      onChange={(e) => setDiariaValue(e.target.value)}
+                      placeholder="Ex: 150"
+                      className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-white placeholder:text-zinc-500"
+                    />
+                  </div>
+                  <p className="text-sm text-zinc-300 sm:pb-2">
+                    ={" "}
+                    <span className="text-green-400 font-semibold">
+                      {formatEuroNumber(
+                        (parseFloat(String(diariasQty).replace(",", ".")) || 0) *
+                          (parseFloat(String(diariaValue).replace(",", ".")) || 0)
+                      )}
+                      €
+                    </span>
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

@@ -28,8 +28,9 @@ import {
   getPaymentStatus,
   formatPrice,
 } from "../../utils/financialUtils";
+import { toDateKey } from "../../utils/formatDate.js";
 
-const todayStr = () => new Date().toISOString().split("T")[0];
+const todayStr = () => toDateKey();
 
 const daysSince = (dateRaw) => {
   if (!dateRaw) return 0;
