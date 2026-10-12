@@ -33,7 +33,6 @@ import {
   User,
   UserCog,
   Building2,
-  Sparkles,
   Bell,
   Search,
   Home,
@@ -69,6 +68,7 @@ import { NotificationProvider } from "./context/NotificationContext.jsx";
 import { TabsProvider } from "./context/TabsContext.jsx";
 import NotificationsDropdown from "./components/ui/NotificationsDropdown";
 import TabsBar from "./components/layout/TabsBar.jsx";
+import VersionBadge from "./components/layout/VersionBadge.jsx";
 import { useAuth } from "./hooks/useAuth";
 import { initOldBrowserSupport } from "./utils/oldBrowserUtils.js";
 import { NAVIGATION_ITEMS } from "./config/navigationItems.jsx";
@@ -792,15 +792,8 @@ const DashboardShell = React.memo(({ children }) => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-green-500" />
-                <span className="text-xs text-zinc-400 font-medium">
-                  Sistema Online
-                </span>
-              </div>
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            </div>
+            {/* Versão da app + novidades + aviso de nova versão */}
+            <VersionBadge user={user} />
             <UserNav />
           </motion.div>
         </div>

@@ -2,9 +2,45 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { visualizer } from "rollup-plugin-visualizer";
+import { execSync } from "child_process";
+
+// ── Identificação do build (ver src/config/buildInfo.js) ──────────────────
+// Carimbado em cada `vite build`: data/hora e o commit do GitHub em que o
+// build foi feito. "dirty" = havia alterações por guardar (o commit indicado
+// é o anterior) — por isso convém fazer commit ANTES do build (npm run deploy).
+const git = (cmd) => {
+  try {
+    return execSync(`git ${cmd}`, { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+  } catch {
+    return "";
+  }
+};
+const BUILD_INFO = {
+  time: new Date().toISOString(),
+  commit: git("rev-parse --short HEAD"),
+  commitTitle: git("log -1 --format=%s"),
+  // Só conta código (o build mexe em stats.html e na cache do Firebase).
+  dirty: git("status --porcelain -- src public firestore.rules storage.rules") !== "",
+};
+
+// Publica /version.json com a hora do build: a app compara-a com a sua para
+// saber se já existe uma versão mais recente no site.
+const versionFilePlugin = () => ({
+  name: "nonato-version-file",
+  generateBundle() {
+    this.emitFile({
+      type: "asset",
+      fileName: "version.json",
+      source: JSON.stringify({ time: BUILD_INFO.time, commit: BUILD_INFO.commit }),
+    });
+  },
+});
 
 export default defineConfig({
-  plugins: [react(), visualizer({ open: true })],
+  plugins: [react(), visualizer({ open: true }), versionFilePlugin()],
+  define: {
+    __BUILD_INFO__: JSON.stringify(BUILD_INFO),
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
