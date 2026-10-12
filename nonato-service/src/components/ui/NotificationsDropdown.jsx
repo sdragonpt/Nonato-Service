@@ -18,6 +18,7 @@ import {
   AlertCircle,
   Check,
   X,
+  Sparkles,
 } from "lucide-react"; // Adicione X
 
 const getNotificationIcon = (type) => {
@@ -28,6 +29,8 @@ const getNotificationIcon = (type) => {
       return <FileText className="h-4 w-4 text-blue-500" />;
     case "order_status_change":
       return <AlertCircle className="h-4 w-4 text-yellow-500" />;
+    case "system_update":
+      return <Sparkles className="h-4 w-4 text-green-500" />;
     default:
       return <Bell className="h-4 w-4 text-zinc-400" />;
   }
@@ -46,6 +49,12 @@ const NotificationsDropdown = () => {
   const handleNotificationClick = async (notification) => {
     if (!notification.read) {
       await markAsRead(notification.id);
+    }
+
+    // Atualização da app: abre a lista "O que há de novo" (VersionBadge).
+    if (notification.type === "system_update") {
+      window.dispatchEvent(new Event("nonato:open-changelog"));
+      return;
     }
 
     // Navegar para a página apropriada baseado no tipo

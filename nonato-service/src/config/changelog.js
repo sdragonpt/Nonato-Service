@@ -17,6 +17,39 @@
 
 export const CHANGELOG = [
   {
+    n: 16,
+    versao: "1.9.0",
+    data: "2026-10-12",
+    titulo: "Serviço realizado ou não, à parte do estado da marcação",
+    itens: [
+      { tipo: "melhoria", texto: "A pergunta \"O serviço foi realizado?\" passou a ser um registo à parte: a marcação mantém o seu estado (agendado, confirmado, cancelado) e a resposta fica guardada no agendamento." },
+      { tipo: "melhoria", texto: "A pergunta só aparece a partir do dia seguinte ao agendamento, na Agenda e na Dashboard." },
+      { tipo: "novo", texto: "Na Agenda, cada marcação mostra um ícone próprio: serviço realizado, não realizado ou por confirmar. Pode ser corrigido no menu da marcação." },
+      { tipo: "melhoria", texto: "Marcação rápida: em vez de 30/60/90/120 minutos escolhe-se Manhã, Tarde ou Dia todo." },
+      { tipo: "correcao", texto: "Marcação rápida: com \"Mais opções\" aberto a janela já tem scroll e deixou de ficar cortada." },
+    ],
+  },
+  {
+    n: 15,
+    versao: "1.8.2",
+    data: "2026-10-12",
+    titulo: "Atualizações também no sino de notificações",
+    itens: [
+      { tipo: "novo", texto: "Cada atualização da app aparece como notificação no sino. Clicar nela abre a lista do que mudou." },
+    ],
+  },
+  {
+    n: 14,
+    versao: "1.8.1",
+    data: "2026-10-12",
+    titulo: "Acertos na confirmação de trabalhos",
+    itens: [
+      { tipo: "correcao", texto: "A janela \"O trabalho foi realizado?\" já não fica cortada com nomes de cliente compridos: os botões passam para baixo do nome." },
+      { tipo: "melhoria", texto: "Quando há várias marcações para o mesmo cliente, dia e hora, aparecem numeradas (\"2 de 3\") e com o equipamento e as observações, para se distinguirem." },
+      { tipo: "melhoria", texto: "Quando um agendamento está gravado com um ano diferente do atual, o ano aparece em destaque para se confirmar a data." },
+    ],
+  },
+  {
     n: 13,
     versao: "1.8.0",
     data: "2026-10-12",

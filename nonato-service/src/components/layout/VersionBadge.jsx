@@ -7,11 +7,15 @@
 //   este utilizador as viu. O "até onde viu" fica na ficha do utilizador
 //   (users/<uid>.ultimaNovidadeVista = n da entrada), por isso é por pessoa
 //   e não por computador. A ficha já é lida no login — não há leituras extra.
+// - Cada atualização nova gera também uma notificação no sino do utilizador
+//   (coleção "notifications"). Não há servidor a enviá-las: é a app de cada
+//   pessoa que cria as suas ao abrir, com um id fixo por utilizador+atualização
+//   para não duplicar. Clicar na notificação abre esta janela.
 // - Verifica de vez em quando se há um deploy mais recente e mostra o botão
 //   "Atualizar" (ver config/buildInfo.js).
 
 import { useEffect, useMemo, useState } from "react";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { CHANGELOG, LATEST, TIPO_META } from "../../config/changelog.js";
 import { BUILD_INFO, buildTimeLabel, isNewerVersionAvailable } from "../../config/buildInfo.js";
@@ -27,6 +31,11 @@ import {
 } from "@/components/ui/dialog.jsx";
 
 const UPDATE_CHECK_MS = 5 * 60 * 1000;
+
+/** Evento com que o sino de notificações pede para abrir a lista de atualizações. */
+export const OPEN_CHANGELOG_EVENT = "nonato:open-changelog";
+
+const notificationRef = (uid, n) => doc(db, "notifications", `versao-${uid}-${n}`);
 // Quem nunca viu novidades não leva com o histórico todo: só as mais recentes.
 const FIRST_TIME_COUNT = 3;
 
@@ -111,8 +120,53 @@ const VersionBadge = ({ user }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unseen.length]);
 
+  // Notificações no sino: uma por atualização ainda não notificada a este
+  // utilizador (users/<uid>.ultimaNovidadeNotificada guarda até onde já foi).
+  useEffect(() => {
+    if (!user?.uid) return;
+    const notified = user.ultimaNovidadeNotificada;
+    const toNotify = unseen.filter((e) => typeof notified !== "number" || e.n > notified);
+    if (toNotify.length === 0) return;
+    (async () => {
+      try {
+        await Promise.all(
+          toNotify.map((entry) =>
+            setDoc(notificationRef(user.uid, entry.n), {
+              userId: user.uid,
+              type: "system_update",
+              title: `Atualização ${entry.versao}`,
+              message: entry.titulo,
+              data: { changelogN: entry.n },
+              read: false,
+              createdAt: new Date(),
+            })
+          )
+        );
+        await updateDoc(doc(db, "users", user.uid), { ultimaNovidadeNotificada: LATEST.n });
+      } catch (err) {
+        console.warn("Não foi possível criar as notificações de atualização:", err);
+      }
+    })();
+    // Só ao entrar: depende do utilizador, não de cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
+
+  // O sino pede para abrir a lista completa.
+  useEffect(() => {
+    const open = () => setMode("todas");
+    window.addEventListener(OPEN_CHANGELOG_EVENT, open);
+    return () => window.removeEventListener(OPEN_CHANGELOG_EVENT, open);
+  }, []);
+
   const markSeen = async () => {
+    const justSeen = unseen;
     setSeenN(LATEST.n);
+    // Quem já leu as novidades na janela não precisa das notificações por ler.
+    if (user?.uid) {
+      justSeen.forEach((entry) =>
+        updateDoc(notificationRef(user.uid, entry.n), { read: true, readAt: new Date() }).catch(() => {})
+      );
+    }
     if (!user?.uid || user.ultimaNovidadeVista === LATEST.n) return;
     try {
       await updateDoc(doc(db, "users", user.uid), { ultimaNovidadeVista: LATEST.n });

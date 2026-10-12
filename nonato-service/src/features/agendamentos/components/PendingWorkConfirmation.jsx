@@ -1,12 +1,14 @@
 // PendingWorkConfirmation.jsx
-// Trabalhos por confirmar: agendamentos cuja hora já passou e que ainda
-// ninguém disse se foram realizados ou não (ver utils/workConfirmation.js).
-// Mostra um cartão com a lista e abre um pop-up quando há trabalhos novos
-// por confirmar. Usado na Agenda e na Dashboard.
+// Serviços por confirmar: agendamentos de dias que já passaram e para os
+// quais ainda ninguém disse se o SERVIÇO foi mesmo realizado (isto é à parte
+// do estado da marcação — ver utils/workConfirmation.js). Mostra um cartão
+// com a lista e abre um pop-up quando há serviços novos por confirmar.
+// Usado na Agenda e na Dashboard.
 
 import { useEffect, useMemo, useState } from "react";
 import { useClients } from "../../../context/ClientsContext.jsx";
-import { usePendingWorkConfirmations, confirmWork } from "../utils/workConfirmation.js";
+import { useEquipments } from "../../../context/EquipmentsContext.jsx";
+import { usePendingServiceConfirmations, confirmService } from "../utils/workConfirmation.js";
 import { AlertCircle, Check, Loader2, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
@@ -32,6 +34,8 @@ const loadSeen = () => {
   }
 };
 
+const yearOf = (appointment) => Number(appointment.data.split("-")[0]);
+
 const formatWhen = (appointment) => {
   const [y, m, d] = appointment.data.split("-").map(Number);
   const date = new Date(y, m - 1, d).toLocaleDateString("pt-PT", {
@@ -42,42 +46,72 @@ const formatWhen = (appointment) => {
   return appointment.hora ? `${date} às ${appointment.hora}` : date;
 };
 
-const PendingRow = ({ appointment, clientName, busy, onConfirm }) => (
-  <li className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-    <div className="min-w-0">
-      <p className="text-white font-medium truncate">{clientName}</p>
-      <p className="text-sm text-zinc-400">
-        {formatWhen(appointment)}
-        {appointment.tipoServico && ` · ${appointment.tipoServico}`}
-        {appointment.tecnicoNome && ` · ${appointment.tecnicoNome}`}
-      </p>
-    </div>
-    <div className="flex gap-2 shrink-0">
-      <Button
-        size="sm"
-        disabled={busy}
-        onClick={() => onConfirm(appointment, true)}
-        className="border border-green-500/40 bg-green-500/15 text-green-400 hover:bg-green-500/30"
-      >
-        {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Check className="h-4 w-4 mr-1" />}
-        Realizado
-      </Button>
-      <Button
-        size="sm"
-        disabled={busy}
-        onClick={() => onConfirm(appointment, false)}
-        className="border border-red-500/40 bg-red-500/15 text-red-400 hover:bg-red-500/30"
-      >
-        <X className="h-4 w-4 mr-1" />
-        Não realizado
-      </Button>
-    </div>
-  </li>
-);
+// Várias marcações para o mesmo cliente, dia, hora e técnico são normais
+// (ex.: três máquinas no mesmo cliente). Não são tratadas como erro: só se
+// numeram ("2 de 3") e se mostra o equipamento/observações para as distinguir.
+const groupKey = (a) =>
+  [a.clientId || a.newClientName || "", a.data, a.hora || "", a.tecnicoId || ""].join("|");
+
+const PendingRow = ({ appointment, clientName, equipmentName, position, busy, onConfirm }) => {
+  const year = yearOf(appointment);
+  const otherYear = year !== new Date().getFullYear();
+  return (
+    <li className="py-3 space-y-2">
+      {/* O nome nunca empurra os botões: corta com "…" (nome completo ao passar o rato). */}
+      <div className="min-w-0">
+        <p className="text-white font-medium truncate" title={clientName}>
+          {clientName}
+        </p>
+        <p className="text-sm text-zinc-400 break-words">
+          {formatWhen(appointment)}
+          {otherYear && (
+            <span className="ml-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-semibold text-amber-300">
+              ano {year} — confirme a data
+            </span>
+          )}
+          {appointment.tipoServico && ` · ${appointment.tipoServico}`}
+          {appointment.tecnicoNome && ` · ${appointment.tecnicoNome}`}
+        </p>
+        {(position || equipmentName || appointment.observacoes) && (
+          <p className="text-xs text-zinc-500 break-words">
+            {position && (
+              <span className="mr-1 rounded bg-zinc-700 px-1.5 py-0.5 font-semibold text-zinc-200">
+                {position.index} de {position.total}
+              </span>
+            )}
+            {[equipmentName, appointment.observacoes].filter(Boolean).join(" · ")}
+          </p>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          disabled={busy}
+          onClick={() => onConfirm(appointment, true)}
+          className="border border-green-500/40 bg-green-500/15 text-green-400 hover:bg-green-500/30"
+        >
+          {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Check className="h-4 w-4 mr-1" />}
+          Realizado
+        </Button>
+        <Button
+          size="sm"
+          disabled={busy}
+          onClick={() => onConfirm(appointment, false)}
+          className="border border-red-500/40 bg-red-500/15 text-red-400 hover:bg-red-500/30"
+        >
+          <X className="h-4 w-4 mr-1" />
+          Não realizado
+        </Button>
+      </div>
+    </li>
+  );
+};
 
 const PendingWorkConfirmation = () => {
-  const { pending } = usePendingWorkConfirmations();
+  const { pending } = usePendingServiceConfirmations();
   const { ensureClients, getClientById } = useClients();
+  const { ensureEquipments, getEquipmentById } = useEquipments();
+  const [equipmentsReady, setEquipmentsReady] = useState(false);
   const [clientsReady, setClientsReady] = useState(false);
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState(null);
@@ -89,6 +123,15 @@ const PendingWorkConfirmation = () => {
       .catch((err) => console.error("Erro ao carregar clientes:", err))
       .finally(() => setClientsReady(true));
   }, [pending.length, clientsReady, ensureClients]);
+
+  // Equipamentos: só se carregam se alguma marcação por confirmar tiver um.
+  const needsEquipments = pending.some((a) => a.equipmentId);
+  useEffect(() => {
+    if (!needsEquipments || equipmentsReady) return;
+    ensureEquipments()
+      .catch((err) => console.error("Erro ao carregar equipamentos:", err))
+      .finally(() => setEquipmentsReady(true));
+  }, [needsEquipments, equipmentsReady, ensureEquipments]);
 
   // Abre o pop-up quando aparece um trabalho por confirmar que ainda não foi
   // mostrado nesta sessão.
@@ -121,8 +164,8 @@ const PendingWorkConfirmation = () => {
     try {
       setBusyId(appointment.id);
       setError(null);
-      await confirmWork(appointment.id, realizado);
-      // A lista atualiza-se sozinha (onSnapshot em usePendingWorkConfirmations).
+      await confirmService(appointment.id, realizado);
+      // A lista atualiza-se sozinha (ver confirmService).
     } catch (err) {
       console.error("Erro ao confirmar trabalho:", err);
       setError("Não foi possível gravar. Tente novamente.");
@@ -133,16 +176,34 @@ const PendingWorkConfirmation = () => {
 
   if (pending.length === 0) return null;
 
+  // Numera as marcações que partilham cliente, dia, hora e técnico ("2 de 3").
+  const totals = new Map();
+  pending.forEach((a) => totals.set(groupKey(a), (totals.get(groupKey(a)) || 0) + 1));
+  const counters = new Map();
+  const positionOf = (a) => {
+    const key = groupKey(a);
+    if (totals.get(key) < 2) return null;
+    counters.set(key, (counters.get(key) || 0) + 1);
+    return { index: counters.get(key), total: totals.get(key) };
+  };
+
+  const equipmentNameOf = (a) => {
+    const eq = a.equipmentId && equipmentsReady ? getEquipmentById(a.equipmentId) : null;
+    return eq ? [eq.brand, eq.model].filter(Boolean).join(" ") : "";
+  };
+
   const nameOf = (a) =>
     (a.clientId && getClientById(a.clientId)?.name) || a.newClientName || "Cliente";
 
   const list = (
-    <ul className="divide-y divide-zinc-700">
+    <ul className="min-w-0 divide-y divide-zinc-700">
       {pending.map((a) => (
         <PendingRow
           key={a.id}
           appointment={a}
           clientName={nameOf(a)}
+          equipmentName={equipmentNameOf(a)}
+          position={positionOf(a)}
           busy={busyId === a.id}
           onConfirm={handleConfirm}
         />
@@ -156,13 +217,13 @@ const PendingWorkConfirmation = () => {
         <CardHeader className="pb-2">
           <CardTitle className="text-white flex items-center text-base">
             <AlertCircle className="h-4 w-4 mr-2 text-amber-400" />
-            Trabalhos por confirmar
+            Serviços por confirmar
             <Badge variant="outline" className="ml-auto border-amber-500/40 text-amber-300">
               {pending.length}
             </Badge>
           </CardTitle>
           <p className="text-sm text-zinc-400">
-            A hora destes agendamentos já passou. O trabalho foi realizado?
+            Estes agendamentos são de dias que já passaram. O serviço foi mesmo realizado?
           </p>
         </CardHeader>
         <CardContent>
@@ -172,17 +233,17 @@ const PendingWorkConfirmation = () => {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={handleDialogChange}>
-        <DialogContent className="bg-zinc-800 border-zinc-700 max-w-xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="bg-zinc-800 border-zinc-700 max-w-xl max-h-[85vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-amber-400" />
-              O trabalho foi realizado?
+              O serviço foi realizado?
             </DialogTitle>
             <DialogDescription className="text-zinc-400">
               {pending.length === 1
-                ? "Há 1 agendamento cuja hora já passou."
-                : `Há ${pending.length} agendamentos cuja hora já passou.`}{" "}
-              Confirme se o trabalho foi feito.
+                ? "Há 1 agendamento de um dia que já passou."
+                : `Há ${pending.length} agendamentos de dias que já passaram.`}{" "}
+              Indique se o serviço foi mesmo feito. A marcação não muda de estado.
             </DialogDescription>
           </DialogHeader>
           {error && <p className="text-sm text-red-400">{error}</p>}

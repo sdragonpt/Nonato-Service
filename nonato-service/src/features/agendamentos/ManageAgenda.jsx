@@ -40,6 +40,8 @@ import {
   MessageCircle,
   UserCog,
   ChevronDown,
+  BadgeCheck,
+  Ban,
 } from "lucide-react";
 
 // UI Components
@@ -83,7 +85,14 @@ import {
 import QuickAddAppointmentDialog from "./components/QuickAddAppointmentDialog.jsx";
 import { toDateKey } from "../../utils/formatDate.js";
 import PendingWorkConfirmation from "./components/PendingWorkConfirmation.jsx";
-import { STATUS_LABELS, STATUS_COLORS } from "./utils/workConfirmation.js";
+import { ServiceOutcomeIcon, ServiceOutcomeBadge } from "./components/ServiceOutcome.jsx";
+import {
+  STATUS_LABELS,
+  STATUS_COLORS,
+  confirmService,
+  getServiceOutcome,
+  invalidatePendingServiceConfirmations,
+} from "./utils/workConfirmation.js";
 
 // ✅ NOVO: Lembretes via WhatsApp
 const buildWhatsAppLink = (phone, message) => {
@@ -191,6 +200,7 @@ const AppointmentCard = ({
   onDelete,
   onEdit,
   onToggleComplete,
+  onServiceOutcome,
 }) => {
   const statusColors = STATUS_COLORS;
 
@@ -233,6 +243,7 @@ const AppointmentCard = ({
                 <Badge className={statusColors[appointment.status]}>
                   {STATUS_LABELS[appointment.status] || appointment.status}
                 </Badge>
+                <ServiceOutcomeBadge appointment={appointment} />
                 {isToday && (
                   <Badge
                     variant="outline"
@@ -298,6 +309,28 @@ const AppointmentCard = ({
                   <MessageCircle className="w-4 h-4 mr-2" />
                   Enviar Lembrete WhatsApp
                 </DropdownMenuItem>
+              )}
+              {appointment.data <= toDateKey() && appointment.status !== "cancelado" && (
+                <>
+                  {getServiceOutcome(appointment) !== true && (
+                    <DropdownMenuItem
+                      onClick={() => onServiceOutcome(appointment, true)}
+                      className="text-emerald-400 hover:bg-zinc-700 focus:text-emerald-400 cursor-pointer"
+                    >
+                      <BadgeCheck className="w-4 h-4 mr-2" />
+                      Serviço realizado
+                    </DropdownMenuItem>
+                  )}
+                  {getServiceOutcome(appointment) !== false && (
+                    <DropdownMenuItem
+                      onClick={() => onServiceOutcome(appointment, false)}
+                      className="text-orange-400 hover:bg-zinc-700 focus:text-orange-400 cursor-pointer"
+                    >
+                      <Ban className="w-4 h-4 mr-2" />
+                      Serviço não realizado
+                    </DropdownMenuItem>
+                  )}
+                </>
               )}
               <DropdownMenuItem
                 onClick={() =>
@@ -377,6 +410,43 @@ const ManageAgenda = () => {
     "Novembro",
     "Dezembro",
   ];
+
+  // Estado da MARCAÇÃO: os dias que já passaram ficam "terminado". Se o
+  // serviço foi mesmo realizado é outra coisa, registada à parte
+  // (servicoRealizado — ver utils/workConfirmation.js).
+  const updatePastAppointments = async (appointments) => {
+    const today = toDateKey();
+    const updatesNeeded = appointments.filter(
+      (appointment) =>
+        appointment.data < today &&
+        (appointment.status === "agendado" ||
+          appointment.status === "confirmado")
+    );
+
+    if (updatesNeeded.length === 0) return appointments;
+
+    try {
+      await Promise.all(
+        updatesNeeded.map((appointment) =>
+          updateDoc(doc(db, "agendamentos", appointment.id), {
+            status: "terminado",
+            concluido: true,
+          })
+        )
+      );
+
+      return appointments.map((appointment) =>
+        appointment.data < today &&
+        (appointment.status === "agendado" ||
+          appointment.status === "confirmado")
+          ? { ...appointment, status: "terminado", concluido: true }
+          : appointment
+      );
+    } catch (error) {
+      console.error("Erro ao atualizar agendamentos passados:", error);
+      return appointments;
+    }
+  };
 
   // ✅ Tempo real (onSnapshot): pré-agendamentos com equipamentos. O cliente
   // registado vem do cache partilhado (ClientsContext) em vez de um getDoc
@@ -484,10 +554,12 @@ const ManageAgenda = () => {
             };
           });
 
-          // Os agendamentos passados já NÃO são marcados como "terminado"
-          // sozinhos: ficam por confirmar (ver PendingWorkConfirmation).
+          // Atualiza agendamentos passados e define o estado
+          const updatedAppointments = await updatePastAppointments(
+            appointmentsData
+          );
           if (!cancelled) {
-            setAppointments(appointmentsData);
+            setAppointments(updatedAppointments);
             setError(null);
           }
         } catch (err) {
@@ -575,6 +647,18 @@ const ManageAgenda = () => {
     } catch (error) {
       console.error("Erro ao deletar pré-agendamento:", error);
       setError("Erro ao deletar pré-agendamento");
+    }
+  };
+
+  // Regista (ou corrige) se o serviço foi realizado — não mexe no estado da marcação.
+  const handleServiceOutcome = async (appointment, realizado) => {
+    try {
+      await confirmService(appointment.id, realizado);
+      invalidatePendingServiceConfirmations();
+      // A lista atualiza-se sozinha via onSnapshot
+    } catch (error) {
+      console.error("Erro ao registar serviço:", error);
+      setError("Erro ao registar se o serviço foi realizado");
     }
   };
 
@@ -943,13 +1027,7 @@ const ManageAgenda = () => {
                   value="terminado"
                   className="text-white hover:bg-zinc-700"
                 >
-                  Realizado
-                </SelectItem>
-                <SelectItem
-                  value="nao_realizado"
-                  className="text-white hover:bg-zinc-700"
-                >
-                  Não realizado
+                  Terminado
                 </SelectItem>
                 <SelectItem
                   value="cancelado"
@@ -1097,8 +1175,6 @@ const ManageAgenda = () => {
                                   return (
                                     <CheckCircle2 className="h-3 w-3 text-green-400" />
                                   );
-                                case "nao_realizado":
-                                  return <X className="h-3 w-3 text-orange-400" />;
                                 case "cancelado":
                                   return <X className="h-3 w-3 text-red-400" />;
                                 case "agendado":
@@ -1133,7 +1209,10 @@ const ManageAgenda = () => {
                                       className={`${clientColor.text} font-medium truncate flex items-center justify-between`}
                                     >
                                       <span>{appointment.hora}</span>
-                                      <StatusIcon />
+                                      <span className="flex items-center gap-1">
+                                        <ServiceOutcomeIcon appointment={appointment} />
+                                        <StatusIcon />
+                                      </span>
                                     </div>
                                     <div className="truncate text-white">
                                       {appointment.cliente?.name ||
@@ -1173,6 +1252,28 @@ const ManageAgenda = () => {
                                       <MessageCircle className="w-4 h-4 mr-2" />
                                       Enviar Lembrete WhatsApp
                                     </DropdownMenuItem>
+                                  )}
+                                  {appointment.data <= toDateKey() && appointment.status !== "cancelado" && (
+                                    <>
+                                      {getServiceOutcome(appointment) !== true && (
+                                        <DropdownMenuItem
+                                          onClick={() => handleServiceOutcome(appointment, true)}
+                                          className="text-emerald-400 hover:bg-zinc-700 focus:text-emerald-400 cursor-pointer"
+                                        >
+                                          <BadgeCheck className="w-4 h-4 mr-2" />
+                                          Serviço realizado
+                                        </DropdownMenuItem>
+                                      )}
+                                      {getServiceOutcome(appointment) !== false && (
+                                        <DropdownMenuItem
+                                          onClick={() => handleServiceOutcome(appointment, false)}
+                                          className="text-orange-400 hover:bg-zinc-700 focus:text-orange-400 cursor-pointer"
+                                        >
+                                          <Ban className="w-4 h-4 mr-2" />
+                                          Serviço não realizado
+                                        </DropdownMenuItem>
+                                      )}
+                                    </>
                                   )}
                                   <DropdownMenuItem
                                     onClick={() =>
@@ -1242,6 +1343,7 @@ const ManageAgenda = () => {
                   }}
                   onEdit={(id) => navigate(`/app/edit-agendamento/${id}`)}
                   onToggleComplete={handleToggleComplete}
+                  onServiceOutcome={handleServiceOutcome}
                 />
               ))}
           </div>

@@ -43,7 +43,14 @@ import {
   DEFAULT_DURATION_MINUTES,
 } from "../utils/agendaConflicts.js";
 
-const DURATION_CHIPS = [30, 60, 90, 120];
+// Os serviços são normalmente de uma manhã, de uma tarde ou do dia todo —
+// escolher o período preenche a hora de início e a duração de uma vez.
+// (As horas podem ser afinadas no campo "Hora".)
+const PERIODS = [
+  { id: "manha", label: "Manhã", hint: "08:00 – 12:00", hora: "08:00", minutos: 240 },
+  { id: "tarde", label: "Tarde", hint: "14:00 – 18:00", hora: "14:00", minutos: 240 },
+  { id: "dia", label: "Dia todo", hint: "08:00 – 18:00", hora: "08:00", minutos: 600 },
+];
 const MAX_DAYS = 60;
 
 /** "AAAA-MM-DD" → Date à meia-noite LOCAL (new Date("AAAA-MM-DD") seria UTC). */
@@ -300,7 +307,7 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-800 border-zinc-700">
+      <DialogContent className="bg-zinc-800 border-zinc-700 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-white">Novo Agendamento</DialogTitle>
           <DialogDescription className="text-zinc-400 capitalize">
@@ -465,31 +472,39 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
               </Select>
             </div>
 
-            {/* Duração - chips rápidos */}
+            {/* Período — preenche a hora e a duração */}
             <div>
               <label className="block text-sm font-medium text-zinc-400 mb-1">
-                Duração
+                Período
               </label>
-              <div className="flex flex-wrap gap-2">
-                {DURATION_CHIPS.map((minutes) => (
-                  <button
-                    type="button"
-                    key={minutes}
-                    onClick={() =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        duracaoMinutos: minutes,
-                      }))
-                    }
-                    className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
-                      Number(formData.duracaoMinutos) === minutes
-                        ? "bg-green-600 border-green-600 text-white"
-                        : "bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-zinc-600"
-                    }`}
-                  >
-                    {minutes} min
-                  </button>
-                ))}
+              <div className="grid grid-cols-3 gap-2">
+                {PERIODS.map((period) => {
+                  const active =
+                    formData.hora === period.hora &&
+                    Number(formData.duracaoMinutos) === period.minutos;
+                  return (
+                    <button
+                      type="button"
+                      key={period.id}
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          hora: period.hora,
+                          duracaoMinutos: period.minutos,
+                        }))
+                      }
+                      aria-pressed={active}
+                      className={`px-2 py-2 rounded-lg text-sm border transition-colors ${
+                        active
+                          ? "bg-green-600 border-green-600 text-white"
+                          : "bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-zinc-600"
+                      }`}
+                    >
+                      <span className="block font-medium">{period.label}</span>
+                      <span className="block text-xs opacity-80">{period.hint}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
