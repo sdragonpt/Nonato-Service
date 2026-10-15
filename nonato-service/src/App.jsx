@@ -714,8 +714,10 @@ const DashboardShell = React.memo(({ children }) => {
                       >
                         {section.items
                           .filter((item) => {
-                            // Filtrar itens admin-only
+                            // Filtrar itens restritos a certos papéis
                             if (item.adminOnly && user?.role !== "admin")
+                              return false;
+                            if (item.roles && !item.roles.includes(user?.role))
                               return false;
                             // Filtrar por pesquisa
                             return (
@@ -771,6 +773,11 @@ const DashboardShell = React.memo(({ children }) => {
                                   {item.adminOnly && (
                                     <Badge className="ml-auto bg-red-500/20 text-red-400 text-xs border-red-500/30">
                                       Admin
+                                    </Badge>
+                                  )}
+                                  {item.roles && (
+                                    <Badge className="ml-auto bg-amber-500/20 text-amber-400 text-xs border-amber-500/30">
+                                      Gestão
                                     </Badge>
                                   )}
                                 </Link>
@@ -959,7 +966,11 @@ const App = () => {
                           {/* Cadastro da Nonato Service */}
                           <Route
                             path="company-profile"
-                            element={<CompanyProfile />}
+                            element={
+                              <RoleRoute allowedRoles={["admin", "gestor"]}>
+                                <CompanyProfile />
+                              </RoleRoute>
+                            }
                           />
 
                           {/* Hub de Comunicação */}

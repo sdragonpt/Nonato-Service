@@ -97,6 +97,16 @@ service cloud.firestore {
       allow write: if isOwner() || isAdmin();
     }
 
+    // ── config/companyProfile — dados da empresa (incl. bancários) ──
+    // Todos os autorizados leem (protocolos, PDFs da empresa); só contas
+    // dono e administradores alteram. Antes isto só estava garantido no
+    // ecrã (CompanyProfile.jsx) — a regra geral deixava qualquer autorizado
+    // gravar diretamente. Ver também a exclusão de "config" na regra geral.
+    match /config/companyProfile {
+      allow read: if isAuthorized();
+      allow write: if isOwner() || isAdmin();
+    }
+
     // ── authorized_profiles/{email} — convites ──
     // Criado pelo admin ao autorizar alguém (AddUser.jsx) com o nome e a
     // função escolhidos. Lido pelo próprio convidado no primeiro login
@@ -292,8 +302,12 @@ service cloud.firestore {
     // comportamento do catch-all que já estava em produção), para não
     // partir nada que eu não tenha mapeado. Coleções novas devem ser
     // adicionadas explicitamente acima assim que possível.
-    match /{document=**} {
-      allow read, write: if isAuthorized();
+    //
+    // A pasta "config" fica de FORA: nas regras basta uma permitir para o
+    // pedido passar, por isso, se a regra geral a apanhasse, anulava as
+    // restrições de config/authorizedEmails e config/companyProfile acima.
+    match /{colecao}/{document=**} {
+      allow read, write: if isAuthorized() && colecao != "config";
     }
   }
 }

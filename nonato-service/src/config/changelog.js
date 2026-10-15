@@ -17,6 +17,28 @@
 
 export const CHANGELOG = [
   {
+    n: 19,
+    versao: "1.10.1",
+    data: "2026-10-15",
+    titulo: "Segurança: dados da empresa e lista de acessos",
+    interna: true,
+    itens: [
+      { tipo: "correcao", texto: "Os dados da empresa (incluindo os bancários) e a lista de emails com acesso só podem ser alterados por administradores também na base de dados — antes isso só estava garantido no ecrã." },
+    ],
+  },
+  {
+    n: 18,
+    versao: "1.10.0",
+    data: "2026-10-15",
+    titulo: "Ficha Cadastral e Dados para Pagamento em PDF",
+    itens: [
+      { tipo: "novo", texto: "Em Sistema → Cadastro da Nonato Service geram-se dois PDFs com a imagem da Nonato: a Ficha Cadastral e os Dados para Pagamento (com IBAN, banco, SWIFT/BIC e NIF)." },
+      { tipo: "novo", texto: "Novos campos da empresa: denominação social, atividade, CAE, data de constituição, código postal, localidade, concelho, distrito, país, telemóvel e website." },
+      { tipo: "melhoria", texto: "O email da empresa passou a ser info@nonatoservice.pt e o website nonatoservice.pt." },
+      { tipo: "melhoria", texto: "Os gestores passam a ter acesso ao Cadastro da Nonato Service: consultam os dados e geram os PDFs (editar continua a ser só para administradores)." },
+    ],
+  },
+  {
     n: 17,
     versao: "1.9.1",
     data: "2026-10-12",

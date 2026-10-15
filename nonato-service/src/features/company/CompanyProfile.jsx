@@ -1,7 +1,8 @@
 // src/features/company/CompanyProfile.jsx
-// "Cadastro da Nonato Service" — ficha da própria empresa (dados bancários,
-// morada, contacto, logo). Usada para gerar documentos/pedidos de pagamento
-// enviados a clientes. Guardada como documento único no Firestore.
+// "Cadastro da Nonato Service" — ficha da própria empresa (identificação,
+// morada, contactos, dados bancários, logo). Guardada como documento único no
+// Firestore. Daqui geram-se dois PDFs para enviar a clientes/fornecedores:
+// Ficha Cadastral e Dados para Pagamento (ver pdf/companyDocumentsPDF.js).
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
@@ -9,6 +10,7 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage
 import { db, storage } from "../../firebase.jsx";
 import { useAuth } from "../../hooks/useAuth";
 import { compressImage } from "../../utils/imageCompression.js";
+import { generateFichaCadastralPDF, generateDadosPagamentoPDF } from "./pdf/companyDocumentsPDF.js";
 import {
   Building2,
   Loader2,
@@ -22,6 +24,9 @@ import {
   Mail,
   MapPin,
   Copy,
+  FileText,
+  FileDown,
+  Globe,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.jsx";
@@ -31,17 +36,44 @@ import { Button } from "@/components/ui/button.jsx";
 
 const COMPANY_DOC_REF = ["config", "companyProfile"];
 
+// Valores por omissão = dados da ficha cadastral em uso (out. 2026). Só são
+// usados quando o campo ainda não tem nada gravado. Os dados bancários não
+// ficam no código: preenchem-se e guardam-se aqui na app.
 const emptyForm = {
   nomeEmpresa: "Nonato Service",
-  nif: "",
+  denominacaoSocial: "Nonato Service",
+  atividadePrincipal: "Assistência Técnica",
+  cae: "",
+  dataConstituicao: "",
+  nif: "518772900",
   nib: "",
   iban: "",
   swift: "",
   nomeBanco: "",
   telefone: "",
-  email: "",
-  morada: "",
+  telemovel: "",
+  email: "info@nonatoservice.pt",
+  website: "nonatoservice.pt",
+  morada: "Rua das Mimosas, 303",
+  codigoPostal: "4905-642",
+  localidade: "Vila de Punhe",
+  concelho: "Viana do Castelo",
+  distrito: "Viana do Castelo",
+  pais: "Portugal",
   logo: "",
+};
+
+// O email da empresa passou a ser info@nonatoservice.pt.
+const OLD_EMAIL = "service.nonato@gmail.com";
+
+/** Junta o que está gravado com os valores por omissão (campos vazios ficam com o omissão). */
+const withDefaults = (data) => {
+  const merged = { ...emptyForm };
+  for (const [key, val] of Object.entries(data || {})) {
+    if (val !== "" && val !== null && val !== undefined) merged[key] = val;
+  }
+  if (merged.email === OLD_EMAIL) merged.email = emptyForm.email;
+  return merged;
 };
 
 function Field({ label, icon: Icon, children }) {
@@ -68,6 +100,8 @@ const CompanyProfile = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [copiedField, setCopiedField] = useState(null);
+  const [pendingDefaults, setPendingDefaults] = useState(false);
+  const [generating, setGenerating] = useState(null); // "ficha" | "pagamento" | null
 
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState("");
@@ -81,7 +115,13 @@ const CompanyProfile = () => {
       const snapshot = await getDoc(doc(db, ...COMPANY_DOC_REF));
       if (snapshot.exists()) {
         const data = snapshot.data();
-        setFormData({ ...emptyForm, ...data });
+        const merged = withDefaults(data);
+        setFormData(merged);
+        // Algum valor por omissão (ou o email novo) entrou no formulário:
+        // avisa que é preciso guardar para ficar gravado.
+        setPendingDefaults(
+          Object.keys(emptyForm).some((k) => k !== "logo" && (data[k] ?? "") !== merged[k])
+        );
         setLogoPreview(data.logo || "");
         setExistingLogoStoragePath(data.logoStoragePath || "");
       }
@@ -194,6 +234,7 @@ const CompanyProfile = () => {
         lastUpdate: new Date(),
       });
       setFormData(dataToSave);
+      setPendingDefaults(false);
       setSuccess(true);
     } catch (err) {
       console.error("Erro ao guardar dados da empresa:", err);
@@ -202,6 +243,35 @@ const CompanyProfile = () => {
       setIsSubmitting(false);
     }
   };
+
+  // Os PDFs usam os dados que estão no ecrã (mesmo antes de guardar).
+  const handleGenerate = async (kind) => {
+    try {
+      setGenerating(kind);
+      setError(null);
+      if (kind === "ficha") await generateFichaCadastralPDF(formData);
+      else await generateDadosPagamentoPDF(formData);
+    } catch (err) {
+      console.error("Erro ao gerar PDF da empresa:", err);
+      setError("Não foi possível gerar o PDF. Tente novamente.");
+    } finally {
+      setGenerating(null);
+    }
+  };
+
+  const textField = (name, label, { icon, type = "text", placeholder } = {}) => (
+    <Field label={label} icon={icon}>
+      <Input
+        type={type}
+        name={name}
+        value={formData[name] || ""}
+        onChange={handleChange}
+        disabled={!isAdmin}
+        placeholder={placeholder}
+        className={`${icon ? "pl-10 " : ""}bg-zinc-900 border-zinc-700 text-white disabled:opacity-70 placeholder:text-zinc-600`}
+      />
+    </Field>
+  );
 
   if (isLoading) {
     return (
@@ -227,7 +297,8 @@ const CompanyProfile = () => {
         <Alert className="border-blue-500/30 bg-blue-500/10">
           <AlertTriangle className="h-4 w-4 text-blue-400" />
           <AlertDescription className="text-blue-300">
-            Estás em modo de visualização. Apenas administradores podem editar estes dados.
+            Estás em modo de visualização: podes consultar os dados e gerar os PDFs. Apenas
+            administradores podem editar estes dados.
           </AlertDescription>
         </Alert>
       )}
@@ -247,6 +318,56 @@ const CompanyProfile = () => {
           </AlertDescription>
         </Alert>
       )}
+
+      {pendingDefaults && isAdmin && (
+        <Alert className="border-amber-500/30 bg-amber-500/10">
+          <AlertTriangle className="h-4 w-4 text-amber-400" />
+          <AlertDescription className="text-amber-300">
+            Alguns campos foram preenchidos com os dados da ficha cadastral (e o email passou a
+            info@nonatoservice.pt). Confira e carregue em &quot;Guardar Alterações&quot; para ficarem gravados.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Documentos da empresa */}
+      <Card className="bg-zinc-800 border-zinc-700">
+        <CardHeader>
+          <CardTitle className="text-lg text-white flex items-center gap-2">
+            <FileText className="h-5 w-5 text-green-500" />
+            Documentos da Empresa
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-zinc-400">
+            Gera os PDFs com os dados que estão neste ecrã. Campos vazios saem em branco, para
+            preencher à mão.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              ["ficha", "Ficha Cadastral", "Identificação, morada e contactos"],
+              ["pagamento", "Dados para Pagamento", "Dados bancários para depósito / transferência"],
+            ].map(([kind, title, hint]) => (
+              <Button
+                key={kind}
+                type="button"
+                onClick={() => handleGenerate(kind)}
+                disabled={generating !== null}
+                className="h-auto justify-start gap-3 bg-zinc-900 border border-zinc-700 py-3 text-left text-white hover:bg-zinc-700"
+              >
+                {generating === kind ? (
+                  <Loader2 className="h-5 w-5 shrink-0 animate-spin text-green-400" />
+                ) : (
+                  <FileDown className="h-5 w-5 shrink-0 text-green-400" />
+                )}
+                <span>
+                  <span className="block font-semibold">{title}</span>
+                  <span className="block text-xs font-normal text-zinc-400">{hint}</span>
+                </span>
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Logo */}
@@ -288,67 +409,52 @@ const CompanyProfile = () => {
           </CardContent>
         </Card>
 
-        {/* Dados gerais */}
+        {/* Identificação */}
         <Card className="bg-zinc-800 border-zinc-700">
           <CardHeader>
-            <CardTitle className="text-lg text-white">Dados Gerais</CardTitle>
+            <CardTitle className="text-lg text-white">Identificação</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Field label="Nome da Empresa" icon={Building2}>
-              <Input
-                type="text"
-                name="nomeEmpresa"
-                value={formData.nomeEmpresa}
-                onChange={handleChange}
-                disabled={!isAdmin}
-                className="pl-10 bg-zinc-900 border-zinc-700 text-white disabled:opacity-70"
-              />
-            </Field>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Telefone" icon={Phone}>
-                <Input
-                  type="tel"
-                  name="telefone"
-                  value={formData.telefone}
-                  onChange={handleChange}
-                  disabled={!isAdmin}
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white disabled:opacity-70"
-                />
-              </Field>
-              <Field label="Email" icon={Mail}>
-                <Input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  disabled={!isAdmin}
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white disabled:opacity-70"
-                />
-              </Field>
+              {textField("nomeEmpresa", "Nome comercial", { icon: Building2 })}
+              {textField("denominacaoSocial", "Denominação social", { icon: Building2 })}
+              {textField("nif", "NIF", { icon: Building2 })}
+              {textField("atividadePrincipal", "Atividade principal")}
+              {textField("cae", "CAE", { placeholder: "Ex: 33120" })}
+              {textField("dataConstituicao", "Data de constituição", { placeholder: "dd/mm/aaaa" })}
             </div>
+          </CardContent>
+        </Card>
 
-            <Field label="Morada" icon={MapPin}>
-              <Input
-                type="text"
-                name="morada"
-                value={formData.morada}
-                onChange={handleChange}
-                disabled={!isAdmin}
-                className="pl-10 bg-zinc-900 border-zinc-700 text-white disabled:opacity-70"
-              />
-            </Field>
+        {/* Morada */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white">Morada</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {textField("morada", "Morada", { icon: MapPin })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {textField("codigoPostal", "Código postal", { placeholder: "0000-000" })}
+              {textField("localidade", "Localidade")}
+              {textField("concelho", "Concelho")}
+              {textField("distrito", "Distrito")}
+              {textField("pais", "País")}
+            </div>
+          </CardContent>
+        </Card>
 
-            <Field label="NIF" icon={Building2}>
-              <Input
-                type="text"
-                name="nif"
-                value={formData.nif}
-                onChange={handleChange}
-                disabled={!isAdmin}
-                className="pl-10 bg-zinc-900 border-zinc-700 text-white disabled:opacity-70"
-              />
-            </Field>
+        {/* Contactos */}
+        <Card className="bg-zinc-800 border-zinc-700">
+          <CardHeader>
+            <CardTitle className="text-lg text-white">Contactos</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {textField("telefone", "Telefone", { icon: Phone, type: "tel" })}
+              {textField("telemovel", "Telemóvel", { icon: Phone, type: "tel" })}
+              {textField("email", "Email", { icon: Mail, type: "email" })}
+              {textField("website", "Website", { icon: Globe, placeholder: "nonatoservice.pt" })}
+            </div>
           </CardContent>
         </Card>
 

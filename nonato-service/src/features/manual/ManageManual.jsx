@@ -328,6 +328,14 @@ const ManageManual = () => {
                           {item.label}
                           {item.external && <ExternalLink className="h-3.5 w-3.5" />}
                         </button>
+                        {item.roles && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] border-amber-500/30 text-amber-400"
+                          >
+                            Admin e Gestor
+                          </Badge>
+                        )}
                         {item.adminOnly && (
                           <Badge
                             variant="outline"

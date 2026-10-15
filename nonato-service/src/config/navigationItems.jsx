@@ -163,7 +163,8 @@ export const NAVIGATION_ITEMS = [
     title: "Sistema",
     icon: Settings,
     items: [
-      { path: "/app/company-profile", icon: Building2, iconKey: "Building2", label: "Cadastro da Nonato Service", adminOnly: true },
+      // roles: só estes papéis veem o item (adminOnly = só "admin").
+      { path: "/app/company-profile", icon: Building2, iconKey: "Building2", label: "Cadastro da Nonato Service", roles: ["admin", "gestor"] },
       { path: "/app/parts-export", icon: FileSpreadsheet, iconKey: "FileSpreadsheet", label: "Exportar Peças CSV", adminOnly: true },
       { path: "/app/parts-import-categories", icon: FolderTree, iconKey: "FolderTree", label: "Importar Categorias do Backup", adminOnly: true },
     ],
