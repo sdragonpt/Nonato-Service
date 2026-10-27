@@ -1,44 +1,41 @@
-import { useState, useEffect, useMemo, useCallback, Fragment } from "react";
-import {
-  collection,
-  onSnapshot,
-  doc,
-  deleteDoc,
-} from "firebase/firestore";
+// ManageServices.jsx
+// Cadastro de serviços e valores, em dois separadores:
+// - "Grupos e valores": tabelas de preços (ex.: HOMAG) com os serviços e
+//   despesas de cada grupo e o valor que se aplica nesse grupo;
+// - "Catálogo": a lista partilhada de nomes de serviços/despesas (o tipo diz
+//   a unidade — hora, dia, km…). Um serviço pode estar em vários grupos.
+import { useState, useEffect, useMemo, useRef } from "react";
+import { collection, onSnapshot, doc, deleteDoc } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { comparePtPt } from "../../utils/sortHelpers.js";
 import { useNavigate } from "react-router-dom";
-import { useGroups, GROUP_KINDS } from "../../services/groupsStore.js";
-import ManageGroupsDialog from "../../components/shared/ManageGroupsDialog.jsx";
 import {
-  FolderCog,
-  Folder,
-  Search,
+  useGroups,
+  GROUP_KINDS,
+  migrateLegacyServiceGroups,
+} from "../../services/groupsStore.js";
+import {
   Plus,
-  Loader2,
   Edit2,
   Trash2,
-  ArrowUpDown,
-  ArrowDown,
-  AlertTriangle,
   Wrench,
   MoreVertical,
   Download,
-  Euro,
+  FolderOpen,
   ClipboardList,
+  Search,
 } from "lucide-react";
 
-// UI Components
-import { Card, CardContent } from "@/components/ui/card.jsx";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.jsx";
-import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
+import { Badge } from "@/components/ui/badge.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.jsx";
 import {
   Select,
   SelectContent,
@@ -47,47 +44,47 @@ import {
   SelectValue,
 } from "@/components/ui/select.jsx";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog.jsx";
-import { PageHeader, StatCard } from "../../components/app";
+  PageHeader,
+  StatCard,
+  StatGrid,
+  FilterBar,
+  SearchInput,
+  EmptyState,
+  PageLoader,
+  LoadMoreButton,
+  Fab,
+  useConfirm,
+} from "../../components/app";
+import ServiceGroups, { SERVICE_TYPES, typeLabel, unitSuffix } from "./components/ServiceGroups.jsx";
+
+const PAGE_SIZE = 18;
+const TAB_KEY = "servicos.tab";
 
 const ManageServices = () => {
+  const navigate = useNavigate();
+  const confirm = useConfirm();
   const [services, setServices] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sortOrder, setSortOrder] = useState("asc");
-  const [sortField, setSortField] = useState("name");
+  const [tab, setTab] = useState(() => {
+    try {
+      return localStorage.getItem(TAB_KEY) || "grupos";
+    } catch {
+      return "grupos";
+    }
+  });
+  const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterGroup, setFilterGroup] = useState("all"); // "all" | "none" | id do grupo
-  const [manageGroupsOpen, setManageGroupsOpen] = useState(false);
-  const { groups, byId: groupsById } = useGroups(GROUP_KINDS.SERVICOS);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [serviceToDelete, setServiceToDelete] = useState(null);
-  // Scroll infinito: lista pequena e sempre lida por inteiro, por isso não
-  // há paginação por cursor à Firestore aqui — só se controla quantos dos
-  // que já estão em memória são mostrados de cada vez.
-  const PAGE_SIZE = 10;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const navigate = useNavigate();
+  const { groups, byId: groupsById, loading: groupsLoading } = useGroups(GROUP_KINDS.SERVICOS);
 
-  // ✅ Tempo real (onSnapshot): a lista de serviços atualiza-se sozinha
-  // quando alguém adiciona/edita/remove um serviço, sem precisar de um
-  // botão "Atualizar" manual nem de reler a coleção a cada troca de
-  // ordenação (isso agora é feito em memória, ver sortedServices).
+  // Tempo real: a lista atualiza-se sozinha quando alguém mexe nos serviços.
   useEffect(() => {
-    setIsLoading(true);
     const unsubscribe = onSnapshot(
       collection(db, "servicos"),
       (snapshot) => {
-        setServices(
-          snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
-        );
+        setServices(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
         setError(null);
         setIsLoading(false);
       },
@@ -100,466 +97,249 @@ const ManageServices = () => {
     return () => unsubscribe();
   }, []);
 
-  // Nome do grupo de um serviço ("" se não tiver grupo ou o grupo foi apagado).
-  const groupNameOf = useCallback(
-    (service) => groupsById.get(service.grupoId)?.nome || "",
-    [groupsById]
-  );
-
-  // Organizado por grupo (por ordem alfabética, "Sem grupo" no fim) e,
-  // dentro de cada grupo, pelo campo/ordem escolhidos.
-  const sortedServices = useMemo(() => {
-    const list = [...services];
-    list.sort((a, b) => {
-      const ga = groupNameOf(a);
-      const gb = groupNameOf(b);
-      if (ga !== gb) {
-        if (!ga) return 1;
-        if (!gb) return -1;
-        return comparePtPt(ga, gb);
-      }
-      const aVal = (a[sortField] ?? "").toString();
-      const bVal = (b[sortField] ?? "").toString();
-      const cmp = comparePtPt(aVal, bVal);
-      return sortOrder === "asc" ? cmp : -cmp;
-    });
-    return list;
-  }, [services, sortField, sortOrder, groupNameOf]);
-
+  // Serviços antigos com um só grupo (grupoId) passam a fazer parte desse
+  // grupo, sem valor. Corre uma vez por visita e só escreve o que falta.
+  const migrated = useRef(false);
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [searchTerm, filterType, filterGroup]);
+    if (migrated.current || isLoading || groupsLoading || !services.length) return;
+    migrated.current = true;
+    migrateLegacyServiceGroups(services, groupsById).catch((err) =>
+      console.error("Erro ao migrar grupos antigos dos serviços:", err)
+    );
+  }, [isLoading, groupsLoading, services, groupsById]);
 
-  const handleDelete = async (serviceId) => {
+  const changeTab = (value) => {
+    setTab(value);
     try {
-      await deleteDoc(doc(db, "servicos", serviceId));
-      setServices((prev) => prev.filter((service) => service.id !== serviceId));
-      setDeleteDialogOpen(false);
-      setServiceToDelete(null);
-    } catch (error) {
-      console.error("Erro ao deletar serviço:", error);
-      setError("Erro ao deletar serviço. Por favor, tente novamente.");
+      localStorage.setItem(TAB_KEY, value);
+    } catch {
+      /* sem armazenamento local: fica só nesta visita */
     }
   };
 
-  const confirmDelete = (service, e) => {
-    e.stopPropagation();
-    setServiceToDelete(service);
-    setDeleteDialogOpen(true);
+  // Grupos em que cada serviço está, com o valor em cada um.
+  const groupsOf = useMemo(() => {
+    const map = new Map();
+    for (const g of groups) {
+      for (const [sid, valor] of Object.entries(g.precos)) {
+        if (!map.has(sid)) map.set(sid, []);
+        map.get(sid).push({ id: g.id, nome: g.nome, valor });
+      }
+    }
+    return map;
+  }, [groups]);
+
+  const filteredServices = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    return services
+      .filter((s) => {
+        const inGroups = groupsOf.get(s.id) || [];
+        return (
+          (!term || (s.name || "").toLowerCase().includes(term)) &&
+          (filterType === "all" || s.type === filterType) &&
+          (filterGroup === "all" ||
+            (filterGroup === "none" ? inGroups.length === 0 : inGroups.some((g) => g.id === filterGroup)))
+        );
+      })
+      .sort((a, b) => comparePtPt(a.name || "", b.name || ""));
+  }, [services, groupsOf, searchTerm, filterType, filterGroup]);
+
+  useEffect(() => setVisibleCount(PAGE_SIZE), [searchTerm, filterType, filterGroup]);
+
+  const handleDelete = async (service) => {
+    const inGroups = groupsOf.get(service.id) || [];
+    const ok = await confirm({
+      title: `Apagar "${service.name}"?`,
+      description: inGroups.length
+        ? `Está em ${inGroups.length} grupo(s) (${inGroups.map((g) => g.nome).join(", ")}) e deixa de aparecer neles. Esta ação não pode ser desfeita.`
+        : "Esta ação não pode ser desfeita.",
+      confirmLabel: "Apagar",
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await deleteDoc(doc(db, "servicos", service.id));
+    } catch (err) {
+      console.error("Erro ao apagar serviço:", err);
+      setError("Erro ao apagar o serviço. Por favor, tente novamente.");
+    }
   };
 
-  const getTypeLabel = (type) =>
-    ({
-      base: "Valor Base",
-      un: "Despesa",
-      hour: "Por Hora",
-      day: "Por Dia",
-      km: "Por Km",
-    }[type] || type);
-
-  const filteredServices = sortedServices.filter((service) => {
-    const matchesSearch = service.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesType = filterType === "all" || service.type === filterType;
-    const matchesGroup =
-      filterGroup === "all" ||
-      (filterGroup === "none" ? !groupNameOf(service) : service.grupoId === filterGroup);
-    return matchesSearch && matchesType && matchesGroup;
-  });
-
-  const convertToCSV = (services) => {
-    const headers = ["Grupo", "Nome", "Tipo"];
-    const rows = services.map((service) => [
-      groupNameOf(service),
-      service.name,
-      getTypeLabel(service.type),
-    ]);
-
-    return [headers, ...rows]
-      .map((row) => row.map((cell) => `"${cell || ""}"`).join(","))
-      .join("\n");
+  const exportCSV = () => {
+    const rows = [["Grupo", "Nome", "Tipo", "Valor"]];
+    for (const g of groups) {
+      for (const [sid, valor] of Object.entries(g.precos)) {
+        const s = services.find((x) => x.id === sid);
+        if (s) rows.push([g.nome, s.name, typeLabel(s.type), valor ?? ""]);
+      }
+    }
+    for (const s of services) {
+      if (!groupsOf.has(s.id)) rows.push(["", s.name, typeLabel(s.type), ""]);
+    }
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "servicos-e-valores.csv";
+    link.click();
+    URL.revokeObjectURL(url);
   };
+
+  if (isLoading) return <PageLoader label="A carregar serviços…" />;
 
   const currentServices = filteredServices.slice(0, visibleCount);
-  const hasMoreVisible = visibleCount < filteredServices.length;
-
-  const loadMoreVisible = useCallback(() => {
-    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredServices.length));
-  }, [filteredServices.length]);
-
-  const downloadCSV = (content, filename) => {
-    const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    if (link.download !== undefined) {
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute("download", filename);
-      link.style.visibility = "hidden";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
-    );
-  }
+  const withoutValue = groups.reduce(
+    (n, g) => n + Object.values(g.precos).filter((v) => v == null).length,
+    0
+  );
 
   return (
-    <div className="space-y-6 pb-32">
-      {/* Header */}
+    <div className="space-y-6 pb-24 sm:pb-6">
       <PageHeader
         icon={Wrench}
-        title="Gerenciar Serviços"
-        description="Gerencie todos os seus serviços em um só lugar"
+        title="Serviços e Valores"
+        description="Grupos com os valores de cada serviço e despesa, e o catálogo partilhado"
         actions={
           <>
-            <Button
-            onClick={() => navigate("/app/add-service")}
-            className="hidden sm:flex"
-          >
-            <Plus className="w-4 h-4" />
-            Novo Serviço
-          </Button>
+            <Button variant="outline" onClick={exportCSV} className="hidden sm:inline-flex">
+              <Download /> Exportar CSV
+            </Button>
+            <Button onClick={() => navigate("/app/add-service")} className="hidden sm:inline-flex">
+              <Plus /> Novo Serviço
+            </Button>
           </>
         }
       />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <StatGrid cols={3}>
+        <StatCard label="Grupos" value={groups.length} icon={FolderOpen} />
+        <StatCard label="Serviços no catálogo" value={services.length} icon={ClipboardList} tone="info" />
         <StatCard
-          label="Total de Serviços"
-          value={services.length}
-          icon={ClipboardList}
-        />
-
-        <StatCard
-          label="Por Hora"
-          value={services.filter((service) => service.type === "hour").length}
+          label="Sem valor definido"
+          value={withoutValue}
           icon={Wrench}
-          tone="info"
+          tone={withoutValue ? "warning" : "muted"}
+          hint="Itens nos grupos ainda sem valor"
+          className="col-span-2 lg:col-span-1"
         />
+      </StatGrid>
 
-        <StatCard
-          label="Valor Base"
-          value={services.filter((service) => service.type === "base").length}
-          icon={Euro}
-          tone="violet"
-        />
-      </div>
-
-      {/* Filters Card */}
-      <Card>
-        <CardContent className="space-y-4 p-4 sm:p-6">
-          {/* Search */}
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar serviços..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full"
-            />
-          </div>
-
-          {/* Grupo */}
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Select value={filterGroup} onValueChange={setFilterGroup}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filtrar por grupo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">
-                  Todos os grupos
-                </SelectItem>
-                {groups.map((g) => (
-                  <SelectItem key={g.id} value={g.id}>
-                    {g.nome}
-                  </SelectItem>
-                ))}
-                <SelectItem value="none" className="text-muted-foreground">
-                  Sem grupo
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              variant="outline"
-              onClick={() => setManageGroupsOpen(true)}
-              className="shrink-0"
-            >
-              <FolderCog className="w-4 h-4" />
-              Gerir grupos
-            </Button>
-          </div>
-
-          {/* Filters Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filtrar por tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem
-                  value="all"
-                >
-                  Todos
-                </SelectItem>
-                <SelectItem
-                  value="base"
-                >
-                  Valor Base
-                </SelectItem>
-                <SelectItem
-                  value="hour"
-                >
-                  Por Hora
-                </SelectItem>
-                <SelectItem
-                  value="day"
-                >
-                  Por Dia
-                </SelectItem>
-                <SelectItem value="km">
-                  Por Km
-                </SelectItem>
-                <SelectItem value="un">
-                  Despesa
-                </SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={sortField} onValueChange={setSortField}>
-              <SelectTrigger>
-                <SelectValue placeholder="Ordenar por" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem
-                  value="name"
-                >
-                  Nome
-                </SelectItem>
-                <SelectItem
-                  value="type"
-                >
-                  Tipo
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Sort Order and Results Count */}
-          <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
-            <Button
-              variant="outline"
-              onClick={() =>
-                setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
-              }
-              className="w-full sm:w-auto gap-2 bg-primary"
-            >
-              <ArrowUpDown className="w-4 h-4" />
-              <span>{sortOrder === "asc" ? "Crescente" : "Decrescente"}</span>
-            </Button>
-            <span className="text-center sm:text-right text-sm text-muted-foreground">
-              A mostrar {currentServices.length} de {filteredServices.length} serviço(s)
-            </span>
-          </div>
-
-          {error && (
-            <Alert
-              variant="destructive"
-            >
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                {error}
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Quick Actions - Desktop Only */}
-      <div className="hidden sm:flex gap-2">
-        <Button
-          variant="outline"
-          onClick={() => {
-            const csvContent = convertToCSV(sortedServices);
-            downloadCSV(csvContent, "servicos.csv");
-          }}
-          className="bg-accent"
-        >
-          <Download className="w-4 h-4" />
-          Exportar CSV
-        </Button>
-      </div>
-
-      {/* Services Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {currentServices.map((service, index) => {
-          const groupName = groupNameOf(service);
-          const startsGroup =
-            index === 0 || groupName !== groupNameOf(currentServices[index - 1]);
-          return (
-          <Fragment key={service.id}>
-          {startsGroup && (
-            <h2 className="md:col-span-2 lg:col-span-3 flex items-center gap-2 pt-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              <Folder className="h-4 w-4" />
-              {groupName || "Sem grupo"}
-            </h2>
-          )}
-          <Card
-            className="hover:bg-accent transition-colors cursor-default"
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
-                  <Wrench className="w-5 h-5 text-foreground" />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-lg text-foreground truncate">
-                    {service.name}
-                  </h3>
-                  <p className="text-muted-foreground text-sm">
-                    {getTypeLabel(service.type)}
-                  </p>
-                </div>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    asChild
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="rounded-full"
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <DropdownMenuItem
-                      onClick={() =>
-                        navigate(`/app/edit-service/${service.id}`)
-                      }
-                      className="cursor-pointer"
-                    >
-                      <Edit2 className="w-4 h-4 mr-2" />
-                      Editar
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-red-400 focus:text-red-400 cursor-pointer"
-                      onClick={(e) => confirmDelete(service, e)}
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Excluir
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </CardContent>
-          </Card>
-          </Fragment>
-          );
-        })}
-
-        {filteredServices.length === 0 && (
-          <Card className="md:col-span-2 lg:col-span-3">
-            <CardContent className="p-8 sm:p-12 text-center">
-              <Search className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
-              <p className="text-lg font-medium mb-2 text-foreground">
-                Nenhum serviço encontrado
-              </p>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Tente ajustar seus filtros ou adicione um novo serviço
-              </p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* Carregar mais */}
-      {hasMoreVisible && (
-        <div className="flex justify-center">
-          <Button
-            variant="outline"
-            onClick={loadMoreVisible}
-            className="gap-2"
-          >
-            <ArrowDown className="h-4 w-4" />
-            Carregar mais
-          </Button>
-        </div>
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="text-foreground">Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Tem certeza que deseja excluir o serviço{" "}
-              <span className="font-semibold text-foreground">
-                {serviceToDelete?.name}
+      <Tabs value={tab} onValueChange={changeTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="grupos">Grupos e valores</TabsTrigger>
+          <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="grupos" className="mt-0">
+          <ServiceGroups services={services} groups={groups} loading={groupsLoading} />
+        </TabsContent>
+
+        <TabsContent value="catalogo" className="mt-0 space-y-4">
+          <FilterBar
+            footer={
+              <span className="text-sm text-muted-foreground">
+                A mostrar {currentServices.length} de {filteredServices.length} serviço(s)
               </span>
-              ? Esta ação não pode ser desfeita.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
-              className="bg-accent"
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => handleDelete(serviceToDelete?.id)}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Excluir
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            }
+          >
+            <div className="grid gap-3 lg:grid-cols-[1fr_14rem_14rem]">
+              <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Procurar serviços…" />
+              <Select value={filterGroup} onValueChange={setFilterGroup}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Grupo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os grupos</SelectItem>
+                  {groups.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>{g.nome}</SelectItem>
+                  ))}
+                  <SelectItem value="none" className="text-muted-foreground">Sem grupo</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  {SERVICE_TYPES.map(([t, label]) => (
+                    <SelectItem key={t} value={t}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </FilterBar>
 
-      <ManageGroupsDialog
-        open={manageGroupsOpen}
-        onOpenChange={setManageGroupsOpen}
-        kind={GROUP_KINDS.SERVICOS}
-        title="Grupos de serviços"
-        description="Ex: Manutenção, Reparação, Deslocações. Cada serviço pertence a um grupo."
+          {filteredServices.length === 0 ? (
+            <EmptyState
+              icon={Search}
+              title="Nenhum serviço encontrado"
+              description="Ajuste os filtros ou adicione um novo serviço."
+            />
+          ) : (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
+              {currentServices.map((service) => {
+                const inGroups = groupsOf.get(service.id) || [];
+                return (
+                  <div key={service.id} className="surface flex gap-3 p-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                      <Wrench className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{service.name}</p>
+                      <p className="text-xs text-muted-foreground">{typeLabel(service.type)}</p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {inGroups.length === 0 ? (
+                          <Badge variant="muted">Sem grupo</Badge>
+                        ) : (
+                          inGroups.map((g) => (
+                            <Badge key={g.id} variant={g.valor == null ? "warning" : "success"} className="tabular-nums">
+                              {g.nome}
+                              {g.valor != null && ` · ${g.valor}€${unitSuffix(service.type)}`}
+                            </Badge>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 rounded-full" aria-label="Mais ações">
+                          <MoreVertical />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate(`/app/edit-service/${service.id}`)}>
+                          <Edit2 className="mr-2 h-4 w-4" /> Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-red-400 focus:text-red-400" onClick={() => handleDelete(service)}>
+                          <Trash2 className="mr-2 h-4 w-4" /> Apagar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {visibleCount < filteredServices.length && (
+            <LoadMoreButton onClick={() => setVisibleCount((n) => n + PAGE_SIZE)} />
+          )}
+        </TabsContent>
+      </Tabs>
+
+      <Fab
+        actions={[
+          { icon: Download, label: "Exportar CSV", onClick: exportCSV },
+          { icon: Plus, label: "Novo Serviço", onClick: () => navigate("/app/add-service") },
+        ]}
       />
-
-      {/* FAB Menu for Mobile */}
-      <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden">
-        <Button
-          onClick={() => {
-            const csvContent = convertToCSV(sortedServices);
-            downloadCSV(csvContent, "servicos.csv");
-          }}
-          size="icon"
-          className="rounded-full shadow-lg bg-muted hover:bg-accent"
-        >
-          <Download className="h-5 w-5" />
-        </Button>
-        <Button
-          onClick={() => navigate("/app/add-service")}
-          size="icon"
-          className="rounded-full shadow-lg"
-        >
-          <Plus className="h-5 w-5" />
-        </Button>
-      </div>
     </div>
   );
 };

@@ -1,16 +1,22 @@
 import { useState } from "react";
-import { Plus, Trash2, Euro, Package, Hash } from "lucide-react";
+import { Plus, Trash2, Euro, Package, Hash, FolderOpen } from "lucide-react";
+import { useGroups, GROUP_KINDS } from "../../services/groupsStore.js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
+  SelectGroup,
+  SelectLabel,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import formatEuroNumber from "../../utils/formatters/formatEuroNumber";
+
+const PRICE_GROUP_KEY = "orcamento.grupoPrecos";
+const NO_GROUP = "__sem__";
 
 const ServiceInput = ({
   onAddService,
@@ -24,6 +30,43 @@ const ServiceInput = ({
   const [multipleEntries, setMultipleEntries] = useState([
     { value: "", quantity: 1 },
   ]);
+
+  // Grupo de preços (ex.: HOMAG): ao escolher um serviço, o valor desse
+  // grupo aparece já preenchido (pode ser alterado). Lembra o último grupo.
+  const { groups } = useGroups(GROUP_KINDS.SERVICOS);
+  const [priceGroupId, setPriceGroupId] = useState(() => {
+    try {
+      return localStorage.getItem(PRICE_GROUP_KEY) || NO_GROUP;
+    } catch {
+      return NO_GROUP;
+    }
+  });
+  const priceGroup = groups.find((g) => g.id === priceGroupId) || null;
+  const groupPrice = (serviceId) => {
+    const v = priceGroup?.precos[serviceId];
+    return v == null ? null : v;
+  };
+
+  const changePriceGroup = (id) => {
+    setPriceGroupId(id);
+    try {
+      localStorage.setItem(PRICE_GROUP_KEY, id);
+    } catch {
+      /* sem armazenamento local: fica só nesta visita */
+    }
+    const v = selectedServiceId ? groups.find((g) => g.id === id)?.precos[selectedServiceId] : null;
+    if (v != null) setServiceValue(String(v));
+  };
+
+  const selectService = (id) => {
+    setSelectedServiceId(id);
+    const v = groupPrice(id);
+    if (v != null) {
+      setServiceValue(String(v));
+      setServiceQuantity((q) => q || "1");
+      setMultipleEntries([{ value: String(v), quantity: 1 }]);
+    }
+  };
 
   // Reset fields
   const resetFields = () => {
@@ -116,30 +159,76 @@ const ServiceInput = ({
 
   return (
     <div className="space-y-4">
-      {/* Service Selection */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-muted-foreground">Serviço</label>
-        <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione um serviço..." />
-          </SelectTrigger>
-          <SelectContent>
-            {services
-              .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
-              .map((service) => (
-                <SelectItem
-                  key={service.id}
-                  value={service.id}
-                >
-                  <div className="flex items-center gap-2">
-                    <Package className="w-4 h-4" />
-                    <span>{service.name}</span>
-                  </div>
-                </SelectItem>
+      {/* Grupo de preços + serviço */}
+      <div className="grid gap-3 sm:grid-cols-[14rem_1fr]">
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-muted-foreground">Grupo de preços</label>
+          <Select value={priceGroupId} onValueChange={changePriceGroup}>
+            <SelectTrigger>
+              <span className="flex min-w-0 items-center gap-2">
+                <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <SelectValue placeholder="Sem grupo" />
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_GROUP} className="text-muted-foreground">Sem grupo (valor à mão)</SelectItem>
+              {groups.map((g) => (
+                <SelectItem key={g.id} value={g.id}>{g.nome}</SelectItem>
               ))}
-          </SelectContent>
-        </Select>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-muted-foreground">Serviço</label>
+          <Select value={selectedServiceId} onValueChange={selectService}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione um serviço..." />
+            </SelectTrigger>
+            <SelectContent>
+              {(() => {
+                const sorted = [...services].sort((a, b) => a.name.localeCompare(b.name, "pt-PT"));
+                const inGroup = priceGroup ? sorted.filter((sv) => sv.id in priceGroup.precos) : [];
+                const others = priceGroup ? sorted.filter((sv) => !(sv.id in priceGroup.precos)) : sorted;
+                const item = (service) => (
+                  <SelectItem key={service.id} value={service.id}>
+                    <div className="flex w-full items-center gap-2">
+                      <Package className="h-4 w-4" />
+                      <span>{service.name}</span>
+                      {groupPrice(service.id) != null && (
+                        <span className="ml-auto pl-3 text-xs tabular-nums text-primary">
+                          {formatEuroNumber(groupPrice(service.id))}€
+                        </span>
+                      )}
+                    </div>
+                  </SelectItem>
+                );
+                return (
+                  <>
+                    {inGroup.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel>{priceGroup.nome}</SelectLabel>
+                        {inGroup.map(item)}
+                      </SelectGroup>
+                    )}
+                    {others.length > 0 && (
+                      <SelectGroup>
+                        {inGroup.length > 0 && <SelectLabel>Outros serviços</SelectLabel>}
+                        {others.map(item)}
+                      </SelectGroup>
+                    )}
+                  </>
+                );
+              })()}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+      {selectedServiceId && priceGroup && groupPrice(selectedServiceId) == null && (
+        <p className="text-xs text-amber-400">
+          Este serviço não tem valor no grupo {priceGroup.nome} — escreva o valor à mão.
+        </p>
+      )}
 
       {selectedServiceId && (
         <>
@@ -147,7 +236,7 @@ const ServiceInput = ({
           <div className="flex justify-center">
             <div className="bg-muted/50 p-1 rounded-xl inline-flex relative">
               <div
-                className={`absolute top-1 bottom-1 w-[120px] rounded-lg bg-green-600 transition-all duration-300 ${
+                className={`absolute top-1 bottom-1 w-[120px] rounded-lg bg-primary transition-all duration-300 ${
                   inputMode === "multiple"
                     ? "translate-x-[120px]"
                     : "translate-x-0"

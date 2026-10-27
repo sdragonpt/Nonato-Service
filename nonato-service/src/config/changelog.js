@@ -17,6 +17,19 @@
 
 export const CHANGELOG = [
   {
+    n: 21,
+    versao: "1.12.0",
+    data: "2026-10-27",
+    titulo: "Grupos de serviços com valores próprios",
+    itens: [
+      { tipo: "novo", texto: "Em Serviços e Valores › Grupos e valores cria-se um grupo (ex.: HOMAG) e dentro dele adicionam-se os serviços e despesas com o valor desse grupo — hora, dia, km, despesa ou valor base." },
+      { tipo: "novo", texto: "Os serviços criados num grupo ficam no catálogo e podem ser reaproveitados noutros grupos com outro valor; ao adicionar, mostra os valores que já têm nos outros grupos." },
+      { tipo: "novo", texto: "Botão Duplicar para criar um grupo novo a partir de outro, com os mesmos serviços e valores, e depois só acertar o que muda." },
+      { tipo: "melhoria", texto: "Nos orçamentos escolhe-se o grupo de preços e o valor do serviço aparece já preenchido (pode ser alterado). A app lembra-se do último grupo usado." },
+      { tipo: "melhoria", texto: "Os serviços que já tinham grupo passam automaticamente para esse grupo, ainda sem valor." },
+    ],
+  },
+  {
     n: 20,
     versao: "1.11.0",
     data: "2026-10-27",

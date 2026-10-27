@@ -2,8 +2,8 @@ import { useState } from "react";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useNavigate } from "react-router-dom";
-import { SingleGroupField } from "../../../components/shared/GroupFields.jsx";
-import { GROUP_KINDS } from "../../../services/groupsStore.js";
+import { GROUP_KINDS, useGroups } from "../../../services/groupsStore.js";
+import { ServiceGroupPricesField, saveServiceGroupPrices } from "./ServiceGroups.jsx";
 import {
   Loader2,
   Plus,
@@ -39,8 +39,9 @@ const AddService = () => {
     name: "",
     type: "base",
     description: "",
-    grupoId: "",
   });
+  const { groups } = useGroups(GROUP_KINDS.SERVICOS);
+  const [groupPrices, setGroupPrices] = useState({});
   const [touched, setTouched] = useState({});
 
   const handleChange = (e) => {
@@ -77,11 +78,12 @@ const AddService = () => {
       setIsSubmitting(true);
       setError(null);
 
-      await addDoc(collection(db, "servicos"), {
+      const ref = await addDoc(collection(db, "servicos"), {
         ...formData,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+      await saveServiceGroupPrices(ref.id, groups, groupPrices);
 
       navigate("/app/manage-services");
     } catch (err) {
@@ -141,11 +143,11 @@ const AddService = () => {
               )}
             </div>
 
-            <SingleGroupField
-              kind={GROUP_KINDS.SERVICOS}
-              value={formData.grupoId}
-              onChange={(grupoId) => setFormData((prev) => ({ ...prev, grupoId }))}
-              dialogTitle="Grupos de serviços"
+            <ServiceGroupPricesField
+              groups={groups}
+              value={groupPrices}
+              onChange={setGroupPrices}
+              type={formData.type}
             />
 
             <div className="space-y-2">

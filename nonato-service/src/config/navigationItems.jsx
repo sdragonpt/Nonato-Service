@@ -110,7 +110,7 @@ export const NAVIGATION_ITEMS = [
     items: [
       { path: "/app/manage-budgets", icon: FileText, iconKey: "FileText", label: "Orçamentos" },
       { path: "/app/parts-budgets", icon: Calculator, iconKey: "Calculator", label: "Orçamentos de Peças Especiais" },
-      { path: "/app/manage-services", icon: Wrench, iconKey: "Wrench", label: "Cadastro de Serviços / Valores" },
+      { path: "/app/manage-services", icon: Wrench, iconKey: "Wrench", label: "Serviços e Valores (por grupo)" },
       { path: "/app/manage-finances", icon: Euro, iconKey: "Euro", label: "Painel de Gestão Financeira" },
       { path: "/app/clientes-devedores", icon: Euro, iconKey: "Euro", label: "Clientes / Financeiro" },
       { path: "/app/manage-expenses", icon: FileSpreadsheet, iconKey: "FileSpreadsheet", label: "Registro de Despesas" },
@@ -214,7 +214,7 @@ export const ROUTE_META = [
   { pattern: "/app/edit-workday/:workdayId", label: "Editar Dia de Trabalho", iconKey: "Calendar" },
 
   // Serviços
-  { pattern: "/app/manage-services", label: "Serviços", iconKey: "Wrench" },
+  { pattern: "/app/manage-services", label: "Serviços e Valores", iconKey: "Wrench" },
   { pattern: "/app/add-service", label: "Novo Serviço", iconKey: "Wrench" },
   { pattern: "/app/edit-service/:serviceId", label: "Editar Serviço", iconKey: "Wrench" },
 

@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteField } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import { useNavigate, useParams } from "react-router-dom";
-import { SingleGroupField } from "../../../components/shared/GroupFields.jsx";
-import { GROUP_KINDS } from "../../../services/groupsStore.js";
+import { GROUP_KINDS, useGroups } from "../../../services/groupsStore.js";
+import { ServiceGroupPricesField, saveServiceGroupPrices } from "./ServiceGroups.jsx";
 import {
   Loader2,
   Save,
@@ -42,8 +42,19 @@ const EditService = () => {
     name: "",
     type: "base",
     description: "",
-    grupoId: "",
   });
+  const { groups, loading: groupsLoading } = useGroups(GROUP_KINDS.SERVICOS);
+  const [groupPrices, setGroupPrices] = useState({});
+  const [originalGroupPrices, setOriginalGroupPrices] = useState(null);
+
+  // Valores atuais deste serviço em cada grupo (preenche o formulário uma vez).
+  useEffect(() => {
+    if (groupsLoading || originalGroupPrices) return;
+    const current = {};
+    for (const g of groups) if (serviceId in g.precos) current[g.id] = g.precos[serviceId];
+    setGroupPrices(current);
+    setOriginalGroupPrices(current);
+  }, [groups, groupsLoading, serviceId, originalGroupPrices]);
   const [touched, setTouched] = useState({});
   const [originalData, setOriginalData] = useState(null);
 
@@ -60,7 +71,6 @@ const EditService = () => {
             name: serviceData.name || "",
             type: serviceData.type || "base",
             description: serviceData.description || "",
-            grupoId: serviceData.grupoId || "",
           };
           setFormData(formattedData);
           setOriginalData(formattedData);
@@ -114,8 +124,11 @@ const EditService = () => {
 
       await updateDoc(doc(db, "servicos", serviceId), {
         ...formData,
+        // o grupo antigo (um só) já foi passado para os grupos com valores
+        grupoId: deleteField(),
         updatedAt: new Date(),
       });
+      await saveServiceGroupPrices(serviceId, groups, groupPrices);
 
       navigate("/app/manage-services");
     } catch (err) {
@@ -136,7 +149,8 @@ const EditService = () => {
 
   const hasChanges =
     originalData &&
-    Object.keys(formData).some((key) => formData[key] !== originalData[key]);
+    (Object.keys(formData).some((key) => formData[key] !== originalData[key]) ||
+      JSON.stringify(groupPrices) !== JSON.stringify(originalGroupPrices));
 
   return (
     <div className="space-y-6">
@@ -187,11 +201,11 @@ const EditService = () => {
               )}
             </div>
 
-            <SingleGroupField
-              kind={GROUP_KINDS.SERVICOS}
-              value={formData.grupoId}
-              onChange={(grupoId) => setFormData((prev) => ({ ...prev, grupoId }))}
-              dialogTitle="Grupos de serviços"
+            <ServiceGroupPricesField
+              groups={groups}
+              value={groupPrices}
+              onChange={setGroupPrices}
+              type={formData.type}
             />
 
             <div className="space-y-2">
