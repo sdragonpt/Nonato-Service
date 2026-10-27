@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Trash2, Euro, Package, Hash, FolderOpen } from "lucide-react";
-import { useGroups, GROUP_KINDS } from "../../services/groupsStore.js";
+import { useGroups, GROUP_KINDS, priceTableForClient } from "../../services/groupsStore.js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,6 +23,7 @@ const ServiceInput = ({
   services,
   selectedServiceId,
   setSelectedServiceId,
+  clientGroupIds, // grupos do cliente do orçamento → tabela de preços por defeito
 }) => {
   const [inputMode, setInputMode] = useState("single");
   const [serviceValue, setServiceValue] = useState("");
@@ -42,6 +43,17 @@ const ServiceInput = ({
     }
   });
   const priceGroup = groups.find((g) => g.id === priceGroupId) || null;
+
+  // Se o cliente está num grupo ligado a uma tabela de preços, essa tabela
+  // fica escolhida quando o cliente muda (continua a dar para trocar à mão).
+  const { groups: clientGroups } = useGroups(GROUP_KINDS.CLIENTES);
+  const priceTablesById = new Map(groups.map((g) => [g.id, g]));
+  const auto = priceTableForClient(clientGroupIds, clientGroups, priceTablesById);
+  const clientKey = (clientGroupIds || []).join(",");
+  useEffect(() => {
+    if (auto.tableId) setPriceGroupId(auto.tableId);
+    // só quando muda o cliente ou a ligação grupo → tabela
+  }, [clientKey, auto.tableId]);
   const groupPrice = (serviceId) => {
     const v = priceGroup?.precos[serviceId];
     return v == null ? null : v;
@@ -224,6 +236,14 @@ const ServiceInput = ({
           </Select>
         </div>
       </div>
+      {auto.tableId && (
+        <p className={`text-xs ${auto.conflict ? "text-amber-400" : "text-muted-foreground"}`}>
+          {priceGroupId === auto.tableId
+            ? `Tabela de preços do grupo de cliente "${auto.viaGroup.nome}".`
+            : `O grupo de cliente "${auto.viaGroup.nome}" usa a tabela ${priceTablesById.get(auto.tableId)?.nome}; foi trocada à mão.`}
+          {auto.conflict && " Atenção: o cliente está em vários grupos com tabelas diferentes — confirme a tabela."}
+        </p>
+      )}
       {selectedServiceId && priceGroup && groupPrice(selectedServiceId) == null && (
         <p className="text-xs text-amber-400">
           Este serviço não tem valor no grupo {priceGroup.nome} — escreva o valor à mão.

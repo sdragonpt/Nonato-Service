@@ -737,7 +737,7 @@ const ManageClients = () => {
         onOpenChange={setManageGroupsOpen}
         kind={GROUP_KINDS.CLIENTES}
         title="Grupos de clientes"
-        description="Ex: Marcenarias, Revendedores, Contrato de manutenção. Um cliente pode estar em vários grupos."
+        description="Ex: Marcenarias, Revendedores, HOMAG. Um cliente pode estar em vários grupos. Escolha a tabela de preços de cada grupo para os orçamentos desses clientes virem já com os valores certos."
       />
 
       <Fab

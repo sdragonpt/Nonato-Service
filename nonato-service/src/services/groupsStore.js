@@ -26,7 +26,11 @@ export const GROUP_KINDS = {
 
 const groupsDoc = (kind) => doc(db, "gruposCadastro", kind);
 
-/** Grupos de um tipo, em tempo real, ordenados por nome: [{ id, nome, precos }]. */
+/**
+ * Grupos de um tipo, em tempo real, ordenados por nome:
+ * [{ id, nome, precos, tabelaPrecosId }] — `tabelaPrecosId` só nos grupos de
+ * clientes: o grupo de serviços cujos valores os orçamentos usam por defeito.
+ */
 export function useGroups(kind) {
   const [state, setState] = useState({ groups: [], byId: new Map(), loading: true });
 
@@ -36,7 +40,12 @@ export function useGroups(kind) {
       (snap) => {
         const itens = (snap.exists() && snap.data().itens) || {};
         const groups = Object.entries(itens)
-          .map(([id, g]) => ({ id, nome: g.nome || "", precos: g.precos || {} }))
+          .map(([id, g]) => ({
+            id,
+            nome: g.nome || "",
+            precos: g.precos || {},
+            tabelaPrecosId: g.tabelaPrecosId || null,
+          }))
           .sort((a, b) => comparePtPt(a.nome, b.nome));
         setState({ groups, byId: new Map(groups.map((g) => [g.id, g])), loading: false });
       },
@@ -66,6 +75,29 @@ export async function renameGroup(kind, id, nome) {
 
 export async function deleteGroup(kind, id) {
   await setDoc(groupsDoc(kind), { itens: { [id]: deleteField() } }, { merge: true });
+}
+
+/** Liga um grupo de clientes a uma tabela de preços (null = sem tabela). */
+export async function setClientGroupPriceTable(clientGroupId, priceGroupId) {
+  await setDoc(
+    groupsDoc(GROUP_KINDS.CLIENTES),
+    { itens: { [clientGroupId]: { tabelaPrecosId: priceGroupId || deleteField() } } },
+    { merge: true }
+  );
+}
+
+/**
+ * Tabela de preços de um cliente, pelos grupos em que está.
+ * Devolve { tableId, viaGroup, conflict } — conflict = os grupos do cliente
+ * apontam para tabelas diferentes (fica a do primeiro, por ordem alfabética).
+ */
+export function priceTableForClient(clientGroupIds, clientGroups, priceTablesById) {
+  const linked = clientGroups.filter(
+    (g) => (clientGroupIds || []).includes(g.id) && g.tabelaPrecosId && priceTablesById.has(g.tabelaPrecosId)
+  );
+  if (!linked.length) return { tableId: null, viaGroup: null, conflict: false };
+  const distinct = new Set(linked.map((g) => g.tabelaPrecosId));
+  return { tableId: linked[0].tabelaPrecosId, viaGroup: linked[0], conflict: distinct.size > 1 };
 }
 
 /** Põe um serviço num grupo com um valor (null = sem valor ainda). */

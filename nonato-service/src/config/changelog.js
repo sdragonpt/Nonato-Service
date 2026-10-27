@@ -17,6 +17,17 @@
 
 export const CHANGELOG = [
   {
+    n: 23,
+    versao: "1.13.0",
+    data: "2026-10-27",
+    titulo: "Grupos de clientes ligados às tabelas de preços",
+    itens: [
+      { tipo: "novo", texto: "Em Clientes › Grupos, cada grupo de clientes pode ter uma tabela de preços (um dos grupos de Serviços e Valores, ex.: HOMAG)." },
+      { tipo: "novo", texto: "Nos orçamentos, ao escolher um cliente desse grupo, a tabela de preços fica escolhida sozinha e os valores dos serviços entram já preenchidos — pode sempre trocar à mão." },
+      { tipo: "melhoria", texto: "Se o cliente estiver em vários grupos com tabelas diferentes, o orçamento avisa para confirmar a tabela." },
+    ],
+  },
+  {
     n: 22,
     versao: "1.12.1",
     data: "2026-10-27",

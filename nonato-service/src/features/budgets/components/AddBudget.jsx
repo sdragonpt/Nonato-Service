@@ -587,6 +587,7 @@ const AddBudget = () => {
             <CardContent>
               <ServiceInput
                 services={services}
+                clientGroupIds={selectedClient?.grupoIds}
                 selectedServiceId={selectedServiceId}
                 setSelectedServiceId={setSelectedServiceId}
                 onAddService={handleAddService}

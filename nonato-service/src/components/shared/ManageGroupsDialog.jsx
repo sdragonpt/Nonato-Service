@@ -1,15 +1,25 @@
 // ManageGroupsDialog.jsx
 // Janela para criar, renomear e apagar os grupos de um cadastro (serviços
-// ou clientes). Ver services/groupsStore.js.
+// ou clientes). Nos grupos de clientes também se escolhe a tabela de preços.
+// Ver services/groupsStore.js.
 
 import { useState } from "react";
-import { Check, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, Euro, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import {
   useGroups,
   createGroup,
   renameGroup,
   deleteGroup,
+  setClientGroupPriceTable,
+  GROUP_KINDS,
 } from "../../services/groupsStore.js";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import {
@@ -21,8 +31,14 @@ import {
 } from "@/components/ui/dialog.jsx";
 import { useConfirm } from "../app";
 
+const NO_TABLE = "__sem__";
+
 const ManageGroupsDialog = ({ open, onOpenChange, kind, title, description }) => {
   const { groups, loading } = useGroups(kind);
+  // Nos grupos de clientes escolhe-se a tabela de preços (grupo de serviços)
+  // que os orçamentos desses clientes usam por defeito.
+  const withPriceTables = kind === GROUP_KINDS.CLIENTES;
+  const { groups: priceTables, byId: priceTablesById } = useGroups(GROUP_KINDS.SERVICOS);
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
@@ -151,7 +167,29 @@ const ManageGroupsDialog = ({ open, onOpenChange, kind, title, description }) =>
                   </>
                 ) : (
                   <>
-                    <span className="flex-1 truncate">{g.nome}</span>
+                    <div className="min-w-0 flex-1">
+                      <span className="block truncate">{g.nome}</span>
+                      {/* Grupos de clientes: tabela de preços usada nos orçamentos */}
+                      {withPriceTables && (
+                        <Select
+                          value={g.tabelaPrecosId && priceTablesById.has(g.tabelaPrecosId) ? g.tabelaPrecosId : NO_TABLE}
+                          onValueChange={(v) => run(() => setClientGroupPriceTable(g.id, v === NO_TABLE ? null : v))}
+                        >
+                          <SelectTrigger className="mt-1.5 h-8 text-xs" aria-label={`Tabela de preços de ${g.nome}`}>
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              <Euro className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                              <SelectValue />
+                            </span>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={NO_TABLE} className="text-muted-foreground">Sem tabela de preços</SelectItem>
+                            {priceTables.map((t) => (
+                              <SelectItem key={t.id} value={t.id}>Preços: {t.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
                     <Button
                       size="icon"
                       variant="ghost"
