@@ -21,6 +21,7 @@ import {
 } from "firebase/storage";
 import { db, storage } from "../../../firebase";
 import { useClients } from "../../../context/ClientsContext.jsx";
+import { ClientGroupField } from "../../../components/shared/GroupFields.jsx";
 import { useEquipments } from "../../../context/EquipmentsContext.jsx";
 import { useOrcamentos } from "../../../context/OrcamentosContext.jsx";
 import { downloadFileFromUrl } from "../../../utils/reportStorage.js";
@@ -890,7 +891,25 @@ const ClientReportsSection = ({ clientId }) => {
 const ClientDetail = () => {
   const { clientId } = useParams();
   const navigate = useNavigate();
-  const { removeClientFromCache } = useClients();
+  const { removeClientFromCache, updateClientInCache } = useClients();
+  const [savingGroup, setSavingGroup] = useState(false);
+
+  // O grupo (Serviços e Valores) grava logo ao escolher.
+  const handleGroupChange = async (grupoIds) => {
+    const previous = client.grupoIds || [];
+    setClient((c) => ({ ...c, grupoIds }));
+    try {
+      setSavingGroup(true);
+      await updateDoc(doc(db, "clientes", clientId), { grupoIds, updatedAt: new Date() });
+      updateClientInCache(clientId, { grupoIds });
+    } catch (err) {
+      console.error("Erro ao gravar o grupo do cliente:", err);
+      setClient((c) => ({ ...c, grupoIds: previous }));
+      setError("Não foi possível gravar o grupo. Tente novamente.");
+    } finally {
+      setSavingGroup(false);
+    }
+  };
   const { ensureEquipments } = useEquipments();
   const [client, setClient] = useState(null);
   const [services, setServices] = useState([]);
@@ -1045,13 +1064,7 @@ const ClientDetail = () => {
             <div className="flex-1 min-w-0 space-y-1.5">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-xl font-bold text-foreground truncate">{client.name}</h3>
-                <Badge
-                  className={
-                    isCompany
-                      ? "bg-blue-500/20 text-blue-400 flex items-center gap-1"
-                      : "bg-green-500/20 text-green-400 flex items-center gap-1"
-                  }
-                >
+                <Badge variant={isCompany ? "info" : "success"} className="flex items-center gap-1">
                   {isCompany ? <UserCog className="h-3 w-3" /> : <UserCheck className="h-3 w-3" />}
                   {isCompany ? "Empresa" : "Pessoa Física"}
                 </Badge>
@@ -1063,42 +1076,44 @@ const ClientDetail = () => {
             </div>
 
             <div className="flex gap-2 shrink-0">
-              <Button
-                onClick={() => navigate(`/app/edit-client/${clientId}`)}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
+              <Button variant="outline" onClick={() => navigate(`/app/edit-client/${clientId}`)}>
                 <Edit2 className="w-4 h-4" />
                 Editar
               </Button>
-              <Button
-                variant="destructive"
-                onClick={() => setDeleteDialogOpen(true)}
-                className="bg-red-600 hover:bg-red-700"
-              >
+              <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
                 <Trash2 className="w-4 h-4" />
                 Excluir
               </Button>
             </div>
+          </div>
+
+          <div className="mt-5 border-t border-border pt-4 sm:max-w-md">
+            <ClientGroupField
+              value={client.grupoIds || []}
+              onChange={handleGroupChange}
+              disabled={savingGroup}
+              saving={savingGroup}
+            />
           </div>
         </CardContent>
       </Card>
 
       {/* Separadores — antes eram 7 secções empilhadas numa scroll só */}
       <Tabs defaultValue="geral" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 border">
-          <TabsTrigger value="geral" className="flex items-center gap-2 data-[state=active]:bg-green-600">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="geral" className="flex items-center gap-2">
             <LayoutGrid className="h-4 w-4" />
             <span className="hidden sm:inline">Visão Geral</span>
           </TabsTrigger>
-          <TabsTrigger value="equipamentos" className="flex items-center gap-2 data-[state=active]:bg-green-600">
+          <TabsTrigger value="equipamentos" className="flex items-center gap-2">
             <Printer className="h-4 w-4" />
             <span className="hidden sm:inline">Equipamentos</span>
           </TabsTrigger>
-          <TabsTrigger value="financeiro" className="flex items-center gap-2 data-[state=active]:bg-green-600">
+          <TabsTrigger value="financeiro" className="flex items-center gap-2">
             <Euro className="h-4 w-4" />
             <span className="hidden sm:inline">Financeiro</span>
           </TabsTrigger>
-          <TabsTrigger value="documentos" className="flex items-center gap-2 data-[state=active]:bg-green-600">
+          <TabsTrigger value="documentos" className="flex items-center gap-2">
             <FolderOpen className="h-4 w-4" />
             <span className="hidden sm:inline">Documentos</span>
           </TabsTrigger>

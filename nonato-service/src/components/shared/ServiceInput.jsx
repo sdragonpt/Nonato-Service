@@ -174,10 +174,12 @@ const ServiceInput = ({
           <label className="text-sm font-medium text-muted-foreground">Grupo de preços</label>
           <Select value={priceGroupId} onValueChange={changePriceGroup}>
             <SelectTrigger>
-              <span className="flex min-w-0 items-center gap-2">
+              <div className="flex min-w-0 items-center gap-2">
                 <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <SelectValue placeholder="Sem grupo" />
-              </span>
+                <span className="truncate">
+                  <SelectValue placeholder="Sem grupo" />
+                </span>
+              </div>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={NO_GROUP} className="text-muted-foreground">Sem grupo (valor à mão)</SelectItem>

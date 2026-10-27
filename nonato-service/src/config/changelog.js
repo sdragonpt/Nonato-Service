@@ -22,7 +22,7 @@ export const CHANGELOG = [
     data: "2026-10-27",
     titulo: "Clientes nos grupos de Serviços e Valores",
     itens: [
-      { tipo: "novo", texto: "Em Novo/Editar Cliente escolhe-se o grupo do cliente — são os mesmos grupos de Serviços e Valores (ex.: HOMAG)." },
+      { tipo: "novo", texto: "O grupo do cliente escolhe-se diretamente nos Detalhes do Cliente (grava logo) ou ao criar um cliente novo — são os mesmos grupos de Serviços e Valores (ex.: HOMAG)." },
       { tipo: "novo", texto: "Nos orçamentos, ao escolher o cliente, o grupo dele fica escolhido sozinho e os valores dos serviços entram já preenchidos — pode sempre trocar à mão." },
       { tipo: "melhoria", texto: "Em Clientes filtra-se por esses grupos. Os grupos de clientes antigos passaram para Serviços e Valores com o mesmo nome, e cada cliente ficou no grupo correspondente." },
     ],

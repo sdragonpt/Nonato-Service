@@ -4,7 +4,7 @@
 // orçamentos desse cliente usam. Ver services/groupsStore.js.
 
 import { Link } from "react-router-dom";
-import { FolderOpen } from "lucide-react";
+import { FolderOpen, Loader2 } from "lucide-react";
 import { useGroups, GROUP_KINDS } from "../../services/groupsStore.js";
 import {
   Select,
@@ -20,7 +20,7 @@ const NONE = "__none__";
  * @param {string[]} value      grupoIds do cliente (guarda-se um só)
  * @param {(ids: string[]) => void} onChange
  */
-export const ClientGroupField = ({ value = [], onChange, label = "Grupo" }) => {
+export const ClientGroupField = ({ value = [], onChange, label = "Grupo", disabled, saving }) => {
   const { groups, byId } = useGroups(GROUP_KINDS.SERVICOS);
   const current = value.find((id) => byId.has(id)) || NONE;
   const extra = value.filter((id) => byId.has(id) && id !== current);
@@ -28,12 +28,18 @@ export const ClientGroupField = ({ value = [], onChange, label = "Grupo" }) => {
   return (
     <div className="space-y-1.5">
       <label className="text-sm font-medium text-muted-foreground">{label}</label>
-      <Select value={current} onValueChange={(v) => onChange(v === NONE ? [] : [v])}>
+      <Select value={current} onValueChange={(v) => onChange(v === NONE ? [] : [v])} disabled={disabled}>
         <SelectTrigger>
-          <span className="flex min-w-0 items-center gap-2">
-            <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <SelectValue placeholder="Sem grupo" />
-          </span>
+          <div className="flex min-w-0 items-center gap-2">
+            {saving ? (
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+            ) : (
+              <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
+            )}
+            <span className="truncate">
+              <SelectValue placeholder="Sem grupo" />
+            </span>
+          </div>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={NONE} className="text-muted-foreground">

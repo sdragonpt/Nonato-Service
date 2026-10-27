@@ -6,7 +6,6 @@ import { db, storage } from "../../../firebase.jsx";
 import { useClients } from "../../../context/ClientsContext.jsx";
 import { searchIncludes } from "../../../utils/normalizeSearch.js";
 import { compressImage } from "../../../utils/imageCompression.js";
-import { ClientGroupField } from "../../../components/shared/GroupFields.jsx";
 import {
   Camera,
   Loader2,
@@ -418,10 +417,6 @@ const EditClient = () => {
             />
           </div>
 
-          <ClientGroupField
-            value={formData.grupoIds}
-            onChange={(grupoIds) => setFormData((prev) => ({ ...prev, grupoIds }))}
-          />
         </FormSection>
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
