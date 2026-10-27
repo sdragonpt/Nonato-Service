@@ -107,7 +107,7 @@ const MachineTimeBlocks = ({ blocks, onChange, equipmentOptions, disabled }) => 
   return (
     <div className="space-y-3">
       {blocks.length === 0 && (
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-muted-foreground">
           Nenhuma máquina adicionada ainda.
         </p>
       )}
@@ -118,11 +118,11 @@ const MachineTimeBlocks = ({ blocks, onChange, equipmentOptions, disabled }) => 
         return (
           <div
             key={block.key}
-            className="p-3 bg-zinc-900 border border-zinc-700 rounded-md space-y-3"
+            className="p-3 bg-muted/50 border border-border rounded-md space-y-3"
           >
             <div className="flex items-start gap-2">
               <div className="flex-1 space-y-2">
-                <label className="text-xs font-medium text-zinc-500">
+                <label className="text-xs font-medium text-muted-foreground">
                   Máquina
                 </label>
                 <Select
@@ -132,10 +132,10 @@ const MachineTimeBlocks = ({ blocks, onChange, equipmentOptions, disabled }) => 
                   }
                   disabled={disabled}
                 >
-                  <SelectTrigger className="bg-zinc-800 border-zinc-600 text-white">
+                  <SelectTrigger className="bg-card">
                     <SelectValue placeholder="Selecionar máquina" />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+                  <SelectContent>
                     <SelectItem value={MANUAL_VALUE}>
                       Outra / não listada (escrever manualmente)
                     </SelectItem>
@@ -154,7 +154,7 @@ const MachineTimeBlocks = ({ blocks, onChange, equipmentOptions, disabled }) => 
                       updateBlock(block.key, { equipmentLabel: e.target.value })
                     }
                     placeholder="Nome/código da máquina"
-                    className="bg-zinc-800 border-zinc-600 text-white mt-1"
+                    className="bg-card mt-1"
                     disabled={disabled}
                   />
                 )}
@@ -165,7 +165,7 @@ const MachineTimeBlocks = ({ blocks, onChange, equipmentOptions, disabled }) => 
                 size="icon"
                 onClick={() => removeBlock(block.key)}
                 disabled={disabled}
-                className="text-red-400 hover:text-red-300 hover:bg-zinc-800 mt-6"
+                className="text-red-400 hover:text-red-300 hover:bg-white/5 mt-6"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -173,7 +173,7 @@ const MachineTimeBlocks = ({ blocks, onChange, equipmentOptions, disabled }) => 
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-zinc-500">
+                <label className="text-xs font-medium text-muted-foreground">
                   Início
                 </label>
                 <input
@@ -183,11 +183,11 @@ const MachineTimeBlocks = ({ blocks, onChange, equipmentOptions, disabled }) => 
                     updateBlock(block.key, { startHour: e.target.value })
                   }
                   disabled={disabled}
-                  className="w-full p-2 bg-zinc-800 border border-zinc-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full p-2 bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-zinc-500">
+                <label className="text-xs font-medium text-muted-foreground">
                   Fim
                 </label>
                 <input
@@ -197,7 +197,7 @@ const MachineTimeBlocks = ({ blocks, onChange, equipmentOptions, disabled }) => 
                     updateBlock(block.key, { endHour: e.target.value })
                   }
                   disabled={disabled}
-                  className="w-full p-2 bg-zinc-800 border border-zinc-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full p-2 bg-card border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 />
               </div>
             </div>
@@ -214,16 +214,16 @@ const MachineTimeBlocks = ({ blocks, onChange, equipmentOptions, disabled }) => 
         variant="outline"
         onClick={addBlock}
         disabled={disabled}
-        className="w-full border-dashed border-zinc-700 bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700"
+        className="w-full border-dashed text-muted-foreground"
       >
-        <Wrench className="w-4 h-4 mr-2" />
+        <Wrench className="w-4 h-4" />
         Adicionar Máquina
       </Button>
 
       {blocks.length > 0 && (
-        <p className="text-right text-sm text-zinc-300">
+        <p className="text-right text-sm text-foreground/90">
           Total:{" "}
-          <span className="font-medium text-white">
+          <span className="font-medium text-foreground">
             {totalBlocksDurationLabel(blocks)}
           </span>
         </p>

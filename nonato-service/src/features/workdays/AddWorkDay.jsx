@@ -5,7 +5,6 @@ import { collection, addDoc, doc, getDoc } from "firebase/firestore";
 import { useNavigate, useParams } from "react-router-dom";
 import { useEquipments } from "../../context/EquipmentsContext.jsx";
 import {
-  ArrowLeft,
   Loader2,
   Plus,
   AlertTriangle,
@@ -29,6 +28,7 @@ import MachineTimeBlocks, {
   totalBlocksDurationMinutes,
 } from "./components/MachineTimeBlocks.jsx";
 import { toDateKey } from "../../utils/formatDate.js";
+import { PageHeader } from "../../components/app";
 
 const AddWorkday = () => {
   const { orderId } = useParams();
@@ -137,55 +137,38 @@ const AddWorkday = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <Clock className="h-5 w-5 text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">
-              Novo Dia de Trabalho
-            </h1>
-            <p className="text-sm text-zinc-400">
-              Adicione um novo dia de trabalho à ordem de serviço
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Novo Dia de Trabalho"
+        description="Adicione um novo dia de trabalho à ordem de serviço"
+        icon={Clock}
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Date Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center text-lg text-white">
-              <Calendar className="w-5 h-5 mr-2 text-zinc-400" />
+            <CardTitle className="flex items-center text-lg">
+              <Calendar className="w-5 h-5 mr-2 text-muted-foreground" />
               Data
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="date"
                 name="workDate"
                 value={formData.workDate}
                 onChange={handleChange}
-                className="w-full pl-10 p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full pl-10 p-3 bg-muted/50 border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 required
               />
             </div>
@@ -193,17 +176,17 @@ const AddWorkday = () => {
         </Card>
 
         {/* Departure Times Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center text-lg text-white">
-              <Clock className="w-5 h-5 mr-2 text-zinc-400" />
+            <CardTitle className="flex items-center text-lg">
+              <Clock className="w-5 h-5 mr-2 text-muted-foreground" />
               Horários de Ida
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">
+                <label className="text-sm font-medium text-muted-foreground">
                   Saída
                 </label>
                 <input
@@ -211,11 +194,11 @@ const AddWorkday = () => {
                   name="departureTime"
                   value={formData.departureTime}
                   onChange={handleChange}
-                  className="w-full p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full p-3 bg-muted/50 border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">
+                <label className="text-sm font-medium text-muted-foreground">
                   Chegada
                 </label>
                 <input
@@ -223,7 +206,7 @@ const AddWorkday = () => {
                   name="arrivalTime"
                   value={formData.arrivalTime}
                   onChange={handleChange}
-                  className="w-full p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full p-3 bg-muted/50 border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 />
               </div>
             </div>
@@ -231,13 +214,13 @@ const AddWorkday = () => {
         </Card>
 
         {/* Machines Worked Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center text-lg text-white">
-              <Clock className="w-5 h-5 mr-2 text-zinc-400" />
+            <CardTitle className="flex items-center text-lg">
+              <Clock className="w-5 h-5 mr-2 text-muted-foreground" />
               Máquinas Trabalhadas
             </CardTitle>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               Regista cada máquina em que trabalhaste e as horas, mesmo que
               tenhas voltado à mesma máquina mais do que uma vez no dia.
             </p>
@@ -253,17 +236,17 @@ const AddWorkday = () => {
         </Card>
 
         {/* Return Times Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center text-lg text-white">
-              <Clock className="w-5 h-5 mr-2 text-zinc-400" />
+            <CardTitle className="flex items-center text-lg">
+              <Clock className="w-5 h-5 mr-2 text-muted-foreground" />
               Horários de Retorno
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">
+                <label className="text-sm font-medium text-muted-foreground">
                   Saída
                 </label>
                 <input
@@ -271,11 +254,11 @@ const AddWorkday = () => {
                   name="returnDepartureTime"
                   value={formData.returnDepartureTime}
                   onChange={handleChange}
-                  className="w-full p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full p-3 bg-muted/50 border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">
+                <label className="text-sm font-medium text-muted-foreground">
                   Chegada
                 </label>
                 <input
@@ -283,7 +266,7 @@ const AddWorkday = () => {
                   name="returnArrivalTime"
                   value={formData.returnArrivalTime}
                   onChange={handleChange}
-                  className="w-full p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full p-3 bg-muted/50 border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 />
               </div>
             </div>
@@ -291,17 +274,17 @@ const AddWorkday = () => {
         </Card>
 
         {/* Mileage Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center text-lg text-white">
-              <Car className="w-5 h-5 mr-2 text-zinc-400" />
+            <CardTitle className="flex items-center text-lg">
+              <Car className="w-5 h-5 mr-2 text-muted-foreground" />
               Quilometragem
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">
+                <label className="text-sm font-medium text-muted-foreground">
                   KM Ida
                 </label>
                 <Input
@@ -310,11 +293,11 @@ const AddWorkday = () => {
                   value={formData.kmDeparture}
                   onChange={handleChange}
                   placeholder="0"
-                  className="bg-zinc-900 border-zinc-700 text-white"
+                 
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">
+                <label className="text-sm font-medium text-muted-foreground">
                   KM Volta
                 </label>
                 <Input
@@ -323,7 +306,7 @@ const AddWorkday = () => {
                   value={formData.kmReturn}
                   onChange={handleChange}
                   placeholder="0"
-                  className="bg-zinc-900 border-zinc-700 text-white"
+                 
                 />
               </div>
             </div>
@@ -331,11 +314,11 @@ const AddWorkday = () => {
         </Card>
 
         {/* Break Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center text-lg text-white">
-                <Coffee className="w-5 h-5 mr-2 text-zinc-400" />
+              <CardTitle className="flex items-center text-lg">
+                <Coffee className="w-5 h-5 mr-2 text-muted-foreground" />
                 Pausa
               </CardTitle>
               <Switch
@@ -352,7 +335,7 @@ const AddWorkday = () => {
           {formData.pause && (
             <CardContent>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">
+                <label className="text-sm font-medium text-muted-foreground">
                   Duração da Pausa
                 </label>
                 <Input
@@ -362,7 +345,7 @@ const AddWorkday = () => {
                   onChange={handleChange}
                   placeholder="00:00"
                   pattern="^(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$"
-                  className="bg-zinc-900 border-zinc-700 text-white"
+                 
                 />
               </div>
             </CardContent>
@@ -370,10 +353,10 @@ const AddWorkday = () => {
         </Card>
 
         {/* Description Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center text-lg text-white">
-              <FileText className="w-5 h-5 mr-2 text-zinc-400" />
+            <CardTitle className="flex items-center text-lg">
+              <FileText className="w-5 h-5 mr-2 text-muted-foreground" />
               Descrição
             </CardTitle>
           </CardHeader>
@@ -383,7 +366,7 @@ const AddWorkday = () => {
               value={formData.description}
               onChange={handleChange}
               placeholder="Descreva o trabalho realizado..."
-              className="min-h-[100px] bg-zinc-900 border-zinc-700 text-white resize-none"
+              className="min-h-[100px] resize-none"
             />
           </CardContent>
         </Card>
@@ -392,7 +375,7 @@ const AddWorkday = () => {
         <Button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-green-600 hover:bg-green-700"
+          className="w-full"
         >
           {isLoading ? (
             <>

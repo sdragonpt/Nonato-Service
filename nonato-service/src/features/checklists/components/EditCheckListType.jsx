@@ -3,7 +3,6 @@ import { doc, getDoc, getDocs, collection, updateDoc } from "firebase/firestore"
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../../../firebase.jsx";
 import {
-  ArrowLeft,
   Loader2,
   Plus,
   Trash2,
@@ -32,6 +31,7 @@ import {
 } from "@/components/ui/select.jsx";
 
 import ChecklistTypeSelector from "./ChecklistTypeSelector";
+import { PageHeader } from "../../../components/app";
 
 const EditChecklistType = () => {
   const { typeId } = useParams();
@@ -384,7 +384,7 @@ const EditChecklistType = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -392,46 +392,31 @@ const EditChecklistType = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <ClipboardEdit className="h-5 w-5 text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">Editar Checklist</h1>
-            <p className="text-sm text-zinc-400">
-              Atualize as informações do checklist
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Editar Checklist"
+        description="Atualize as informações do checklist"
+        icon={ClipboardEdit}
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Checklist Name Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">
+            <CardTitle className="text-lg">
               Informações Básicas
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Nome do Checklist
               </label>
               <Input
@@ -441,22 +426,22 @@ const EditChecklistType = () => {
                 onChange={handleChange}
                 onBlur={() => handleBlur("type")}
                 placeholder="Ex: Checklist de Manutenção de Impressoras"
-                className="bg-zinc-900 border-zinc-700 text-white"
+               
               />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2">
               <Layers className="w-5 h-5" />
               Família / Grupo de Equipamento (opcional)
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Família</label>
+              <label className="text-sm font-medium text-muted-foreground">Família</label>
               <Select
                 value={formData.familyId || "none"}
                 onValueChange={(value) =>
@@ -467,18 +452,18 @@ const EditChecklistType = () => {
                   }))
                 }
               >
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger>
                   <SelectValue placeholder="Sem família" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  <SelectItem value="none" className="text-white hover:bg-zinc-700">
+                <SelectContent>
+                  <SelectItem value="none">
                     Sem família
                   </SelectItem>
                   {families.map((family) => (
                     <SelectItem
                       key={family.id}
                       value={family.id}
-                      className="text-white hover:bg-zinc-700"
+                     
                     >
                       {family.name}
                     </SelectItem>
@@ -489,7 +474,7 @@ const EditChecklistType = () => {
 
             {formData.familyId && groupsForFamily.length > 0 && (
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Grupo</label>
+                <label className="text-sm font-medium text-muted-foreground">Grupo</label>
                 <Select
                   value={formData.groupId || "none"}
                   onValueChange={(value) =>
@@ -499,18 +484,18 @@ const EditChecklistType = () => {
                     }))
                   }
                 >
-                  <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                  <SelectTrigger>
                     <SelectValue placeholder="Sem grupo" />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
-                    <SelectItem value="none" className="text-white hover:bg-zinc-700">
+                  <SelectContent>
+                    <SelectItem value="none">
                       Sem grupo
                     </SelectItem>
                     {groupsForFamily.map((group) => (
                       <SelectItem
                         key={group.id}
                         value={group.id}
-                        className="text-white hover:bg-zinc-700"
+                       
                       >
                         {group.name}
                       </SelectItem>
@@ -532,9 +517,9 @@ const EditChecklistType = () => {
         {/* Groups Section */}
         <div className="space-y-4">
           {formData.groups.map((group, groupIndex) => (
-            <Card key={groupIndex} className="bg-zinc-800 border-zinc-700">
+            <Card key={groupIndex}>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg text-white">
+                <CardTitle className="text-lg">
                   Grupo {groupIndex + 1}
                 </CardTitle>
                 {formData.groups.length > 1 && (
@@ -543,7 +528,7 @@ const EditChecklistType = () => {
                     variant="ghost"
                     size="icon"
                     onClick={() => removeGroup(groupIndex)}
-                    className="text-red-400 hover:text-red-300 hover:bg-zinc-700"
+                    className="text-red-400 hover:text-red-300"
                   >
                     <Trash2 className="w-5 h-5" />
                   </Button>
@@ -551,7 +536,7 @@ const EditChecklistType = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400">
+                  <label className="text-sm font-medium text-muted-foreground">
                     Nome do Grupo
                   </label>
                   <Input
@@ -562,13 +547,13 @@ const EditChecklistType = () => {
                     }
                     onBlur={() => handleGroupBlur(groupIndex)}
                     placeholder="Ex: Verificação Inicial"
-                    className="bg-zinc-900 border-zinc-700 text-white"
+                   
                   />
                 </div>
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-zinc-400">
+                    <label className="text-sm font-medium text-muted-foreground">
                       Características
                     </label>
                     <Button
@@ -576,9 +561,9 @@ const EditChecklistType = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => addCharacteristic(groupIndex)}
-                      className="border-zinc-700 text-white hover:text-white bg-zinc-600 hover:bg-zinc-700"
+                      className="bg-accent"
                     >
-                      <Plus className="w-4 h-4 mr-2" />
+                      <Plus className="w-4 h-4" />
                       Adicionar
                     </Button>
                   </div>
@@ -599,7 +584,7 @@ const EditChecklistType = () => {
                           handleCharacteristicBlur(groupIndex, charIndex)
                         }
                         placeholder={`Característica ${charIndex + 1}`}
-                        className="bg-zinc-900 border-zinc-700 text-white"
+                       
                       />
                       {group.characteristics.length > 1 && (
                         <Button
@@ -609,7 +594,7 @@ const EditChecklistType = () => {
                           onClick={() =>
                             removeCharacteristic(groupIndex, charIndex)
                           }
-                          className="text-red-400 hover:text-red-300 hover:bg-zinc-700"
+                          className="text-red-400 hover:text-red-300"
                         >
                           <Trash2 className="w-5 h-5" />
                         </Button>
@@ -626,9 +611,9 @@ const EditChecklistType = () => {
             type="button"
             variant="outline"
             onClick={addGroup}
-            className="w-full border-zinc-700 text-white hover:text-white bg-zinc-600 hover:bg-zinc-700"
+            className="w-full bg-accent"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4" />
             Adicionar Novo Grupo
           </Button>
         </div>
@@ -638,7 +623,7 @@ const EditChecklistType = () => {
           type="submit"
           onClick={handleSubmit}
           disabled={isSubmitting || !hasChanges()}
-          className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:hover:bg-green-600"
+          className="w-full disabled:opacity-50 disabled:hover:bg-primary"
         >
           {isSubmitting ? (
             <>

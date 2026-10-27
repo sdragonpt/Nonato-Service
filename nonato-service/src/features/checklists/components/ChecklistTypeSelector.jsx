@@ -12,16 +12,16 @@ import { CHECKLIST_CATEGORIES } from "./ChecklistCategories";
 
 const ChecklistTypeSelector = ({ value, onValueChange, disabled = false }) => {
   return (
-    <Card className="bg-zinc-800 border-zinc-700">
+    <Card>
       <CardHeader>
-        <CardTitle className="text-lg text-white flex items-center gap-2">
+        <CardTitle className="text-lg flex items-center gap-2">
           <ClipboardList className="w-5 h-5" />
           Categoria do Checklist
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-zinc-400">
+          <label className="text-sm font-medium text-muted-foreground">
             Selecione a categoria
           </label>
           <Select
@@ -29,16 +29,16 @@ const ChecklistTypeSelector = ({ value, onValueChange, disabled = false }) => {
             onValueChange={onValueChange}
             disabled={disabled}
           >
-            <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+            <SelectTrigger>
               <SelectValue placeholder="Selecione uma categoria" />
             </SelectTrigger>
-            <SelectContent className="bg-zinc-800 border-zinc-700">
+            <SelectContent>
               <SelectGroup>
                 {CHECKLIST_CATEGORIES.map((category) => (
                   <SelectItem
                     key={category.value}
                     value={category.value}
-                    className="text-white hover:bg-zinc-700 focus:bg-zinc-700"
+                   
                   >
                     {category.label}
                   </SelectItem>

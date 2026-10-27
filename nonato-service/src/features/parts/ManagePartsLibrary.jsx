@@ -55,6 +55,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs.jsx";
+import { PageHeader } from "../../components/app";
 
 const STORAGE_KEYS = {
   SEARCH_TERM: "parts_search",
@@ -88,12 +89,12 @@ const PAGE_SIZE = 24;
 // do resto do cartão e volta ao tamanho normal quando o rato sai. Só há
 // zoom quando a peça tem imagem — ampliar a imagem genérica não serve de nada.
 const ZOOM_CLASSES =
-  "transition-transform duration-200 ease-out hover:z-30 hover:scale-[3] hover:shadow-2xl hover:ring-1 hover:ring-zinc-600";
+  "transition-transform duration-200 ease-out hover:z-30 hover:scale-[3] hover:shadow-2xl hover:ring-1 hover:ring-border";
 
 const ZoomablePartImage = ({ part, sizeClassName }) => (
   <div className={`relative shrink-0 ${sizeClassName}`}>
     <div
-      className={`absolute inset-0 rounded-lg overflow-hidden bg-zinc-900 origin-left ${
+      className={`absolute inset-0 rounded-lg overflow-hidden bg-muted/50 origin-left ${
         part.image ? ZOOM_CLASSES : ""
       }`}
     >
@@ -139,15 +140,15 @@ const PartCard = React.memo(({ part, viewMode, onAssign, onView }) => {
         <Button
           variant="ghost"
           size="icon"
-          className="rounded-full hover:bg-accent text-foreground"
+          className="rounded-full"
         >
           <MoreVertical className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="">
+      <DropdownMenuContent align="end">
         <DropdownMenuItem
           onClick={handleAssign}
-          className="text-foreground hover:bg-accent cursor-pointer"
+          className="cursor-pointer"
         >
           <Tag className="w-4 h-4 mr-2" />
           Atribuir Categoria
@@ -213,7 +214,7 @@ PartCard.displayName = "PartCard";
 
 // ✅ STATS CARD
 const StatsCard = React.memo(({ title, value, icon: Icon, color, loading }) => (
-  <Card className="">
+  <Card>
     <CardContent className="flex items-center justify-between p-4 sm:p-6">
       <div>
         <p className="text-sm font-medium text-muted-foreground">{title}</p>
@@ -551,41 +552,39 @@ const ManagePartsLibrary = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-            Biblioteca de Peças
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Catálogo HOMAG — atribua categorias às peças
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            onClick={() => navigate("/app/parts-classification-rules")}
-            variant="outline"
-            className="bg-muted hover:bg-accent text-foreground border-border"
-          >
-            <Wand2 className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Regras de </span>Classificação
-          </Button>
-          <Button
-            onClick={() => navigate("/app/manage-categories")}
-            variant="outline"
-            className="bg-purple-600 hover:bg-purple-700 text-foreground border-purple-600"
-          >
-            <Tag className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Gerenciar </span>Categorias
-          </Button>
-          <Button
-            onClick={handleRefresh}
-            variant="outline"
-            className="bg-muted hover:bg-accent text-foreground border-border"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Biblioteca de Peças"
+        description="Catálogo HOMAG — atribua categorias às peças"
+        actions={
+          <>
+            <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => navigate("/app/parts-classification-rules")}
+              variant="outline"
+              className="bg-muted"
+            >
+              <Wand2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Regras de </span>Classificação
+            </Button>
+            <Button
+              onClick={() => navigate("/app/manage-categories")}
+              variant="outline"
+              className="bg-purple-600 hover:bg-purple-700 border-purple-600"
+            >
+              <Tag className="w-4 h-4" />
+              <span className="hidden sm:inline">Gerenciar </span>Categorias
+            </Button>
+            <Button
+              onClick={handleRefresh}
+              variant="outline"
+              className="bg-muted"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+          </div>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -613,9 +612,9 @@ const ManagePartsLibrary = () => {
       </div>
 
       {catalogError && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">
+          <AlertDescription>
             Erro ao carregar catálogo: {catalogError}
           </AlertDescription>
         </Alert>
@@ -623,7 +622,7 @@ const ManagePartsLibrary = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="">
+        <TabsList>
           <TabsTrigger
             value="all"
             className="data-[state=active]:bg-green-600 data-[state=active]:text-white"
@@ -640,7 +639,7 @@ const ManagePartsLibrary = () => {
 
         {/* All Parts Tab */}
         <TabsContent value="all" className="space-y-4">
-          <Card className="">
+          <Card>
             <CardContent className="space-y-4 p-4 sm:p-6">
               <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -648,7 +647,7 @@ const ManagePartsLibrary = () => {
                   placeholder="Buscar por nome ou código..."
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10 pr-10 w-full bg-muted/50 border-border text-foreground [&::placeholder]:text-muted-foreground"
+                  className="pl-10 pr-10 w-full [&::placeholder]:text-muted-foreground"
                 />
                 {searchTerm !== debouncedSearchTerm && (
                   <div className="absolute right-10 top-1/2 -translate-y-1/2">
@@ -660,7 +659,7 @@ const ManagePartsLibrary = () => {
                     variant="ghost"
                     size="sm"
                     onClick={handleClearSearch}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-zinc-700"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
                   >
                     <X className="h-4 w-4 text-muted-foreground" />
                   </Button>
@@ -704,11 +703,11 @@ const ManagePartsLibrary = () => {
                   onValueChange={setFilterCategory}
                   disabled={filterClassified === "without"}
                 >
-                  <SelectTrigger className="bg-muted/50 border-border text-foreground">
+                  <SelectTrigger>
                     <SelectValue placeholder="Filtrar por categoria" />
                   </SelectTrigger>
-                  <SelectContent className="">
-                    <SelectItem value="all" className="text-foreground hover:bg-accent">
+                  <SelectContent>
+                    <SelectItem value="all">
                       Todas as Categorias
                     </SelectItem>
                     {sortedCategories.length > 0 ? (
@@ -716,7 +715,7 @@ const ManagePartsLibrary = () => {
                         <SelectItem
                           key={category.id}
                           value={category.id}
-                          className="text-foreground hover:bg-accent"
+                         
                         >
                           {category.name}
                         </SelectItem>
@@ -725,7 +724,7 @@ const ManagePartsLibrary = () => {
                       <SelectItem
                         value="no-categories"
                         disabled
-                        className="text-muted-foreground hover:bg-accent"
+                        className="text-muted-foreground"
                       >
                         Nenhuma categoria encontrada
                       </SelectItem>
@@ -734,14 +733,14 @@ const ManagePartsLibrary = () => {
                 </Select>
 
                 <Select value={sortField} onValueChange={setSortField}>
-                  <SelectTrigger className="bg-muted/50 border-border text-foreground">
+                  <SelectTrigger>
                     <SelectValue placeholder="Ordenar por" />
                   </SelectTrigger>
-                  <SelectContent className="">
-                    <SelectItem value="name" className="text-foreground hover:bg-accent">
+                  <SelectContent>
+                    <SelectItem value="name">
                       Nome
                     </SelectItem>
-                    <SelectItem value="code" className="text-foreground hover:bg-accent">
+                    <SelectItem value="code">
                       Código
                     </SelectItem>
                   </SelectContent>
@@ -759,9 +758,9 @@ const ManagePartsLibrary = () => {
                     <Button
                       size="sm"
                       onClick={() => navigate("/app/manage-categories")}
-                      className="bg-purple-600 hover:bg-purple-700 text-foreground h-7 px-3"
+                      className="bg-purple-600 hover:bg-purple-700 h-7 px-3"
                     >
-                      <Tag className="h-3 w-3 mr-1" />
+                      <Tag className="h-3 w-3" />
                       Criar Categoria
                     </Button>
                   </div>
@@ -775,7 +774,7 @@ const ManagePartsLibrary = () => {
                     onClick={() =>
                       setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
                     }
-                    className="gap-2 text-foreground border-border hover:bg-accent bg-green-600"
+                    className="gap-2 bg-primary"
                   >
                     {sortOrder === "asc" ? "Crescente" : "Decrescente"}
                   </Button>
@@ -783,7 +782,7 @@ const ManagePartsLibrary = () => {
                   <Button
                     variant="outline"
                     onClick={() => setViewMode("grid")}
-                    className={`gap-2 text-white border-zinc-700 hover:bg-zinc-700 ${
+                    className={`gap-2 text-foreground border-border hover:bg-accent ${
                       viewMode === "grid" ? "bg-muted" : "bg-transparent"
                     }`}
                   >
@@ -793,7 +792,7 @@ const ManagePartsLibrary = () => {
                   <Button
                     variant="outline"
                     onClick={() => setViewMode("list")}
-                    className={`gap-2 text-white border-zinc-700 hover:bg-zinc-700 ${
+                    className={`gap-2 text-foreground border-border hover:bg-accent ${
                       viewMode === "list" ? "bg-muted" : "bg-transparent"
                     }`}
                   >
@@ -804,7 +803,7 @@ const ManagePartsLibrary = () => {
                     <Button
                       variant="outline"
                       onClick={handleClearAllFilters}
-                      className="gap-2 text-foreground bg-amber-600 border-amber-600 hover:bg-amber-600/20"
+                      className="gap-2 bg-amber-600 border-amber-600 hover:bg-amber-600/20"
                     >
                       <X className="w-4 h-4" />
                       Limpar Filtros
@@ -818,9 +817,9 @@ const ManagePartsLibrary = () => {
               </div>
 
               {error && (
-                <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+                <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription className="text-red-400 flex-1">
+                  <AlertDescription className="flex-1">
                     {error}
                   </AlertDescription>
                 </Alert>
@@ -829,7 +828,7 @@ const ManagePartsLibrary = () => {
           </Card>
 
           {catalogLoading && filteredParts.length === 0 && (
-            <Card className="">
+            <Card>
               <CardContent className="p-8 text-center">
                 <Loader2 className="w-8 h-8 animate-spin text-foreground mx-auto mb-4" />
                 <p className="text-foreground">Carregando peças...</p>
@@ -872,7 +871,7 @@ const ManagePartsLibrary = () => {
                     size="icon"
                     disabled={allTabPage === 1}
                     onClick={() => setAllTabPage((p) => Math.max(1, p - 1))}
-                    className="border-border text-foreground hover:bg-accent bg-card disabled:opacity-40"
+                    className="disabled:opacity-40"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
@@ -886,7 +885,7 @@ const ManagePartsLibrary = () => {
                     onClick={() =>
                       setAllTabPage((p) => Math.min(allTabTotalPages, p + 1))
                     }
-                    className="border-border text-foreground hover:bg-accent bg-card disabled:opacity-40"
+                    className="disabled:opacity-40"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -896,7 +895,7 @@ const ManagePartsLibrary = () => {
           )}
 
           {filteredParts.length === 0 && !catalogLoading && (
-            <Card className="">
+            <Card>
               <CardContent className="p-8 sm:p-12 text-center">
                 <Search className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
                 <p className="text-lg font-medium mb-2 text-foreground">
@@ -910,7 +909,7 @@ const ManagePartsLibrary = () => {
                     onClick={handleClearAllFilters}
                     className="bg-amber-600 hover:bg-amber-700"
                   >
-                    <X className="w-4 h-4 mr-2" />
+                    <X className="w-4 h-4" />
                     Limpar Filtros
                   </Button>
                 )}
@@ -928,9 +927,9 @@ const ManagePartsLibrary = () => {
                   variant="outline"
                   size="sm"
                   onClick={handleBackToCategories}
-                  className="h-8 border-border text-foreground hover:bg-accent bg-zinc-600"
+                  className="h-8 bg-accent"
                 >
-                  <ArrowLeft className="h-3 w-3 mr-1" />
+                  <ArrowLeft className="h-3 w-3" />
                   Voltar
                 </Button>
                 <span className="text-muted-foreground">
@@ -955,7 +954,7 @@ const ManagePartsLibrary = () => {
                 }
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full bg-muted/50 border-border text-foreground [&::placeholder]:text-muted-foreground"
+                className="pl-10 w-full [&::placeholder]:text-muted-foreground"
               />
             </div>
 
@@ -1042,7 +1041,7 @@ const ManagePartsLibrary = () => {
                           }
                           className="mt-4 bg-purple-600 hover:bg-purple-700"
                         >
-                          <Tag className="w-4 h-4 mr-2" />
+                          <Tag className="w-4 h-4" />
                           Adicionar Subcategoria
                         </Button>
                       </CardContent>
@@ -1083,7 +1082,7 @@ const ManagePartsLibrary = () => {
                     onClick={handleRefresh}
                     variant="outline"
                     size="sm"
-                    className="gap-2 text-foreground border-border hover:bg-accent bg-zinc-600"
+                    className="gap-2 bg-accent"
                   >
                     <RefreshCw className="w-4 h-4" />
                     Atualizar
@@ -1103,7 +1102,7 @@ const ManagePartsLibrary = () => {
                     ))}
                   </div>
                 ) : (
-                  <Card className="">
+                  <Card>
                     <CardContent className="p-6 text-center">
                       <Package className="w-10 h-10 text-muted-foreground/70 mx-auto mb-4" />
                       <p className="text-lg font-medium mb-2 text-foreground">
@@ -1115,7 +1114,7 @@ const ManagePartsLibrary = () => {
                       </p>
                       <Button
                         onClick={() => handleTabChange("all")}
-                        className="mt-4 bg-primary hover:bg-primary/90"
+                        className="mt-4"
                       >
                         Ver Todas as Peças
                       </Button>
@@ -1128,9 +1127,9 @@ const ManagePartsLibrary = () => {
             <div className="flex flex-wrap gap-2 mt-4">
               <Button
                 onClick={() => navigate("/app/add-category")}
-                className="bg-primary hover:bg-primary/90"
+               
               >
-                <Tag className="w-4 h-4 mr-2" />
+                <Tag className="w-4 h-4" />
                 Nova Categoria
               </Button>
 
@@ -1138,7 +1137,7 @@ const ManagePartsLibrary = () => {
                 onClick={() => navigate("/app/manage-categories")}
                 className="bg-purple-600 hover:bg-purple-700"
               >
-                <Tag className="w-4 h-4 mr-2" />
+                <Tag className="w-4 h-4" />
                 Gerenciar Categorias
               </Button>
 
@@ -1149,7 +1148,7 @@ const ManagePartsLibrary = () => {
                   }
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  <Tag className="w-4 h-4 mr-2" />
+                  <Tag className="w-4 h-4" />
                   Nova Subcategoria
                 </Button>
               )}

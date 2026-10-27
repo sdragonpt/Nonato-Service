@@ -39,6 +39,7 @@ import { Card, CardContent } from "@/components/ui/card.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
+import { PageHeader } from "../../../components/app";
 
 const AddInspection = () => {
   const navigate = useNavigate();
@@ -247,7 +248,7 @@ const AddInspection = () => {
     if (isLoading) {
       return (
         <div className="flex justify-center items-center p-8">
-          <Loader2 className="h-8 w-8 animate-spin text-white" />
+          <Loader2 className="h-8 w-8 animate-spin text-foreground" />
         </div>
       );
     }
@@ -257,13 +258,13 @@ const AddInspection = () => {
         return (
           <div className="space-y-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="text"
                 placeholder="Buscar cliente..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                className="pl-10 w-full"
               />
             </div>
             <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -273,12 +274,12 @@ const AddInspection = () => {
                   onClick={() => setSelectedClient(client)}
                   className={`p-4 rounded-lg cursor-pointer flex items-center ${
                     selectedClient?.id === client.id
-                      ? "bg-green-600"
-                      : "bg-zinc-800 hover:bg-zinc-700"
+                      ? "bg-primary"
+                      : "bg-card hover:bg-accent"
                   }`}
                 >
-                  <User className="w-5 h-5 mr-3 text-zinc-400" />
-                  <span className="text-white">{client.name}</span>
+                  <User className="w-5 h-5 mr-3 text-muted-foreground" />
+                  <span className="text-foreground">{client.name}</span>
                 </div>
               ))}
             </div>
@@ -288,9 +289,9 @@ const AddInspection = () => {
       case 2:
         return (
           <div className="space-y-4">
-            <div className="p-4 bg-zinc-800 rounded-lg">
-              <p className="text-sm text-zinc-400">Cliente selecionado:</p>
-              <p className="text-white font-medium">{selectedClient?.name}</p>
+            <div className="p-4 bg-card rounded-lg">
+              <p className="text-sm text-muted-foreground">Cliente selecionado:</p>
+              <p className="text-foreground font-medium">{selectedClient?.name}</p>
             </div>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {equipments.map((equipment) => (
@@ -299,14 +300,14 @@ const AddInspection = () => {
                   onClick={() => setSelectedEquipment(equipment)}
                   className={`p-4 rounded-lg cursor-pointer flex items-center ${
                     selectedEquipment?.id === equipment.id
-                      ? "bg-green-600"
-                      : "bg-zinc-800 hover:bg-zinc-700"
+                      ? "bg-primary"
+                      : "bg-card hover:bg-accent"
                   }`}
                 >
-                  <Package className="w-5 h-5 mr-3 text-zinc-400" />
+                  <Package className="w-5 h-5 mr-3 text-muted-foreground" />
                   <div>
-                    <span className="text-white block">{equipment.type}</span>
-                    <span className="text-sm text-zinc-400">
+                    <span className="text-foreground block">{equipment.type}</span>
+                    <span className="text-sm text-muted-foreground">
                       {equipment.brand} {equipment.model}
                     </span>
                   </div>
@@ -319,9 +320,9 @@ const AddInspection = () => {
       case 3: // Seleção de Categoria
         return (
           <div className="space-y-4">
-            <div className="p-4 bg-zinc-800 rounded-lg">
-              <p className="text-sm text-zinc-400">Equipamento selecionado:</p>
-              <p className="text-white font-medium">
+            <div className="p-4 bg-card rounded-lg">
+              <p className="text-sm text-muted-foreground">Equipamento selecionado:</p>
+              <p className="text-foreground font-medium">
                 {selectedEquipment?.type}
               </p>
             </div>
@@ -331,19 +332,19 @@ const AddInspection = () => {
                 onClick={() => setSelectedCategory("maintenance")}
                 className={`p-6 rounded-lg cursor-pointer ${
                   selectedCategory === "maintenance"
-                    ? "bg-green-600"
-                    : "bg-zinc-800 hover:bg-zinc-700"
+                    ? "bg-primary"
+                    : "bg-card hover:bg-accent"
                 }`}
               >
                 <div className="flex items-center gap-4">
                   <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center">
-                    <Wrench className="w-5 h-5 text-white" />
+                    <Wrench className="w-5 h-5 text-foreground" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-white">
+                    <h3 className="text-lg font-medium text-foreground">
                       Manutenção
                     </h3>
-                    <p className="text-sm text-zinc-400">
+                    <p className="text-sm text-muted-foreground">
                       Para acompanhamento e registro de manutenções
                     </p>
                   </div>
@@ -354,19 +355,19 @@ const AddInspection = () => {
                 onClick={() => setSelectedCategory("operational_training")}
                 className={`p-6 rounded-lg cursor-pointer ${
                   selectedCategory === "operational_training"
-                    ? "bg-green-600"
-                    : "bg-zinc-800 hover:bg-zinc-700"
+                    ? "bg-primary"
+                    : "bg-card hover:bg-accent"
                 }`}
               >
                 <div className="flex items-center gap-4">
                   <div className="h-10 w-10 rounded-full bg-purple-600 flex items-center justify-center">
-                    <GraduationCap className="w-5 h-5 text-white" />
+                    <GraduationCap className="w-5 h-5 text-foreground" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-white">
+                    <h3 className="text-lg font-medium text-foreground">
                       Treinamento Operacional
                     </h3>
-                    <p className="text-sm text-zinc-400">
+                    <p className="text-sm text-muted-foreground">
                       Para acompanhamento do treinamento operacional dos
                       equipamentos
                     </p>
@@ -378,19 +379,19 @@ const AddInspection = () => {
                 onClick={() => setSelectedCategory("receiving")}
                 className={`p-6 rounded-lg cursor-pointer ${
                   selectedCategory === "receiving"
-                    ? "bg-green-600"
-                    : "bg-zinc-800 hover:bg-zinc-700"
+                    ? "bg-primary"
+                    : "bg-card hover:bg-accent"
                 }`}
               >
                 <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-green-600 flex items-center justify-center">
-                    <PackageCheck className="w-5 h-5 text-white" />
+                  <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
+                    <PackageCheck className="w-5 h-5 text-foreground" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-white">
+                    <h3 className="text-lg font-medium text-foreground">
                       Recebimento
                     </h3>
-                    <p className="text-sm text-zinc-400">
+                    <p className="text-sm text-muted-foreground">
                       Para verificação inicial de equipamentos
                     </p>
                   </div>
@@ -401,19 +402,19 @@ const AddInspection = () => {
                 onClick={() => setSelectedCategory("programming")}
                 className={`p-6 rounded-lg cursor-pointer ${
                   selectedCategory === "programming"
-                    ? "bg-green-600"
-                    : "bg-zinc-800 hover:bg-zinc-700"
+                    ? "bg-primary"
+                    : "bg-card hover:bg-accent"
                 }`}
               >
                 <div className="flex items-center gap-4">
                   <div className="h-10 w-10 rounded-full bg-yellow-600 flex items-center justify-center">
-                    <Code className="w-5 h-5 text-white" />
+                    <Code className="w-5 h-5 text-foreground" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-white">
+                    <h3 className="text-lg font-medium text-foreground">
                       Programação
                     </h3>
-                    <p className="text-sm text-zinc-400">
+                    <p className="text-sm text-muted-foreground">
                       Para verificação e configuração da programação dos
                       equipamentos
                     </p>
@@ -425,19 +426,19 @@ const AddInspection = () => {
                 onClick={() => setSelectedCategory("installation")}
                 className={`p-6 rounded-lg cursor-pointer ${
                   selectedCategory === "installation"
-                    ? "bg-green-600"
-                    : "bg-zinc-800 hover:bg-zinc-700"
+                    ? "bg-primary"
+                    : "bg-card hover:bg-accent"
                 }`}
               >
                 <div className="flex items-center gap-4">
                   <div className="h-10 w-10 rounded-full bg-orange-600 flex items-center justify-center">
-                    <Settings className="w-5 h-5 text-white" />
+                    <Settings className="w-5 h-5 text-foreground" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-white">
+                    <h3 className="text-lg font-medium text-foreground">
                       Instalação
                     </h3>
-                    <p className="text-sm text-zinc-400">
+                    <p className="text-sm text-muted-foreground">
                       Para acompanhamento do processo de instalação dos
                       equipamentos
                     </p>
@@ -449,19 +450,19 @@ const AddInspection = () => {
                 onClick={() => setSelectedCategory("pre_operational")}
                 className={`p-6 rounded-lg cursor-pointer ${
                   selectedCategory === "pre_operational"
-                    ? "bg-green-600"
-                    : "bg-zinc-800 hover:bg-zinc-700"
+                    ? "bg-primary"
+                    : "bg-card hover:bg-accent"
                 }`}
               >
                 <div className="flex items-center gap-4">
                   <div className="h-10 w-10 rounded-full bg-cyan-600 flex items-center justify-center">
-                    <ListChecks className="w-5 h-5 text-white" />
+                    <ListChecks className="w-5 h-5 text-foreground" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-white">
+                    <h3 className="text-lg font-medium text-foreground">
                       Pré-Checklist (Pré-Operacional)
                     </h3>
-                    <p className="text-sm text-zinc-400">
+                    <p className="text-sm text-muted-foreground">
                       Verificação preliminar antes da operação principal do
                       equipamento
                     </p>
@@ -475,9 +476,9 @@ const AddInspection = () => {
       case 4: // Seleção do Checklist
         return (
           <div className="space-y-4">
-            <div className="p-4 bg-zinc-800 rounded-lg">
-              <p className="text-sm text-zinc-400">Categoria selecionada:</p>
-              <p className="text-white font-medium">
+            <div className="p-4 bg-card rounded-lg">
+              <p className="text-sm text-muted-foreground">Categoria selecionada:</p>
+              <p className="text-foreground font-medium">
                 {selectedCategory === "maintenance" &&
                   "Manutenção"}
                 {selectedCategory === "operational_training" &&
@@ -501,16 +502,16 @@ const AddInspection = () => {
                     onClick={() => setSelectedType(type)}
                     className={`p-4 rounded-lg cursor-pointer flex items-center ${
                       selectedType?.id === type.id
-                        ? "bg-green-600"
-                        : "bg-zinc-800 hover:bg-zinc-700"
+                        ? "bg-primary"
+                        : "bg-card hover:bg-accent"
                     }`}
                   >
-                    <CheckSquare className="w-5 h-5 mr-3 text-zinc-400" />
+                    <CheckSquare className="w-5 h-5 mr-3 text-muted-foreground" />
                     <div>
-                      <span className="text-white block">
+                      <span className="text-foreground block">
                         {type.type || ""}
                       </span>
-                      <span className="text-sm text-zinc-400">
+                      <span className="text-sm text-muted-foreground">
                         {type.groups?.length || 0} grupo(s)
                       </span>
                     </div>
@@ -523,24 +524,24 @@ const AddInspection = () => {
       case 5:
         return (
           <div className="space-y-4">
-            <div className="p-4 bg-zinc-800 rounded-lg">
-              <p className="text-sm text-zinc-400">Checklist selecionado:</p>
-              <p className="text-white font-medium">{selectedType?.type}</p>
+            <div className="p-4 bg-card rounded-lg">
+              <p className="text-sm text-muted-foreground">Checklist selecionado:</p>
+              <p className="text-foreground font-medium">{selectedType?.type}</p>
             </div>
             <div className="space-y-4">
               <div
                 onClick={() => setSelectedInspectionType("inspection")}
                 className={`p-6 rounded-lg cursor-pointer ${
                   selectedInspectionType === "inspection"
-                    ? "bg-green-600"
-                    : "bg-zinc-800 hover:bg-zinc-700"
+                    ? "bg-primary"
+                    : "bg-card hover:bg-accent"
                 }`}
               >
                 <div className="flex items-center gap-4">
-                  <ClipboardCheck className="w-8 h-8 text-zinc-400" />
+                  <ClipboardCheck className="w-8 h-8 text-muted-foreground" />
                   <div>
-                    <h3 className="text-lg font-medium text-white">Inspeção</h3>
-                    <p className="text-sm text-zinc-400">
+                    <h3 className="text-lg font-medium text-foreground">Inspeção</h3>
+                    <p className="text-sm text-muted-foreground">
                       Realizar uma inspeção técnica do equipamento
                     </p>
                   </div>
@@ -551,17 +552,17 @@ const AddInspection = () => {
                 onClick={() => setSelectedInspectionType("training")}
                 className={`p-6 rounded-lg cursor-pointer ${
                   selectedInspectionType === "training"
-                    ? "bg-green-600"
-                    : "bg-zinc-800 hover:bg-zinc-700"
+                    ? "bg-primary"
+                    : "bg-card hover:bg-accent"
                 }`}
               >
                 <div className="flex items-center gap-4">
-                  <GraduationCap className="w-8 h-8 text-zinc-400" />
+                  <GraduationCap className="w-8 h-8 text-muted-foreground" />
                   <div>
-                    <h3 className="text-lg font-medium text-white">
+                    <h3 className="text-lg font-medium text-foreground">
                       Treinamento
                     </h3>
-                    <p className="text-sm text-zinc-400">
+                    <p className="text-sm text-muted-foreground">
                       Realizar um treinamento sobre o equipamento
                     </p>
                   </div>
@@ -574,14 +575,14 @@ const AddInspection = () => {
       case 6:
         return (
           <div className="space-y-4">
-            <div className="p-4 bg-zinc-800 rounded-lg space-y-2">
+            <div className="p-4 bg-card rounded-lg space-y-2">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-zinc-400">Checklist selecionado</p>
-                  <h3 className="text-lg text-white font-medium">
+                  <p className="text-sm text-muted-foreground">Checklist selecionado</p>
+                  <h3 className="text-lg text-foreground font-medium">
                     {selectedType?.type}
                   </h3>
-                  <p className="text-sm text-zinc-400 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     Tipo:{" "}
                     {selectedInspectionType === "inspection"
                       ? "Inspeção"
@@ -604,10 +605,10 @@ const AddInspection = () => {
                 return (
                   <div
                     key={index}
-                    className={`bg-zinc-800 rounded-lg overflow-hidden transition-all duration-200 ${
+                    className={`bg-card rounded-lg overflow-hidden transition-all duration-200 ${
                       selectedGroup
                         ? "border border-green-500/50"
-                        : "hover:bg-zinc-700"
+                        : "hover:bg-accent"
                     }`}
                   >
                     <div
@@ -618,22 +619,22 @@ const AddInspection = () => {
                         <div className="flex items-center space-x-3">
                           <div
                             className={`p-2 rounded-lg ${
-                              selectedGroup ? "bg-green-500/10" : "bg-zinc-700"
+                              selectedGroup ? "bg-green-500/10" : "bg-muted"
                             }`}
                           >
                             <ListChecks
                               className={`w-5 h-5 ${
                                 selectedGroup
                                   ? "text-green-400"
-                                  : "text-zinc-400"
+                                  : "text-muted-foreground"
                               }`}
                             />
                           </div>
                           <div>
-                            <h4 className="text-white font-medium">
+                            <h4 className="text-foreground font-medium">
                               {group.name}
                             </h4>
-                            <p className="text-sm text-zinc-400">
+                            <p className="text-sm text-muted-foreground">
                               {selectedGroup
                                 ? `${
                                     selectedGroup.selectedCharacteristics
@@ -651,13 +652,13 @@ const AddInspection = () => {
                           <div
                             className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 cursor-pointer ${
                               selectedGroup
-                                ? "bg-green-500 border-green-500"
-                                : "border-zinc-500 hover:border-zinc-400"
+                                ? "bg-primary border-green-500"
+                                : "border-muted-foreground/40 hover:border-muted-foreground/40"
                             }`}
                           >
                             {selectedGroup && (
                               <svg
-                                className="w-3 h-3 text-white"
+                                className="w-3 h-3 text-foreground"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -694,7 +695,7 @@ const AddInspection = () => {
                                       char
                                     );
                                   }}
-                                  className={`text-sm text-zinc-300 py-2 px-3 bg-zinc-900/50 rounded-lg flex items-center justify-between cursor-pointer ${
+                                  className={`text-sm text-foreground/90 py-2 px-3 bg-background/50 rounded-lg flex items-center justify-between cursor-pointer ${
                                     isCharSelected ? "bg-green-500/10" : ""
                                   }`}
                                 >
@@ -702,13 +703,13 @@ const AddInspection = () => {
                                   <div
                                     className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-200 ${
                                       isCharSelected
-                                        ? "bg-green-500 border-green-500"
-                                        : "border-zinc-400"
+                                        ? "bg-primary border-green-500"
+                                        : "border-muted-foreground/40"
                                     }`}
                                   >
                                     {isCharSelected && (
                                       <svg
-                                        className="w-3 h-3 text-white"
+                                        className="w-3 h-3 text-foreground"
                                         fill="none"
                                         viewBox="0 0 24 24"
                                         stroke="currentColor"
@@ -734,9 +735,9 @@ const AddInspection = () => {
               })}
 
               {(!selectedType?.groups || selectedType.groups.length === 0) && (
-                <div className="text-center py-8 bg-zinc-800 rounded-lg">
-                  <ListChecks className="w-12 h-12 text-zinc-500 mx-auto mb-3" />
-                  <p className="text-zinc-400">
+                <div className="text-center py-8 bg-card rounded-lg">
+                  <ListChecks className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground">
                     Este checklist não possui grupos definidos
                   </p>
                 </div>
@@ -752,37 +753,22 @@ const AddInspection = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <ClipboardCheck className="h-5 w-5 text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">Nova Inspeção</h1>
-            <p className="text-sm text-zinc-400">
-              Adicione uma nova inspeção ao sistema
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Nova Inspeção"
+        description="Adicione uma nova inspeção ao sistema"
+        icon={ClipboardCheck}
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Progress Steps */}
-      <div className="bg-zinc-800 p-4 rounded-lg">
+      <div className="bg-card p-4 rounded-lg">
         <div className="flex justify-between items-center">
           <div className="flex space-x-2">
             {[1, 2, 3, 4, 5, 6].map((step) => (
@@ -790,15 +776,15 @@ const AddInspection = () => {
                 key={step}
                 className={`w-3 h-3 rounded-full ${
                   step === currentStep
-                    ? "bg-green-500"
+                    ? "bg-primary"
                     : step < currentStep
-                    ? "bg-green-600"
-                    : "bg-zinc-600"
+                    ? "bg-primary"
+                    : "bg-accent"
                 }`}
               />
             ))}
           </div>
-          <span className="text-zinc-400">
+          <span className="text-muted-foreground">
             {currentStep === 1 && "Selecione o cliente"}
             {currentStep === 2 && "Selecione o equipamento"}
             {currentStep === 3 && "Selecione a categoria"}
@@ -810,7 +796,7 @@ const AddInspection = () => {
       </div>
 
       {/* Main Content */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="p-6">{renderStep()}</CardContent>
       </Card>
 
@@ -819,9 +805,9 @@ const AddInspection = () => {
         {currentStep > 1 && (
           <Button
             onClick={handleBack}
-            className="bg-zinc-700 hover:bg-zinc-600"
+            className="bg-muted hover:bg-accent"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-4 h-4" />
             Voltar
           </Button>
         )}
@@ -829,7 +815,7 @@ const AddInspection = () => {
         {currentStep < 6 ? (
           <Button
             onClick={handleNext}
-            className="ml-auto bg-green-600 hover:bg-green-700"
+            className="ml-auto"
           >
             Próximo
             <ArrowRight className="w-4 h-4 ml-2" />
@@ -838,7 +824,7 @@ const AddInspection = () => {
           <Button
             onClick={handleSubmit}
             disabled={isLoading}
-            className="ml-auto bg-green-600 hover:bg-green-700"
+            className="ml-auto"
           >
             {isLoading ? (
               <>

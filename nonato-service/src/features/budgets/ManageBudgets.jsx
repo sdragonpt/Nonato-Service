@@ -56,6 +56,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PageHeader } from "../../components/app";
 
 // ✅ Metadados por tipo de documento — substitui a antiga divisão "Sem
 // Cadastro" / "Com Cadastro" (que era um detalhe técnico, não uma
@@ -103,18 +104,18 @@ const BudgetCard = ({ budget, onDelete, onViewPDF, navigate }) => {
   const date = toDate(budget.createdAt);
 
   return (
-    <Card className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors">
+    <Card className="hover:bg-accent transition-colors">
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
           <div
             className={`h-10 w-10 rounded-full ${meta.iconBg} flex items-center justify-center shrink-0`}
           >
-            <Icon className="w-5 h-5 text-white" />
+            <Icon className="w-5 h-5 text-foreground" />
           </div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-white truncate">
+              <h3 className="font-semibold text-foreground truncate">
                 {budget.displayName}
               </h3>
               <span
@@ -123,12 +124,12 @@ const BudgetCard = ({ budget, onDelete, onViewPDF, navigate }) => {
                 {meta.label}
               </span>
             </div>
-            <p className="text-zinc-400 text-sm font-mono">
+            <p className="text-muted-foreground text-sm font-mono">
               {budget.budgetNumber || budget.orderNumber}
             </p>
-            <div className="flex items-center gap-3 text-sm text-zinc-400 mt-1">
+            <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
               {date && <span>{date.toLocaleDateString("pt-PT")}</span>}
-              <span className="font-medium text-white">
+              <span className="font-medium text-foreground">
                 {formatEuroNumber(budget.total)}€
               </span>
             </div>
@@ -139,14 +140,13 @@ const BudgetCard = ({ budget, onDelete, onViewPDF, navigate }) => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-full hover:bg-zinc-700 text-white shrink-0"
+                className="rounded-full shrink-0"
               >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="bg-zinc-800 border-zinc-700"
             >
               <DropdownMenuItem
                 onClick={() =>
@@ -156,27 +156,27 @@ const BudgetCard = ({ budget, onDelete, onViewPDF, navigate }) => {
                     }budget/${budget.id}`
                   )
                 }
-                className="text-white hover:bg-zinc-700 cursor-pointer"
+                className="cursor-pointer"
               >
                 <Edit2 className="w-4 h-4 mr-2" />
                 Editar
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => onViewPDF(budget, true)}
-                className="text-white hover:bg-zinc-700 cursor-pointer"
+                className="cursor-pointer"
               >
                 <Eye className="w-4 h-4 mr-2" />
                 Ver PDF com IVA
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => onViewPDF(budget, false)}
-                className="text-white hover:bg-zinc-700 cursor-pointer"
+                className="cursor-pointer"
               >
                 <Eye className="w-4 h-4 mr-2" />
                 Ver PDF sem IVA
               </DropdownMenuItem>
               <DropdownMenuItem
-                className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
+                className="text-red-400 focus:text-red-400 cursor-pointer"
                 onClick={() => onDelete(budget.id)}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -569,7 +569,7 @@ const ManageBudgets = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -577,48 +577,46 @@ const ManageBudgets = () => {
   return (
     <div className="space-y-6 pb-28">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Gerenciar Orçamentos
-          </h1>
-          <p className="text-sm sm:text-base text-zinc-400">
-            Fechamentos, orçamentos e despesas, tudo num só lugar
-          </p>
-        </div>
-        <div className="hidden sm:flex gap-2">
-          <Button
-            onClick={() => navigate("/app/add-simple-budget")}
-            variant="outline"
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Orçamento / Despesa
-          </Button>
-          <Button
-            onClick={() => navigate("/app/add-budget")}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Fechar Ordem
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Gerenciar Orçamentos"
+        description="Fechamentos, orçamentos e despesas, tudo num só lugar"
+        actions={
+          <>
+            <div className="hidden sm:flex gap-2">
+            <Button
+              onClick={() => navigate("/app/add-simple-budget")}
+              variant="outline"
+             
+            >
+              <Plus className="w-4 h-4" />
+              Orçamento / Despesa
+            </Button>
+            <Button
+              onClick={() => navigate("/app/add-budget")}
+             
+            >
+              <Plus className="w-4 h-4" />
+              Fechar Ordem
+            </Button>
+          </div>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {FILTERS.map(({ key, label, icon: StatIcon }) => (
           <Card
             key={key}
-            className={`bg-zinc-800 border-zinc-700 cursor-pointer transition-colors ${
-              documentTypeFilter === key ? "ring-1 ring-green-500" : "hover:bg-zinc-700"
+            className={` cursor-pointer transition-colors ${
+              documentTypeFilter === key ? "ring-1 ring-ring" : "hover:bg-accent"
             }`}
             onClick={() => setDocumentTypeFilter(key)}
           >
             <CardContent className="flex items-center justify-between p-4 sm:p-5">
               <div>
-                <p className="text-sm font-medium text-zinc-400">{label}</p>
-                <h3 className="text-xl sm:text-2xl font-bold text-white mt-1">
+                <p className="text-sm font-medium text-muted-foreground">{label}</p>
+                <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1">
                   {counts[key] === null ? "…" : counts[key]}
                 </h3>
               </div>
@@ -639,16 +637,16 @@ const ManageBudgets = () => {
       </div>
 
       {/* Filters Card */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="space-y-4 p-3 sm:p-6">
           {/* Search */}
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar por cliente ou número..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+              className="pl-10 w-full"
             />
           </div>
 
@@ -660,10 +658,10 @@ const ManageBudgets = () => {
                   key={key}
                   variant="outline"
                   onClick={() => setDocumentTypeFilter(key)}
-                  className={`gap-2 border-zinc-700 ${
+                  className={`gap-2 border-border ${
                     documentTypeFilter === key
-                      ? "bg-green-600 text-white hover:bg-green-700"
-                      : "text-white hover:bg-zinc-700 bg-zinc-600"
+                      ? "bg-primary text-foreground hover:bg-primary/90"
+                      : "text-foreground hover:bg-accent bg-accent"
                   }`}
                 >
                   <FilterIcon className="w-4 h-4" />
@@ -677,7 +675,7 @@ const ManageBudgets = () => {
               onClick={() =>
                 setSortDirection((prev) => (prev === "desc" ? "asc" : "desc"))
               }
-              className="gap-2 border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
+              className="gap-2 bg-accent"
             >
               <ArrowUpDown className="w-4 h-4" />
               {sortDirection === "desc" ? "Mais recentes" : "Mais antigos"}
@@ -687,10 +685,10 @@ const ManageBudgets = () => {
           {error && (
             <Alert
               variant="destructive"
-              className="border-red-500 bg-red-500/10"
+             
             >
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-red-400">
+              <AlertDescription>
                 {error}
               </AlertDescription>
             </Alert>
@@ -699,13 +697,13 @@ const ManageBudgets = () => {
       </Card>
 
       {/* Results summary */}
-      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-zinc-400">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
         <span>
           {filteredBudgets.length}{" "}
           {filteredBudgets.length === 1 ? "documento carregado" : "documentos carregados"}
           {hasMore && " (há mais por carregar)"}
         </span>
-        <span className="flex items-center gap-1.5 text-white font-medium">
+        <span className="flex items-center gap-1.5 text-foreground font-medium">
           <Wallet className="w-4 h-4 text-green-500" />
           Total: {formatEuroNumber(totalValue)}€
         </span>
@@ -724,13 +722,13 @@ const ManageBudgets = () => {
             />
           ))
         ) : (
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardContent className="p-8 sm:p-12 text-center">
-              <Search className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
-              <p className="text-lg font-medium mb-2 text-white">
+              <Search className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
+              <p className="text-lg font-medium mb-2 text-foreground">
                 Nenhum documento encontrado
               </p>
-              <p className="text-sm sm:text-base text-zinc-400">
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Tente ajustar a busca ou os filtros, ou adicione um novo documento
               </p>
             </CardContent>
@@ -745,7 +743,7 @@ const ManageBudgets = () => {
             variant="outline"
             onClick={loadMore}
             disabled={isLoadingMore}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+            className="gap-2"
           >
             {isLoadingMore ? (
               <>
@@ -767,7 +765,7 @@ const ManageBudgets = () => {
         <Button
           onClick={() => navigate("/app/add-simple-budget")}
           size="icon"
-          className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
+          className="rounded-full shadow-lg bg-muted hover:bg-accent"
         >
           <UserSquare className="h-5 w-5" />
         </Button>
@@ -775,7 +773,7 @@ const ManageBudgets = () => {
         <Button
           onClick={() => navigate("/app/add-budget")}
           size="icon"
-          className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
+          className="rounded-full shadow-lg"
         >
           <UserPlus className="h-5 w-5" />
         </Button>
@@ -783,10 +781,10 @@ const ManageBudgets = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem a certeza que deseja excluir este orçamento? Esta ação não
               pode ser desfeita.
             </DialogDescription>
@@ -795,7 +793,7 @@ const ManageBudgets = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700 bg-zinc-800"
+              className="text-foreground/90"
             >
               Cancelar
             </Button>

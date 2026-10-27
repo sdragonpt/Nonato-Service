@@ -2,7 +2,7 @@
 // Mesmo padrão categoria/subcategoria já usado em Biblioteca de Peças, mas
 // numa collection própria (familiasChecklist) para não misturar com peças.
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+
 import {
   collection,
   getDocs,
@@ -14,7 +14,6 @@ import {
 import { db } from "../../../firebase.jsx";
 import { comparePtPt } from "../../../utils/sortHelpers.js";
 import {
-  ArrowLeft,
   Plus,
   Loader2,
   Trash2,
@@ -38,11 +37,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+import { PageHeader } from "../../../components/app";
 
 const COLLECTION = "familiasChecklist";
 
 const ManageChecklistFamilies = () => {
-  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -156,7 +155,7 @@ const ManageChecklistFamilies = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -164,44 +163,35 @@ const ManageChecklistFamilies = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate("/app/manage-checklist")}
-          className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Famílias e Grupos de Equipamento
-          </h1>
-          <p className="text-sm text-zinc-400">
-            Organize os checklists por família (ex: Fresadoras) e grupo (ex: modelo específico)
-          </p>
-        </div>
-        <Button onClick={openAddFamily} className="bg-green-600 hover:bg-green-700">
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Família
-        </Button>
-      </div>
+      <PageHeader
+        title="Famílias e Grupos de Equipamento"
+        description="Organize os checklists por família (ex: Fresadoras) e grupo (ex: modelo específico)"
+        back="/app/manage-checklist"
+        actions={
+          <>
+            <Button onClick={openAddFamily}>
+            <Plus className="w-4 h-4" />
+            Nova Família
+          </Button>
+          </>
+        }
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {families.length === 0 ? (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="p-8 sm:p-12 text-center">
-            <Layers className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2 text-white">
+            <Layers className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
+            <p className="text-lg font-medium mb-2 text-foreground">
               Nenhuma família criada
             </p>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               Crie famílias (ex: Fresadoras, Seccionadoras) e depois grupos dentro delas
             </p>
           </CardContent>
@@ -212,7 +202,7 @@ const ManageChecklistFamilies = () => {
             const groups = getGroups(family.id);
             const isExpanded = expandedFamilyId === family.id;
             return (
-              <Card key={family.id} className="bg-zinc-800 border-zinc-700">
+              <Card key={family.id}>
                 <CardContent className="p-4 space-y-3">
                   <div
                     className="flex items-center justify-between cursor-pointer"
@@ -220,13 +210,13 @@ const ManageChecklistFamilies = () => {
                   >
                     <div className="flex items-center gap-2">
                       <ChevronRight
-                        className={`h-4 w-4 text-zinc-500 transition-transform ${
+                        className={`h-4 w-4 text-muted-foreground transition-transform ${
                           isExpanded ? "rotate-90" : ""
                         }`}
                       />
                       <Layers className="h-4 w-4 text-blue-400" />
-                      <span className="text-white font-medium">{family.name}</span>
-                      <Badge className="bg-zinc-700 text-white hover:bg-zinc-700">
+                      <span className="text-foreground font-medium">{family.name}</span>
+                      <Badge className="bg-muted text-foreground hover:bg-accent">
                         {groups.length} grupo(s)
                       </Badge>
                     </div>
@@ -238,7 +228,7 @@ const ManageChecklistFamilies = () => {
                           e.stopPropagation();
                           openEdit(family);
                         }}
-                        className="text-zinc-400 hover:text-white hover:bg-zinc-700 h-8 w-8"
+                        className="text-muted-foreground h-8 w-8"
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
@@ -257,19 +247,19 @@ const ManageChecklistFamilies = () => {
                   </div>
 
                   {isExpanded && (
-                    <div className="pl-6 space-y-2 border-l border-zinc-700 ml-2">
+                    <div className="pl-6 space-y-2 border-l border-border ml-2">
                       {groups.map((group) => (
                         <div
                           key={group.id}
-                          className="flex items-center justify-between p-2 bg-zinc-700/30 rounded-lg border border-zinc-600"
+                          className="flex items-center justify-between p-2 bg-muted/30 rounded-lg border border-border"
                         >
-                          <span className="text-sm text-white">{group.name}</span>
+                          <span className="text-sm text-foreground">{group.name}</span>
                           <div className="flex gap-1">
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => openEdit(group)}
-                              className="text-zinc-400 hover:text-white hover:bg-zinc-700 h-7 w-7"
+                              className="text-muted-foreground h-7 w-7"
                             >
                               <Edit2 className="h-3.5 w-3.5" />
                             </Button>
@@ -288,9 +278,9 @@ const ManageChecklistFamilies = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => openAddGroup(family)}
-                        className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+                       
                       >
-                        <Plus className="w-4 h-4 mr-2" />
+                        <Plus className="w-4 h-4" />
                         Novo Grupo
                       </Button>
                     </div>
@@ -304,16 +294,16 @@ const ManageChecklistFamilies = () => {
 
       {/* Dialog Adicionar/Editar */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-foreground">
               {editingItem
                 ? `Editar ${dialogMode === "family" ? "Família" : "Grupo"}`
                 : dialogMode === "family"
                 ? "Nova Família"
                 : `Novo Grupo em "${parentForNewGroup?.name}"`}
             </DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription className="text-muted-foreground">
               {dialogMode === "family"
                 ? "Ex: Fresadoras, Seccionadoras, Coladoras de Bordo"
                 : "Ex: modelo específico dentro da família"}
@@ -323,20 +313,20 @@ const ManageChecklistFamilies = () => {
             value={nameInput}
             onChange={(e) => setNameInput(e.target.value)}
             placeholder="Nome"
-            className="bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+           
           />
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
               onClick={() => setDialogOpen(false)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="bg-green-600 hover:bg-green-700"
+             
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Guardar"}
             </Button>
@@ -346,10 +336,10 @@ const ManageChecklistFamilies = () => {
 
       {/* Confirmar Eliminação */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar eliminação</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar eliminação</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               {deleteTarget && !deleteTarget.parentId
                 ? "Isto vai apagar a família e todos os grupos dentro dela. "
                 : ""}
@@ -360,7 +350,7 @@ const ManageChecklistFamilies = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteTarget(null)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
@@ -369,7 +359,7 @@ const ManageChecklistFamilies = () => {
               onClick={handleDelete}
               className="bg-red-600 hover:bg-red-700"
             >
-              <X className="w-4 h-4 mr-2" />
+              <X className="w-4 h-4" />
               Apagar
             </Button>
           </DialogFooter>

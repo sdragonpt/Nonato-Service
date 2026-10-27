@@ -47,13 +47,13 @@ const RequestAccessModal = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-      <div className="bg-zinc-800 border border-zinc-700 rounded-lg max-w-md w-full p-6">
+      <div className="bg-card border border-border rounded-lg max-w-md w-full p-6">
         <div className="mb-4">
-          <h2 className="flex items-center text-xl font-bold text-white mb-2">
+          <h2 className="flex items-center text-xl font-bold text-foreground mb-2">
             <Store className="h-5 w-5 mr-2 text-green-500" />
             Solicitar Acesso à Loja
           </h2>
-          <p className="text-zinc-400 text-sm">
+          <p className="text-muted-foreground text-sm">
             Para usar o carrinho e solicitar orçamentos, precisamos de algumas
             informações. Sua solicitação será analisada pela nossa equipe.
           </p>
@@ -63,24 +63,24 @@ const RequestAccessModal = ({
           {formErrors.submit && (
             <Alert
               variant="destructive"
-              className="border-red-500 bg-red-500/10"
+             
             >
-              <AlertDescription className="text-red-400">
+              <AlertDescription>
                 {formErrors.submit}
               </AlertDescription>
             </Alert>
           )}
 
           <div className="space-y-1">
-            <label className="text-sm font-medium text-zinc-300 flex items-center">
-              <User className="h-4 w-4 mr-2 text-zinc-400" />
+            <label className="text-sm font-medium text-foreground/90 flex items-center">
+              <User className="h-4 w-4 mr-2 text-muted-foreground" />
               Nome <span className="text-red-400 ml-1">*</span>
             </label>
             <Input
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className={`bg-zinc-700 border-zinc-600 text-white ${
+              className={`bg-muted border-border text-foreground ${
                 formErrors.name ? "border-red-500" : ""
               }`}
               placeholder="Seu nome completo"
@@ -92,8 +92,8 @@ const RequestAccessModal = ({
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium text-zinc-300 flex items-center">
-              <Mail className="h-4 w-4 mr-2 text-zinc-400" />
+            <label className="text-sm font-medium text-foreground/90 flex items-center">
+              <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
               Email <span className="text-red-400 ml-1">*</span>
             </label>
             <Input
@@ -101,7 +101,7 @@ const RequestAccessModal = ({
               type="email"
               value={formData.email}
               onChange={handleChange}
-              className={`bg-zinc-700 border-zinc-600 text-white ${
+              className={`bg-muted border-border text-foreground ${
                 formErrors.email ? "border-red-500" : ""
               }`}
               placeholder="seu@email.com"
@@ -112,43 +112,43 @@ const RequestAccessModal = ({
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium text-zinc-300 flex items-center">
-              <Building2 className="h-4 w-4 mr-2 text-zinc-400" />
+            <label className="text-sm font-medium text-foreground/90 flex items-center">
+              <Building2 className="h-4 w-4 mr-2 text-muted-foreground" />
               Empresa
             </label>
             <Input
               name="company"
               value={formData.company}
               onChange={handleChange}
-              className="bg-zinc-700 border-zinc-600 text-white"
+              className="bg-muted"
               placeholder="Nome da sua empresa (opcional)"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium text-zinc-300 flex items-center">
-              <Phone className="h-4 w-4 mr-2 text-zinc-400" />
+            <label className="text-sm font-medium text-foreground/90 flex items-center">
+              <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
               Telemóvel
             </label>
             <Input
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              className="bg-zinc-700 border-zinc-600 text-white"
+              className="bg-muted"
               placeholder="Seu número de telemóvel"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium text-zinc-300 flex items-center">
-              <MessageSquare className="h-4 w-4 mr-2 text-zinc-400" />
+            <label className="text-sm font-medium text-foreground/90 flex items-center">
+              <MessageSquare className="h-4 w-4 mr-2 text-muted-foreground" />
               Observações
             </label>
             <textarea
               name="notes"
               value={formData.notes}
               onChange={handleChange}
-              className="w-full rounded-md border border-zinc-600 bg-zinc-700 px-3 py-2 text-white"
+              className="w-full rounded-md border border-border bg-muted px-3 py-2 text-foreground"
               rows="3"
               placeholder="Informações adicionais (opcional)"
             />
@@ -159,14 +159,14 @@ const RequestAccessModal = ({
               type="button"
               variant="outline"
               onClick={onClose}
-              className="flex-1 border-zinc-600 text-white bg-zinc-800 hover:bg-zinc-700"
+              className="flex-1"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 bg-green-600 hover:bg-green-700"
+              className="flex-1"
             >
               {isSubmitting ? (
                 <>
@@ -188,18 +188,18 @@ const RequestAccessModal = ({
 const AccessPendingScreen = ({ email, onClose }) => {
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-      <div className="bg-zinc-800 border border-zinc-700 rounded-lg max-w-md w-full p-6">
+      <div className="bg-card border border-border rounded-lg max-w-md w-full p-6">
         <div className="flex flex-col items-center text-center mb-6">
           <div className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center mb-4">
             <Clock className="h-8 w-8 text-amber-500" />
           </div>
-          <h2 className="text-xl font-bold text-white mb-2">
+          <h2 className="text-xl font-bold text-foreground mb-2">
             Solicitação Enviada!
           </h2>
-          <p className="text-zinc-400 text-sm mb-4">
+          <p className="text-muted-foreground text-sm mb-4">
             Sua solicitação de acesso ao carrinho foi enviada. Entraremos em
             contato através do email{" "}
-            <span className="text-white font-medium">{email}</span> assim que
+            <span className="text-foreground font-medium">{email}</span> assim que
             sua solicitação for aprovada.
           </p>
           <p className="text-amber-400 text-sm">
@@ -208,7 +208,7 @@ const AccessPendingScreen = ({ email, onClose }) => {
         </div>
 
         <Button
-          className="w-full bg-zinc-700 hover:bg-zinc-600"
+          className="w-full bg-muted hover:bg-accent"
           onClick={onClose}
         >
           Continuar Navegando
@@ -222,22 +222,22 @@ const AccessPendingScreen = ({ email, onClose }) => {
 const AccessRejectedScreen = ({ rejectionReason, onClose }) => {
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-      <div className="bg-zinc-800 border border-zinc-700 rounded-lg max-w-md w-full p-6">
+      <div className="bg-card border border-border rounded-lg max-w-md w-full p-6">
         <div className="flex flex-col items-center text-center mb-6">
           <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mb-4">
             <XCircle className="h-8 w-8 text-red-500" />
           </div>
-          <h2 className="text-xl font-bold text-white mb-2">
+          <h2 className="text-xl font-bold text-foreground mb-2">
             Acesso Não Autorizado
           </h2>
-          <p className="text-zinc-400 text-sm mb-4">
+          <p className="text-muted-foreground text-sm mb-4">
             Sua solicitação de acesso ao carrinho não foi aprovada.
           </p>
         </div>
 
         {rejectionReason && (
           <div className="bg-red-500/10 p-4 rounded-md border border-red-500/30 mb-6">
-            <p className="text-sm text-white font-medium mb-1">
+            <p className="text-sm text-foreground font-medium mb-1">
               Motivo informado:
             </p>
             <p className="text-sm text-red-400 whitespace-pre-line">
@@ -248,14 +248,14 @@ const AccessRejectedScreen = ({ rejectionReason, onClose }) => {
 
         <div className="space-y-2">
           <Button
-            className="w-full bg-zinc-700 hover:bg-zinc-600"
+            className="w-full bg-muted hover:bg-accent"
             onClick={onClose}
           >
             Continuar Navegando
           </Button>
           <Button
             variant="outline"
-            className="w-full border-red-600 bg-zinc-800 hover:bg-red-600/20 text-white"
+            className="w-full border-red-600 hover:bg-red-600/20"
             onClick={() => {
               window.location.href = `mailto:suporte@nonatoservice.com?subject=Sobre%20o%20acesso%20ao%20carrinho&body=Olá,%0A%0AEntro%20em%20contato%20referente%20ao%20meu%20pedido%20de%20acesso%20ao%20carrinho%20que%20foi%20rejeitado.%0A%0AAtenciosamente.`;
             }}
@@ -476,10 +476,10 @@ const ShopAccessWrapper = ({ children }) => {
   // ✅ NOVO: Loading screen enquanto verifica autenticação e acesso
   if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+      <div className="min-h-screen bg-muted/50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-green-500 mx-auto mb-4" />
-          <p className="text-white">Verificando acesso...</p>
+          <p className="text-foreground">Verificando acesso...</p>
         </div>
       </div>
     );

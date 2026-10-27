@@ -11,7 +11,7 @@ import {
   deleteDoc,
   doc,
 } from "firebase/firestore";
-import { useNavigate } from "react-router-dom";
+
 import { db } from "../../firebase.jsx";
 import { useCategories } from "../../context/CategoriesContext.jsx";
 import { loadPartsCatalog } from "../../utils/partsCatalogLoader.js";
@@ -21,7 +21,6 @@ import {
   bulkApplyAssignments,
 } from "../../services/partCategoryAssignments.js";
 import {
-  ArrowLeft,
   Plus,
   Loader2,
   Trash2,
@@ -54,6 +53,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
+import { PageHeader } from "../../components/app";
 
 const RULES_COLLECTION = "regrasClassificacaoPecas";
 
@@ -72,7 +72,6 @@ const emptyForm = {
 };
 
 const ManageClassificationRules = () => {
-  const navigate = useNavigate();
   const { categories, getSubcategoriesByParent, isLoading: categoriesLoading } =
     useCategories();
 
@@ -262,7 +261,7 @@ const ManageClassificationRules = () => {
   if (loading || categoriesLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -270,52 +269,41 @@ const ManageClassificationRules = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate("/app/parts-library")}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-          >
-            <ArrowLeft className="h-4 w-4" />
+      <PageHeader
+        title="Regras de Classificação Automática"
+        description="Classifique peças automaticamente por palavra-chave no nome ou descrição"
+        back="/app/parts-library"
+        actions={
+          <>
+            <Button onClick={openAddDialog}>
+            <Plus className="w-4 h-4" />
+            Nova Regra
           </Button>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">
-              Regras de Classificação Automática
-            </h1>
-            <p className="text-sm text-zinc-400">
-              Classifique peças automaticamente por palavra-chave no nome ou descrição
-            </p>
-          </div>
-        </div>
-        <Button onClick={openAddDialog} className="bg-green-600 hover:bg-green-700">
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Regra
-        </Button>
-      </div>
+          </>
+        }
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Aplicar regras */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
               <Sparkles className="h-5 w-5 text-green-500" />
             </div>
             <div>
-              <p className="text-white font-medium">
+              <p className="text-foreground font-medium">
                 {unclassifiedCount === null
                   ? "A contar peças sem categoria..."
                   : `${unclassifiedCount} peça(s) sem categoria atribuída`}
               </p>
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-muted-foreground">
                 Aplica as regras acima a todas as peças ainda sem categoria
               </p>
             </div>
@@ -323,7 +311,7 @@ const ManageClassificationRules = () => {
           <Button
             onClick={handleApplyRules}
             disabled={applying || rules.length === 0 || unclassifiedCount === 0}
-            className="bg-green-600 hover:bg-green-700 whitespace-nowrap"
+            className="whitespace-nowrap"
           >
             {applying ? (
               <>
@@ -340,7 +328,7 @@ const ManageClassificationRules = () => {
         </CardContent>
         {applyResult && (
           <CardContent className="pt-0">
-            <Alert className="border-green-600 bg-green-600/10">
+            <Alert className="border-primary bg-green-600/10">
               <CheckCircle2 className="h-4 w-4 text-green-500" />
               <AlertDescription className="text-green-400">
                 {applyResult.classified} de {applyResult.total} peça(s) classificadas
@@ -353,15 +341,15 @@ const ManageClassificationRules = () => {
 
       {/* Lista de regras */}
       {rules.length === 0 ? (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="p-8 text-center">
-            <Wand2 className="h-10 w-10 text-zinc-600 mx-auto mb-3" />
-            <p className="text-white font-medium">Nenhuma regra criada</p>
-            <p className="text-sm text-zinc-400 mb-4">
+            <Wand2 className="h-10 w-10 text-muted-foreground/70 mx-auto mb-3" />
+            <p className="text-foreground font-medium">Nenhuma regra criada</p>
+            <p className="text-sm text-muted-foreground mb-4">
               Crie regras para classificar peças automaticamente por palavra-chave
             </p>
-            <Button onClick={openAddDialog} className="bg-green-600 hover:bg-green-700">
-              <Plus className="w-4 h-4 mr-2" />
+            <Button onClick={openAddDialog}>
+              <Plus className="w-4 h-4" />
               Nova Regra
             </Button>
           </CardContent>
@@ -369,26 +357,26 @@ const ManageClassificationRules = () => {
       ) : (
         <div className="space-y-3">
           {rules.map((rule) => (
-            <Card key={rule.id} className="bg-zinc-800 border-zinc-700">
+            <Card key={rule.id}>
               <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap gap-1.5 mb-2">
                     {(rule.palavras || []).map((kw) => (
                       <Badge
                         key={kw}
-                        className="bg-zinc-700 text-white hover:bg-zinc-700"
+                        className="bg-muted text-foreground hover:bg-accent"
                       >
                         {kw}
                       </Badge>
                     ))}
                   </div>
-                  <div className="flex items-center gap-1.5 text-sm text-zinc-400">
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                     <Tag className="h-3.5 w-3.5" />
-                    <span className="text-white">{rule.categoriaNome}</span>
+                    <span className="text-foreground">{rule.categoriaNome}</span>
                     {rule.subcategoriaNome && (
                       <>
                         <span>/</span>
-                        <span className="text-white">{rule.subcategoriaNome}</span>
+                        <span className="text-foreground">{rule.subcategoriaNome}</span>
                       </>
                     )}
                   </div>
@@ -398,7 +386,7 @@ const ManageClassificationRules = () => {
                     variant="ghost"
                     size="icon"
                     onClick={() => openEditDialog(rule)}
-                    className="text-zinc-400 hover:text-white hover:bg-zinc-700"
+                    className="text-muted-foreground"
                   >
                     <Edit2 className="h-4 w-4" />
                   </Button>
@@ -419,12 +407,12 @@ const ManageClassificationRules = () => {
 
       {/* Dialog Adicionar/Editar Regra */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-foreground">
               {editingRule ? "Editar Regra" : "Nova Regra"}
             </DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription className="text-muted-foreground">
               Peças cujo nome ou descrição contenham uma destas palavras serão
               atribuídas automaticamente à categoria escolhida.
             </DialogDescription>
@@ -432,7 +420,7 @@ const ManageClassificationRules = () => {
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Palavras-chave (separadas por vírgula)
               </label>
               <Input
@@ -441,22 +429,22 @@ const ManageClassificationRules = () => {
                   setForm((prev) => ({ ...prev, palavrasText: e.target.value }))
                 }
                 placeholder="ex: rolamento, correia, motor"
-                className="bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+               
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Categoria</label>
+              <label className="text-sm font-medium text-muted-foreground">Categoria</label>
               <Select
                 value={form.categoryId}
                 onValueChange={(value) =>
                   setForm((prev) => ({ ...prev, categoryId: value, subcategoryId: "none" }))
                 }
               >
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger>
                   <SelectValue placeholder="Selecione a categoria" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectContent>
                   {categories
                     .slice()
                     .sort((a, b) => comparePtPt(a.name, b.name))
@@ -464,7 +452,7 @@ const ManageClassificationRules = () => {
                       <SelectItem
                         key={cat.id}
                         value={cat.id}
-                        className="text-white hover:bg-zinc-700"
+                       
                       >
                         {cat.name}
                       </SelectItem>
@@ -475,7 +463,7 @@ const ManageClassificationRules = () => {
 
             {form.categoryId !== "none" && subcategoriesForForm.length > 0 && (
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">
+                <label className="text-sm font-medium text-muted-foreground">
                   Subcategoria (opcional)
                 </label>
                 <Select
@@ -484,11 +472,11 @@ const ManageClassificationRules = () => {
                     setForm((prev) => ({ ...prev, subcategoryId: value }))
                   }
                 >
-                  <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                  <SelectTrigger>
                     <SelectValue placeholder="Sem subcategoria" />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
-                    <SelectItem value="none" className="text-white hover:bg-zinc-700">
+                  <SelectContent>
+                    <SelectItem value="none">
                       Sem subcategoria
                     </SelectItem>
                     {subcategoriesForForm
@@ -498,7 +486,7 @@ const ManageClassificationRules = () => {
                         <SelectItem
                           key={sub.id}
                           value={sub.id}
-                          className="text-white hover:bg-zinc-700"
+                         
                         >
                           {sub.name}
                         </SelectItem>
@@ -513,14 +501,14 @@ const ManageClassificationRules = () => {
             <Button
               variant="outline"
               onClick={() => setDialogOpen(false)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleSaveRule}
               disabled={saving}
-              className="bg-green-600 hover:bg-green-700"
+             
             >
               {saving ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -536,10 +524,10 @@ const ManageClassificationRules = () => {
 
       {/* Dialog Confirmar Eliminação */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar eliminação</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar eliminação</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem a certeza que deseja apagar esta regra? Esta ação não pode ser desfeita.
             </DialogDescription>
           </DialogHeader>
@@ -547,7 +535,7 @@ const ManageClassificationRules = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteTarget(null)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
@@ -556,7 +544,7 @@ const ManageClassificationRules = () => {
               onClick={handleDeleteRule}
               className="bg-red-600 hover:bg-red-700"
             >
-              <X className="w-4 h-4 mr-2" />
+              <X className="w-4 h-4" />
               Apagar
             </Button>
           </DialogFooter>

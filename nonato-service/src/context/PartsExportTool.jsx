@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { Separator } from "@/components/ui/separator.jsx";
 import { toDateKey } from "../utils/formatDate.js";
+import { PageHeader } from "../components/app";
 
 const PartsExportTool = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -283,36 +284,26 @@ const PartsExportTool = () => {
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-500/10 rounded-lg">
-            <FileSpreadsheet className="h-6 w-6 text-blue-400" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white">
-              Exportação CSV de Peças
-            </h1>
-            <p className="text-zinc-400">
-              Exportar todas as peças da base de dados em formato CSV
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Exportação CSV de Peças"
+        description="Exportar todas as peças da base de dados em formato CSV"
+        icon={FileSpreadsheet}
+      />
 
       {/* Formato da Exportação */}
-      <Card className="bg-zinc-900/50 border-zinc-700">
+      <Card className="bg-background/50">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2">
             <Info className="h-5 w-5 text-blue-400" />
             Formato da Exportação
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="text-zinc-300">
+          <div className="text-foreground/90">
             <p className="mb-2">
               O arquivo CSV será gerado com as seguintes colunas:
             </p>
-            <div className="bg-zinc-800/50 p-4 rounded-lg font-mono text-sm">
+            <div className="bg-card/50 p-4 rounded-lg font-mono text-sm">
               <div className="text-green-400">
                 partCode | name | category | subcategory | group | cost |
                 imageUrl
@@ -321,28 +312,28 @@ const PartsExportTool = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
-              <strong className="text-white">partCode:</strong>
-              <span className="text-zinc-400 ml-2">Código da peça</span>
+              <strong className="text-foreground">partCode:</strong>
+              <span className="text-muted-foreground ml-2">Código da peça</span>
             </div>
             <div>
-              <strong className="text-white">name:</strong>
-              <span className="text-zinc-400 ml-2">Nome da peça</span>
+              <strong className="text-foreground">name:</strong>
+              <span className="text-muted-foreground ml-2">Nome da peça</span>
             </div>
             <div>
-              <strong className="text-white">category:</strong>
-              <span className="text-zinc-400 ml-2">Categoria</span>
+              <strong className="text-foreground">category:</strong>
+              <span className="text-muted-foreground ml-2">Categoria</span>
             </div>
             <div>
-              <strong className="text-white">subcategory:</strong>
-              <span className="text-zinc-400 ml-2">Subcategoria</span>
+              <strong className="text-foreground">subcategory:</strong>
+              <span className="text-muted-foreground ml-2">Subcategoria</span>
             </div>
             <div>
-              <strong className="text-white">group:</strong>
-              <span className="text-zinc-400 ml-2">Grupo (se disponível)</span>
+              <strong className="text-foreground">group:</strong>
+              <span className="text-muted-foreground ml-2">Grupo (se disponível)</span>
             </div>
             <div>
-              <strong className="text-white">cost:</strong>
-              <span className="text-zinc-400 ml-2">Custo/Preço</span>
+              <strong className="text-foreground">cost:</strong>
+              <span className="text-muted-foreground ml-2">Custo/Preço</span>
             </div>
           </div>
           <Alert className="border-yellow-500/50 bg-yellow-500/5">
@@ -380,7 +371,7 @@ const PartsExportTool = () => {
         <Button
           onClick={exportPartsToCSV}
           disabled={isExporting || isAnalyzing}
-          className="bg-green-600 hover:bg-green-700"
+         
         >
           {isExporting ? (
             <>
@@ -397,9 +388,9 @@ const PartsExportTool = () => {
 
       {/* Resultados da Análise */}
       {analysis && (
-        <Card className="bg-zinc-900/50 border-zinc-700">
+        <Card className="bg-background/50">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5 text-green-400" />
               Análise dos Dados
             </CardTitle>
@@ -410,31 +401,31 @@ const PartsExportTool = () => {
                 <div className="text-2xl font-bold text-green-400">
                   {analysis.totalParts}
                 </div>
-                <div className="text-sm text-zinc-400">Total de Peças</div>
+                <div className="text-sm text-muted-foreground">Total de Peças</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-400">
                   {analysis.partsWithCode}
                 </div>
-                <div className="text-sm text-zinc-400">Com Código</div>
+                <div className="text-sm text-muted-foreground">Com Código</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-400">
                   {analysis.partsWithCategory}
                 </div>
-                <div className="text-sm text-zinc-400">Com Categoria</div>
+                <div className="text-sm text-muted-foreground">Com Categoria</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-orange-400">
                   {analysis.partsWithImage}
                 </div>
-                <div className="text-sm text-zinc-400">Com Imagem</div>
+                <div className="text-sm text-muted-foreground">Com Imagem</div>
               </div>
             </div>
 
             {/* Estatísticas de Preços */}
-            <div className="bg-zinc-800/30 p-4 rounded-lg">
-              <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+            <div className="bg-card/30 p-4 rounded-lg">
+              <h4 className="text-foreground font-semibold mb-3 flex items-center gap-2">
                 <span>📊</span> Análise de Preços
               </h4>
               <div className="grid grid-cols-3 gap-4 text-center">
@@ -442,19 +433,19 @@ const PartsExportTool = () => {
                   <div className="text-xl font-bold text-red-400">
                     {analysis.pricesStats.zero}
                   </div>
-                  <div className="text-xs text-zinc-400">Preço = 0</div>
+                  <div className="text-xs text-muted-foreground">Preço = 0</div>
                 </div>
                 <div>
                   <div className="text-xl font-bold text-green-400">
                     {analysis.pricesStats.above_zero}
                   </div>
-                  <div className="text-xs text-zinc-400">Preço &gt; 0</div>
+                  <div className="text-xs text-muted-foreground">Preço &gt; 0</div>
                 </div>
                 <div>
                   <div className="text-xl font-bold text-yellow-400">
                     {analysis.pricesStats.invalid}
                   </div>
-                  <div className="text-xs text-zinc-400">Preço Inválido</div>
+                  <div className="text-xs text-muted-foreground">Preço Inválido</div>
                 </div>
               </div>
             </div>
@@ -470,7 +461,7 @@ const PartsExportTool = () => {
                     <span className="text-blue-300 font-medium">
                       Com imageHash:
                     </span>
-                    <span className="ml-2 text-white">
+                    <span className="ml-2 text-foreground">
                       {analysis.partsWithImageHash}
                     </span>
                   </div>
@@ -478,18 +469,18 @@ const PartsExportTool = () => {
                     <span className="text-blue-300 font-medium">
                       Com image direto:
                     </span>
-                    <span className="ml-2 text-white">
+                    <span className="ml-2 text-foreground">
                       {analysis.partsWithImageDirect}
                     </span>
                   </div>
                 </div>
 
                 {analysis.imageAnalysis.firstPartWithImageHash && (
-                  <div className="bg-zinc-800/50 p-3 rounded text-xs">
+                  <div className="bg-card/50 p-3 rounded text-xs">
                     <div className="text-green-300 font-medium">
                       Primeira peça com imageHash:
                     </div>
-                    <div className="text-zinc-300 font-mono">
+                    <div className="text-foreground/90 font-mono">
                       {analysis.imageAnalysis.firstPartWithImageHash.code} -
                       Hash:{" "}
                       {analysis.imageAnalysis.firstPartWithImageHash.imageHash}
@@ -498,11 +489,11 @@ const PartsExportTool = () => {
                 )}
 
                 {analysis.imageAnalysis.firstPartWithImage && (
-                  <div className="bg-zinc-800/50 p-3 rounded text-xs">
+                  <div className="bg-card/50 p-3 rounded text-xs">
                     <div className="text-purple-300 font-medium">
                       Primeira peça com image direto:
                     </div>
-                    <div className="text-zinc-300 font-mono">
+                    <div className="text-foreground/90 font-mono">
                       {analysis.imageAnalysis.firstPartWithImage.code} -
                       Tamanho:{" "}
                       {analysis.imageAnalysis.firstPartWithImage.image
@@ -514,7 +505,7 @@ const PartsExportTool = () => {
               </div>
             </div>
 
-            <Separator className="bg-zinc-700" />
+            <Separator className="bg-muted" />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div>
@@ -528,7 +519,7 @@ const PartsExportTool = () => {
                   ).toFixed(1)}
                   %
                 </Badge>
-                <span className="ml-2 text-zinc-300">têm nome</span>
+                <span className="ml-2 text-foreground/90">têm nome</span>
               </div>
               <div>
                 <Badge
@@ -541,7 +532,7 @@ const PartsExportTool = () => {
                   ).toFixed(1)}
                   %
                 </Badge>
-                <span className="ml-2 text-zinc-300">têm preço</span>
+                <span className="ml-2 text-foreground/90">têm preço</span>
               </div>
               <div>
                 <Badge
@@ -554,7 +545,7 @@ const PartsExportTool = () => {
                   ).toFixed(1)}
                   %
                 </Badge>
-                <span className="ml-2 text-zinc-300">têm subcategoria</span>
+                <span className="ml-2 text-foreground/90">têm subcategoria</span>
               </div>
             </div>
           </CardContent>
@@ -576,19 +567,19 @@ const PartsExportTool = () => {
                 <div className="text-lg font-bold text-green-400">
                   {exportResult.totalExported}
                 </div>
-                <div className="text-sm text-zinc-300">Peças exportadas</div>
+                <div className="text-sm text-foreground/90">Peças exportadas</div>
               </div>
               <div>
                 <div className="text-lg font-bold text-blue-400">
                   {exportResult.withImages}
                 </div>
-                <div className="text-sm text-zinc-300">Com imagens</div>
+                <div className="text-sm text-foreground/90">Com imagens</div>
               </div>
               <div>
                 <div className="text-lg font-bold text-orange-400">
                   {exportResult.withoutImages}
                 </div>
-                <div className="text-sm text-zinc-300">Sem imagens</div>
+                <div className="text-sm text-foreground/90">Sem imagens</div>
               </div>
             </div>
 
@@ -596,23 +587,23 @@ const PartsExportTool = () => {
 
             <div className="space-y-2 text-sm">
               <div>
-                <strong className="text-white">Arquivo:</strong>
-                <span className="ml-2 text-zinc-300 font-mono">
+                <strong className="text-foreground">Arquivo:</strong>
+                <span className="ml-2 text-foreground/90 font-mono">
                   {exportResult.filename}
                 </span>
               </div>
               <div>
-                <strong className="text-white">Data/Hora:</strong>
-                <span className="ml-2 text-zinc-300">
+                <strong className="text-foreground">Data/Hora:</strong>
+                <span className="ml-2 text-foreground/90">
                   {exportResult.timestamp}
                 </span>
               </div>
               <div>
-                <strong className="text-white">Encoding:</strong>
+                <strong className="text-foreground">Encoding:</strong>
                 <span className="ml-2 text-green-300">
                   {exportResult.encoding}
                 </span>
-                <span className="ml-2 text-xs text-zinc-400">
+                <span className="ml-2 text-xs text-muted-foreground">
                   (Suporte completo para caracteres portugueses)
                 </span>
               </div>
@@ -623,9 +614,9 @@ const PartsExportTool = () => {
 
       {/* Erros */}
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
     </div>

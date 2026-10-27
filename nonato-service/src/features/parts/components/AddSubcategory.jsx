@@ -4,7 +4,7 @@ import { db } from "../../../firebase.jsx";
 import { saveCategory } from "../../../services/categoriesStore.js";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCategories } from "../../../context/CategoriesContext.jsx"; // NOVO
-import { ArrowLeft, Loader2, Plus, AlertTriangle, Tag } from "lucide-react";
+import { Loader2, Plus, AlertTriangle, Tag } from "lucide-react";
 
 // UI Components
 import {
@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Textarea } from "@/components/ui/textarea.jsx";
+import { PageHeader } from "../../../components/app";
 
 const AddSubcategory = () => {
   const { categoryId } = useParams();
@@ -146,7 +147,7 @@ const AddSubcategory = () => {
   if (categoriesLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -154,45 +155,30 @@ const AddSubcategory = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <Tag className="h-5 w-5 text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">Nova Subcategoria</h1>
-            <p className="text-sm text-zinc-400">
-              Adicione uma nova subcategoria para {parentCategory?.name}
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Nova Subcategoria"
+        description={<>Adicione uma nova subcategoria para {parentCategory?.name}</>}
+        icon={Tag}
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Parent Category Info */}
         {parentCategory && (
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <Tag className="h-5 w-5 text-blue-500" />
                 <div>
-                  <p className="text-sm text-zinc-400">Categoria Principal:</p>
-                  <p className="text-base font-medium text-white">
+                  <p className="text-sm text-muted-foreground">Categoria Principal:</p>
+                  <p className="text-base font-medium text-foreground">
                     {parentCategory.name}
                   </p>
                 </div>
@@ -202,20 +188,20 @@ const AddSubcategory = () => {
         )}
 
         {/* Subcategory Information Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">
+            <CardTitle className="text-lg">
               Informações da Subcategoria
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Name Field */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Nome <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="text"
                   name="name"
@@ -223,7 +209,7 @@ const AddSubcategory = () => {
                   onChange={handleChange}
                   onBlur={() => handleBlur("name")}
                   placeholder="Ex: Filtros de Óleo"
-                  className={`pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 ${
+                  className={`pl-10 bg-muted/50 border-border text-foreground ${
                     touched.name && !formData.name ? "border-red-500" : ""
                   }`}
                 />
@@ -235,7 +221,7 @@ const AddSubcategory = () => {
 
             {/* Description Field */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Descrição (Opcional)
               </label>
               <Textarea
@@ -243,7 +229,7 @@ const AddSubcategory = () => {
                 value={formData.description}
                 onChange={handleChange}
                 placeholder="Descrição da subcategoria..."
-                className="min-h-20 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                className="min-h-20"
               />
             </div>
           </CardContent>
@@ -253,7 +239,7 @@ const AddSubcategory = () => {
         <Button
           type="submit"
           disabled={isSubmitting || !parentCategory}
-          className="w-full bg-green-600 hover:bg-green-700"
+          className="w-full"
         >
           {isSubmitting ? (
             <>

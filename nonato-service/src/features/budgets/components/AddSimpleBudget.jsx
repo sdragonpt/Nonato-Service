@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   Plus,
   Trash2,
-  ArrowLeft,
   Receipt,
   UserSquare,
   Phone,
@@ -34,6 +33,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Textarea } from "@/components/ui/textarea.jsx";
+import { PageHeader } from "../../../components/app";
 
 const AddSimpleBudget = () => {
   const navigate = useNavigate();
@@ -164,7 +164,7 @@ const AddSimpleBudget = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -172,44 +172,27 @@ const AddSimpleBudget = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <FilePlus2 className="h-5 w-5 text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">
-              {isExpense ? "Nova Despesa" : "Novo Orçamento"}
-            </h1>
-            <p className="text-sm text-zinc-400">
-              {isExpense
+      <PageHeader
+        title={isExpense ? "Nova Despesa" : "Novo Orçamento"}
+        description={isExpense
                 ? "Crie uma nova despesa sem cadastro de cliente"
                 : "Crie um novo orçamento sem cadastro de cliente"}
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+        icon={FilePlus2}
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Document Type Toggle */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="p-6">
           <div className="flex justify-center">
-            <div className="bg-zinc-900 p-1 rounded-xl inline-flex relative">
+            <div className="bg-muted/50 p-1 rounded-xl inline-flex relative">
               <div
                 className={`absolute top-1 bottom-1 w-[120px] rounded-lg bg-green-600 transition-all duration-300 ${
                   isExpense ? "translate-x-[120px]" : "translate-x-0"
@@ -218,7 +201,7 @@ const AddSimpleBudget = () => {
               <button
                 onClick={() => setIsExpense(false)}
                 className={`relative w-[120px] py-2 rounded-lg font-medium transition-colors ${
-                  !isExpense ? "text-white" : "text-zinc-400 hover:text-white"
+                  !isExpense ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <FileText className="w-4 h-4 mx-auto mb-1" />
@@ -227,7 +210,7 @@ const AddSimpleBudget = () => {
               <button
                 onClick={() => setIsExpense(true)}
                 className={`relative w-[120px] py-2 rounded-lg font-medium transition-colors ${
-                  isExpense ? "text-white" : "text-zinc-400 hover:text-white"
+                  isExpense ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <Receipt className="w-4 h-4 mx-auto mb-1" />
@@ -240,57 +223,57 @@ const AddSimpleBudget = () => {
 
       <div className="grid gap-6">
         {/* Client Data */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2">
               <User className="w-5 h-5" />
               Dados do Cliente
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Nome</label>
+              <label className="text-sm font-medium text-muted-foreground">Nome</label>
               <div className="relative">
-                <UserSquare className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <UserSquare className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="text"
                   name="name"
                   value={clientData.name}
                   onChange={handleClientDataChange}
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                  className="pl-10"
                   placeholder="Nome do cliente"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Telefone
               </label>
               <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="tel"
                   name="phone"
                   value={clientData.phone}
                   onChange={handleClientDataChange}
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                  className="pl-10"
                   placeholder="Número de telefone"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Endereço
               </label>
               <div className="relative">
-                <MapPin className="absolute left-3 top-3 text-zinc-400" />
+                <MapPin className="absolute left-3 top-3 text-muted-foreground" />
                 <Textarea
                   name="address"
                   value={clientData.address}
                   onChange={handleClientDataChange}
-                  className="min-h-[100px] pl-10 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                  className="min-h-[100px] pl-10"
                   placeholder="Endereço completo"
                 />
               </div>
@@ -299,9 +282,9 @@ const AddSimpleBudget = () => {
         </Card>
 
         {/* IVA */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2">
               <Calculator className="w-5 h-5" />
               Configurações de IVA
             </CardTitle>
@@ -312,9 +295,9 @@ const AddSimpleBudget = () => {
         </Card>
 
         {/* Services Section */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2">
               <Receipt className="w-5 h-5" />
               Adicionar Serviços
             </CardTitle>
@@ -331,9 +314,9 @@ const AddSimpleBudget = () => {
 
         {/* Selected Services */}
         {selectedServices.length > 0 && (
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-lg text-white">
+              <CardTitle className="text-lg">
                 Serviços Selecionados
               </CardTitle>
             </CardHeader>
@@ -342,11 +325,11 @@ const AddSimpleBudget = () => {
                 {selectedServices.map((service) => (
                   <div
                     key={service.id}
-                    className="flex items-center justify-between p-4 bg-zinc-900 rounded-lg"
+                    className="flex items-center justify-between p-4 bg-muted/50 rounded-lg"
                   >
                     <div>
-                      <p className="text-white font-medium">{service.name}</p>
-                      <p className="text-zinc-400 text-sm">
+                      <p className="text-foreground font-medium">{service.name}</p>
+                      <p className="text-muted-foreground text-sm">
                         {service.multipleEntries
                           ? `Total: ${formatEuroNumber(service.total)}€`
                           : `${formatEuroNumber(service.value)}€ x ${
@@ -354,7 +337,7 @@ const AddSimpleBudget = () => {
                             } = ${formatEuroNumber(service.total)}€`}
                       </p>
                       {service.multipleEntries && (
-                        <div className="mt-1 text-xs text-zinc-400">
+                        <div className="mt-1 text-xs text-muted-foreground">
                           {service.multipleEntries.map((entry, idx) => (
                             <div key={idx}>
                               Valor {idx + 1}: {entry.value}€ x {entry.quantity}
@@ -367,14 +350,14 @@ const AddSimpleBudget = () => {
                       variant="ghost"
                       size="icon"
                       onClick={() => handleRemoveService(service.id)}
-                      className="text-red-400 hover:text-red-300 hover:bg-zinc-800"
+                      className="text-red-400 hover:text-red-300 hover:bg-white/5"
                     >
                       <Trash2 className="w-5 h-5" />
                     </Button>
                   </div>
                 ))}
-                <div className="pt-4 border-t border-zinc-700">
-                  <p className="text-right font-medium text-white">
+                <div className="pt-4 border-t border-border">
+                  <p className="text-right font-medium text-foreground">
                     Total: {formatEuroNumber(totalAmount)}€
                   </p>
                 </div>
@@ -395,7 +378,7 @@ const AddSimpleBudget = () => {
             !clientData.address ||
             selectedServices.length === 0
           }
-          className="h-12 px-6 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="h-12 px-6 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isGeneratingPDF ? (
             <>

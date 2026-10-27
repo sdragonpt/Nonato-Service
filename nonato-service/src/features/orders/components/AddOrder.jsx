@@ -12,7 +12,6 @@ import { searchCatalogParts } from "../../../utils/catalogPartSearch.js";
 import { formatDocNumber } from "../../../utils/docNumbering.js";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  ArrowLeft,
   Loader2,
   Plus,
   AlertTriangle,
@@ -47,6 +46,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toDateKey } from "../../../utils/formatDate.js";
+import { PageHeader } from "../../../components/app";
 
 const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -57,9 +57,9 @@ const emptyEquipmentEntry = () => ({ id: genId(), equipmentId: "", brand: "", mo
 // usado no AddClient.jsx).
 const FieldLabel = ({ label, icon: Icon, children }) => (
   <div className="space-y-2">
-    <label className="text-sm font-medium text-zinc-400">{label}</label>
+    <label className="text-sm font-medium text-muted-foreground">{label}</label>
     <div className="relative">
-      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       {children}
     </div>
   </div>
@@ -516,7 +516,7 @@ const AddOrder = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -524,42 +524,25 @@ const AddOrder = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <ClipboardList className="h-5 w-5 text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">
-              Nova Ordem de Serviço
-            </h1>
-            <p className="text-sm text-zinc-400">
-              Adicione uma nova ordem de serviço ao sistema
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Nova Ordem de Serviço"
+        description="Adicione uma nova ordem de serviço ao sistema"
+        icon={ClipboardList}
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* ✅ SEÇÃO: CLIENTE E EQUIPAMENTO COM ABAS */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">
+            <CardTitle className="text-lg">
               Informações de Cliente e Equipamento
             </CardTitle>
           </CardHeader>
@@ -573,7 +556,7 @@ const AddOrder = () => {
               }
               className="space-y-4"
             >
-              <TabsList className="grid w-full grid-cols-2 bg-zinc-700">
+              <TabsList className="grid w-full grid-cols-2 bg-muted">
                 <TabsTrigger
                   value="registered"
                   className="flex items-center gap-2 data-[state=active]:bg-green-600"
@@ -599,14 +582,14 @@ const AddOrder = () => {
                     name="date"
                     value={formData.date}
                     onChange={handleChange}
-                    className="w-full pl-10 p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full pl-10 p-3 bg-muted/50 border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     required
                   />
                 </FieldLabel>
 
                 {/* Client Selection — pesquisável, com foto e por ordem alfabética */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400">Cliente</label>
+                  <label className="text-sm font-medium text-muted-foreground">Cliente</label>
                   <ClientCombobox
                     clients={clients}
                     value={formData.clientId}
@@ -619,7 +602,7 @@ const AddOrder = () => {
                 {/* Equipment Selection — pode ter mais do que 1 (ordem "especial") */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-zinc-400">
+                    <label className="text-sm font-medium text-muted-foreground">
                       {equipmentsList.length > 1 ? "Equipamentos" : "Equipamento"}
                     </label>
                     <Button
@@ -628,30 +611,30 @@ const AddOrder = () => {
                       variant="outline"
                       onClick={addEquipmentEntry}
                       disabled={!formData.clientId}
-                      className="h-7 border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+                      className="h-7"
                     >
-                      <Plus className="h-3.5 w-3.5 mr-1" />
+                      <Plus className="h-3.5 w-3.5" />
                       Adicionar
                     </Button>
                   </div>
                   {equipmentsList.map((entry) => (
                     <div key={entry.id} className="relative flex items-center gap-2">
                       <div className="relative flex-1">
-                        <Printer className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                        <Printer className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                         <Select
                           value={entry.equipmentId}
                           onValueChange={(value) => setRegisteredEquipmentEntry(entry.id, value)}
                           disabled={!formData.clientId}
                         >
-                          <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                          <SelectTrigger className="w-full pl-10">
                             <SelectValue placeholder="Selecione um Equipamento" />
                           </SelectTrigger>
-                          <SelectContent className="bg-zinc-800 border-zinc-700">
+                          <SelectContent>
                             {filteredEquipments.map((equipment) => (
                               <SelectItem
                                 key={equipment.id}
                                 value={equipment.id}
-                                className="text-white hover:bg-zinc-700"
+                               
                               >
                                 {`${equipment.brand} - ${equipment.model}`}
                               </SelectItem>
@@ -684,7 +667,7 @@ const AddOrder = () => {
                       Modo Cliente Não Registrado
                     </span>
                   </div>
-                  <p className="text-xs text-zinc-400">
+                  <p className="text-xs text-muted-foreground">
                     Preencha manualmente os dados do cliente e equipamento que
                     não estão cadastrados no sistema.
                   </p>
@@ -697,7 +680,7 @@ const AddOrder = () => {
                     name="date"
                     value={formData.date}
                     onChange={handleChange}
-                    className="w-full pl-10 p-3 bg-zinc-900 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 p-3 bg-muted/50 border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   />
                 </FieldLabel>
@@ -705,7 +688,7 @@ const AddOrder = () => {
                 {/* ✅ DADOS DO CLIENTE NÃO REGISTRADO */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400">
+                    <label className="text-sm font-medium text-muted-foreground">
                       Nome do Cliente *
                     </label>
                     <Input
@@ -715,13 +698,13 @@ const AddOrder = () => {
                         handleUnregisteredClientChange("name", e.target.value)
                       }
                       placeholder="Digite o nome completo"
-                      className="bg-zinc-900 border-zinc-700 text-white"
+                     
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400">
+                    <label className="text-sm font-medium text-muted-foreground">
                       Email
                     </label>
                     <Input
@@ -731,12 +714,12 @@ const AddOrder = () => {
                         handleUnregisteredClientChange("email", e.target.value)
                       }
                       placeholder="email@exemplo.com"
-                      className="bg-zinc-900 border-zinc-700 text-white"
+                     
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400">
+                    <label className="text-sm font-medium text-muted-foreground">
                       Telefone
                     </label>
                     <Input
@@ -746,12 +729,12 @@ const AddOrder = () => {
                         handleUnregisteredClientChange("phone", e.target.value)
                       }
                       placeholder="(XX) XXXXX-XXXX"
-                      className="bg-zinc-900 border-zinc-700 text-white"
+                     
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400">
+                    <label className="text-sm font-medium text-muted-foreground">
                       Empresa (opcional)
                     </label>
                     <Input
@@ -764,7 +747,7 @@ const AddOrder = () => {
                         )
                       }
                       placeholder="Nome da empresa"
-                      className="bg-zinc-900 border-zinc-700 text-white"
+                     
                     />
                   </div>
                 </div>
@@ -772,7 +755,7 @@ const AddOrder = () => {
                 {/* ✅ DADOS DO(S) EQUIPAMENTO(S) MANUAL(AIS) */}
                 <div className="mt-6 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium text-zinc-300 flex items-center">
+                    <h4 className="text-sm font-medium text-foreground/90 flex items-center">
                       <Printer className="h-4 w-4 mr-2 text-orange-400" />
                       {equipmentsList.length > 1 ? "Dados dos Equipamentos" : "Dados do Equipamento"}
                     </h4>
@@ -781,9 +764,9 @@ const AddOrder = () => {
                       size="sm"
                       variant="outline"
                       onClick={addEquipmentEntry}
-                      className="h-7 border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+                      className="h-7"
                     >
-                      <Plus className="h-3.5 w-3.5 mr-1" />
+                      <Plus className="h-3.5 w-3.5" />
                       Adicionar
                     </Button>
                   </div>
@@ -792,7 +775,7 @@ const AddOrder = () => {
                     <div key={entry.id} className="flex items-start gap-2">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-zinc-400">
+                          <label className="text-sm font-medium text-muted-foreground">
                             Marca {idx === 0 ? "*" : ""}
                           </label>
                           <Input
@@ -800,13 +783,13 @@ const AddOrder = () => {
                             value={entry.brand}
                             onChange={(e) => updateEquipmentEntry(entry.id, { brand: e.target.value })}
                             placeholder="Ex: HP, Canon, Epson..."
-                            className="bg-zinc-900 border-zinc-700 text-white"
+                           
                             required={idx === 0}
                           />
                         </div>
 
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-zinc-400">
+                          <label className="text-sm font-medium text-muted-foreground">
                             Modelo {idx === 0 ? "*" : ""}
                           </label>
                           <Input
@@ -814,13 +797,13 @@ const AddOrder = () => {
                             value={entry.model}
                             onChange={(e) => updateEquipmentEntry(entry.id, { model: e.target.value })}
                             placeholder="Ex: LaserJet 1020, MG3610..."
-                            className="bg-zinc-900 border-zinc-700 text-white"
+                           
                             required={idx === 0}
                           />
                         </div>
 
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-zinc-400">
+                          <label className="text-sm font-medium text-muted-foreground">
                             Número de Série
                           </label>
                           <Input
@@ -828,7 +811,7 @@ const AddOrder = () => {
                             value={entry.serialNumber}
                             onChange={(e) => updateEquipmentEntry(entry.id, { serialNumber: e.target.value })}
                             placeholder="Número de série do equipamento"
-                            className="bg-zinc-900 border-zinc-700 text-white"
+                           
                           />
                         </div>
                       </div>
@@ -860,7 +843,7 @@ const AddOrder = () => {
                   onChange={handleChange}
                   onBlur={() => handleBlur("serviceType")}
                   placeholder="Descreva o tipo de serviço"
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                  className="pl-10"
                   required
                 />
               </FieldLabel>
@@ -873,25 +856,25 @@ const AddOrder = () => {
                     handleChange({ target: { name: "priority", value } })
                   }
                 >
-                  <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                  <SelectTrigger className="w-full pl-10">
                     <SelectValue placeholder="Selecione a Prioridade" />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
+                  <SelectContent>
                     <SelectItem
                       value="low"
-                      className="text-white hover:bg-zinc-700"
+                     
                     >
                       Baixa
                     </SelectItem>
                     <SelectItem
                       value="normal"
-                      className="text-white hover:bg-zinc-700"
+                     
                     >
                       Normal
                     </SelectItem>
                     <SelectItem
                       value="high"
-                      className="text-white hover:bg-zinc-700"
+                     
                     >
                       Alta
                     </SelectItem>
@@ -903,13 +886,13 @@ const AddOrder = () => {
         </Card>
 
         {/* Checklist Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Checklist</CardTitle>
+            <CardTitle className="text-lg">Checklist</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <label className="flex items-center space-x-3 text-white cursor-pointer group">
+              <label className="flex items-center space-x-3 text-foreground cursor-pointer group">
                 <Checkbox
                   name="concluido"
                   checked={checklist.concluido}
@@ -918,12 +901,12 @@ const AddOrder = () => {
                       target: { name: "concluido", checked },
                     })
                   }
-                  className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                  className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-green-500"
                 />
                 <span className="text-sm">Serviço Concluído</span>
               </label>
 
-              <label className="flex items-center space-x-3 text-white cursor-pointer group">
+              <label className="flex items-center space-x-3 text-foreground cursor-pointer group">
                 <Checkbox
                   name="retorno"
                   checked={checklist.retorno}
@@ -932,12 +915,12 @@ const AddOrder = () => {
                       target: { name: "retorno", checked },
                     })
                   }
-                  className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                  className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-green-500"
                 />
                 <span className="text-sm">Retorno Necessário</span>
               </label>
 
-              <label className="flex items-center space-x-3 text-white cursor-pointer group">
+              <label className="flex items-center space-x-3 text-foreground cursor-pointer group">
                 <Checkbox
                   name="funcionarios"
                   checked={checklist.funcionarios}
@@ -946,12 +929,12 @@ const AddOrder = () => {
                       target: { name: "funcionarios", checked },
                     })
                   }
-                  className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                  className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-green-500"
                 />
                 <span className="text-sm">Instrução dos Funcionários</span>
               </label>
 
-              <label className="flex items-center space-x-3 text-white cursor-pointer group">
+              <label className="flex items-center space-x-3 text-foreground cursor-pointer group">
                 <Checkbox
                   name="documentacao"
                   checked={checklist.documentacao}
@@ -960,12 +943,12 @@ const AddOrder = () => {
                       target: { name: "documentacao", checked },
                     })
                   }
-                  className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                  className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-green-500"
                 />
                 <span className="text-sm">Entrega da Documentação</span>
               </label>
 
-              <label className="flex items-center space-x-3 text-white cursor-pointer group">
+              <label className="flex items-center space-x-3 text-foreground cursor-pointer group">
                 <Checkbox
                   name="producao"
                   checked={checklist.producao}
@@ -974,12 +957,12 @@ const AddOrder = () => {
                       target: { name: "producao", checked },
                     })
                   }
-                  className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                  className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-green-500"
                 />
                 <span className="text-sm">Liberação para Produção</span>
               </label>
 
-              <label className="flex items-center space-x-3 text-white cursor-pointer group">
+              <label className="flex items-center space-x-3 text-foreground cursor-pointer group">
                 <Checkbox
                   name="pecas"
                   checked={checklist.pecas}
@@ -988,14 +971,14 @@ const AddOrder = () => {
                       target: { name: "pecas", checked },
                     })
                   }
-                  className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                  className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-green-500"
                 />
                 <span className="text-sm">Orçamento de Peças</span>
               </label>
             </div>
 
             <div className="mt-6">
-              <label className="block text-sm font-medium text-zinc-400 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Descrição / Observações
               </label>
               <Textarea
@@ -1003,12 +986,12 @@ const AddOrder = () => {
                 value={formData.resultDescription}
                 onChange={handleChange}
                 placeholder="Adicione notas ou observações importantes"
-                className="min-h-[100px] bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 resize-none"
+                className="min-h-[100px] resize-none"
               />
             </div>
 
             <div className="mt-6">
-              <label className="block text-sm font-medium text-zinc-400 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Pontos em Aberto
               </label>
               <Textarea
@@ -1016,7 +999,7 @@ const AddOrder = () => {
                 value={formData.pontosEmAberto}
                 onChange={handleChange}
                 placeholder="Descreva os pontos que ainda precisam ser resolvidos"
-                className="min-h-[100px] bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 resize-none"
+                className="min-h-[100px] resize-none"
               />
             </div>
           </CardContent>
@@ -1024,9 +1007,9 @@ const AddOrder = () => {
 
         {/* ✅ SEÇÃO DE ORÇAMENTO DE PEÇAS (CONDICIONAL) */}
         {checklist.pecas && (
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-lg text-white flex items-center">
+              <CardTitle className="text-lg flex items-center">
                 <ShoppingCart className="h-5 w-5 mr-2 text-purple-400" />
                 Orçamento de Peças
                 <Badge className="ml-2 bg-purple-500/20 text-purple-400">
@@ -1038,16 +1021,16 @@ const AddOrder = () => {
               {/* Pesquisa de Peças */}
               <div className="space-y-4">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     type="text"
                     value={partSearchTerm}
                     onChange={(e) => setPartSearchTerm(e.target.value)}
                     placeholder="Pesquisar peças por código ou nome..."
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                    className="pl-10"
                   />
                   {isSearching && (
-                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4 animate-spin" />
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4 animate-spin" />
                   )}
                 </div>
 
@@ -1062,16 +1045,16 @@ const AddOrder = () => {
 
                 {/* Resultados da pesquisa */}
                 {searchResults.length > 0 && (
-                  <div className="border border-zinc-600 rounded-lg max-h-60 overflow-y-auto">
+                  <div className="border border-border rounded-lg max-h-60 overflow-y-auto">
                     {searchResults.map((part) => (
                       <div
                         key={part.id}
-                        className="flex items-center justify-between p-3 border-b border-zinc-700 last:border-b-0 hover:bg-zinc-700/50 cursor-pointer"
+                        className="flex items-center justify-between p-3 border-b border-border last:border-b-0 hover:bg-white/5 cursor-pointer"
                         onClick={() => addPartToQuote(part)}
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-white">
+                            <span className="font-medium text-foreground">
                               {part.name}
                             </span>
                             <Badge className="bg-blue-500/20 text-blue-400 text-xs">
@@ -1082,9 +1065,9 @@ const AddOrder = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="bg-zinc-900 border-green-600 text-green-400 hover:bg-green-500/20"
+                          className="border-primary text-green-400 hover:bg-green-500/20"
                         >
-                          <Plus className="h-4 w-4 mr-1" />
+                          <Plus className="h-4 w-4" />
                           Adicionar
                         </Button>
                       </div>
@@ -1097,11 +1080,11 @@ const AddOrder = () => {
               {partsQuoteItems.length > 0 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-lg font-medium text-white">
+                    <h4 className="text-lg font-medium text-foreground">
                       Peças Selecionadas
                     </h4>
                     <div className="text-right">
-                      <p className="text-sm text-zinc-400">Subtotal</p>
+                      <p className="text-sm text-muted-foreground">Subtotal</p>
                       <p className="text-xl font-bold text-green-400">
                         {formatPrice(calculateSubtotal())}
                       </p>
@@ -1112,22 +1095,22 @@ const AddOrder = () => {
                     {partsQuoteItems.map((item) => (
                       <div
                         key={item.id}
-                        className="grid grid-cols-12 gap-4 items-center p-4 bg-zinc-700/30 rounded-lg border border-zinc-600"
+                        className="grid grid-cols-12 gap-4 items-center p-4 bg-muted/30 rounded-lg border border-border"
                       >
                         <div className="col-span-12 md:col-span-4">
                           <div className="flex items-center gap-2 mb-1">
                             <Package className="h-4 w-4 text-purple-400" />
-                            <span className="font-medium text-white">
+                            <span className="font-medium text-foreground">
                               {item.name}
                             </span>
                           </div>
-                          <p className="text-sm text-zinc-400">
+                          <p className="text-sm text-muted-foreground">
                             Código: {item.code}
                           </p>
                         </div>
 
                         <div className="col-span-6 md:col-span-2">
-                          <label className="text-sm text-zinc-400 block mb-1">
+                          <label className="text-sm text-muted-foreground block mb-1">
                             Qtd
                           </label>
                           <Input
@@ -1137,12 +1120,12 @@ const AddOrder = () => {
                             onChange={(e) =>
                               updatePartQuantity(item.id, e.target.value)
                             }
-                            className="bg-zinc-900 border-zinc-700 text-white text-center"
+                            className="text-center"
                           />
                         </div>
 
                         <div className="col-span-6 md:col-span-3">
-                          <label className="text-sm text-zinc-400 block mb-1">
+                          <label className="text-sm text-muted-foreground block mb-1">
                             Preço Unitário (€)
                           </label>
                           <Input
@@ -1153,16 +1136,16 @@ const AddOrder = () => {
                             onChange={(e) =>
                               updatePartPrice(item.id, e.target.value)
                             }
-                            className="bg-zinc-900 border-zinc-700 text-white"
+                           
                             placeholder="0.00"
                           />
                         </div>
 
                         <div className="col-span-9 md:col-span-2">
-                          <label className="text-sm text-zinc-400 block mb-1">
+                          <label className="text-sm text-muted-foreground block mb-1">
                             Subtotal
                           </label>
-                          <div className="bg-zinc-800 rounded px-3 py-2 text-center border border-zinc-600">
+                          <div className="bg-card rounded px-3 py-2 text-center border border-border">
                             <span className="text-green-400 font-medium">
                               {formatPrice(item.quantity * item.price)}
                             </span>
@@ -1184,14 +1167,14 @@ const AddOrder = () => {
                   </div>
 
                   {/* Configurações de Envio e IVA */}
-                  <div className="mt-6 p-4 bg-zinc-700/50 rounded-lg border border-zinc-600">
-                    <h5 className="text-md font-medium text-white mb-4">
+                  <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
+                    <h5 className="text-md font-medium text-foreground mb-4">
                       Configurações do Orçamento
                     </h5>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-zinc-400">
+                        <label className="text-sm font-medium text-muted-foreground">
                           Tipo de Envio
                         </label>
                         <Input
@@ -1204,12 +1187,12 @@ const AddOrder = () => {
                             }))
                           }
                           placeholder="Ex: Correios, Transportadora..."
-                          className="bg-zinc-900 border-zinc-700 text-white"
+                         
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-zinc-400">
+                        <label className="text-sm font-medium text-muted-foreground">
                           Preço do Envio (€)
                         </label>
                         <Input
@@ -1224,12 +1207,12 @@ const AddOrder = () => {
                             }))
                           }
                           placeholder="0.00"
-                          className="bg-zinc-900 border-zinc-700 text-white"
+                         
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-zinc-400">
+                        <label className="text-sm font-medium text-muted-foreground">
                           Taxa de IVA (%)
                         </label>
                         <Input
@@ -1243,7 +1226,7 @@ const AddOrder = () => {
                               vatRate: e.target.value,
                             }))
                           }
-                          className="bg-zinc-900 border-zinc-700 text-white"
+                         
                         />
                       </div>
 
@@ -1258,11 +1241,11 @@ const AddOrder = () => {
                               includeVat: e.target.checked,
                             }))
                           }
-                          className="rounded border-zinc-600"
+                          className="rounded border-border"
                         />
                         <label
                           htmlFor="includeVat"
-                          className="text-sm text-zinc-400"
+                          className="text-sm text-muted-foreground"
                         >
                           Incluir IVA no orçamento
                         </label>
@@ -1271,19 +1254,19 @@ const AddOrder = () => {
                   </div>
 
                   {/* Resumo Total */}
-                  <div className="mt-4 p-4 bg-zinc-700/50 rounded-lg border border-zinc-600">
+                  <div className="mt-4 p-4 bg-muted/50 rounded-lg border border-border">
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="text-white">Subtotal Peças:</span>
-                        <span className="text-white">
+                        <span className="text-foreground">Subtotal Peças:</span>
+                        <span className="text-foreground">
                           {formatPrice(calculateSubtotal())}
                         </span>
                       </div>
 
                       {shippingConfig.shippingPrice > 0 && (
                         <div className="flex justify-between items-center">
-                          <span className="text-white">Envio:</span>
-                          <span className="text-white">
+                          <span className="text-foreground">Envio:</span>
+                          <span className="text-foreground">
                             {formatPrice(shippingConfig.shippingPrice)}
                           </span>
                         </div>
@@ -1291,10 +1274,10 @@ const AddOrder = () => {
 
                       {shippingConfig.includeVat && (
                         <div className="flex justify-between items-center">
-                          <span className="text-white">
+                          <span className="text-foreground">
                             IVA ({shippingConfig.vatRate}%):
                           </span>
-                          <span className="text-white">
+                          <span className="text-foreground">
                             {formatPrice(
                               ((calculateSubtotal() +
                                 parseFloat(shippingConfig.shippingPrice || 0)) *
@@ -1305,10 +1288,10 @@ const AddOrder = () => {
                         </div>
                       )}
 
-                      <hr className="border-zinc-600" />
+                      <hr className="border-border" />
 
                       <div className="flex justify-between items-center">
-                        <span className="text-lg font-bold text-white">
+                        <span className="text-lg font-bold text-foreground">
                           Total Final:
                         </span>
                         <span className="text-xl font-bold text-green-400">
@@ -1322,9 +1305,9 @@ const AddOrder = () => {
 
               {partsQuoteItems.length === 0 && (
                 <div className="text-center py-8">
-                  <ShoppingCart className="h-12 w-12 text-zinc-600 mx-auto mb-3" />
-                  <p className="text-zinc-400">Nenhuma peça adicionada ainda</p>
-                  <p className="text-sm text-zinc-500">
+                  <ShoppingCart className="h-12 w-12 text-muted-foreground/70 mx-auto mb-3" />
+                  <p className="text-muted-foreground">Nenhuma peça adicionada ainda</p>
+                  <p className="text-sm text-muted-foreground">
                     Use a pesquisa acima para encontrar e adicionar peças
                   </p>
                 </div>
@@ -1337,7 +1320,7 @@ const AddOrder = () => {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-green-600 hover:bg-green-700"
+          className="w-full"
         >
           {isSubmitting ? (
             <>

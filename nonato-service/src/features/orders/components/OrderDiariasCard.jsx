@@ -67,24 +67,24 @@ const OrderDiariasCard = ({ orderId, order, workdays, onChange }) => {
   );
 
   return (
-    <Card className="bg-zinc-800 border-zinc-700">
+    <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-3">
-        <CardTitle className="text-lg text-white flex items-center gap-2">
+        <CardTitle className="text-lg flex items-center gap-2">
           <CalendarDays className="w-5 h-5" />
           Diárias
         </CardTitle>
         <label className="flex items-center gap-3 cursor-pointer select-none">
-          <span className={`text-sm font-medium ${cobrar ? "text-green-400" : "text-zinc-400"}`}>
+          <span className={`text-sm font-medium ${cobrar ? "text-green-400" : "text-muted-foreground"}`}>
             {cobrar ? "Cobrar diárias: LIGADO" : "Cobrar diárias: DESLIGADO"}
           </span>
           <Switch checked={cobrar} onCheckedChange={setCobrar} aria-label="Cobrar diárias" />
         </label>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-muted-foreground">
           {stay.diarias > 0 ? (
             <>
-              Conta automática: <span className="text-white font-medium">{stay.diarias} diárias</span>{" "}
+              Conta automática: <span className="text-foreground font-medium">{stay.diarias} diárias</span>{" "}
               ({formatStayPeriod(stay)}, incluindo fins de semana) · {stay.diasTrabalhados} dias trabalhados
             </>
           ) : (
@@ -94,7 +94,7 @@ const OrderDiariasCard = ({ orderId, order, workdays, onChange }) => {
 
         <div className={`grid grid-cols-1 sm:grid-cols-3 gap-3 ${cobrar ? "" : "opacity-50"}`}>
           <div className="space-y-1">
-            <label className="text-sm text-zinc-400">Valor por diária (€)</label>
+            <label className="text-sm text-muted-foreground">Valor por diária (€)</label>
             <Input
               type="number"
               min="0"
@@ -103,11 +103,11 @@ const OrderDiariasCard = ({ orderId, order, workdays, onChange }) => {
               onChange={(e) => setValor(e.target.value)}
               placeholder="Ex: 150"
               disabled={!cobrar}
-              className="bg-zinc-900 border-zinc-700 text-white"
+             
             />
           </div>
           <div className="space-y-1">
-            <label className="text-sm text-zinc-400">
+            <label className="text-sm text-muted-foreground">
               Nº de diárias {quantidade === "" ? "(automático)" : "(manual)"}
             </label>
             <div className="flex gap-2">
@@ -118,7 +118,7 @@ const OrderDiariasCard = ({ orderId, order, workdays, onChange }) => {
                 value={quantidade === "" ? String(stay.diarias || "") : quantidade}
                 onChange={(e) => setQuantidade(e.target.value)}
                 disabled={!cobrar}
-                className="bg-zinc-900 border-zinc-700 text-white"
+               
               />
               {quantidade !== "" && (
                 <Button
@@ -128,7 +128,7 @@ const OrderDiariasCard = ({ orderId, order, workdays, onChange }) => {
                   title="Voltar à conta automática"
                   onClick={() => setQuantidade("")}
                   disabled={!cobrar}
-                  className="shrink-0 border-zinc-700 bg-zinc-900 text-white hover:bg-zinc-700"
+                  className="shrink-0"
                 >
                   <RotateCcw className="h-4 w-4" />
                 </Button>
@@ -136,19 +136,19 @@ const OrderDiariasCard = ({ orderId, order, workdays, onChange }) => {
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-sm text-zinc-400">Total das diárias</label>
+            <label className="text-sm text-muted-foreground">Total das diárias</label>
             <p className="h-10 flex items-center text-lg font-semibold text-green-400">
               {cobrar ? `${formatEuroNumber(current.total)} €` : "—"}
             </p>
           </div>
         </div>
 
-        <label className="flex items-center justify-between gap-3 rounded-lg border border-zinc-700 bg-zinc-900 p-3 cursor-pointer select-none">
+        <label className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/50 p-3 cursor-pointer select-none">
           <span>
-            <span className={`block text-sm font-medium ${mostrarNoPdf ? "text-green-400" : "text-zinc-300"}`}>
+            <span className={`block text-sm font-medium ${mostrarNoPdf ? "text-green-400" : "text-foreground/90"}`}>
               {mostrarNoPdf ? "Mostrar no PDF: LIGADO" : "Mostrar no PDF: DESLIGADO"}
             </span>
-            <span className="block text-xs text-zinc-500">
+            <span className="block text-xs text-muted-foreground">
               {mostrarNoPdf
                 ? "As diárias aparecem no PDF da Ordem de Serviço."
                 : "As diárias ficam só registadas internamente; não saem no PDF da Ordem de Serviço."}
@@ -157,7 +157,7 @@ const OrderDiariasCard = ({ orderId, order, workdays, onChange }) => {
           <Switch checked={mostrarNoPdf} onCheckedChange={setMostrarNoPdf} aria-label="Mostrar diárias no PDF" />
         </label>
 
-        <p className="text-xs text-zinc-500 h-4">
+        <p className="text-xs text-muted-foreground h-4">
           {status === "saving" && (
             <span className="inline-flex items-center gap-1">
               <Loader2 className="h-3 w-3 animate-spin" /> A gravar…

@@ -32,7 +32,7 @@ const FeatureCard = ({ icon: Icon, title, description, delay = 0 }) => (
     }}
     className="group"
   >
-    <Card className="bg-zinc-800/50 border-zinc-700/50 backdrop-blur-xl hover:border-green-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/10 relative overflow-hidden">
+    <Card className="bg-card/50 backdrop-blur-xl hover:border-green-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/10 relative overflow-hidden">
       {/* Efeito de hover animado */}
       <div className="absolute inset-0 bg-gradient-to-br from-green-500/0 to-emerald-500/0 group-hover:from-green-500/5 group-hover:to-emerald-500/5 transition-all duration-300" />
 
@@ -43,10 +43,10 @@ const FeatureCard = ({ icon: Icon, title, description, delay = 0 }) => (
         >
           <Icon className="h-10 sm:h-12 w-10 sm:w-12 text-green-500 mb-3 sm:mb-4 group-hover:text-emerald-400 transition-colors" />
         </motion.div>
-        <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 sm:mb-3 group-hover:text-green-100">
+        <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3 group-hover:text-green-100">
           {title}
         </h3>
-        <p className="text-zinc-400 text-sm leading-relaxed group-hover:text-zinc-300">
+        <p className="text-muted-foreground text-sm leading-relaxed group-hover:text-foreground/90">
           {description}
         </p>
       </CardContent>
@@ -63,9 +63,9 @@ const StatsCard = ({ value, label, icon: Icon, delay = 0 }) => (
   >
     <div className="flex items-center justify-center mb-2">
       <Icon className="h-4 sm:h-6 w-4 sm:w-6 text-green-500 mr-1 sm:mr-2" />
-      <span className="text-xl sm:text-3xl font-bold text-white">{value}</span>
+      <span className="text-xl sm:text-3xl font-bold text-foreground">{value}</span>
     </div>
-    <p className="text-zinc-400 text-xs sm:text-sm">{label}</p>
+    <p className="text-muted-foreground text-xs sm:text-sm">{label}</p>
   </motion.div>
 );
 
@@ -119,9 +119,9 @@ const InitialPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 overflow-hidden relative select-none touch-manipulation">
+    <div className="min-h-screen bg-gradient-to-br from-background via-card to-background overflow-hidden relative select-none touch-manipulation">
       {/* Background Pattern */}
-      <div className="absolute inset-0 bg-zinc-900 bg-[radial-gradient(#262626_1px,transparent_1px)] [background-size:16px_16px] opacity-25" />
+      <div className="absolute inset-0 bg-muted/50 bg-[radial-gradient(#262626_1px,transparent_1px)] [background-size:16px_16px] opacity-25" />
 
       {/* Efeito de gradiente animado */}
       <motion.div
@@ -175,9 +175,9 @@ const InitialPage = () => {
           onClick={() => navigate("/login")}
           variant="outline"
           size="sm"
-          className="bg-zinc-800/80 border-zinc-600 text-white hover:bg-green-600 hover:border-green-500 backdrop-blur-sm text-xs sm:text-sm px-3 sm:px-4 py-2"
+          className="bg-card/80 hover:bg-primary hover:border-green-500 backdrop-blur-sm text-xs sm:text-sm px-3 sm:px-4 py-2"
         >
-          <LogIn className="w-3 sm:w-4 h-3 sm:h-4 mr-1 sm:mr-2" />
+          <LogIn className="w-3 sm:w-4 h-3 sm:h-4 sm:mr-2" />
           Login
         </Button>
       </motion.div>
@@ -230,7 +230,7 @@ const InitialPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-6"
+            className="text-4xl sm:text-5xl lg:text-7xl font-bold text-foreground mb-6"
           >
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-green-400 via-emerald-500 to-green-600">
               Nonato Service
@@ -241,7 +241,7 @@ const InitialPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="text-lg sm:text-xl text-zinc-300 mb-12 max-w-3xl mx-auto leading-relaxed px-4"
+            className="text-lg sm:text-xl text-foreground/90 mb-12 max-w-3xl mx-auto leading-relaxed px-4"
           >
             A solução definitiva para gestão de serviços e manutenção.
             Transforme sua empresa com tecnologia de ponta e automação
@@ -257,9 +257,9 @@ const InitialPage = () => {
             <Button
               onClick={() => navigate("/login")}
               size="lg"
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-full text-base sm:text-lg font-semibold shadow-2xl shadow-green-500/25 transition-all transform hover:scale-105 w-full sm:w-auto max-w-xs"
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 px-6 sm:px-8 py-3 sm:py-4 rounded-full text-base sm:text-lg font-semibold shadow-2xl shadow-green-500/25 transition-all transform hover:scale-105 w-full sm:w-auto max-w-xs"
             >
-              <Zap className="w-4 sm:w-5 h-4 sm:h-5 mr-2" />
+              <Zap className="w-4 sm:w-5 h-4 sm:h-5" />
               Acessar Sistema
               <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 ml-2" />
             </Button>
@@ -286,10 +286,10 @@ const InitialPage = () => {
           className="mb-16 sm:mb-20 px-4"
         >
           <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
               Recursos que Fazem a Diferença
             </h2>
-            <p className="text-zinc-400 max-w-2xl mx-auto text-sm sm:text-base">
+            <p className="text-muted-foreground max-w-2xl mx-auto text-sm sm:text-base">
               Descubra as funcionalidades que vão revolucionar a forma como você
               gerencia seus serviços
             </p>
@@ -311,16 +311,16 @@ const InitialPage = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.8 }}
-          className="text-center border-t border-zinc-800 pt-6 sm:pt-8 px-4"
+          className="text-center border-t border-border pt-6 sm:pt-8 px-4"
         >
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
               <Building2 className="h-5 sm:h-6 w-5 sm:w-6 text-green-500" />
-              <span className="text-white font-semibold text-sm sm:text-base">
+              <span className="text-foreground font-semibold text-sm sm:text-base">
                 Nonato Service
               </span>
             </div>
-            <p className="text-zinc-500 text-xs sm:text-sm order-3 sm:order-2">
+            <p className="text-muted-foreground text-xs sm:text-sm order-3 sm:order-2">
               © {new Date().getFullYear()} Nonato Service. Todos os direitos
               reservados.
             </p>

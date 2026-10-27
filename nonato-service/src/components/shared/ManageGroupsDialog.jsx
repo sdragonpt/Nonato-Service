@@ -91,7 +91,7 @@ const ManageGroupsDialog = ({ open, onOpenChange, kind, title, description }) =>
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="text-foreground max-w-md max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && (
@@ -111,7 +111,7 @@ const ManageGroupsDialog = ({ open, onOpenChange, kind, title, description }) =>
             disabled={busy || !newName.trim()}
             className="shrink-0"
           >
-            <Plus className="h-4 w-4 mr-1" /> Criar
+            <Plus className="h-4 w-4" /> Criar
           </Button>
         </form>
 
@@ -142,10 +142,10 @@ const ManageGroupsDialog = ({ open, onOpenChange, kind, title, description }) =>
                       className="h-8"
                       autoFocus
                     />
-                    <Button size="icon" variant="ghost" disabled={busy} onClick={() => handleRename(g.id)} className="h-8 w-8 text-primary hover:bg-accent" aria-label="Guardar">
+                    <Button size="icon" variant="ghost" disabled={busy} onClick={() => handleRename(g.id)} className="h-8 w-8 text-primary" aria-label="Guardar">
                       <Check className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => setEditingId(null)} className="h-8 w-8 text-muted-foreground hover:bg-accent" aria-label="Cancelar">
+                    <Button size="icon" variant="ghost" onClick={() => setEditingId(null)} className="h-8 w-8 text-muted-foreground" aria-label="Cancelar">
                       <X className="h-4 w-4" />
                     </Button>
                   </>
@@ -160,7 +160,7 @@ const ManageGroupsDialog = ({ open, onOpenChange, kind, title, description }) =>
                         setEditName(g.nome);
                         setError(null);
                       }}
-                      className="h-8 w-8 text-foreground/90 hover:bg-accent"
+                      className="h-8 w-8 text-foreground/90"
                       aria-label={`Renomear ${g.nome}`}
                     >
                       <Pencil className="h-4 w-4" />
@@ -170,7 +170,7 @@ const ManageGroupsDialog = ({ open, onOpenChange, kind, title, description }) =>
                       variant="ghost"
                       disabled={busy}
                       onClick={() => handleDelete(g)}
-                      className="h-8 w-8 text-red-400 hover:bg-accent"
+                      className="h-8 w-8 text-red-400"
                       aria-label={`Apagar ${g.nome}`}
                     >
                       <Trash2 className="h-4 w-4" />

@@ -327,7 +327,7 @@ const PublicShop = ({
     if ((isMobile || isTablet) && isMountedRef.current) {
       const notification = document.createElement("div");
       notification.className =
-        "fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-3 rounded-xl z-50 animate-fade-up shadow-lg flex items-center";
+        "fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-primary text-foreground px-4 py-3 rounded-xl z-50 animate-fade-up shadow-lg flex items-center";
       notification.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20 6L9 17l-5-5"></path>
@@ -480,10 +480,10 @@ const PublicShop = ({
     <Sheet open={isCategoriesOpen} onOpenChange={setIsCategoriesOpen}>
       <SheetContent
         side="left"
-        className="bg-zinc-800 border-zinc-700 text-white w-72"
+        className="text-foreground w-72"
       >
         <SheetHeader className="pb-4">
-          <SheetTitle className="text-white">Categorias</SheetTitle>
+          <SheetTitle className="text-foreground">Categorias</SheetTitle>
         </SheetHeader>
 
         <div className="space-y-1 mt-2">
@@ -492,8 +492,8 @@ const PublicShop = ({
               onClick={() => handleCategoryChange("all")}
               className={`w-full text-left px-3 py-3 rounded-lg flex items-center justify-between transition-colors ${
                 selectedCategory === "all"
-                  ? "bg-zinc-700 text-white"
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-700/50"
+                  ? "bg-muted text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
               }`}
             >
               <span className="flex items-center">
@@ -514,8 +514,8 @@ const PublicShop = ({
                     onClick={() => handleCategoryChange(category.id)}
                     className={`w-full text-left px-3 py-3 rounded-lg flex items-center justify-between transition-colors ${
                       selectedCategory === category.id
-                        ? "bg-zinc-700 text-white"
-                        : "text-zinc-400 hover:text-white hover:bg-zinc-700/50"
+                        ? "bg-muted text-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                     }`}
                   >
                     <span className="font-medium">{category.name}</span>
@@ -531,8 +531,8 @@ const PublicShop = ({
                           onClick={() => setSelectedSubcategory(subcategory.id)}
                           className={`w-full text-left px-3 py-2 rounded-lg flex items-center justify-between transition-colors text-sm ${
                             selectedSubcategory === subcategory.id
-                              ? "bg-zinc-600 text-white"
-                              : "text-zinc-500 hover:text-white hover:bg-zinc-700/30"
+                              ? "bg-accent text-foreground"
+                              : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                           }`}
                         >
                           <span>• {subcategory.name}</span>
@@ -557,23 +557,23 @@ const PublicShop = ({
     <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
       <SheetContent
         side="right"
-        className="bg-zinc-800 border-zinc-700 text-white w-72"
+        className="text-foreground w-72"
       >
         <SheetHeader className="pb-4">
-          <SheetTitle className="text-white">Filtros</SheetTitle>
+          <SheetTitle className="text-foreground">Filtros</SheetTitle>
         </SheetHeader>
 
         <div className="space-y-6 mt-2">
           <div className="space-y-2">
-            <p className="text-sm text-zinc-400">Ordenar por</p>
+            <p className="text-sm text-muted-foreground">Ordenar por</p>
             <div className="space-y-1">
               <SheetClose asChild>
                 <button
                   onClick={() => setSortBy("name")}
                   className={`w-full text-left px-3 py-3 rounded-lg transition-colors ${
                     sortBy === "name"
-                      ? "bg-zinc-700 text-white"
-                      : "text-zinc-400 hover:text-white hover:bg-zinc-700/50"
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                   }`}
                 >
                   Nome (A-Z)
@@ -584,8 +584,8 @@ const PublicShop = ({
                   onClick={() => setSortBy("code")}
                   className={`w-full text-left px-3 py-3 rounded-lg transition-colors ${
                     sortBy === "code"
-                      ? "bg-zinc-700 text-white"
-                      : "text-zinc-400 hover:text-white hover:bg-zinc-700/50"
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                   }`}
                 >
                   Código
@@ -595,18 +595,18 @@ const PublicShop = ({
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm text-zinc-400">Visualização</p>
+            <p className="text-sm text-muted-foreground">Visualização</p>
             <div className="flex gap-2">
               <Button
                 variant="ghost"
                 onClick={() => setViewMode("grid")}
                 className={`flex-1 text-white ${
                   viewMode === "grid"
-                    ? "bg-zinc-700 hover:bg-zinc-600"
-                    : "hover:bg-zinc-700/50"
+                    ? "bg-muted hover:bg-accent"
+                    : "hover:bg-white/5"
                 }`}
               >
-                <Grid className="h-4 w-4 mr-2" />
+                <Grid className="h-4 w-4" />
                 Grade
               </Button>
               <Button
@@ -614,11 +614,11 @@ const PublicShop = ({
                 onClick={() => setViewMode("list")}
                 className={`flex-1 text-white ${
                   viewMode === "list"
-                    ? "bg-zinc-700 hover:bg-zinc-600"
-                    : "hover:bg-zinc-700/50"
+                    ? "bg-muted hover:bg-accent"
+                    : "hover:bg-white/5"
                 }`}
               >
-                <List className="h-4 w-4 mr-2" />
+                <List className="h-4 w-4" />
                 Lista
               </Button>
             </div>
@@ -631,19 +631,19 @@ const PublicShop = ({
   // Loading state
   if ((isLoadingParts && !displayParts.length) || categoriesLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-zinc-900">
+      <div className="flex justify-center items-center min-h-screen bg-muted/50">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-green-500 mx-auto mb-4" />
-          <p className="text-white">Carregando peças...</p>
+          <p className="text-foreground">Carregando peças...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-900 text-white" ref={mainContentRef}>
+    <div className="min-h-screen bg-muted/50 text-foreground" ref={mainContentRef}>
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-zinc-800 border-b border-zinc-700">
+      <header className="sticky top-0 z-50 bg-card border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {(isMobile || isTablet) && (
@@ -651,7 +651,7 @@ const PublicShop = ({
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsCategoriesOpen(true)}
-                className="mr-1 text-white hover:bg-zinc-700"
+                className="mr-1"
               >
                 <Menu className="h-5 w-5" />
               </Button>
@@ -675,7 +675,7 @@ const PublicShop = ({
                 onClick={() => setShowAccessInfo(true)}
                 className="text-amber-400 hover:bg-amber-400/10 hidden sm:flex"
               >
-                <Shield className="h-4 w-4 mr-1" />
+                <Shield className="h-4 w-4" />
                 Solicitar Acesso
               </Button>
             )}
@@ -685,7 +685,7 @@ const PublicShop = ({
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsFiltersOpen(true)}
-                className="text-white hover:bg-zinc-700"
+               
               >
                 <Filter className="h-5 w-5" />
               </Button>
@@ -695,7 +695,7 @@ const PublicShop = ({
               <SheetTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="relative text-white hover:bg-zinc-700"
+                  className="relative"
                   onClick={() => {
                     if (!canUseCart) {
                       requestCartAccess();
@@ -718,14 +718,14 @@ const PublicShop = ({
 
               {/* Cart Sheet Content */}
               {canUseCart && (
-                <SheetContent className="bg-zinc-800 border-zinc-700 text-white flex flex-col h-full p-0">
-                  <SheetHeader className="flex-shrink-0 px-4 pt-4 pb-2 border-b border-zinc-700">
+                <SheetContent className="text-foreground flex flex-col h-full p-0">
+                  <SheetHeader className="flex-shrink-0 px-4 pt-4 pb-2 border-b border-border">
                     <div className="flex justify-between items-center w-full">
-                      <SheetTitle className="text-white flex items-center">
+                      <SheetTitle className="text-foreground flex items-center">
                         <ShoppingCart className="h-5 w-5 mr-2" />
                         Carrinho de Compras
                         {cart.length > 0 && (
-                          <Badge className="ml-2 bg-green-600">
+                          <Badge className="ml-2 bg-primary">
                             {cart.length}
                           </Badge>
                         )}
@@ -736,17 +736,17 @@ const PublicShop = ({
                   <div className="flex-1 min-h-0 overflow-y-auto">
                     {cart.length === 0 ? (
                       <div className="text-center py-12 px-4 flex flex-col items-center justify-center h-full">
-                        <div className="bg-zinc-700/30 rounded-full p-6 mb-4">
-                          <ShoppingCart className="h-12 w-12 text-zinc-500" />
+                        <div className="bg-muted/30 rounded-full p-6 mb-4">
+                          <ShoppingCart className="h-12 w-12 text-muted-foreground" />
                         </div>
-                        <h3 className="text-lg font-medium text-white mb-1">
+                        <h3 className="text-lg font-medium text-foreground mb-1">
                           Seu carrinho está vazio
                         </h3>
-                        <p className="text-zinc-500 text-sm mb-6 max-w-xs mx-auto">
+                        <p className="text-muted-foreground text-sm mb-6 max-w-xs mx-auto">
                           Adicione peças ao carrinho para solicitar um orçamento
                         </p>
                         <SheetClose asChild>
-                          <Button className="bg-zinc-700 hover:bg-zinc-600">
+                          <Button className="bg-muted hover:bg-accent">
                             Continuar Comprando
                           </Button>
                         </SheetClose>
@@ -758,9 +758,9 @@ const PublicShop = ({
                             key={item.id}
                             className={`relative px-4 py-3 ${
                               index !== cart.length - 1
-                                ? "border-b border-zinc-700/50"
+                                ? "border-b border-border"
                                 : ""
-                            } transition-all duration-200 hover:bg-zinc-700/30`}
+                            } transition-all duration-200 hover:bg-white/5`}
                           >
                             <div className="flex items-start gap-3">
                               <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0">
@@ -774,32 +774,32 @@ const PublicShop = ({
                               </div>
 
                               <div className="flex-1 min-w-0">
-                                <h3 className="font-medium text-white truncate">
+                                <h3 className="font-medium text-foreground truncate">
                                   {item.name}
                                 </h3>
-                                <p className="text-sm text-zinc-400">
+                                <p className="text-sm text-muted-foreground">
                                   Código: {item.code}
                                 </p>
 
                                 <div className="flex items-center justify-between mt-2">
-                                  <div className="flex items-center bg-zinc-700/50 rounded-full h-8">
+                                  <div className="flex items-center bg-muted/50 rounded-full h-8">
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-8 w-8 rounded-full hover:bg-zinc-600"
+                                      className="h-8 w-8 rounded-full"
                                       onClick={() =>
                                         updateQuantity(item.id, -1)
                                       }
                                     >
                                       <Minus className="h-3 w-3" />
                                     </Button>
-                                    <span className="w-8 text-center text-white">
+                                    <span className="w-8 text-center text-foreground">
                                       {item.quantity}
                                     </span>
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-8 w-8 rounded-full hover:bg-zinc-600"
+                                      className="h-8 w-8 rounded-full"
                                       onClick={() => updateQuantity(item.id, 1)}
                                     >
                                       <Plus className="h-3 w-3" />
@@ -812,7 +812,7 @@ const PublicShop = ({
                                     onClick={() => removeFromCart(item.id)}
                                     className="text-red-400 hover:text-red-300 hover:bg-red-500/20 px-2 h-8"
                                   >
-                                    <X className="h-4 w-4 mr-1" />
+                                    <X className="h-4 w-4" />
                                     Remover
                                   </Button>
                                 </div>
@@ -825,13 +825,13 @@ const PublicShop = ({
                   </div>
 
                   {cart.length > 0 && (
-                    <div className="flex-shrink-0 border-t border-zinc-700 bg-zinc-800/95 p-4 backdrop-blur-sm">
+                    <div className="flex-shrink-0 border-t border-border bg-card/95 p-4 backdrop-blur-sm">
                       <div className="mb-3">
                         <div className="flex justify-between items-center mb-2">
-                          <p className="text-zinc-400 text-sm">
+                          <p className="text-muted-foreground text-sm">
                             Quantidade de itens:
                           </p>
-                          <p className="font-medium text-white">
+                          <p className="font-medium text-foreground">
                             {cart.reduce(
                               (total, item) => total + item.quantity,
                               0
@@ -840,7 +840,7 @@ const PublicShop = ({
                         </div>
                       </div>
                       <Button
-                        className="w-full bg-green-600 hover:bg-green-700 py-6"
+                        className="w-full py-6"
                         onClick={() => setShowQuoteModal(true)}
                       >
                         Solicitar Orçamento
@@ -856,15 +856,15 @@ const PublicShop = ({
 
       {/* Mobile Categories (Top Scrollable) */}
       {(isMobile || isTablet) && (
-        <div className="bg-zinc-800 overflow-x-auto whitespace-nowrap px-4 py-2 scrollbar-hide">
+        <div className="bg-card overflow-x-auto whitespace-nowrap px-4 py-2 scrollbar-hide">
           <div className="inline-flex space-x-2">
             <Button
               variant={selectedCategory === "all" ? "secondary" : "outline"}
               size="sm"
               className={`rounded-full ${
                 selectedCategory === "all"
-                  ? "bg-zinc-700 text-white"
-                  : "bg-transparent text-zinc-400 border-zinc-700"
+                  ? "bg-muted text-foreground"
+                  : "bg-transparent text-muted-foreground border-border"
               }`}
               onClick={() => handleCategoryChange("all")}
             >
@@ -882,8 +882,8 @@ const PublicShop = ({
                     size="sm"
                     className={`rounded-full ${
                       isSelected
-                        ? "bg-zinc-700 text-white"
-                        : "bg-transparent text-zinc-400 border-zinc-700"
+                        ? "bg-muted text-foreground"
+                        : "bg-transparent text-muted-foreground border-border"
                     }`}
                     onClick={() => handleCategoryChange(category.id)}
                   >
@@ -903,8 +903,8 @@ const PublicShop = ({
                         size="sm"
                         className={`rounded-full ${
                           selectedSubcategory === subcategory.id
-                            ? "bg-zinc-600 text-white"
-                            : "bg-transparent text-zinc-500 border-zinc-600"
+                            ? "bg-accent text-foreground"
+                            : "bg-transparent text-muted-foreground border-border"
                         }`}
                         onClick={() => setSelectedSubcategory(subcategory.id)}
                       >
@@ -923,7 +923,7 @@ const PublicShop = ({
 
       <div className="flex">
         {/* Sidebar with Categories (Desktop) */}
-        <aside className="hidden lg:block w-80 min-h-screen border-r border-zinc-700 bg-zinc-800 p-6">
+        <aside className="hidden lg:block w-80 min-h-screen border-r border-border bg-card p-6">
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Categorias</h2>
 
@@ -931,8 +931,8 @@ const PublicShop = ({
               onClick={() => handleCategoryChange("all")}
               className={`w-full text-left px-3 py-2 rounded-lg flex items-center justify-between transition-colors ${
                 selectedCategory === "all"
-                  ? "bg-zinc-700 text-white"
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-700/50"
+                  ? "bg-muted text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
               }`}
             >
               <span>Todas as Categorias</span>
@@ -948,8 +948,8 @@ const PublicShop = ({
                     onClick={() => handleCategoryChange(category.id)}
                     className={`w-full text-left px-3 py-2 rounded-lg flex items-center justify-between transition-colors ${
                       selectedCategory === category.id
-                        ? "bg-zinc-700 text-white"
-                        : "text-zinc-400 hover:text-white hover:bg-zinc-700/50"
+                        ? "bg-muted text-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                     }`}
                   >
                     <span className="font-medium">{category.name}</span>
@@ -964,8 +964,8 @@ const PublicShop = ({
                           onClick={() => setSelectedSubcategory(subcategory.id)}
                           className={`w-full text-left px-3 py-2 rounded-lg flex items-center justify-between transition-colors text-sm ${
                             selectedSubcategory === subcategory.id
-                              ? "bg-zinc-600 text-white"
-                              : "text-zinc-500 hover:text-white hover:bg-zinc-700/30"
+                              ? "bg-accent text-foreground"
+                              : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                           }`}
                         >
                           <span>• {subcategory.name}</span>
@@ -993,14 +993,14 @@ const PublicShop = ({
                   <h3 className="text-amber-400 font-medium mb-1">
                     Acesso Limitado
                   </h3>
-                  <p className="text-zinc-300 text-sm mb-3">
+                  <p className="text-foreground/90 text-sm mb-3">
                     Você pode navegar e ver todos os produtos, mas para usar o
                     carrinho e solicitar orçamentos é necessário aprovação.
                   </p>
                   <Button
                     size="sm"
                     onClick={() => setShowAccessInfo(true)}
-                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                    className="bg-amber-600 hover:bg-amber-700"
                   >
                     Solicitar Acesso ao Carrinho
                   </Button>
@@ -1012,16 +1012,16 @@ const PublicShop = ({
           {/* ✅ SEARCH E FILTROS - SIMPLES */}
           <div className="mb-6 space-y-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar peças por nome, código ou descrição..."
                 value={searchTerm}
                 onChange={handleSearchChange}
-                className="pl-10 pr-10 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                className="pl-10 pr-10"
               />
               {searchTerm !== debouncedSearchTerm && (
                 <div className="absolute right-10 top-1/2 -translate-y-1/2">
-                  <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
               )}
               {searchTerm && (
@@ -1029,19 +1029,19 @@ const PublicShop = ({
                   variant="ghost"
                   size="sm"
                   onClick={clearSearch}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-zinc-700"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
                 >
-                  <X className="h-4 w-4 text-zinc-400" />
+                  <X className="h-4 w-4 text-muted-foreground" />
                 </Button>
               )}
             </div>
 
             {/* Desktop Filters */}
             <div className="hidden sm:flex justify-between items-center">
-              <div className="text-sm text-zinc-400">
+              <div className="text-sm text-muted-foreground">
                 {debouncedSearchTerm ? (
                   <span>
-                    <span className="font-medium text-white">
+                    <span className="font-medium text-foreground">
                       {displayParts.length}
                     </span>{" "}
                     peças encontradas para "{debouncedSearchTerm}"
@@ -1049,12 +1049,12 @@ const PublicShop = ({
                 ) : (
                   <span>
                     Mostrando{" "}
-                    <span className="font-medium text-white">
+                    <span className="font-medium text-foreground">
                       {displayParts.length}
                     </span>{" "}
                     peças
                     {hasMore && (
-                      <span className="text-zinc-500">
+                      <span className="text-muted-foreground">
                         {" "}
                         (há mais disponíveis)
                       </span>
@@ -1068,7 +1068,7 @@ const PublicShop = ({
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="border-zinc-700 text-white bg-zinc-800"
+                     
                     >
                       <span className="mr-1">
                         {sortBy === "name" ? "Nome" : "Código"}
@@ -1076,15 +1076,15 @@ const PublicShop = ({
                       <ChevronDown className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="bg-zinc-800 border-zinc-700 text-white">
+                  <DropdownMenuContent>
                     <DropdownMenuItem
-                      className={sortBy === "name" ? "bg-zinc-700" : ""}
+                      className={sortBy === "name" ? "bg-muted" : ""}
                       onClick={() => setSortBy("name")}
                     >
                       Nome (A-Z)
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className={sortBy === "code" ? "bg-zinc-700" : ""}
+                      className={sortBy === "code" ? "bg-muted" : ""}
                       onClick={() => setSortBy("code")}
                     >
                       Código
@@ -1098,8 +1098,8 @@ const PublicShop = ({
                   onClick={() => setViewMode("grid")}
                   className={`text-white ${
                     viewMode === "grid"
-                      ? "bg-zinc-700 hover:bg-zinc-600"
-                      : "hover:bg-zinc-800"
+                      ? "bg-muted hover:bg-accent"
+                      : "hover:bg-white/5"
                   }`}
                 >
                   <Grid className="h-4 w-4" />
@@ -1110,8 +1110,8 @@ const PublicShop = ({
                   onClick={() => setViewMode("list")}
                   className={`text-white ${
                     viewMode === "list"
-                      ? "bg-zinc-700 hover:bg-zinc-600"
-                      : "hover:bg-zinc-800"
+                      ? "bg-muted hover:bg-accent"
+                      : "hover:bg-white/5"
                   }`}
                 >
                   <List className="h-4 w-4" />
@@ -1133,9 +1133,9 @@ const PublicShop = ({
                   variant="ghost"
                   size="sm"
                   onClick={clearSearch}
-                  className="ml-auto h-6 px-2 text-blue-400 hover:text-white hover:bg-blue-600/20"
+                  className="ml-auto h-6 px-2 text-blue-400 hover:bg-blue-600/20"
                 >
-                  <X className="h-3 w-3 mr-1" />
+                  <X className="h-3 w-3" />
                   Limpar
                 </Button>
               </div>
@@ -1146,10 +1146,10 @@ const PublicShop = ({
           {error && (
             <Alert
               variant="destructive"
-              className="border-red-500 bg-red-500/10 mb-6"
+              className="mb-6"
             >
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-red-400 flex items-center justify-between gap-4">
+              <AlertDescription className="flex items-center justify-between gap-4">
                 <span>{error}</span>
                 <Button
                   size="sm"
@@ -1158,7 +1158,7 @@ const PublicShop = ({
                     setError(null);
                     refreshCatalog();
                   }}
-                  className="border-red-500/50 text-red-300 bg-zinc-800 hover:bg-red-500/20 hover:text-white"
+                  className="border-red-500/50 text-red-300 hover:bg-red-500/20"
                 >
                   Tentar novamente
                 </Button>
@@ -1168,10 +1168,10 @@ const PublicShop = ({
 
           {/* ✅ LOADING STATE */}
           {isLoadingParts && displayParts.length === 0 && (
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card>
               <CardContent className="p-8 text-center">
-                <Loader2 className="w-8 h-8 animate-spin text-white mx-auto mb-4" />
-                <p className="text-white">Carregando peças...</p>
+                <Loader2 className="w-8 h-8 animate-spin text-foreground mx-auto mb-4" />
+                <p className="text-foreground">Carregando peças...</p>
               </CardContent>
             </Card>
           )}
@@ -1188,7 +1188,7 @@ const PublicShop = ({
               {displayParts.map((part) => (
                 <Card
                   key={part.id}
-                  className="bg-zinc-800 border-zinc-700 hover:border-zinc-600 transition-colors"
+                  className="hover:border-border transition-colors"
                 >
                   <CardContent
                     className={viewMode === "grid" ? "p-4" : "p-4 flex gap-4"}
@@ -1206,10 +1206,10 @@ const PublicShop = ({
                         </div>
                         <div className="space-y-2">
                           <div>
-                            <h3 className="font-medium text-lg text-white">
+                            <h3 className="font-medium text-lg text-foreground">
                               {part.name}
                             </h3>
-                            <p className="text-sm text-zinc-400">
+                            <p className="text-sm text-muted-foreground">
                               Código: {part.code}
                             </p>
                           </div>
@@ -1217,14 +1217,14 @@ const PublicShop = ({
                           {part.categoryName && (
                             <Badge
                               variant="secondary"
-                              className="bg-zinc-700 text-zinc-300"
+                              className="bg-muted text-foreground/90"
                             >
                               {part.categoryName}
                             </Badge>
                           )}
 
                           {part.description && (
-                            <p className="text-sm text-zinc-400 line-clamp-2">
+                            <p className="text-sm text-muted-foreground line-clamp-2">
                               {part.description}
                             </p>
                           )}
@@ -1232,7 +1232,7 @@ const PublicShop = ({
                           <Button
                             className={`w-full mt-4 ${
                               canUseCart
-                                ? "bg-green-600 hover:bg-green-700"
+                                ? "bg-primary hover:bg-primary/90"
                                 : "bg-amber-600 hover:bg-amber-700"
                             }`}
                             onClick={() => addToCart(part)}
@@ -1264,16 +1264,16 @@ const PublicShop = ({
                         </div>
                         <div className="flex-1 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                           <div>
-                            <h3 className="font-medium text-lg text-white">
+                            <h3 className="font-medium text-lg text-foreground">
                               {part.name}
                             </h3>
-                            <p className="text-sm text-zinc-400">
+                            <p className="text-sm text-muted-foreground">
                               Código: {part.code}
                             </p>
                             {part.categoryName && (
                               <Badge
                                 variant="secondary"
-                                className="bg-zinc-700 text-zinc-300 mt-1"
+                                className="bg-muted text-foreground/90 mt-1"
                               >
                                 {part.categoryName}
                               </Badge>
@@ -1283,7 +1283,7 @@ const PublicShop = ({
                             <Button
                               className={`w-full sm:w-auto ${
                                 canUseCart
-                                  ? "bg-green-600 hover:bg-green-700"
+                                  ? "bg-primary hover:bg-primary/90"
                                   : "bg-amber-600 hover:bg-amber-700"
                               }`}
                               onClick={() => addToCart(part)}
@@ -1314,13 +1314,13 @@ const PublicShop = ({
 
           {/* Empty State */}
           {displayParts.length === 0 && !isLoadingParts && (
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card>
               <CardContent className="p-8 text-center">
-                <Search className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-                <p className="text-lg font-medium mb-2 text-white">
+                <Search className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
+                <p className="text-lg font-medium mb-2 text-foreground">
                   Nenhuma peça encontrada
                 </p>
-                <p className="text-zinc-400">
+                <p className="text-muted-foreground">
                   {debouncedSearchTerm
                     ? `Tente buscar por outros termos ou limpe o filtro de busca`
                     : `Tente ajustar seus filtros ou categorias`}
@@ -1328,7 +1328,7 @@ const PublicShop = ({
                 {debouncedSearchTerm && (
                   <Button
                     onClick={clearSearch}
-                    className="mt-4 bg-zinc-700 hover:bg-zinc-600"
+                    className="mt-4 bg-muted hover:bg-accent"
                   >
                     Limpar Busca
                   </Button>
@@ -1343,7 +1343,7 @@ const PublicShop = ({
               <Button
                 onClick={loadMoreParts}
                 disabled={isLoadingParts}
-                className="bg-green-600 hover:bg-green-700"
+               
               >
                 {isLoadingParts ? (
                   <>
@@ -1362,7 +1362,7 @@ const PublicShop = ({
 
           {!hasMore && displayParts.length > 0 && !debouncedSearchTerm && (
             <div className="text-center mt-8">
-              <p className="text-zinc-400">
+              <p className="text-muted-foreground">
                 ✅ Todas as peças foram carregadas ({displayParts.length} total)
               </p>
             </div>
@@ -1375,9 +1375,9 @@ const PublicShop = ({
         <div className="fixed bottom-6 right-6 z-40">
           <Button
             size="lg"
-            className={`cart-button h-16 w-16 rounded-full shadow-lg border-4 border-zinc-900 flex items-center justify-center ${
+            className={`cart-button h-16 w-16 rounded-full shadow-lg border-4 border-border flex items-center justify-center ${
               canUseCart
-                ? "bg-green-600 hover:bg-green-700"
+                ? "bg-primary hover:bg-primary/90"
                 : "bg-amber-600 hover:bg-amber-700"
             }`}
             onClick={() => {
@@ -1391,12 +1391,12 @@ const PublicShop = ({
             <div className="relative">
               <ShoppingCart className="h-6 w-6" />
               {canUseCart && cart.length > 0 && (
-                <Badge className="absolute -top-2 -right-2 h-6 w-6 p-0 flex items-center justify-center bg-red-500 text-white font-bold">
+                <Badge className="absolute -top-2 -right-2 h-6 w-6 p-0 flex items-center justify-center bg-red-500 text-foreground font-bold">
                   {cart.reduce((total, item) => total + item.quantity, 0)}
                 </Badge>
               )}
               {!canUseCart && (
-                <Lock className="absolute -top-1 -right-1 h-4 w-4 text-white" />
+                <Lock className="absolute -top-1 -right-1 h-4 w-4 text-foreground" />
               )}
             </div>
           </Button>
@@ -1406,7 +1406,7 @@ const PublicShop = ({
       {/* Scroll to Top Button */}
       {showScrollTop && (
         <Button
-          className="fixed bottom-6 left-6 h-12 w-12 rounded-full bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 shadow-lg z-40"
+          className="fixed bottom-6 left-6 h-12 w-12 rounded-full bg-card border border-border hover:bg-accent shadow-lg z-40"
           onClick={scrollToTop}
         >
           <ArrowUp className="h-5 w-5" />
@@ -1419,7 +1419,7 @@ const PublicShop = ({
 
       {/* Access Info Modal */}
       <Dialog open={showAccessInfo} onOpenChange={setShowAccessInfo}>
-        <DialogContent className="bg-zinc-800 border-zinc-700 text-white max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <Shield className="h-5 w-5 mr-2 text-amber-500" />
@@ -1431,7 +1431,7 @@ const PublicShop = ({
               <h3 className="text-amber-400 font-medium mb-2">
                 Processo Simples:
               </h3>
-              <ol className="list-decimal list-inside space-y-2 text-sm text-zinc-300">
+              <ol className="list-decimal list-inside space-y-2 text-sm text-foreground/90">
                 <li>Tente adicionar qualquer produto ao carrinho</li>
                 <li>Preencha suas informações básicas</li>
                 <li>Aguarde aprovação da nossa equipe</li>
@@ -1439,7 +1439,7 @@ const PublicShop = ({
                 <li>Use o carrinho livremente após aprovação</li>
               </ol>
             </div>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               A aprovação geralmente leva até 24 horas úteis. Você continuará
               podendo navegar na loja enquanto aguarda.
             </p>
@@ -1447,7 +1447,7 @@ const PublicShop = ({
           <DialogFooter>
             <Button
               onClick={() => setShowAccessInfo(false)}
-              className="bg-zinc-700 hover:bg-zinc-600"
+              className="bg-muted hover:bg-accent"
             >
               Entendi
             </Button>
@@ -1458,10 +1458,10 @@ const PublicShop = ({
       {/* Quote Modal */}
       {canUseCart && (
         <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
-          <DialogContent className="bg-zinc-800 border-zinc-700 text-white max-w-lg mx-auto p-0 overflow-hidden">
-            <DialogHeader className="p-4 sm:p-6 bg-zinc-800 border-b border-zinc-700 sticky top-0 z-10">
+          <DialogContent className="max-w-lg mx-auto p-0 overflow-hidden">
+            <DialogHeader className="p-4 sm:p-6 bg-card border-b border-border sticky top-0 z-10">
               <div className="flex items-center justify-between">
-                <DialogTitle className="text-white flex items-center">
+                <DialogTitle className="text-foreground flex items-center">
                   <ShoppingCart className="h-5 w-5 mr-2 text-green-500" />
                   Solicitar Orçamento
                 </DialogTitle>
@@ -1474,18 +1474,18 @@ const PublicShop = ({
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              <DialogDescription className="text-zinc-400 mt-1">
+              <DialogDescription className="text-muted-foreground mt-1">
                 Seus dados já estão preenchidos. Verifique se estão corretos.
               </DialogDescription>
             </DialogHeader>
 
             <div className="p-4 sm:p-6 overflow-y-auto max-h-[60vh]">
               {/* Resumo do carrinho */}
-              <div className="mb-4 bg-zinc-700/30 rounded-lg p-3">
-                <h3 className="font-medium text-zinc-300 mb-2 flex items-center">
-                  <Package className="h-4 w-4 mr-2 text-zinc-400" />
+              <div className="mb-4 bg-muted/30 rounded-lg p-3">
+                <h3 className="font-medium text-foreground/90 mb-2 flex items-center">
+                  <Package className="h-4 w-4 mr-2 text-muted-foreground" />
                   Resumo do Pedido
-                  <Badge className="ml-2 bg-zinc-600">
+                  <Badge className="ml-2 bg-accent">
                     {cart.reduce((total, item) => total + item.quantity, 0)}{" "}
                     itens
                   </Badge>
@@ -1494,12 +1494,12 @@ const PublicShop = ({
                   {cart.map((item) => (
                     <div
                       key={item.id}
-                      className="flex justify-between items-center py-1 text-sm border-b border-zinc-700/30 last:border-0"
+                      className="flex justify-between items-center py-1 text-sm border-b border-border last:border-0"
                     >
-                      <span className="text-zinc-300 truncate mr-2 flex-1">
+                      <span className="text-foreground/90 truncate mr-2 flex-1">
                         {item.name}
                       </span>
-                      <span className="text-zinc-400 whitespace-nowrap">
+                      <span className="text-muted-foreground whitespace-nowrap">
                         {item.quantity}x
                       </span>
                     </div>
@@ -1510,7 +1510,7 @@ const PublicShop = ({
               {/* Formulário de Contato */}
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-zinc-300 flex items-center">
+                  <label className="text-sm font-medium text-foreground/90 flex items-center">
                     Email <span className="text-red-400 ml-1">*</span>
                   </label>
                   <Input
@@ -1518,7 +1518,7 @@ const PublicShop = ({
                     type="email"
                     value={quoteFormData.email}
                     onChange={handleQuoteFormChange}
-                    className="bg-zinc-700 border-zinc-600 text-white h-10"
+                    className="bg-muted h-10"
                     placeholder="seu@email.com"
                     readOnly={!!userToken?.email}
                   />
@@ -1526,28 +1526,28 @@ const PublicShop = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-zinc-300">
+                    <label className="text-sm font-medium text-foreground/90">
                       Telefone
                     </label>
                     <Input
                       name="phone"
                       value={quoteFormData.phone}
                       onChange={handleQuoteFormChange}
-                      className="bg-zinc-700 border-zinc-600 text-white h-10"
+                      className="bg-muted h-10"
                       placeholder="Seu telefone"
                       readOnly={!!userToken?.phone}
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-sm font-medium text-zinc-300">
+                    <label className="text-sm font-medium text-foreground/90">
                       Empresa
                     </label>
                     <Input
                       name="company"
                       value={quoteFormData.company}
                       onChange={handleQuoteFormChange}
-                      className="bg-zinc-700 border-zinc-600 text-white h-10"
+                      className="bg-muted h-10"
                       placeholder="Nome da empresa (opcional)"
                       readOnly={!!userToken?.company}
                     />
@@ -1555,14 +1555,14 @@ const PublicShop = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-zinc-300">
+                  <label className="text-sm font-medium text-foreground/90">
                     Mensagem
                   </label>
                   <textarea
                     name="message"
                     value={quoteFormData.message}
                     onChange={handleQuoteFormChange}
-                    className="w-full rounded-md border border-zinc-600 bg-zinc-700 px-3 py-2 text-white"
+                    className="w-full rounded-md border border-border bg-muted px-3 py-2 text-foreground"
                     rows="3"
                     placeholder="Informações adicionais para seu orçamento (opcional)"
                   />
@@ -1570,11 +1570,11 @@ const PublicShop = ({
               </div>
             </div>
 
-            <DialogFooter className="p-4 border-t border-zinc-700 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 bg-zinc-800/95 backdrop-blur-sm">
+            <DialogFooter className="p-4 border-t border-border flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 bg-card/95 backdrop-blur-sm">
               <Button
                 variant="outline"
                 onClick={() => setShowQuoteModal(false)}
-                className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-700/50 w-full sm:w-auto order-2 sm:order-1"
+                className="w-full sm:w-auto order-2 sm:order-1"
               >
                 Cancelar
               </Button>
@@ -1583,7 +1583,7 @@ const PublicShop = ({
                 disabled={
                   isSubmitting || !quoteFormData.name || !quoteFormData.email
                 }
-                className="bg-green-600 hover:bg-green-700 w-full sm:w-auto order-1 sm:order-2 h-11"
+                className="w-full sm:w-auto order-1 sm:order-2 h-11"
               >
                 {isSubmitting ? (
                   <div className="flex items-center justify-center">

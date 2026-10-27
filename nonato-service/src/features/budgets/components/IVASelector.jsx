@@ -31,9 +31,9 @@ const IVASelector = ({ value, onChange }) => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Label className="text-sm font-medium text-zinc-400">Taxa de IVA</Label>
+        <Label className="text-sm font-medium text-muted-foreground">Taxa de IVA</Label>
         <div className="flex items-center gap-2">
-          <Label className="text-sm text-zinc-400">Taxa personalizada</Label>
+          <Label className="text-sm text-muted-foreground">Taxa personalizada</Label>
           <Switch
             checked={isCustomRate}
             onCheckedChange={(checked) => {
@@ -42,7 +42,7 @@ const IVASelector = ({ value, onChange }) => {
                 onChange(23); // Define um valor padrão caso desative a taxa personalizada
               }
             }}
-            className="bg-zinc-700 data-[state=checked]:bg-green-600"
+            className="bg-muted data-[state=checked]:bg-primary"
           />
         </div>
       </div>
@@ -53,10 +53,10 @@ const IVASelector = ({ value, onChange }) => {
             type="text"
             value={value}
             onChange={handleCustomRateChange}
-            className="pr-8 bg-zinc-900 border-zinc-700 text-white"
+            className="pr-8"
             placeholder="Digite a taxa de IVA..."
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
             %
           </span>
         </div>
@@ -65,15 +65,15 @@ const IVASelector = ({ value, onChange }) => {
           value={value.toString()}
           onValueChange={(val) => onChange(Number(val))}
         >
-          <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+          <SelectTrigger>
             <SelectValue placeholder="Selecione a taxa de IVA..." />
           </SelectTrigger>
-          <SelectContent className="bg-zinc-800 border-zinc-700">
+          <SelectContent>
             {ivaRates.map((rate) => (
               <SelectItem
                 key={rate}
                 value={rate.toString()}
-                className="text-white hover:bg-zinc-700"
+               
               >
                 {rate}%
               </SelectItem>
@@ -83,7 +83,7 @@ const IVASelector = ({ value, onChange }) => {
       )}
 
       {isCustomRate && (
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-muted-foreground">
           Digite um valor entre 0 e 100 (sem o símbolo %)
         </p>
       )}

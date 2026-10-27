@@ -53,37 +53,38 @@ import {
 
 import { CHECKLIST_CATEGORIES_MAP } from "./components/ChecklistCategories";
 import ChecklistFilter from "./components/ChecklistFilter";
+import { PageHeader } from "../../components/app";
 
 const CATEGORY_ICONS = {
   maintenance: {
     icon: Wrench,
     bgColor: "bg-blue-600",
-    iconColor: "text-white",
+    iconColor: "text-foreground",
   },
   operational_training: {
     icon: GraduationCap,
     bgColor: "bg-purple-600",
-    iconColor: "text-white",
+    iconColor: "text-foreground",
   },
   receiving: {
     icon: PackageCheck,
-    bgColor: "bg-green-600",
-    iconColor: "text-white",
+    bgColor: "bg-primary",
+    iconColor: "text-foreground",
   },
   programming: {
     icon: Code,
     bgColor: "bg-yellow-600",
-    iconColor: "text-white",
+    iconColor: "text-foreground",
   },
   installation: {
     icon: Settings,
     bgColor: "bg-orange-600",
-    iconColor: "text-white",
+    iconColor: "text-foreground",
   },
   pre_operational: {
     icon: ListChecks,
     bgColor: "bg-cyan-600",
-    iconColor: "text-white",
+    iconColor: "text-foreground",
   },
 };
 
@@ -97,13 +98,13 @@ const ChecklistTypeCard = ({
   // Pega o ícone e cores correspondentes à categoria, ou usa o padrão
   const categoryConfig = CATEGORY_ICONS[type.category] || {
     icon: Settings,
-    bgColor: "bg-zinc-600",
-    iconColor: "text-white",
+    bgColor: "bg-accent",
+    iconColor: "text-foreground",
   };
   const IconComponent = categoryConfig.icon;
 
   return (
-    <Card className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors">
+    <Card className="hover:bg-accent transition-colors">
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
           <div
@@ -114,11 +115,11 @@ const ChecklistTypeCard = ({
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-lg text-white truncate">
+              <h3 className="font-semibold text-lg text-foreground truncate">
                 {type.type}
               </h3>
             </div>
-            <div className="flex items-center text-zinc-400 text-sm gap-3">
+            <div className="flex items-center text-muted-foreground text-sm gap-3">
               <div className="flex items-center">
                 <ClipboardList className="w-4 h-4 mr-1" />
                 <span>
@@ -156,13 +157,13 @@ const ChecklistTypeCard = ({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full hover:bg-zinc-600"
+            className="rounded-full"
             onClick={onToggleExpand}
           >
             {isExpanded ? (
-              <ChevronDown className="h-4 w-4 text-white" />
+              <ChevronDown className="h-4 w-4 text-foreground" />
             ) : (
-              <ChevronRight className="h-4 w-4 text-white" />
+              <ChevronRight className="h-4 w-4 text-foreground" />
             )}
           </Button>
 
@@ -171,25 +172,24 @@ const ChecklistTypeCard = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-full hover:bg-zinc-700 text-white"
+                className="rounded-full"
               >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="bg-zinc-800 border-zinc-700"
             >
               <DropdownMenuItem
                 onClick={onEdit}
-                className="text-white hover:bg-zinc-700 cursor-pointer"
+                className="cursor-pointer"
               >
                 <Edit2 className="w-4 h-4 mr-2" />
                 Editar
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={onDelete}
-                className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
+                className="text-red-400 focus:text-red-400 cursor-pointer"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Excluir
@@ -199,17 +199,17 @@ const ChecklistTypeCard = ({
         </div>
 
         {isExpanded && type.groups && type.groups.length > 0 && (
-          <div className="mt-4 space-y-4 border-t border-zinc-700 pt-4">
+          <div className="mt-4 space-y-4 border-t border-border pt-4">
             {type.groups.map((group, index) => (
-              <div key={index} className="bg-zinc-900 rounded-lg p-4">
-                <h4 className="text-white font-medium mb-2">{group.name}</h4>
+              <div key={index} className="bg-muted/50 rounded-lg p-4">
+                <h4 className="text-foreground font-medium mb-2">{group.name}</h4>
                 <div className="pl-4 space-y-1">
                   {group.characteristics?.map((char, charIndex) => (
                     <div
                       key={charIndex}
-                      className="text-zinc-400 text-sm flex items-center gap-2"
+                      className="text-muted-foreground text-sm flex items-center gap-2"
                     >
-                      <div className="w-1 h-1 rounded-full bg-zinc-500"></div>
+                      <div className="w-1 h-1 rounded-full bg-muted-foreground"></div>
                       {char}
                     </div>
                   ))}
@@ -335,7 +335,7 @@ const ManageChecklist = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -343,43 +343,41 @@ const ManageChecklist = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Gerenciar Checklist
-          </h1>
-          <p className="text-sm sm:text-base text-zinc-400">
-            Gerencie todos os seus tipos de checklist em um só lugar
-          </p>
-        </div>
-        <div className="hidden sm:flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => navigate("/app/checklist-families")}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-          >
-            <Layers className="w-4 h-4 mr-2" />
-            Famílias / Grupos
-          </Button>
-          <Button
-            onClick={() => navigate("/app/add-checklist-type")}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Tipo
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Gerenciar Checklist"
+        description="Gerencie todos os seus tipos de checklist em um só lugar"
+        actions={
+          <>
+            <div className="hidden sm:flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/app/checklist-families")}
+             
+            >
+              <Layers className="w-4 h-4" />
+              Famílias / Grupos
+            </Button>
+            <Button
+              onClick={() => navigate("/app/add-checklist-type")}
+             
+            >
+              <Plus className="w-4 h-4" />
+              Novo Tipo
+            </Button>
+          </div>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">
+              <p className="text-sm font-medium text-muted-foreground">
                 Total de Checklists
               </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {stats.totalTypes}
               </h3>
             </div>
@@ -387,13 +385,13 @@ const ManageChecklist = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">
+              <p className="text-sm font-medium text-muted-foreground">
                 Total de Grupos
               </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {stats.totalGroups}
               </h3>
             </div>
@@ -401,13 +399,13 @@ const ManageChecklist = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">
+              <p className="text-sm font-medium text-muted-foreground">
                 Total de Itens
               </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {stats.totalItems}
               </h3>
             </div>
@@ -417,16 +415,16 @@ const ManageChecklist = () => {
       </div>
 
       {/* Filters Card */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="space-y-4 p-4 sm:p-6">
           {/* Search */}
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar tipos..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+              className="pl-10 w-full"
             />
           </div>
 
@@ -436,7 +434,7 @@ const ManageChecklist = () => {
               value={categoryFilter}
               onValueChange={setCategoryFilter}
             />
-            <span className="text-sm text-zinc-400">
+            <span className="text-sm text-muted-foreground">
               A mostrar {currentTypes.length} de {filteredTypes.length} tipo(s)
             </span>
           </div>
@@ -444,10 +442,10 @@ const ManageChecklist = () => {
           {error && (
             <Alert
               variant="destructive"
-              className="border-red-500 bg-red-500/10"
+             
             >
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-red-400">
+              <AlertDescription>
                 {error}
               </AlertDescription>
             </Alert>
@@ -472,13 +470,13 @@ const ManageChecklist = () => {
             />
           ))
         ) : (
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardContent className="p-8 sm:p-12 text-center">
-              <Search className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
-              <p className="text-lg font-medium mb-2 text-white">
+              <Search className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
+              <p className="text-lg font-medium mb-2 text-foreground">
                 Nenhum tipo encontrado
               </p>
-              <p className="text-sm sm:text-base text-zinc-400">
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Tente ajustar sua busca ou adicione um novo tipo
               </p>
             </CardContent>
@@ -492,7 +490,7 @@ const ManageChecklist = () => {
           <Button
             variant="outline"
             onClick={loadMoreVisible}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+            className="gap-2"
           >
             <ArrowDown className="h-4 w-4" />
             Carregar mais
@@ -502,12 +500,12 @@ const ManageChecklist = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem certeza que deseja excluir o tipo{" "}
-              <span className="font-semibold text-white">
+              <span className="font-semibold text-foreground">
                 {typeToDelete?.type}
               </span>
               ? Esta ação não pode ser desfeita.
@@ -517,7 +515,7 @@ const ManageChecklist = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
@@ -537,7 +535,7 @@ const ManageChecklist = () => {
         <Button
           onClick={() => navigate("/app/add-checklist-type")}
           size="icon"
-          className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
+          className="rounded-full shadow-lg"
         >
           <Plus className="h-5 w-5" />
         </Button>

@@ -24,18 +24,18 @@ const CHECKLIST_CATEGORIES = [
 const ChecklistFilter = ({ value, onValueChange }) => {
   return (
     <div className="flex items-center gap-2">
-      <Filter className="w-4 h-4 text-zinc-400" />
+      <Filter className="w-4 h-4 text-muted-foreground" />
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white w-[280px]">
+        <SelectTrigger className="w-[280px]">
           <SelectValue placeholder="Filtrar por categoria" />
         </SelectTrigger>
-        <SelectContent className="bg-zinc-800 border-zinc-700">
+        <SelectContent>
           <SelectGroup>
             {CHECKLIST_CATEGORIES.map((category) => (
               <SelectItem
                 key={category.value}
                 value={category.value}
-                className="text-white hover:bg-zinc-700 focus:bg-zinc-700"
+               
               >
                 {category.label}
               </SelectItem>

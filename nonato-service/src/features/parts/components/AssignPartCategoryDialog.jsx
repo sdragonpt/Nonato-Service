@@ -102,34 +102,34 @@ const AssignPartCategoryDialog = ({ open, onOpenChange, part, onSaved }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-800 border-zinc-700">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
+          <DialogTitle className="text-foreground flex items-center gap-2">
             <Tag className="h-4 w-4 text-green-500" />
             Atribuir Categoria
           </DialogTitle>
-          <DialogDescription className="text-zinc-400">
+          <DialogDescription className="text-muted-foreground">
             {part?.name}{" "}
-            <span className="text-zinc-500">({part?.codigo})</span>
+            <span className="text-muted-foreground">({part?.codigo})</span>
           </DialogDescription>
         </DialogHeader>
 
         {error && (
-          <Alert variant="destructive" className="border-red-500 bg-red-500/10">
-            <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-zinc-400">Categoria</label>
+            <label className="text-sm font-medium text-muted-foreground">Categoria</label>
             <select
               value={categoryId}
               onChange={(e) => {
                 setCategoryId(e.target.value);
                 setSubcategoryId("none");
               }}
-              className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+              className="w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-foreground"
             >
               <option value="none">Sem categoria</option>
               {sortedCategories.map((category) => (
@@ -142,14 +142,14 @@ const AssignPartCategoryDialog = ({ open, onOpenChange, part, onSaved }) => {
 
           {categoryId !== "none" && (
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Subcategoria (opcional)
               </label>
               <select
                 value={subcategoryId}
                 onChange={(e) => setSubcategoryId(e.target.value)}
                 disabled={subcategories.length === 0}
-                className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-white disabled:opacity-50"
+                className="w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-foreground disabled:opacity-50"
               >
                 <option value="none">Sem subcategoria</option>
                 {subcategories.map((subcategory) => (
@@ -159,7 +159,7 @@ const AssignPartCategoryDialog = ({ open, onOpenChange, part, onSaved }) => {
                 ))}
               </select>
               {subcategories.length === 0 && (
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-muted-foreground">
                   Sem subcategorias disponíveis para esta categoria
                 </p>
               )}
@@ -176,21 +176,21 @@ const AssignPartCategoryDialog = ({ open, onOpenChange, part, onSaved }) => {
               disabled={saving}
               className="text-red-400 hover:text-red-300 hover:bg-red-400/10 sm:mr-auto"
             >
-              <X className="h-4 w-4 mr-2" />
+              <X className="h-4 w-4" />
               Remover Categoria
             </Button>
           )}
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+            className="bg-accent"
           >
             Cancelar
           </Button>
           <Button
             onClick={handleSave}
             disabled={saving}
-            className="bg-green-600 hover:bg-green-700"
+           
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Guardar"}
           </Button>

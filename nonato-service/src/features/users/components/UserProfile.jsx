@@ -5,7 +5,6 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage
 import { db, storage } from "../../../firebase.jsx";
 import { compressImage } from "../../../utils/imageCompression.js";
 import {
-  ArrowLeft,
   Camera,
   Loader2,
   Save,
@@ -32,6 +31,7 @@ import {
   AvatarImage,
 } from "@/components/ui/avatar.jsx";
 import { useNavigate } from "react-router-dom";
+import { PageHeader } from "../../../components/app";
 
 const UserProfile = () => {
   const navigate = useNavigate();
@@ -194,7 +194,7 @@ const UserProfile = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -202,46 +202,35 @@ const UserProfile = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Perfil do Usuário</h1>
-          <p className="text-sm text-zinc-400">
-            Gerencie suas informações pessoais
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Perfil do Usuário"
+        description="Gerencie suas informações pessoais"
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Profile Picture Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Foto de Perfil</CardTitle>
+            <CardTitle className="text-lg">Foto de Perfil</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="relative w-24 h-24">
               <Avatar className="w-24 h-24">
                 <AvatarImage src={profilePicPreview} />
-                <AvatarFallback className="bg-zinc-700 text-white">
+                <AvatarFallback className="bg-muted text-foreground">
                   {formData.displayName?.charAt(0)?.toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer">
-                <Camera className="h-8 w-8 text-white" />
+                <Camera className="h-8 w-8 text-foreground" />
                 <input
                   type="file"
                   className="hidden"
@@ -254,75 +243,75 @@ const UserProfile = () => {
         </Card>
 
         {/* User Information Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">
+            <CardTitle className="text-lg">
               Informações Pessoais
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Nome Completo
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="text"
                   name="displayName"
                   value={formData.displayName}
                   onChange={handleChange}
                   placeholder="Seu nome completo"
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                  className="pl-10"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Email</label>
+              <label className="text-sm font-medium text-muted-foreground">Email</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="seu.email@exemplo.com"
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                  className="pl-10"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Telefone
               </label>
               <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="tel"
                   name="phoneNumber"
                   value={formData.phoneNumber}
                   onChange={handleChange}
                   placeholder="(00) 00000-0000"
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                  className="pl-10"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Empresa
               </label>
               <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="text"
                   name="company"
                   value={formData.company}
                   onChange={handleChange}
                   placeholder="Nome da empresa"
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                  className="pl-10"
                 />
               </div>
             </div>
@@ -333,7 +322,7 @@ const UserProfile = () => {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-green-600 hover:bg-green-700"
+          className="w-full"
         >
           {isSubmitting ? (
             <>

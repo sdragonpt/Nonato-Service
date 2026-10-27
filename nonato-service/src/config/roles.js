@@ -38,7 +38,7 @@ export function getRoleLabel(role) {
 }
 
 export function getRoleBadgeStyle(role) {
-  return ROLE_BADGE_STYLES[role] || "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
+  return ROLE_BADGE_STYLES[role] || "bg-muted-foreground/10 text-muted-foreground border-muted-foreground/40";
 }
 
 /** Papéis considerados "equipa interna" (aparecem no Hub de Comunicação). */

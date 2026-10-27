@@ -381,7 +381,7 @@ const InspectionDetail = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -414,7 +414,7 @@ const InspectionDetail = () => {
               .getElementById(`${groupName}-${characterName}-image`)
               .click()
           }
-          className="bg-zinc-700 hover:bg-zinc-600 text-white border-zinc-700"
+          className="bg-muted"
         >
           {isUploadingImage ? (
             <>
@@ -443,7 +443,7 @@ const InspectionDetail = () => {
           variant="outline"
           disabled={isUploadingImage}
           onClick={() => setShowOptions(!showOptions)}
-          className="bg-zinc-700 hover:bg-zinc-600"
+          className="bg-muted"
         >
           {isUploadingImage ? (
             <>
@@ -458,11 +458,11 @@ const InspectionDetail = () => {
         </Button>
 
         {showOptions && (
-          <Card className="absolute bottom-full left-0 mb-2 w-48 bg-zinc-800 border-zinc-700">
+          <Card className="absolute bottom-full left-0 mb-2 w-48">
             <CardContent className="p-0">
               <Button
                 variant="ghost"
-                className="w-full justify-start rounded-none px-4 py-2 hover:bg-zinc-700"
+                className="w-full justify-start rounded-none px-4 py-2"
                 onClick={() =>
                   document
                     .getElementById(`${groupName}-${characterName}-gallery`)
@@ -480,7 +480,7 @@ const InspectionDetail = () => {
               </Button>
               <Button
                 variant="ghost"
-                className="w-full justify-start rounded-none px-4 py-2 hover:bg-zinc-700"
+                className="w-full justify-start rounded-none px-4 py-2"
                 onClick={() =>
                   document
                     .getElementById(`${groupName}-${characterName}-camera`)
@@ -509,13 +509,13 @@ const InspectionDetail = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-foreground">
             Detalhes da Inspeção
           </h1>
-          <p className="text-xs text-zinc-500 font-mono">
+          <p className="text-xs text-muted-foreground font-mono">
             {inspection?.inspectionNumber || `INSP-${inspection?.id || ""}`}
           </p>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-muted-foreground">
             {inspection?.type === "training" ? "Treinamento" : "Inspeção"} de{" "}
             {client?.name}
           </p>
@@ -524,38 +524,38 @@ const InspectionDetail = () => {
           variant="outline"
           size="icon"
           onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
+          className="h-10 w-10 rounded-full hover:bg-primary/90 bg-primary"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
       </div>
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Basic Info Card */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-lg text-white">
+          <CardTitle className="text-lg">
             Informações Básicas
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2">
-            <User className="w-4 h-4 text-zinc-400" />
-            <span className="text-white">{client?.name}</span>
+            <User className="w-4 h-4 text-muted-foreground" />
+            <span className="text-foreground">{client?.name}</span>
           </div>
           <div className="flex items-center gap-2">
-            <Package className="w-4 h-4 text-zinc-400" />
-            <span className="text-white">{equipment?.type}</span>
+            <Package className="w-4 h-4 text-muted-foreground" />
+            <span className="text-foreground">{equipment?.type}</span>
           </div>
           <div className="flex items-center gap-2">
-            <CheckSquare className="w-4 h-4 text-zinc-400" />
-            <span className="text-white">{checklistType?.type}</span>
+            <CheckSquare className="w-4 h-4 text-muted-foreground" />
+            <span className="text-foreground">{checklistType?.type}</span>
           </div>
           <Badge
             className={
@@ -578,9 +578,9 @@ const InspectionDetail = () => {
 
       {/* Training Participants Section */}
       {inspection?.type === "training" && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">
+            <CardTitle className="text-lg">
               Participantes do Treinamento
             </CardTitle>
           </CardHeader>
@@ -588,13 +588,13 @@ const InspectionDetail = () => {
             {/* Add new participant */}
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="text"
                   value={newParticipantName}
                   onChange={(e) => setNewParticipantName(e.target.value)}
                   placeholder="Nome do participante"
-                  className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                  className="pl-10 w-full"
                   onKeyPress={(e) =>
                     e.key === "Enter" && addTrainingParticipant()
                   }
@@ -602,9 +602,9 @@ const InspectionDetail = () => {
               </div>
               <Button
                 onClick={addTrainingParticipant}
-                className="bg-green-600 hover:bg-green-700"
+               
               >
-                <UserPlus className="w-4 h-4 mr-2" />
+                <UserPlus className="w-4 h-4" />
                 Adicionar
               </Button>
             </div>
@@ -614,11 +614,11 @@ const InspectionDetail = () => {
               {trainingParticipants.map((participant, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-3 bg-zinc-900 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
                 >
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-zinc-400" />
-                    <span className="text-white">{participant}</span>
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-foreground">{participant}</span>
                   </div>
                   <Button
                     variant="ghost"
@@ -631,7 +631,7 @@ const InspectionDetail = () => {
                 </div>
               ))}
               {trainingParticipants.length === 0 && (
-                <p className="text-zinc-400 text-center py-4">
+                <p className="text-muted-foreground text-center py-4">
                   Nenhum participante adicionado
                 </p>
               )}
@@ -642,25 +642,25 @@ const InspectionDetail = () => {
 
       {/* Standard Inspection Fields */}
       {inspection?.type !== "training" && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">
+            <CardTitle className="text-lg">
               Avaliação Geral
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Condição Geral
               </label>
               <Select
                 value={overallCondition}
                 onValueChange={setOverallCondition}
               >
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger>
                   <SelectValue placeholder="Selecionar..." />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectContent>
                   <SelectItem value="Excelente condição">
                     Excelente condição
                   </SelectItem>
@@ -674,14 +674,14 @@ const InspectionDetail = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Ativo seguro para usar
               </label>
               <Select value={safeToUse} onValueChange={setSafeToUse}>
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger>
                   <SelectValue placeholder="Selecionar..." />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectContent>
                   <SelectItem value="Sim">Sim</SelectItem>
                   <SelectItem value="Não">Não</SelectItem>
                 </SelectContent>
@@ -689,17 +689,17 @@ const InspectionDetail = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Manutenção requerida
               </label>
               <Select
                 value={maintenanceRequired}
                 onValueChange={setMaintenanceRequired}
               >
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger>
                   <SelectValue placeholder="Selecionar..." />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectContent>
                   <SelectItem value="Sim">Sim</SelectItem>
                   <SelectItem value="Não">Não</SelectItem>
                 </SelectContent>
@@ -707,14 +707,14 @@ const InspectionDetail = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Status do ativo
               </label>
               <Select value={assetStatus} onValueChange={setAssetStatus}>
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger>
                   <SelectValue placeholder="Selecionar..." />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectContent>
                   <SelectItem value="Operacional">Operacional</SelectItem>
                   <SelectItem value="Manutenção requerida">
                     Manutenção requerida
@@ -726,17 +726,17 @@ const InspectionDetail = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Prioridade de manutenção
               </label>
               <Select
                 value={maintenancePriority}
                 onValueChange={setMaintenancePriority}
               >
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger>
                   <SelectValue placeholder="Selecionar..." />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectContent>
                   <SelectItem value="Baixo">Baixo</SelectItem>
                   <SelectItem value="Médio">Médio</SelectItem>
                   <SelectItem value="Alto">Alto</SelectItem>
@@ -746,14 +746,14 @@ const InspectionDetail = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Notas Adicionais
               </label>
               <textarea
                 value={additionalNotes}
                 onChange={(e) => setAdditionalNotes(e.target.value)}
                 placeholder="Digite notas adicionais aqui..."
-                className="w-full p-3 bg-zinc-900 border border-zinc-700 text-white rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full p-3 bg-muted/50 border border-border text-foreground rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                 rows="4"
               />
             </div>
@@ -765,14 +765,14 @@ const InspectionDetail = () => {
       {groups.length > 0 ? (
         <div className="space-y-4">
           {groups.map((group, groupIndex) => (
-            <Card key={groupIndex} className="bg-zinc-800 border-zinc-700">
+            <Card key={groupIndex}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div
                     className="flex-1 cursor-pointer"
                     onClick={() => toggleGroup(group.name)}
                   >
-                    <CardTitle className="text-lg text-white">
+                    <CardTitle className="text-lg">
                       {group.name}
                     </CardTitle>
                   </div>
@@ -806,12 +806,12 @@ const InspectionDetail = () => {
                     )}
                     {expandedGroups[group.name] ? (
                       <ChevronUp
-                        className="w-5 h-5 text-zinc-400 cursor-pointer"
+                        className="w-5 h-5 text-muted-foreground cursor-pointer"
                         onClick={() => toggleGroup(group.name)}
                       />
                     ) : (
                       <ChevronDown
-                        className="w-5 h-5 text-zinc-400 cursor-pointer"
+                        className="w-5 h-5 text-muted-foreground cursor-pointer"
                         onClick={() => toggleGroup(group.name)}
                       />
                     )}
@@ -820,10 +820,10 @@ const InspectionDetail = () => {
               </CardHeader>
 
               {expandedGroups[group.name] && (
-                <CardContent className="space-y-6 border-t border-zinc-700">
+                <CardContent className="space-y-6 border-t border-border">
                   {group.characteristics.map((char, charIndex) => (
                     <div key={charIndex} className="space-y-4">
-                      <h4 className="text-white font-medium">{char.name}</h4>
+                      <h4 className="text-foreground font-medium">{char.name}</h4>
 
                       {/* State buttons */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -839,8 +839,8 @@ const InspectionDetail = () => {
                               }
                               className={
                                 char.state === state
-                                  ? "bg-green-600 hover:bg-green-700"
-                                  : "border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
+                                  ? "bg-primary hover:bg-primary/90"
+                                  : "border-border text-foreground hover:bg-accent bg-accent"
                               }
                             >
                               {state}
@@ -860,7 +860,7 @@ const InspectionDetail = () => {
                           )
                         }
                         placeholder="Adicionar descrição..."
-                        className="w-full p-3 bg-zinc-900 border border-zinc-700 text-white rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="w-full p-3 bg-muted/50 border border-border text-foreground rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                         rows="2"
                       />
 
@@ -921,13 +921,13 @@ const InspectionDetail = () => {
           ))}
         </div>
       ) : (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="p-8 text-center">
-            <CheckSquare className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-lg font-medium text-white">
+            <CheckSquare className="w-12 h-12 text-muted-foreground/70 mx-auto mb-4" />
+            <p className="text-lg font-medium text-foreground">
               Nenhum grupo selecionado
             </p>
-            <p className="text-sm text-zinc-400 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Esta inspeção não possui grupos de características selecionados.
             </p>
           </CardContent>
@@ -940,7 +940,7 @@ const InspectionDetail = () => {
           onClick={handleSave}
           disabled={isSaving}
           size="lg"
-          className="bg-green-600 hover:bg-green-700 px-8"
+          className="px-8"
         >
           {isSaving ? (
             <>

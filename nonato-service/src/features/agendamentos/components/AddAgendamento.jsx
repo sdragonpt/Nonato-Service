@@ -10,7 +10,6 @@ import {
   Clock,
   FileText,
   Save,
-  ArrowLeft,
   Loader2,
   AlertTriangle,
   Plus,
@@ -56,15 +55,16 @@ import {
   minutesToTime,
   timeToMinutes,
 } from "../utils/agendaConflicts.js";
+import { PageHeader } from "../../../components/app";
 
 // ✅ Bloco reutilizável "label + ícone + campo" — mesmo padrão do
 // AddOrder.jsx/AddClient.jsx, para reduzir a repetição dos vários blocos
 // de data/equipamento/técnico/prioridade/status.
 const FieldLabel = ({ label, icon: Icon, children }) => (
   <div className="space-y-1">
-    <label className="block text-sm font-medium text-zinc-400 mb-1">{label}</label>
+    <label className="block text-sm font-medium text-muted-foreground mb-1">{label}</label>
     <div className="relative">
-      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       {children}
     </div>
   </div>
@@ -236,7 +236,7 @@ const AddAgendamento = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -244,46 +244,31 @@ const AddAgendamento = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <CalendarPlus className="h-5 w-5 text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">Novo Agendamento</h1>
-            <p className="text-sm text-zinc-400">
-              Adicione um novo agendamento ao sistema
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Novo Agendamento"
+        description="Adicione um novo agendamento ao sistema"
+        icon={CalendarPlus}
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Toggle buttons */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">
+            <CardTitle className="text-lg">
               Tipo de Agendamento
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex justify-center">
-              <div className="bg-zinc-900 p-1 rounded-xl inline-flex relative shadow-lg">
+              <div className="bg-muted/50 p-1 rounded-xl inline-flex relative shadow-lg">
                 <div
                   className={`absolute top-1 bottom-1 w-[120px] rounded-lg bg-green-600 transition-all duration-300 ease-in-out ${
                     isMultipleDates ? "translate-x-[120px]" : "translate-x-0"
@@ -294,8 +279,8 @@ const AddAgendamento = () => {
                   onClick={() => setIsMultipleDates(false)}
                   className={`relative w-[120px] py-2 rounded-lg font-medium transition-colors duration-300 ${
                     !isMultipleDates
-                      ? "text-white"
-                      : "text-zinc-400 hover:text-zinc-200"
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground/90"
                   }`}
                 >
                   Data Única
@@ -305,8 +290,8 @@ const AddAgendamento = () => {
                   onClick={() => setIsMultipleDates(true)}
                   className={`relative w-[120px] py-2 rounded-lg font-medium transition-colors duration-300 ${
                     isMultipleDates
-                      ? "text-white"
-                      : "text-zinc-400 hover:text-zinc-200"
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground/90"
                   }`}
                 >
                   Múltiplas
@@ -317,9 +302,9 @@ const AddAgendamento = () => {
         </Card>
 
         {/* Dates and Time Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Data e Hora</CardTitle>
+            <CardTitle className="text-lg">Data e Hora</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {isMultipleDates ? (
@@ -334,7 +319,7 @@ const AddAgendamento = () => {
                           onChange={(e) =>
                             handleDateChange(index, e.target.value)
                           }
-                          className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                          className="pl-10"
                           required
                         />
                       </FieldLabel>
@@ -345,7 +330,7 @@ const AddAgendamento = () => {
                         variant="ghost"
                         size="icon"
                         onClick={() => removeDate(index)}
-                        className="mt-6 text-red-400 hover:text-red-300 hover:bg-zinc-700"
+                        className="mt-6 text-red-400 hover:text-red-300"
                       >
                         <Trash2 className="w-5 h-5" />
                       </Button>
@@ -356,9 +341,9 @@ const AddAgendamento = () => {
                   type="button"
                   variant="outline"
                   onClick={addDate}
-                  className="w-full border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+                  className="w-full bg-accent"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-4 h-4" />
                   Adicionar outra data
                 </Button>
               </>
@@ -368,7 +353,7 @@ const AddAgendamento = () => {
                   type="date"
                   value={singleDate}
                   onChange={(e) => setSingleDate(e.target.value)}
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                  className="pl-10"
                   required
                 />
               </FieldLabel>
@@ -380,7 +365,7 @@ const AddAgendamento = () => {
                 name="hora"
                 value={formData.hora}
                 onChange={handleChange}
-                className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                className="pl-10"
                 required
               />
             </FieldLabel>
@@ -388,15 +373,15 @@ const AddAgendamento = () => {
         </Card>
 
         {/* Client and Service Details Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">
+            <CardTitle className="text-lg">
               Detalhes do Agendamento
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
                 Cliente
               </label>
               <ClientCombobox
@@ -416,15 +401,15 @@ const AddAgendamento = () => {
                 }
                 disabled={!formData.clientId}
               >
-                <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger className="w-full pl-10">
                   <SelectValue placeholder="Selecione um equipamento" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectContent>
                   {filteredEquipments.map((equipment) => (
                     <SelectItem
                       key={equipment.id}
                       value={equipment.id}
-                      className="text-white hover:bg-zinc-700"
+                     
                     >
                       {equipment.brand} - {equipment.model}
                     </SelectItem>
@@ -440,7 +425,7 @@ const AddAgendamento = () => {
                 value={formData.tipoServico}
                 onChange={handleChange}
                 placeholder="Descreva o tipo de serviço"
-                className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                className="pl-10"
                 required
               />
             </FieldLabel>
@@ -456,18 +441,18 @@ const AddAgendamento = () => {
                     }))
                   }
                 >
-                  <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                  <SelectTrigger className="w-full pl-10">
                     <SelectValue placeholder="Por atribuir" />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
-                    <SelectItem value="none" className="text-white hover:bg-zinc-700">
+                  <SelectContent>
+                    <SelectItem value="none">
                       Por atribuir
                     </SelectItem>
                     {staffUsers.map((user) => (
                       <SelectItem
                         key={user.id}
                         value={user.id}
-                        className="text-white hover:bg-zinc-700"
+                       
                       >
                         {user.displayName || user.email}
                       </SelectItem>
@@ -485,11 +470,11 @@ const AddAgendamento = () => {
                     name="duracaoMinutos"
                     value={formData.duracaoMinutos}
                     onChange={handleChange}
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                    className="pl-10"
                   />
                 </FieldLabel>
                 {formData.hora && (
-                  <p className="text-xs text-zinc-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Termina às{" "}
                     {minutesToTime(
                       timeToMinutes(formData.hora) +
@@ -503,9 +488,9 @@ const AddAgendamento = () => {
         </Card>
 
         {/* Priority and Status Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">
+            <CardTitle className="text-lg">
               Prioridade e Status
             </CardTitle>
           </CardHeader>
@@ -517,25 +502,25 @@ const AddAgendamento = () => {
                   setFormData((prev) => ({ ...prev, prioridade: value }))
                 }
               >
-                <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger className="w-full pl-10">
                   <SelectValue placeholder="Selecione a prioridade" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectContent>
                   <SelectItem
                     value="baixa"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Baixa
                   </SelectItem>
                   <SelectItem
                     value="normal"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Normal
                   </SelectItem>
                   <SelectItem
                     value="alta"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Alta
                   </SelectItem>
@@ -550,25 +535,25 @@ const AddAgendamento = () => {
                   setFormData((prev) => ({ ...prev, status: value }))
                 }
               >
-                <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger className="w-full pl-10">
                   <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectContent>
                   <SelectItem
                     value="agendado"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Agendado
                   </SelectItem>
                   <SelectItem
                     value="confirmado"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Confirmado
                   </SelectItem>
                   <SelectItem
                     value="cancelado"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Cancelado
                   </SelectItem>
@@ -579,9 +564,9 @@ const AddAgendamento = () => {
         </Card>
 
         {/* Notes Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Observações</CardTitle>
+            <CardTitle className="text-lg">Observações</CardTitle>
           </CardHeader>
           <CardContent>
             <textarea
@@ -590,7 +575,7 @@ const AddAgendamento = () => {
               onChange={handleChange}
               rows="4"
               placeholder="Adicione observações importantes"
-              className="w-full p-3 bg-zinc-900 text-white rounded-lg border border-zinc-700 focus:ring-2 focus:ring-green-500 focus:outline-none resize-none placeholder:text-zinc-500"
+              className="w-full p-3 bg-muted/50 text-foreground rounded-lg border border-border focus:ring-2 focus:ring-ring focus:outline-none resize-none placeholder:text-muted-foreground"
             />
           </CardContent>
         </Card>
@@ -603,7 +588,7 @@ const AddAgendamento = () => {
             (!isMultipleDates && !singleDate) ||
             (isMultipleDates && selectedDates.some((date) => !date))
           }
-          className="w-full bg-green-600 hover:bg-green-700"
+          className="w-full"
         >
           {isSaving ? (
             <>
@@ -623,13 +608,13 @@ const AddAgendamento = () => {
 
       {/* Conflito de Horário */}
       <Dialog open={conflictDialogOpen} onOpenChange={setConflictDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
+            <DialogTitle className="text-foreground flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-yellow-500" />
               Conflito de horário
             </DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription className="text-muted-foreground">
               {formData.tecnicoId
                 ? "Este técnico já tem "
                 : "Já existe "}
@@ -641,12 +626,12 @@ const AddAgendamento = () => {
             {conflicts.map((c) => (
               <div
                 key={c.id}
-                className="p-3 bg-zinc-700/50 rounded-lg border border-zinc-600 text-sm"
+                className="p-3 bg-muted/50 rounded-lg border border-border text-sm"
               >
-                <p className="text-white font-medium">
+                <p className="text-foreground font-medium">
                   {c.data} às {c.hora} ({c.duracaoMinutos || DEFAULT_DURATION_MINUTES} min)
                 </p>
-                <p className="text-zinc-400">{c.tipoServico || "Sem descrição"}</p>
+                <p className="text-muted-foreground">{c.tipoServico || "Sem descrição"}</p>
               </div>
             ))}
           </div>
@@ -654,7 +639,7 @@ const AddAgendamento = () => {
             <Button
               variant="outline"
               onClick={() => setConflictDialogOpen(false)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Alterar horário
             </Button>

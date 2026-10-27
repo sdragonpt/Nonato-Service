@@ -147,7 +147,7 @@ const ProtocolDetail = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -157,10 +157,10 @@ const ProtocolDetail = () => {
       <div className="flex justify-center items-center min-h-[50vh]">
         <div className="text-center">
           <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <p className="text-lg font-medium text-white">Protocolo não encontrado</p>
+          <p className="text-lg font-medium text-foreground">Protocolo não encontrado</p>
           <Button
             onClick={() => navigate("/app/protocols")}
-            className="mt-4 bg-green-600 hover:bg-green-700"
+            className="mt-4"
           >
             Voltar à Lista
           </Button>
@@ -178,15 +178,15 @@ const ProtocolDetail = () => {
             variant="outline"
             size="icon"
             onClick={() => navigate("/app/protocols")}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 shrink-0"
+            className="shrink-0"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-white truncate">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
               {protocol.title || "Protocolo sem título"}
             </h1>
-            <p className="text-xs text-zinc-500 font-mono">
+            <p className="text-xs text-muted-foreground font-mono">
               {protocol.protocolNumber || `PROT-${protocolId}`}
             </p>
             <Badge
@@ -204,9 +204,9 @@ const ProtocolDetail = () => {
           <Button
             variant="outline"
             onClick={() => navigate(`/app/edit-protocol/${protocolId}`)}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
+           
           >
-            <Edit2 className="w-4 h-4 mr-2" />
+            <Edit2 className="w-4 h-4" />
             Editar
           </Button>
           <Button
@@ -214,20 +214,20 @@ const ProtocolDetail = () => {
             onClick={() => setDeleteDialogOpen(true)}
             className="bg-red-600 hover:bg-red-700"
           >
-            <Trash2 className="w-4 h-4 mr-2" />
+            <Trash2 className="w-4 h-4" />
             Excluir
           </Button>
         </div>
       </div>
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
       {emailNotice && (
-        <Alert className="border-green-600 bg-green-600/10">
+        <Alert className="border-primary bg-green-600/10">
           <CheckCircle2 className="h-4 w-4 text-green-500" />
           <AlertDescription className="text-green-400">
             PDF descarregado. Anexe o ficheiro descarregado na janela que foi
@@ -237,32 +237,32 @@ const ProtocolDetail = () => {
       )}
 
       {/* Informações + Ações */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="p-4 sm:p-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex items-center gap-3">
-              <User className="h-4 w-4 text-zinc-400" />
+              <User className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-sm text-zinc-400">Cliente</p>
-                <p className="text-white">{protocol.clientName || "N/A"}</p>
+                <p className="text-sm text-muted-foreground">Cliente</p>
+                <p className="text-foreground">{protocol.clientName || "N/A"}</p>
               </div>
             </div>
             {protocol.equipmentName && (
               <div className="flex items-center gap-3">
-                <Printer className="h-4 w-4 text-zinc-400" />
+                <Printer className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-sm text-zinc-400">Equipamento</p>
-                  <p className="text-white">{protocol.equipmentName}</p>
+                  <p className="text-sm text-muted-foreground">Equipamento</p>
+                  <p className="text-foreground">{protocol.equipmentName}</p>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="flex flex-wrap gap-2 pt-3 border-t border-zinc-700">
+          <div className="flex flex-wrap gap-2 pt-3 border-t border-border">
             <Button
               onClick={handleDownloadPdf}
               disabled={generatingPdf}
-              className="bg-green-600 hover:bg-green-700"
+             
             >
               {generatingPdf ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -275,18 +275,18 @@ const ProtocolDetail = () => {
               variant="outline"
               onClick={handleSendEmail}
               disabled={generatingPdf}
-              className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+             
             >
-              <Mail className="w-4 h-4 mr-2" />
+              <Mail className="w-4 h-4" />
               Enviar por Email
             </Button>
             <Button
               variant="outline"
               onClick={handleSendWhatsApp}
               disabled={generatingPdf}
-              className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+             
             >
-              <MessageCircle className="w-4 h-4 mr-2" />
+              <MessageCircle className="w-4 h-4" />
               Enviar por WhatsApp
             </Button>
           </div>
@@ -297,18 +297,18 @@ const ProtocolDetail = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {[
           { label: "Antes", accent: "bg-red-500", blocks: protocol.blocosAntes },
-          { label: "Depois", accent: "bg-green-500", blocks: protocol.blocosDepois },
+          { label: "Depois", accent: "bg-primary", blocks: protocol.blocosDepois },
         ].map((section) => (
-          <Card key={section.label} className="bg-zinc-800 border-zinc-700">
+          <Card key={section.label}>
             <CardHeader>
-              <CardTitle className="text-lg text-white flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2">
                 <span className={`h-2.5 w-2.5 rounded-full ${section.accent}`} />
                 {section.label}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {!section.blocks || section.blocks.length === 0 ? (
-                <p className="text-sm text-zinc-500 text-center py-6">
+                <p className="text-sm text-muted-foreground text-center py-6">
                   Sem conteúdo registado
                 </p>
               ) : (
@@ -316,7 +316,7 @@ const ProtocolDetail = () => {
                   block.tipo === "texto" ? (
                     <p
                       key={block.id}
-                      className="text-sm text-zinc-300 whitespace-pre-wrap bg-zinc-700/30 p-3 rounded-lg border border-zinc-600"
+                      className="text-sm text-foreground/90 whitespace-pre-wrap bg-muted/30 p-3 rounded-lg border border-border"
                     >
                       {block.texto}
                     </p>
@@ -325,7 +325,7 @@ const ProtocolDetail = () => {
                       key={block.id}
                       src={block.imageUrl}
                       alt="Anexo do protocolo"
-                      className="max-h-64 rounded-lg border border-zinc-600"
+                      className="max-h-64 rounded-lg border border-border"
                     />
                   )
                 )
@@ -337,9 +337,9 @@ const ProtocolDetail = () => {
 
       {/* Peças Trocadas */}
       {protocol.pecasTrocadas && protocol.pecasTrocadas.length > 0 && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2">
               <Wrench className="h-5 w-5" />
               Peças Trocadas
             </CardTitle>
@@ -348,12 +348,12 @@ const ProtocolDetail = () => {
             {protocol.pecasTrocadas.map((peca) => (
               <div
                 key={peca.id}
-                className="flex items-center justify-between p-3 bg-zinc-700/30 rounded-lg border border-zinc-600"
+                className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border"
               >
-                <span className="text-white">{peca.name}</span>
-                <div className="flex items-center gap-3 text-sm text-zinc-400">
+                <span className="text-foreground">{peca.name}</span>
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
                   {peca.code && <span>{peca.code}</span>}
-                  <Badge className="bg-zinc-700 text-white hover:bg-zinc-700">
+                  <Badge className="bg-muted text-foreground hover:bg-accent">
                     x{peca.quantity || 1}
                   </Badge>
                 </div>
@@ -365,10 +365,10 @@ const ProtocolDetail = () => {
 
       {/* Delete Confirmation */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem a certeza que deseja apagar este protocolo? Esta ação não
               pode ser desfeita.
             </DialogDescription>
@@ -377,7 +377,7 @@ const ProtocolDetail = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>

@@ -21,6 +21,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 
 import { isStaffRole, getRoleLabel, getRoleBadgeStyle } from "../../config/roles.js";
+import { PageHeader } from "../../components/app";
 
 export const SKILL_AREAS = [
   { key: "mecanico", label: "Mecânico", icon: Wrench },
@@ -30,7 +31,7 @@ export const SKILL_AREAS = [
 ];
 
 export const LEVEL_META = {
-  0: { label: "Sem conhecimento", short: "0", className: "bg-zinc-700 text-zinc-400 border-zinc-600" },
+  0: { label: "Sem conhecimento", short: "0", className: "bg-muted text-muted-foreground border-border" },
   1: { label: "Básico", short: "1", className: "bg-red-500/20 text-red-400 border-red-500/30" },
   2: { label: "Intermédio", short: "2", className: "bg-amber-500/20 text-amber-400 border-amber-500/30" },
   3: { label: "Avançado", short: "3", className: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
@@ -126,31 +127,23 @@ const ManageTechnicianSkills = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6 pb-24">
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
-          <GraduationCap className="h-5 w-5 text-green-500" />
-        </div>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Matriz de Competências dos Técnicos
-          </h1>
-          <p className="text-sm text-zinc-400">
-            Clique num nível para o alterar (0 = sem conhecimento, 4 = especialista)
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Matriz de Competências dos Técnicos"
+        description="Clique num nível para o alterar (0 = sem conhecimento, 4 = especialista)"
+        icon={GraduationCap}
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
@@ -163,33 +156,33 @@ const ManageTechnicianSkills = () => {
       </div>
 
       {staffUsers.length === 0 ? (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="p-8 text-center">
-            <GraduationCap className="h-10 w-10 text-zinc-600 mx-auto mb-3" />
-            <p className="text-zinc-400">
+            <GraduationCap className="h-10 w-10 text-muted-foreground/70 mx-auto mb-3" />
+            <p className="text-muted-foreground">
               Nenhum utilizador com papel de equipa interna (gestor/técnico) encontrado.
             </p>
           </CardContent>
         </Card>
       ) : (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Grelha de Competências</CardTitle>
+            <CardTitle className="text-lg">Grelha de Competências</CardTitle>
           </CardHeader>
           <CardContent className="overflow-x-auto">
             <table className="w-full min-w-[600px] border-collapse">
               <thead>
-                <tr className="border-b border-zinc-700">
-                  <th className="text-left text-xs font-medium text-zinc-400 pb-3 pr-4">
+                <tr className="border-b border-border">
+                  <th className="text-left text-xs font-medium text-muted-foreground pb-3 pr-4">
                     Técnico
                   </th>
                   {SKILL_AREAS.map(({ key, label, icon: Icon }) => (
                     <th
                       key={key}
-                      className="text-center text-xs font-medium text-zinc-400 pb-3 px-2"
+                      className="text-center text-xs font-medium text-muted-foreground pb-3 px-2"
                     >
                       <div className="flex flex-col items-center gap-1">
-                        <Icon className="h-4 w-4 text-zinc-500" />
+                        <Icon className="h-4 w-4 text-muted-foreground" />
                         {label}
                       </div>
                     </th>
@@ -198,14 +191,14 @@ const ManageTechnicianSkills = () => {
               </thead>
               <tbody>
                 {staffUsers.map((user) => (
-                  <tr key={user.id} className="border-b border-zinc-800 last:border-0">
+                  <tr key={user.id} className="border-b border-border last:border-0">
                     <td className="py-3 pr-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs font-bold text-white shrink-0">
+                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-foreground shrink-0">
                           {initials(user.displayName)}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm text-white truncate">
+                          <p className="text-sm text-foreground truncate">
                             {user.displayName || "Sem nome"}
                           </p>
                           <Badge
@@ -247,10 +240,10 @@ const ManageTechnicianSkills = () => {
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t border-zinc-700">
-                  <td className="pt-3 pr-4 text-xs text-zinc-500">Média da equipa</td>
+                <tr className="border-t border-border">
+                  <td className="pt-3 pr-4 text-xs text-muted-foreground">Média da equipa</td>
                   {SKILL_AREAS.map(({ key }) => (
-                    <td key={key} className="pt-3 px-2 text-center text-xs text-zinc-400">
+                    <td key={key} className="pt-3 px-2 text-center text-xs text-muted-foreground">
                       {averages[key]}
                     </td>
                   ))}

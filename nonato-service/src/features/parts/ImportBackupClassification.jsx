@@ -54,6 +54,7 @@ import {
 } from "@/components/ui/card.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Button } from "@/components/ui/button.jsx";
+import { PageHeader } from "../../components/app";
 
 const normName = (s) =>
   String(s || "")
@@ -378,25 +379,16 @@ const ImportBackupClassification = () => {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-green-500/10 rounded-lg">
-          <FolderTree className="h-6 w-6 text-green-400" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-white">
-            Importar categorias do backup
-          </h1>
-          <p className="text-zinc-400">
-            Traz as categorias, subcategorias e a classificação das peças de um
-            backup da app antiga.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Importar categorias do backup"
+        description="Traz as categorias, subcategorias e a classificação das peças de um backup da app antiga."
+        icon={FolderTree}
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
@@ -410,9 +402,9 @@ const ImportBackupClassification = () => {
         </Alert>
       )}
 
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-white text-lg">1. Escolher o backup</CardTitle>
+          <CardTitle className="text-lg">1. Escolher o backup</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <label className="inline-flex">
@@ -423,14 +415,14 @@ const ImportBackupClassification = () => {
               onChange={handleFile}
               disabled={analyzing || importing}
             />
-            <span className="inline-flex items-center rounded-md bg-green-600 hover:bg-green-700 px-4 py-2 text-sm font-medium text-white cursor-pointer">
+            <span className="inline-flex items-center rounded-md bg-primary hover:bg-primary/90 px-4 py-2 text-sm font-medium text-foreground cursor-pointer">
               <Upload className="h-4 w-4 mr-2" />
               {fileName ? "Escolher outro ficheiro" : "Escolher ficheiro .json"}
             </span>
           </label>
-          {fileName && <p className="text-sm text-zinc-400">{fileName}</p>}
+          {fileName && <p className="text-sm text-muted-foreground">{fileName}</p>}
 
-          <label className="flex items-start gap-2 text-sm text-zinc-300">
+          <label className="flex items-start gap-2 text-sm text-foreground/90">
             <input
               type="checkbox"
               checked={overwrite || replaceAll}
@@ -445,13 +437,13 @@ const ImportBackupClassification = () => {
             />
             <span>
               Substituir a categoria de peças que já foram classificadas na app
-              <span className="block text-zinc-500">
+              <span className="block text-muted-foreground">
                 Desligado: essas peças ficam como estão.
               </span>
             </span>
           </label>
 
-          <label className="flex items-start gap-2 text-sm text-zinc-300">
+          <label className="flex items-start gap-2 text-sm text-foreground/90">
             <input
               type="checkbox"
               checked={replaceAll}
@@ -466,7 +458,7 @@ const ImportBackupClassification = () => {
             />
             <span>
               Apagar todas as categorias atuais antes de importar
-              <span className="block text-zinc-500">
+              <span className="block text-muted-foreground">
                 Apaga todas as categorias, subcategorias e classificações de peças
                 que existem hoje e fica só com as do backup. Não é possível desfazer.
               </span>
@@ -476,16 +468,16 @@ const ImportBackupClassification = () => {
       </Card>
 
       {analyzing && (
-        <div className="flex items-center gap-2 text-zinc-400">
+        <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />A comparar com as
           categorias atuais…
         </div>
       )}
 
       {plan && !analyzing && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-white text-lg">2. Rever e importar</CardTitle>
+            <CardTitle className="text-lg">2. Rever e importar</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
@@ -497,38 +489,38 @@ const ImportBackupClassification = () => {
                   <dd className="text-red-300">{plan.toDelete.atribuicoes}</dd>
                 </>
               )}
-              <dt className="text-zinc-400">Categorias novas</dt>
-              <dd className="text-white">{plan.newCats}</dd>
-              <dt className="text-zinc-400">Subcategorias novas</dt>
-              <dd className="text-white">{plan.newSubs}</dd>
-              <dt className="text-zinc-400">Já existiam (reaproveitadas)</dt>
-              <dd className="text-white">
+              <dt className="text-muted-foreground">Categorias novas</dt>
+              <dd className="text-foreground">{plan.newCats}</dd>
+              <dt className="text-muted-foreground">Subcategorias novas</dt>
+              <dd className="text-foreground">{plan.newSubs}</dd>
+              <dt className="text-muted-foreground">Já existiam (reaproveitadas)</dt>
+              <dd className="text-foreground">
                 {plan.reusedCats + plan.reusedSubs}
               </dd>
-              <dt className="text-zinc-400">Peças a classificar</dt>
-              <dd className="text-white">{plan.matches.length}</dd>
+              <dt className="text-muted-foreground">Peças a classificar</dt>
+              <dd className="text-foreground">{plan.matches.length}</dd>
               {plan.keptExisting > 0 && (
                 <>
-                  <dt className="text-zinc-400">Peças que ficam como estão</dt>
-                  <dd className="text-white">{plan.keptExisting}</dd>
+                  <dt className="text-muted-foreground">Peças que ficam como estão</dt>
+                  <dd className="text-foreground">{plan.keptExisting}</dd>
                 </>
               )}
               {plan.notInCatalog > 0 && (
                 <>
-                  <dt className="text-zinc-400">Peças fora do catálogo (ignoradas)</dt>
-                  <dd className="text-white">{plan.notInCatalog}</dd>
+                  <dt className="text-muted-foreground">Peças fora do catálogo (ignoradas)</dt>
+                  <dd className="text-foreground">{plan.notInCatalog}</dd>
                 </>
               )}
             </dl>
 
             {plan.toCreate.length > 0 && (
               <details className="text-sm">
-                <summary className="text-zinc-400 cursor-pointer">
+                <summary className="text-muted-foreground cursor-pointer">
                   Ver o que vai ser criado
                 </summary>
-                <ul className="mt-2 space-y-1 text-zinc-300 max-h-64 overflow-auto">
+                <ul className="mt-2 space-y-1 text-foreground/90 max-h-64 overflow-auto">
                   {plan.toCreate.map((c) => (
-                    <li key={c.id} className={c.parentId ? "pl-4 text-zinc-400" : ""}>
+                    <li key={c.id} className={c.parentId ? "pl-4 text-muted-foreground" : ""}>
                       {c.name}
                     </li>
                   ))}
@@ -539,7 +531,7 @@ const ImportBackupClassification = () => {
             <Button
               onClick={runImport}
               disabled={importing}
-              className="bg-green-600 hover:bg-green-700 text-white"
+             
             >
               {importing ? (
                 <>

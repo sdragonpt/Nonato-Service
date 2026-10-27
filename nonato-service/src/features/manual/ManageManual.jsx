@@ -14,6 +14,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
+import { PageHeader } from "../../components/app";
 
 // Conteúdo do manual, organizado pelas mesmas secções da barra lateral.
 // Cada módulo tem uma descrição curta (o quê) e, quando útil, notas de
@@ -260,53 +261,47 @@ const ManageManual = () => {
 
   return (
     <div className="space-y-6 pb-24">
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
-          <HelpCircle className="h-5 w-5 text-green-500" />
-        </div>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">Manual do Programa</h1>
-          <p className="text-sm text-zinc-400">
-            O que faz cada módulo desta app e onde o encontrar
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Manual do Programa"
+        description="O que faz cada módulo desta app e onde o encontrar"
+        icon={HelpCircle}
+      />
 
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="pt-6">
           <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Pesquisar um módulo (ex: peças, agenda, reciclagem...)"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-zinc-700 border-zinc-600 text-white placeholder:text-zinc-400"
+              className="pl-10 bg-muted"
             />
           </div>
         </CardContent>
       </Card>
 
       {filteredSections.length === 0 ? (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="p-8 text-center">
-            <p className="text-zinc-400">Nenhum módulo corresponde à pesquisa.</p>
+            <p className="text-muted-foreground">Nenhum módulo corresponde à pesquisa.</p>
           </CardContent>
         </Card>
       ) : (
         filteredSections.map((section) => {
           const isOpen = searchTerm.trim() ? true : openSections[section.title];
           return (
-            <Card key={section.title} className="bg-zinc-800 border-zinc-700">
+            <Card key={section.title}>
               <CardHeader
                 className="cursor-pointer select-none"
                 onClick={() => toggleSection(section.title)}
               >
-                <CardTitle className="text-lg text-white flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center justify-between">
                   <span>{section.title}</span>
                   {isOpen ? (
-                    <ChevronDown className="h-4 w-4 text-zinc-400" />
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   ) : (
-                    <ChevronRight className="h-4 w-4 text-zinc-400" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   )}
                 </CardTitle>
               </CardHeader>
@@ -315,7 +310,7 @@ const ManageManual = () => {
                   {section.items.map((item) => (
                     <div
                       key={item.path}
-                      className="p-3 bg-zinc-900 rounded-lg border border-zinc-700"
+                      className="p-3 bg-muted/50 rounded-lg border border-border"
                     >
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <button
@@ -323,7 +318,7 @@ const ManageManual = () => {
                           onClick={() =>
                             item.external ? window.open(item.path, "_blank") : navigate(item.path)
                           }
-                          className="text-white font-medium hover:text-green-400 transition-colors flex items-center gap-1.5 text-left"
+                          className="text-foreground font-medium hover:text-green-400 transition-colors flex items-center gap-1.5 text-left"
                         >
                           {item.label}
                           {item.external && <ExternalLink className="h-3.5 w-3.5" />}
@@ -345,9 +340,9 @@ const ManageManual = () => {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-zinc-400">{item.description}</p>
+                      <p className="text-sm text-muted-foreground">{item.description}</p>
                       {item.notes && (
-                        <p className="text-xs text-zinc-500 mt-1.5 italic">Nota: {item.notes}</p>
+                        <p className="text-xs text-muted-foreground mt-1.5 italic">Nota: {item.notes}</p>
                       )}
                     </div>
                   ))}

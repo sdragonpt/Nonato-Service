@@ -454,7 +454,7 @@ const WarehouseEquipmentDetail = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -462,18 +462,18 @@ const WarehouseEquipmentDetail = () => {
   if (!equipment) {
     return (
       <div className="space-y-4">
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">
+          <AlertDescription>
             {error || "Equipamento não encontrado"}
           </AlertDescription>
         </Alert>
         <Button
           variant="outline"
           onClick={() => navigate("/app/warehouse-equipment")}
-          className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+         
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
+          <ArrowLeft className="w-4 h-4" />
           Voltar
         </Button>
       </div>
@@ -497,19 +497,22 @@ const WarehouseEquipmentDetail = () => {
 
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="relative group shrink-0">
-            <Avatar className="h-14 w-14 sm:h-16 sm:w-16">
+        <div className="flex min-w-0 items-center gap-3">
+          <Button variant="ghost" size="icon" className="shrink-0 rounded-full" aria-label="Voltar" onClick={() => navigate("/app/warehouse-equipment")}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="group relative shrink-0">
+            <Avatar className="h-14 w-14 ring-2 ring-white/10 sm:h-16 sm:w-16">
               <AvatarImage src={equipment.fotoPerfilUrl} alt={equipment.nome} />
-              <AvatarFallback className="bg-zinc-700 text-white">
-                <Wrench className="h-6 w-6 text-orange-400" />
+              <AvatarFallback className="bg-primary/15 text-primary">
+                <Wrench className="h-6 w-6" />
               </AvatarFallback>
             </Avatar>
-            <label className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+            <label className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
               {uploadingPhoto ? (
-                <Loader2 className="w-5 h-5 text-white animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin text-white" />
               ) : (
-                <Camera className="w-5 h-5 text-white" />
+                <Camera className="h-5 w-5 text-white" />
               )}
               <input
                 type="file"
@@ -521,83 +524,73 @@ const WarehouseEquipmentDetail = () => {
             </label>
           </div>
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-white truncate">
+            <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">
               {equipment.familyName ? `${equipment.familyName} — ` : ""}
               {equipment.nome || "Equipamento"}
             </h1>
-            <p className="text-sm text-zinc-400">
+            <p className="mt-0.5 text-sm text-muted-foreground">
               {equipment.marca} {equipment.modelo}
             </p>
           </div>
         </div>
-        <div className="flex gap-2 shrink-0">
-          <Button
-            variant="outline"
-            onClick={() => navigate(`/app/edit-warehouse-equipment/${equipmentId}`)}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
-          >
-            <Edit2 className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Editar</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate("/app/warehouse-equipment")}
-            className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
-          >
-            <ArrowLeft className="h-4 w-4 text-white" />
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          className="shrink-0"
+          onClick={() => navigate(`/app/edit-warehouse-equipment/${equipmentId}`)}
+        >
+          <Edit2 className="h-4 w-4" />
+          <span className="hidden sm:inline">Editar</span>
+        </Button>
       </div>
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Informações Básicas */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg text-white">Informações Básicas</CardTitle>
+          <CardTitle className="text-lg">Informações Básicas</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {equipment.equipmentCode && (
-              <div className="flex items-center gap-2 text-zinc-300 text-sm">
-                <Barcode className="h-4 w-4 text-zinc-400 shrink-0" />
-                <span className="text-zinc-400">ID:</span> {equipment.equipmentCode}
+              <div className="flex items-center gap-2 text-foreground/90 text-sm">
+                <Barcode className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground">ID:</span> {equipment.equipmentCode}
               </div>
             )}
             {equipment.marca && (
-              <div className="flex items-center gap-2 text-zinc-300 text-sm">
-                <Package className="h-4 w-4 text-zinc-400 shrink-0" />
-                <span className="text-zinc-400">Marca:</span> {equipment.marca}
+              <div className="flex items-center gap-2 text-foreground/90 text-sm">
+                <Package className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground">Marca:</span> {equipment.marca}
               </div>
             )}
             {equipment.numeroSerie && (
-              <div className="flex items-center gap-2 text-zinc-300 text-sm">
-                <Hash className="h-4 w-4 text-zinc-400 shrink-0" />
-                <span className="text-zinc-400">Nº de Série:</span> {equipment.numeroSerie}
+              <div className="flex items-center gap-2 text-foreground/90 text-sm">
+                <Hash className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground">Nº de Série:</span> {equipment.numeroSerie}
               </div>
             )}
             {equipment.familyName && (
-              <div className="flex items-center gap-2 text-zinc-300 text-sm">
-                <Layers className="h-4 w-4 text-zinc-400 shrink-0" />
-                <span className="text-zinc-400">Família:</span> {equipment.familyName}
+              <div className="flex items-center gap-2 text-foreground/90 text-sm">
+                <Layers className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground">Família:</span> {equipment.familyName}
                 {equipment.groupName ? ` / ${equipment.groupName}` : ""}
               </div>
             )}
             {equipment.localizacao && (
-              <div className="flex items-center gap-2 text-zinc-300 text-sm">
-                <MapPin className="h-4 w-4 text-zinc-400 shrink-0" />
-                <span className="text-zinc-400">Localização:</span> {equipment.localizacao}
+              <div className="flex items-center gap-2 text-foreground/90 text-sm">
+                <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground">Localização:</span> {equipment.localizacao}
               </div>
             )}
             <div className="flex items-center gap-2 text-sm">
-              <Wrench className="h-4 w-4 text-zinc-400 shrink-0" />
-              <span className="text-zinc-400">Status:</span>
+              <Wrench className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-muted-foreground">Status:</span>
               <Badge className={`${meta.className} border`}>{meta.label}</Badge>
             </div>
           </div>
@@ -612,8 +605,8 @@ const WarehouseEquipmentDetail = () => {
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg border text-sm font-medium whitespace-nowrap transition-colors ${
               activeTab === tab.id
-                ? "bg-green-600 border-green-600 text-white"
-                : "border-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-800"
+                ? "bg-primary border-primary text-foreground"
+                : "border-border text-muted-foreground hover:text-foreground hover:bg-white/5"
             }`}
           >
             <tab.icon className="h-4 w-4" />
@@ -624,24 +617,24 @@ const WarehouseEquipmentDetail = () => {
 
       {/* ── HISTÓRICO ── */}
       {activeTab === "historico" && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">
+            <CardTitle className="text-lg">
               Histórico do Equipamento
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-4 p-4 bg-zinc-900/50 rounded-lg border border-zinc-700">
-              <h3 className="text-sm font-medium text-white">
+            <div className="space-y-4 p-4 bg-background/50 rounded-lg border border-border">
+              <h3 className="text-sm font-medium text-foreground">
                 Adicionar Evento ao Histórico
               </h3>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Tipo de Evento</label>
+                <label className="text-sm font-medium text-muted-foreground">Tipo de Evento</label>
                 <Select value={histTipo} onValueChange={setHistTipo}>
-                  <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
+                  <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+                  <SelectContent>
                     {TIPO_EVENTO_OPTIONS.map((opt) => (
                       <SelectItem key={opt} value={opt}>
                         {opt}
@@ -651,36 +644,36 @@ const WarehouseEquipmentDetail = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Descrição *</label>
+                <label className="text-sm font-medium text-muted-foreground">Descrição *</label>
                 <Textarea
                   value={histDescricao}
                   onChange={(e) => setHistDescricao(e.target.value)}
                   placeholder="Descreva o evento..."
-                  className="bg-zinc-800 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                 
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Responsável</label>
+                <label className="text-sm font-medium text-muted-foreground">Responsável</label>
                 <Input
                   value={histResponsavel}
                   onChange={(e) => setHistResponsavel(e.target.value)}
                   placeholder="Nome do responsável"
-                  className="bg-zinc-800 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                 
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Observações</label>
+                <label className="text-sm font-medium text-muted-foreground">Observações</label>
                 <Textarea
                   value={histObservacoes}
                   onChange={(e) => setHistObservacoes(e.target.value)}
                   placeholder="Observações adicionais..."
-                  className="bg-zinc-800 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                 
                 />
               </div>
               <Button
                 onClick={handleAddHistorico}
                 disabled={saving}
-                className="w-full bg-green-600 hover:bg-green-700"
+                className="w-full"
               >
                 {saving ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -692,7 +685,7 @@ const WarehouseEquipmentDetail = () => {
             </div>
 
             {historico.length === 0 ? (
-              <p className="text-sm text-zinc-500 text-center py-4">
+              <p className="text-sm text-muted-foreground text-center py-4">
                 Nenhum evento registado ainda.
               </p>
             ) : (
@@ -700,26 +693,26 @@ const WarehouseEquipmentDetail = () => {
                 {historico.map((h) => (
                   <div
                     key={h.id}
-                    className="p-3 bg-zinc-700/30 rounded-lg border border-zinc-600"
+                    className="p-3 bg-muted/30 rounded-lg border border-border"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <Badge variant="outline" className="border-zinc-600 text-zinc-300 text-xs">
+                          <Badge variant="outline" className="border-border text-foreground/90 text-xs">
                             {h.tipo}
                           </Badge>
-                          <span className="text-xs text-zinc-500">
+                          <span className="text-xs text-muted-foreground">
                             {formatDateTime(h.criadoEm)}
                           </span>
                         </div>
-                        <p className="text-sm text-white">{h.descricao}</p>
+                        <p className="text-sm text-foreground">{h.descricao}</p>
                         {h.responsavel && (
-                          <p className="text-xs text-zinc-400 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             Responsável: {h.responsavel}
                           </p>
                         )}
                         {h.observacoes && (
-                          <p className="text-xs text-zinc-500 mt-1">{h.observacoes}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{h.observacoes}</p>
                         )}
                       </div>
                       <Button
@@ -741,33 +734,33 @@ const WarehouseEquipmentDetail = () => {
 
       {/* ── DOCUMENTOS PDF ── */}
       {activeTab === "documentos" && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Documentos PDF</CardTitle>
+            <CardTitle className="text-lg">Documentos PDF</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2 p-4 bg-zinc-900/50 rounded-lg border border-zinc-700">
-              <label className="text-sm font-medium text-white">
+            <div className="space-y-2 p-4 bg-background/50 rounded-lg border border-border">
+              <label className="text-sm font-medium text-foreground">
                 Adicionar Documento PDF
               </label>
-              <p className="text-sm text-zinc-400">Selecione um ficheiro PDF:</p>
+              <p className="text-sm text-muted-foreground">Selecione um ficheiro PDF:</p>
               <input
                 ref={docInputRef}
                 type="file"
                 accept="application/pdf"
                 onChange={handleUploadDoc}
                 disabled={uploadingDoc}
-                className="block w-full text-sm text-zinc-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-zinc-700 file:text-white hover:file:bg-zinc-600"
+                className="block w-full text-sm text-foreground/90 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-accent file:text-foreground hover:file:bg-accent"
               />
               {uploadingDoc && (
                 <div className="space-y-1.5 pt-1">
-                  <div className="flex justify-between text-xs text-zinc-400">
+                  <div className="flex justify-between text-xs text-muted-foreground">
                     <span>A enviar...</span>
                     <span>{docProgress}%</span>
                   </div>
-                  <div className="h-1.5 bg-zinc-700 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-green-500 rounded-full transition-all"
+                      className="h-full bg-primary rounded-full transition-all"
                       style={{ width: `${docProgress}%` }}
                     />
                   </div>
@@ -776,7 +769,7 @@ const WarehouseEquipmentDetail = () => {
             </div>
 
             {(equipment.documentos || []).length === 0 ? (
-              <p className="text-sm text-zinc-500 text-center py-6">
+              <p className="text-sm text-muted-foreground text-center py-6">
                 Nenhum documento PDF cadastrado.
               </p>
             ) : (
@@ -784,13 +777,13 @@ const WarehouseEquipmentDetail = () => {
                 {equipment.documentos.map((d) => (
                   <div
                     key={d.id}
-                    className="flex items-center justify-between gap-3 p-3 bg-zinc-700/30 rounded-lg border border-zinc-600"
+                    className="flex items-center justify-between gap-3 p-3 bg-muted/30 rounded-lg border border-border"
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <FileText className="h-4 w-4 text-red-400 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-sm text-white truncate">{d.nome}</p>
-                        <p className="text-xs text-zinc-500">{formatDateTime(d.criadoEm)}</p>
+                        <p className="text-sm text-foreground truncate">{d.nome}</p>
+                        <p className="text-xs text-muted-foreground">{formatDateTime(d.criadoEm)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
@@ -798,7 +791,7 @@ const WarehouseEquipmentDetail = () => {
                         variant="ghost"
                         size="icon"
                         onClick={() => window.open(d.url, "_blank")}
-                        className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-zinc-700"
+                        className="h-8 w-8 text-muted-foreground"
                       >
                         <Download className="h-4 w-4" />
                       </Button>
@@ -821,13 +814,13 @@ const WarehouseEquipmentDetail = () => {
 
       {/* ── ÁLBUM DE FOTOS ── */}
       {activeTab === "fotos" && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Álbum de Fotos</CardTitle>
+            <CardTitle className="text-lg">Álbum de Fotos</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2 p-4 bg-zinc-900/50 rounded-lg border border-zinc-700">
-              <label className="text-sm font-medium text-white">
+            <div className="space-y-2 p-4 bg-background/50 rounded-lg border border-border">
+              <label className="text-sm font-medium text-foreground">
                 Adicionar Foto ao Álbum
               </label>
               <input
@@ -837,17 +830,17 @@ const WarehouseEquipmentDetail = () => {
                 multiple
                 onChange={handleUploadFotos}
                 disabled={uploadingFoto}
-                className="block w-full text-sm text-zinc-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-zinc-700 file:text-white hover:file:bg-zinc-600"
+                className="block w-full text-sm text-foreground/90 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-accent file:text-foreground hover:file:bg-accent"
               />
               {uploadingFoto && (
                 <div className="space-y-1.5 pt-1">
-                  <div className="flex justify-between text-xs text-zinc-400">
+                  <div className="flex justify-between text-xs text-muted-foreground">
                     <span>A enviar...</span>
                     <span>{fotoProgress}%</span>
                   </div>
-                  <div className="h-1.5 bg-zinc-700 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-green-500 rounded-full transition-all"
+                      className="h-full bg-primary rounded-full transition-all"
                       style={{ width: `${fotoProgress}%` }}
                     />
                   </div>
@@ -856,7 +849,7 @@ const WarehouseEquipmentDetail = () => {
             </div>
 
             {(equipment.fotos || []).length === 0 ? (
-              <p className="text-sm text-zinc-500 text-center py-6">
+              <p className="text-sm text-muted-foreground text-center py-6">
                 Nenhuma foto no álbum.
               </p>
             ) : (
@@ -864,7 +857,7 @@ const WarehouseEquipmentDetail = () => {
                 {equipment.fotos.map((f) => (
                   <div
                     key={f.id}
-                    className="group relative aspect-square rounded-lg overflow-hidden border border-zinc-700 cursor-pointer"
+                    className="group relative aspect-square rounded-lg overflow-hidden border border-border cursor-pointer"
                     onClick={() => setLightboxFoto(f)}
                   >
                     <img
@@ -891,23 +884,23 @@ const WarehouseEquipmentDetail = () => {
 
       {/* ── ITENS INCLUSOS ── */}
       {activeTab === "itens" && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">
+            <CardTitle className="text-lg">
               Itens que Vieram com o Equipamento
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-700 space-y-1">
+            <div className="p-4 bg-background/50 rounded-lg border border-border space-y-1">
               <p className="text-sm font-medium text-green-400">
                 Sequência de volumes (carga)
               </p>
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-muted-foreground">
                 A máquina é sempre o volume 1. Cada item incluso que
                 adicionares soma mais um volume à carga, com etiqueta gerada
                 automaticamente a partir do ID do equipamento.
               </p>
-              <p className="text-sm text-white pt-1">
+              <p className="text-sm text-foreground pt-1">
                 Total de volumes: <span className="text-green-400 font-semibold">{totalVolumes}</span>
               </p>
               {!equipmentCode && (
@@ -921,10 +914,10 @@ const WarehouseEquipmentDetail = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between p-3 bg-green-900/20 rounded-lg border border-green-700/40">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-foreground">
                     {pad2(1)}/{pad2(totalVolumes)} · Equipamento (máquina principal)
                   </p>
-                  <p className="text-xs text-zinc-400 truncate">
+                  <p className="text-xs text-muted-foreground truncate">
                     {equipment.familyName || equipment.categoria || "Equipamento"}
                     {equipment.modelo ? ` — ${equipment.modelo}` : ""}
                     {equipment.marca ? ` · ${equipment.marca}` : ""}
@@ -939,7 +932,7 @@ const WarehouseEquipmentDetail = () => {
               {itensInclusos.map((item, idx) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between gap-2 p-3 bg-zinc-700/30 rounded-lg border border-zinc-600"
+                  className="flex items-center justify-between gap-2 p-3 bg-muted/30 rounded-lg border border-border"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     {item.imagemUrl && (
@@ -950,10 +943,10 @@ const WarehouseEquipmentDetail = () => {
                       />
                     )}
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-white truncate">
+                      <p className="text-sm font-medium text-foreground truncate">
                         {pad2(idx + 2)}/{pad2(totalVolumes)} · {item.nome}
                       </p>
-                      <Badge variant="outline" className="border-zinc-600 text-zinc-400 text-xs mt-1">
+                      <Badge variant="outline" className="border-border text-muted-foreground text-xs mt-1">
                         {volumeLabel(idx + 2)}
                       </Badge>
                     </div>
@@ -970,27 +963,27 @@ const WarehouseEquipmentDetail = () => {
               ))}
             </div>
 
-            <div className="space-y-3 p-4 bg-zinc-900/50 rounded-lg border border-zinc-700">
-              <label className="text-sm font-medium text-white">Adicionar Item</label>
+            <div className="space-y-3 p-4 bg-background/50 rounded-lg border border-border">
+              <label className="text-sm font-medium text-foreground">Adicionar Item</label>
               <Input
                 value={itemNome}
                 onChange={(e) => setItemNome(e.target.value)}
                 placeholder="Por favor, digite o nome do item."
-                className="bg-zinc-800 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+               
               />
               <div className="space-y-1">
-                <label className="text-xs text-zinc-400">Anexar Imagem (opcional)</label>
+                <label className="text-xs text-muted-foreground">Anexar Imagem (opcional)</label>
                 <input
                   ref={itemImagemInputRef}
                   type="file"
                   accept="image/*"
-                  className="block w-full text-sm text-zinc-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-zinc-700 file:text-white hover:file:bg-zinc-600"
+                  className="block w-full text-sm text-foreground/90 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-accent file:text-foreground hover:file:bg-accent"
                 />
               </div>
               <Button
                 onClick={handleAddItem}
                 disabled={addingItem}
-                className="w-full bg-green-600 hover:bg-green-700"
+                className="w-full"
               >
                 {addingItem ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1006,12 +999,12 @@ const WarehouseEquipmentDetail = () => {
 
       {/* ── ETIQUETAS (CARGA) ── */}
       {activeTab === "etiquetas" && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Etiquetas (carga)</CardTitle>
+            <CardTitle className="text-lg">Etiquetas (carga)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               As etiquetas seguem automaticamente a sequência de volumes.
               Imprime e cola em cada volume antes da carga no camião.
             </p>
@@ -1020,13 +1013,13 @@ const WarehouseEquipmentDetail = () => {
               <Button
                 onClick={handlePrintLabels}
                 disabled={!equipmentCode}
-                className="bg-green-600 hover:bg-green-700"
+               
               >
-                <Printer className="w-4 h-4 mr-2" />
+                <Printer className="w-4 h-4" />
                 Imprimir etiquetas
               </Button>
-              <span className="text-sm text-zinc-400">
-                Total de volumes: <span className="text-white">{totalVolumes}</span>
+              <span className="text-sm text-muted-foreground">
+                Total de volumes: <span className="text-foreground">{totalVolumes}</span>
               </span>
             </div>
 
@@ -1040,7 +1033,7 @@ const WarehouseEquipmentDetail = () => {
               </Alert>
             )}
 
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-muted-foreground">
               Resumo: ID {equipmentCode || "—"} · Volumes: {totalVolumes} · S/N:{" "}
               {equipment.numeroSerie || "—"}
             </p>
@@ -1056,7 +1049,7 @@ const WarehouseEquipmentDetail = () => {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="text-[10px] uppercase tracking-wide text-zinc-600">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70">
                         ID Equipamento
                       </p>
                       <p className="text-xl font-bold leading-tight">
@@ -1068,15 +1061,15 @@ const WarehouseEquipmentDetail = () => {
                     </p>
                   </div>
 
-                  <p className="text-xs text-zinc-700 mt-1">{label.titulo}</p>
+                  <p className="text-xs text-muted-foreground/50 mt-1">{label.titulo}</p>
 
                   {(equipment.marca || equipment.modelo) && (
-                    <p className="text-xs text-zinc-700">
+                    <p className="text-xs text-muted-foreground/50">
                       {equipment.marca} {equipment.modelo}
                     </p>
                   )}
                   {equipment.numeroSerie && (
-                    <p className="text-xs text-zinc-700">
+                    <p className="text-xs text-muted-foreground/50">
                       S/N: {equipment.numeroSerie}
                     </p>
                   )}
@@ -1094,15 +1087,15 @@ const WarehouseEquipmentDetail = () => {
 
       {/* Lightbox de foto */}
       <Dialog open={!!lightboxFoto} onOpenChange={(open) => !open && setLightboxFoto(null)}>
-        <DialogContent className="bg-zinc-900 border-zinc-700 max-w-2xl">
+        <DialogContent className="bg-muted/50 max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center justify-between">
+            <DialogTitle className="text-foreground flex items-center justify-between">
               Foto
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setLightboxFoto(null)}
-                className="text-zinc-400 hover:text-white h-7 w-7"
+                className="text-muted-foreground h-7 w-7"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -1120,10 +1113,10 @@ const WarehouseEquipmentDetail = () => {
 
       {/* Delete Confirmation */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem a certeza que deseja remover este registo? Esta ação não
               pode ser desfeita.
             </DialogDescription>
@@ -1132,7 +1125,7 @@ const WarehouseEquipmentDetail = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteTarget(null)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
@@ -1141,7 +1134,7 @@ const WarehouseEquipmentDetail = () => {
               onClick={confirmDelete}
               className="bg-red-600 hover:bg-red-700"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
+              <Trash2 className="w-4 h-4" />
               Remover
             </Button>
           </DialogFooter>

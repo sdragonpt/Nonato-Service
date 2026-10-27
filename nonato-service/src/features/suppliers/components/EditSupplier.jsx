@@ -4,7 +4,6 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../../../firebase.jsx";
 import {
-  ArrowLeft,
   Loader2,
   Save,
   Building2,
@@ -22,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.j
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
+import { PageHeader } from "../../../components/app";
 
 const emptyForm = {
   nomeEmpresa: "",
@@ -122,57 +122,44 @@ const EditSupplier = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <ClipboardEdit className="h-5 w-5 text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">Editar Fornecedor</h1>
-            <p className="text-sm text-zinc-400">Atualize os dados do fornecedor</p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Editar Fornecedor"
+        description="Atualize os dados do fornecedor"
+        icon={ClipboardEdit}
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Dados do Fornecedor</CardTitle>
+            <CardTitle className="text-lg">Dados do Fornecedor</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Nome da Empresa</label>
+              <label className="text-sm font-medium text-muted-foreground">Nome da Empresa</label>
               <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   type="text"
                   name="nomeEmpresa"
                   value={formData.nomeEmpresa}
                   onChange={handleChange}
                   onBlur={() => handleBlur("nomeEmpresa")}
-                  className={`pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 ${
+                  className={`pl-10 bg-muted/50 border-border text-foreground ${
                     touched.nomeEmpresa && !formData.nomeEmpresa ? "border-red-500" : ""
                   }`}
                 />
@@ -183,120 +170,120 @@ const EditSupplier = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Pessoa de Contacto</label>
+              <label className="text-sm font-medium text-muted-foreground">Pessoa de Contacto</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   type="text"
                   name="contato"
                   value={formData.contato}
                   onChange={handleChange}
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                  className="pl-10"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Telefone</label>
+                <label className="text-sm font-medium text-muted-foreground">Telefone</label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     type="tel"
                     name="telefones"
                     value={formData.telefones}
                     onChange={handleChange}
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                    className="pl-10"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Email</label>
+                <label className="text-sm font-medium text-muted-foreground">Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                    className="pl-10"
                   />
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Morada</label>
+              <label className="text-sm font-medium text-muted-foreground">Morada</label>
               <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   type="text"
                   name="morada"
                   value={formData.morada}
                   onChange={handleChange}
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                  className="pl-10"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Localidade</label>
+                <label className="text-sm font-medium text-muted-foreground">Localidade</label>
                 <Input
                   type="text"
                   name="localidade"
                   value={formData.localidade}
                   onChange={handleChange}
-                  className="bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                 
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Código Postal</label>
+                <label className="text-sm font-medium text-muted-foreground">Código Postal</label>
                 <Input
                   type="text"
                   name="codigoPostal"
                   value={formData.codigoPostal}
                   onChange={handleChange}
-                  className="bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                 
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">País</label>
+                <label className="text-sm font-medium text-muted-foreground">País</label>
                 <Input
                   type="text"
                   name="pais"
                   value={formData.pais}
                   onChange={handleChange}
-                  className="bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                 
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">NIF</label>
+                <label className="text-sm font-medium text-muted-foreground">NIF</label>
                 <div className="relative">
-                  <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                  <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     type="text"
                     name="numeroContribuicaoFiscal"
                     value={formData.numeroContribuicaoFiscal}
                     onChange={handleChange}
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                    className="pl-10"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">IBAN</label>
+                <label className="text-sm font-medium text-muted-foreground">IBAN</label>
                 <div className="relative">
-                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     type="text"
                     name="iban"
                     value={formData.iban}
                     onChange={handleChange}
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                    className="pl-10"
                   />
                 </div>
               </div>
@@ -307,7 +294,7 @@ const EditSupplier = () => {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-green-600 hover:bg-green-700"
+          className="w-full"
         >
           {isSubmitting ? (
             <>

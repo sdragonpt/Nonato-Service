@@ -166,10 +166,10 @@ const AddUser = ({ onClose }) => {
               <UserPlus className="h-5 w-5 text-green-400" />
             </div>
             <div>
-              <DialogTitle className="text-xl sm:text-2xl font-bold text-white text-left">
+              <DialogTitle className="text-xl sm:text-2xl font-bold text-foreground text-left">
                 Novo Usuário
               </DialogTitle>
-              <DialogDescription className="text-sm text-zinc-400 text-left">
+              <DialogDescription className="text-sm text-muted-foreground text-left">
                 Adicione um novo usuário ao sistema
               </DialogDescription>
             </div>
@@ -179,7 +179,7 @@ const AddUser = ({ onClose }) => {
             variant="outline"
             size="icon"
             onClick={onClose}
-            className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 shrink-0"
+            className="h-10 w-10 rounded-full shrink-0"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -187,24 +187,24 @@ const AddUser = ({ onClose }) => {
       </DialogHeader>
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Nome */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-zinc-400">Nome</label>
+          <label className="text-sm font-medium text-muted-foreground">Nome</label>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
               name="displayName"
               value={formData.displayName}
               onChange={handleChange}
-              className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+              className="pl-10"
               placeholder="Nome do usuário"
               required
             />
@@ -213,15 +213,15 @@ const AddUser = ({ onClose }) => {
 
         {/* Email */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-zinc-400">Email</label>
+          <label className="text-sm font-medium text-muted-foreground">Email</label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+              className="pl-10"
               placeholder="Email do usuário"
               required
             />
@@ -229,16 +229,16 @@ const AddUser = ({ onClose }) => {
         </div>
 
         {/* Checkbox Google */}
-        <label className="flex items-start gap-2 text-sm text-zinc-300 cursor-pointer pt-1">
+        <label className="flex items-start gap-2 text-sm text-foreground/90 cursor-pointer pt-1">
           <input
             type="checkbox"
             checked={googleOnly}
             onChange={(e) => setGoogleOnly(e.target.checked)}
-            className="mt-1 rounded border-zinc-700 bg-zinc-900"
+            className="mt-1 rounded border-border bg-muted/50"
           />
           <span>
             Entra com Google (sem senha)
-            <span className="block text-xs text-zinc-500">
+            <span className="block text-xs text-muted-foreground">
               A pessoa autentica-se com a sua conta Google.
             </span>
           </span>
@@ -247,15 +247,15 @@ const AddUser = ({ onClose }) => {
         {/* Senha (apenas se não for Google) */}
         {!googleOnly && (
           <div className="space-y-2">
-            <label className="text-sm font-medium text-zinc-400">Senha</label>
+            <label className="text-sm font-medium text-muted-foreground">Senha</label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type={showPassword ? "text" : "password"}
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className="pl-10 pr-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                className="pl-10 pr-10"
                 placeholder="Senha"
                 required={!googleOnly}
               />
@@ -263,7 +263,7 @@ const AddUser = ({ onClose }) => {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="absolute right-0 top-0 h-full px-3 text-zinc-400 hover:text-white"
+                className="absolute right-0 top-0 h-full px-3 text-muted-foreground"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? (
@@ -278,17 +278,17 @@ const AddUser = ({ onClose }) => {
 
         {/* Função / Role */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-zinc-400">Função</label>
+          <label className="text-sm font-medium text-muted-foreground">Função</label>
           <Select value={formData.role} onValueChange={handleRoleChange}>
-            <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+            <SelectTrigger>
               <SelectValue placeholder="Selecione a função" />
             </SelectTrigger>
-            <SelectContent className="bg-zinc-800 border-zinc-700">
+            <SelectContent>
               {ROLE_OPTIONS.map((option) => (
                 <SelectItem
                   key={option.value}
                   value={option.value}
-                  className="text-white hover:bg-zinc-700"
+                 
                 >
                   {option.label}
                 </SelectItem>
@@ -301,7 +301,7 @@ const AddUser = ({ onClose }) => {
         <Button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-medium mt-4"
+          className="w-full font-medium mt-4"
         >
           {isLoading ? (
             <>

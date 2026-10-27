@@ -151,26 +151,26 @@ const PartImage = ({
   return (
     <div
       ref={imgRef}
-      className={`relative overflow-hidden bg-zinc-700 ${className}`}
+      className={`relative overflow-hidden bg-muted ${className}`}
       style={{ minHeight: "100%", minWidth: "100%" }}
     >
       {/* Loading state */}
       {isLoading && isInView && (
-        <div className="absolute inset-0 flex items-center justify-center bg-zinc-700 animate-pulse">
-          <div className="w-6 h-6 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
+        <div className="absolute inset-0 flex items-center justify-center bg-muted animate-pulse">
+          <div className="w-6 h-6 border-2 border-muted-foreground/40 border-t-transparent rounded-full animate-spin" />
         </div>
       )}
 
       {/* Placeholder quando não está na viewport */}
       {!isInView && lazy && !priority && (
-        <div className="absolute inset-0 flex items-center justify-center bg-zinc-700">
-          <Package className="w-8 h-8 text-zinc-500" />
+        <div className="absolute inset-0 flex items-center justify-center bg-muted">
+          <Package className="w-8 h-8 text-muted-foreground" />
         </div>
       )}
 
       {/* Error state */}
       {hasError && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-700 text-zinc-400">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted text-muted-foreground">
           <Package className="w-8 h-8 mb-1" />
           <span className="text-xs">Sem imagem</span>
         </div>

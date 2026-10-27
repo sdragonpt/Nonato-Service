@@ -41,6 +41,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+import { PageHeader } from "../../components/app";
 
 const STATUS_LABELS = {
   rascunho: { label: "Rascunho", className: "bg-yellow-500/20 text-yellow-400" },
@@ -157,7 +158,7 @@ const ManageProtocols = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -165,55 +166,53 @@ const ManageProtocols = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Protocolos de Serviço
-          </h1>
-          <p className="text-sm text-zinc-400">
-            Registos antes/depois por cliente e equipamento, com peças trocadas
-          </p>
-        </div>
-        <Button
-          onClick={() => navigate("/app/add-protocol")}
-          className="bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Protocolo
-        </Button>
-      </div>
+      <PageHeader
+        title="Protocolos de Serviço"
+        description="Registos antes/depois por cliente e equipamento, com peças trocadas"
+        actions={
+          <>
+            <Button
+            onClick={() => navigate("/app/add-protocol")}
+           
+          >
+            <Plus className="w-4 h-4" />
+            Novo Protocolo
+          </Button>
+          </>
+        }
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Filters */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar por título, cliente ou equipamento..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+              className="pl-10"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white sm:w-56">
+            <SelectTrigger className="sm:w-56">
               <SelectValue placeholder="Filtrar por estado" />
             </SelectTrigger>
-            <SelectContent className="bg-zinc-800 border-zinc-700">
-              <SelectItem value="all" className="text-white hover:bg-zinc-700">
+            <SelectContent>
+              <SelectItem value="all">
                 Todos os estados
               </SelectItem>
-              <SelectItem value="rascunho" className="text-white hover:bg-zinc-700">
+              <SelectItem value="rascunho">
                 Rascunho
               </SelectItem>
-              <SelectItem value="concluido" className="text-white hover:bg-zinc-700">
+              <SelectItem value="concluido">
                 Concluído
               </SelectItem>
             </SelectContent>
@@ -223,13 +222,13 @@ const ManageProtocols = () => {
 
       {/* List */}
       {filtered.length === 0 ? (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="p-8 sm:p-12 text-center">
-            <ClipboardList className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2 text-white">
+            <ClipboardList className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
+            <p className="text-lg font-medium mb-2 text-foreground">
               Nenhum protocolo encontrado
             </p>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               Crie um protocolo de serviço para começar
             </p>
           </CardContent>
@@ -242,26 +241,26 @@ const ManageProtocols = () => {
             return (
               <Card
                 key={protocol.id}
-                className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700/50 transition-colors cursor-pointer"
+                className="hover:bg-white/5 transition-colors cursor-pointer"
                 onClick={() => navigate(`/app/protocol/${protocol.id}`)}
               >
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <h3 className="font-semibold text-white truncate">
+                      <h3 className="font-semibold text-foreground truncate">
                         {protocol.title || "Protocolo sem título"}
                       </h3>
-                      <p className="text-xs text-zinc-500 font-mono">
+                      <p className="text-xs text-muted-foreground font-mono">
                         {protocol.protocolNumber || `PROT-${protocol.id}`}
                       </p>
-                      <div className="flex items-center gap-1.5 text-sm text-zinc-400 mt-1">
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
                         <User className="h-3.5 w-3.5" />
                         <span className="truncate">
                           {protocol.clientName || "Sem cliente"}
                         </span>
                       </div>
                       {protocol.equipmentName && (
-                        <div className="flex items-center gap-1.5 text-sm text-zinc-400 mt-0.5">
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
                           <Printer className="h-3.5 w-3.5" />
                           <span className="truncate">{protocol.equipmentName}</span>
                         </div>
@@ -275,8 +274,8 @@ const ManageProtocols = () => {
                     </Badge>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-zinc-700">
-                    <span className="text-xs text-zinc-500">
+                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                    <span className="text-xs text-muted-foreground">
                       Atualizado em {formatDate(protocol.updatedAt)}
                     </span>
                     <div className="flex gap-1">
@@ -287,7 +286,7 @@ const ManageProtocols = () => {
                           e.stopPropagation();
                           navigate(`/app/edit-protocol/${protocol.id}`);
                         }}
-                        className="text-zinc-400 hover:text-white hover:bg-zinc-700 h-8 w-8"
+                        className="text-muted-foreground h-8 w-8"
                       >
                         <FileEdit className="h-4 w-4" />
                       </Button>
@@ -298,7 +297,7 @@ const ManageProtocols = () => {
                           e.stopPropagation();
                           navigate(`/app/protocol/${protocol.id}`);
                         }}
-                        className="text-zinc-400 hover:text-white hover:bg-zinc-700 h-8 w-8"
+                        className="text-muted-foreground h-8 w-8"
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -329,7 +328,7 @@ const ManageProtocols = () => {
             variant="outline"
             onClick={loadMore}
             disabled={isLoadingMore}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+            className="gap-2"
           >
             {isLoadingMore ? (
               <>
@@ -348,10 +347,10 @@ const ManageProtocols = () => {
 
       {/* Delete Confirmation */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem a certeza que deseja apagar este protocolo de serviço? Esta
               ação não pode ser desfeita.
             </DialogDescription>
@@ -360,7 +359,7 @@ const ManageProtocols = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteTarget(null)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
@@ -369,7 +368,7 @@ const ManageProtocols = () => {
               onClick={handleDelete}
               className="bg-red-600 hover:bg-red-700"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
+              <Trash2 className="w-4 h-4" />
               Apagar
             </Button>
           </DialogFooter>

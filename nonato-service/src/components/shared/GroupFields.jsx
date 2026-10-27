@@ -26,7 +26,7 @@ const ManageButton = ({ onClick }) => (
     onClick={onClick}
     className="shrink-0"
   >
-    <FolderCog className="h-4 w-4 mr-2" />
+    <FolderCog className="h-4 w-4" />
     Gerir grupos
   </Button>
 );

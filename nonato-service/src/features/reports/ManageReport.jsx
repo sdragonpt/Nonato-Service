@@ -38,6 +38,7 @@ import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
+import { PageHeader } from "../../components/app";
 
 const toDateInputValue = (value) => {
   if (!value) return toDateKey();
@@ -55,14 +56,14 @@ const StepHeader = ({ title, subtitle, onBack }) => (
         variant="outline"
         size="icon"
         onClick={onBack}
-        className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900 shrink-0"
+        className="shrink-0"
       >
         <ArrowLeft className="h-4 w-4" />
       </Button>
     )}
     <div className="min-w-0">
-      <h2 className="text-white font-medium">{title}</h2>
-      {subtitle && <p className="text-xs text-zinc-400">{subtitle}</p>}
+      <h2 className="text-foreground font-medium">{title}</h2>
+      {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
     </div>
   </div>
 );
@@ -342,17 +343,22 @@ const ManageReport = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-white">Criar Relatório</h1>
-        <p className="text-sm text-zinc-400">
-          Gera e guarda relatórios normais e especiais (horas por equipamento)
-        </p>
-      </div>
+      <PageHeader
+        title="Criar Relatório"
+        description="Gera e guarda relatórios normais e especiais (horas por equipamento)"
+        actions={
+          <>
+            <p className="text-sm text-muted-foreground">
+            Gera e guarda relatórios normais e especiais (horas por equipamento)
+          </p>
+          </>
+        }
+      />
 
       {genError && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{genError}</AlertDescription>
+          <AlertDescription>{genError}</AlertDescription>
         </Alert>
       )}
 
@@ -360,25 +366,25 @@ const ManageReport = () => {
       {step === "landing" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Card
-            className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700/50 transition-colors cursor-pointer"
+            className="hover:bg-white/5 transition-colors cursor-pointer"
             onClick={() => startFlow("normal")}
           >
             <CardContent className="p-8 text-center space-y-3">
               <FileText className="w-10 h-10 text-blue-400 mx-auto" />
-              <p className="text-white font-medium">Novo Relatório</p>
-              <p className="text-sm text-zinc-400">
+              <p className="text-foreground font-medium">Novo Relatório</p>
+              <p className="text-sm text-muted-foreground">
                 Relatório de serviço normal, associado a um cliente
               </p>
             </CardContent>
           </Card>
           <Card
-            className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700/50 transition-colors cursor-pointer"
+            className="hover:bg-white/5 transition-colors cursor-pointer"
             onClick={() => startFlow("especial")}
           >
             <CardContent className="p-8 text-center space-y-3">
               <Cpu className="w-10 h-10 text-orange-400 mx-auto" />
-              <p className="text-white font-medium">Novo Relatório Especial</p>
-              <p className="text-sm text-zinc-400">
+              <p className="text-foreground font-medium">Novo Relatório Especial</p>
+              <p className="text-sm text-muted-foreground">
                 Igual ao normal, mais horas agrupadas por equipamento/máquina
               </p>
             </CardContent>
@@ -395,7 +401,7 @@ const ManageReport = () => {
             onBack={() => setStep("landing")}
           />
           <Card
-            className="bg-zinc-800 border-green-700/50 hover:bg-zinc-700/50 transition-colors cursor-pointer"
+            className="border-green-700/50 hover:bg-white/5 transition-colors cursor-pointer"
             onClick={handleIsolatedClient}
           >
             <CardContent className="p-4 flex items-center gap-3">
@@ -403,24 +409,24 @@ const ManageReport = () => {
                 <UserX className="h-4 w-4 text-green-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-white text-sm font-medium">Não é cliente (serviço isolado)</p>
-                <p className="text-xs text-zinc-400">
+                <p className="text-foreground text-sm font-medium">Não é cliente (serviço isolado)</p>
+                <p className="text-xs text-muted-foreground">
                   Preenche os dados do cliente à mão — fica guardado à parte, em &ldquo;Avulsos&rdquo;
                 </p>
               </div>
-              <ChevronRight className="h-4 w-4 text-zinc-500 shrink-0 ml-auto" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 ml-auto" />
             </CardContent>
           </Card>
 
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardContent className="p-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Pesquisar cliente..."
                   value={clientSearch}
                   onChange={(e) => setClientSearch(e.target.value)}
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                  className="pl-10"
                 />
               </div>
             </CardContent>
@@ -428,24 +434,24 @@ const ManageReport = () => {
 
           {clientsLoading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-white" />
+              <Loader2 className="h-8 w-8 animate-spin text-foreground" />
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {filteredClients.map((client) => (
                 <Card
                   key={client.id}
-                  className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700/50 transition-colors cursor-pointer"
+                  className="hover:bg-white/5 transition-colors cursor-pointer"
                   onClick={() => handleSelectClient(client)}
                 >
                   <CardContent className="p-4 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-9 w-9 rounded-full bg-zinc-700 flex items-center justify-center shrink-0">
-                        <User className="h-4 w-4 text-zinc-300" />
+                      <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+                        <User className="h-4 w-4 text-foreground/90" />
                       </div>
-                      <p className="text-white text-sm font-medium truncate">{client.name}</p>
+                      <p className="text-foreground text-sm font-medium truncate">{client.name}</p>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-zinc-500 shrink-0" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                   </CardContent>
                 </Card>
               ))}
@@ -464,7 +470,7 @@ const ManageReport = () => {
           />
 
           <Card
-            className="bg-zinc-800 border-green-700/50 hover:bg-zinc-700/50 transition-colors cursor-pointer"
+            className="border-green-700/50 hover:bg-white/5 transition-colors cursor-pointer"
             onClick={handleIsolatedReport}
           >
             <CardContent className="p-4 flex items-center gap-3">
@@ -472,19 +478,19 @@ const ManageReport = () => {
                 <FilePlus className="h-4 w-4 text-green-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-white text-sm font-medium">Relatório Isolado (sem ordem de serviço)</p>
-                <p className="text-xs text-zinc-400">Preenche os dados de raiz, sem partir de nenhuma ordem</p>
+                <p className="text-foreground text-sm font-medium">Relatório Isolado (sem ordem de serviço)</p>
+                <p className="text-xs text-muted-foreground">Preenche os dados de raiz, sem partir de nenhuma ordem</p>
               </div>
-              <ChevronRight className="h-4 w-4 text-zinc-500 shrink-0 ml-auto" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 ml-auto" />
             </CardContent>
           </Card>
 
           {ordersLoading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-white" />
+              <Loader2 className="h-8 w-8 animate-spin text-foreground" />
             </div>
           ) : clientOrders.length === 0 ? (
-            <p className="text-sm text-zinc-500 text-center py-4">
+            <p className="text-sm text-muted-foreground text-center py-4">
               Este cliente ainda não tem ordens de serviço.
             </p>
           ) : (
@@ -492,15 +498,15 @@ const ManageReport = () => {
               {clientOrders.map((order) => (
                 <Card
                   key={order.id}
-                  className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700/50 transition-colors cursor-pointer"
+                  className="hover:bg-white/5 transition-colors cursor-pointer"
                   onClick={() => handleSelectOrder(order)}
                 >
                   <CardContent className="p-4 flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-white text-sm font-medium truncate">
+                      <p className="text-foreground text-sm font-medium truncate">
                         Ordem {order.orderNumber || order.id}
                       </p>
-                      <p className="text-xs text-zinc-500">
+                      <p className="text-xs text-muted-foreground">
                         {formatDate(order.date || order.createdAt)}
                       </p>
                     </div>
@@ -514,7 +520,7 @@ const ManageReport = () => {
                       >
                         {order.status || "Aberto"}
                       </Badge>
-                      <ChevronRight className="h-4 w-4 text-zinc-500" />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </CardContent>
                 </Card>
@@ -545,14 +551,14 @@ const ManageReport = () => {
 
           {loadingForm ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-white" />
+              <Loader2 className="h-8 w-8 animate-spin text-foreground" />
             </div>
           ) : (
             <>
               {isolatedFlow && (
-                <Card className="bg-zinc-800 border-zinc-700">
+                <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base text-white flex items-center gap-2">
+                    <CardTitle className="text-base flex items-center gap-2">
                       <UserX className="h-4 w-4" />
                       Dados do Cliente (não registado)
                     </CardTitle>
@@ -562,19 +568,19 @@ const ManageReport = () => {
                       placeholder="Nome"
                       value={isolatedClient.name}
                       onChange={(e) => setIsolatedClient((prev) => ({ ...prev, name: e.target.value }))}
-                      className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                     
                     />
                     <Input
                       placeholder="Telefone"
                       value={isolatedClient.phone}
                       onChange={(e) => setIsolatedClient((prev) => ({ ...prev, phone: e.target.value }))}
-                      className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                     
                     />
                     <Input
                       placeholder="Morada"
                       value={isolatedClient.address}
                       onChange={(e) => setIsolatedClient((prev) => ({ ...prev, address: e.target.value }))}
-                      className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                     
                     />
                   </CardContent>
                 </Card>
@@ -589,7 +595,7 @@ const ManageReport = () => {
               <Button
                 onClick={handleGenerate}
                 disabled={generating}
-                className="w-full bg-green-600 hover:bg-green-700"
+                className="w-full"
               >
                 {generating ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -605,12 +611,12 @@ const ManageReport = () => {
 
       {/* Sucesso */}
       {step === "sucesso" && saved && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="p-8 text-center space-y-4">
             <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto" />
             <div>
-              <p className="text-white font-medium">Relatório gerado e guardado</p>
-              <p className="text-sm text-zinc-400">
+              <p className="text-foreground font-medium">Relatório gerado e guardado</p>
+              <p className="text-sm text-muted-foreground">
                 {isolatedFlow
                   ? "Já está disponível em Avulsos, na Biblioteca de Relatórios"
                   : `Já está disponível no perfil de ${selectedClient?.name} e na Biblioteca de Relatórios`}
@@ -620,13 +626,13 @@ const ManageReport = () => {
               <Button
                 variant="outline"
                 onClick={() => downloadFileFromUrl(saved.url, saved.fileName || "relatorio.pdf")}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+               
               >
-                <Download className="w-4 h-4 mr-2" />
+                <Download className="w-4 h-4" />
                 Descarregar novamente
               </Button>
-              <Button onClick={resetFlow} className="bg-green-600 hover:bg-green-700">
-                <RotateCcw className="w-4 h-4 mr-2" />
+              <Button onClick={resetFlow}>
+                <RotateCcw className="w-4 h-4" />
                 Criar Outro Relatório
               </Button>
             </div>

@@ -118,19 +118,19 @@ const ServiceInput = ({
     <div className="space-y-4">
       {/* Service Selection */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-zinc-400">Serviço</label>
+        <label className="text-sm font-medium text-muted-foreground">Serviço</label>
         <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
-          <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+          <SelectTrigger>
             <SelectValue placeholder="Selecione um serviço..." />
           </SelectTrigger>
-          <SelectContent className="bg-zinc-800 border-zinc-700">
+          <SelectContent>
             {services
               .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
               .map((service) => (
                 <SelectItem
                   key={service.id}
                   value={service.id}
-                  className="text-white hover:bg-zinc-700"
+                 
                 >
                   <div className="flex items-center gap-2">
                     <Package className="w-4 h-4" />
@@ -146,7 +146,7 @@ const ServiceInput = ({
         <>
           {/* Mode Toggle */}
           <div className="flex justify-center">
-            <div className="bg-zinc-900 p-1 rounded-xl inline-flex relative">
+            <div className="bg-muted/50 p-1 rounded-xl inline-flex relative">
               <div
                 className={`absolute top-1 bottom-1 w-[120px] rounded-lg bg-green-600 transition-all duration-300 ${
                   inputMode === "multiple"
@@ -158,8 +158,8 @@ const ServiceInput = ({
                 onClick={() => setInputMode("single")}
                 className={`relative w-[120px] py-2 rounded-lg font-medium transition-colors ${
                   inputMode === "single"
-                    ? "text-white"
-                    : "text-zinc-400 hover:text-white"
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Valor Único
@@ -168,8 +168,8 @@ const ServiceInput = ({
                 onClick={() => setInputMode("multiple")}
                 className={`relative w-[120px] py-2 rounded-lg font-medium transition-colors ${
                   inputMode === "multiple"
-                    ? "text-white"
-                    : "text-zinc-400 hover:text-white"
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Múltiplos
@@ -179,20 +179,20 @@ const ServiceInput = ({
 
           {/* Single Value Mode */}
           {inputMode === "single" && (
-            <Card className="bg-zinc-900 border-zinc-700">
+            <Card className="bg-muted/50">
               <CardContent className="p-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400">
+                    <label className="text-sm font-medium text-muted-foreground">
                       Valor Unitário
                     </label>
                     <div className="relative">
-                      <Euro className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                      <Euro className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         type="number"
                         value={serviceValue}
                         onChange={(e) => setServiceValue(e.target.value)}
-                        className="pl-10 bg-zinc-800 border-zinc-600 text-white"
+                        className="pl-10 bg-card"
                         placeholder="0.00"
                         step="0.01"
                         min="0"
@@ -200,18 +200,18 @@ const ServiceInput = ({
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400">
+                    <label className="text-sm font-medium text-muted-foreground">
                       Quantidade{" "}
                       {selectedService &&
                         `(${getUnitLabel(selectedService.type)})`}
                     </label>
                     <div className="relative">
-                      <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                      <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         type="number"
                         value={serviceQuantity}
                         onChange={(e) => setServiceQuantity(e.target.value)}
-                        className="pl-10 bg-zinc-800 border-zinc-600 text-white"
+                        className="pl-10 bg-card"
                         placeholder="1"
                         step="1"
                         min="0"
@@ -221,10 +221,10 @@ const ServiceInput = ({
                 </div>
 
                 {serviceValue && serviceQuantity && (
-                  <div className="mt-4 pt-4 border-t border-zinc-700">
+                  <div className="mt-4 pt-4 border-t border-border">
                     <p className="text-right text-sm">
-                      <span className="text-zinc-400">Total: </span>
-                      <span className="text-white font-medium">
+                      <span className="text-muted-foreground">Total: </span>
+                      <span className="text-foreground font-medium">
                         {formatEuroNumber(
                           parseFloat(serviceValue) * parseFloat(serviceQuantity)
                         )}
@@ -241,22 +241,22 @@ const ServiceInput = ({
           {inputMode === "multiple" && (
             <div className="space-y-4">
               {multipleEntries.map((entry, index) => (
-                <Card key={index} className="bg-zinc-900 border-zinc-700">
+                <Card key={index} className="bg-muted/50">
                   <CardContent className="p-4">
                     <div className="flex gap-4">
                       <div className="flex-1 space-y-2">
-                        <label className="text-sm font-medium text-zinc-400">
+                        <label className="text-sm font-medium text-muted-foreground">
                           Valor {index + 1}
                         </label>
                         <div className="relative">
-                          <Euro className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                          <Euro className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                           <Input
                             type="number"
                             value={entry.value}
                             onChange={(e) =>
                               updateEntryValue(index, e.target.value)
                             }
-                            className="pl-10 bg-zinc-800 border-zinc-600 text-white"
+                            className="pl-10 bg-card"
                             placeholder="0.00"
                             step="0.01"
                             min="0"
@@ -264,20 +264,20 @@ const ServiceInput = ({
                         </div>
                       </div>
                       <div className="flex-1 space-y-2">
-                        <label className="text-sm font-medium text-zinc-400">
+                        <label className="text-sm font-medium text-muted-foreground">
                           Quantidade{" "}
                           {selectedService &&
                             `(${getUnitLabel(selectedService.type)})`}
                         </label>
                         <div className="relative">
-                          <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                          <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                           <Input
                             type="number"
                             value={entry.quantity}
                             onChange={(e) =>
                               updateEntryQuantity(index, e.target.value)
                             }
-                            className="pl-10 bg-zinc-800 border-zinc-600 text-white"
+                            className="pl-10 bg-card"
                             placeholder="1"
                             step="1"
                             min="1"
@@ -289,17 +289,17 @@ const ServiceInput = ({
                         size="icon"
                         onClick={() => removeEntry(index)}
                         disabled={multipleEntries.length === 1}
-                        className="mt-8 text-red-400 hover:text-red-300 hover:bg-zinc-800"
+                        className="mt-8 text-red-400 hover:text-red-300 hover:bg-white/5"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
 
                     {entry.value && entry.quantity && (
-                      <div className="mt-4 pt-4 border-t border-zinc-700">
+                      <div className="mt-4 pt-4 border-t border-border">
                         <p className="text-right text-sm">
-                          <span className="text-zinc-400">Subtotal: </span>
-                          <span className="text-white font-medium">
+                          <span className="text-muted-foreground">Subtotal: </span>
+                          <span className="text-foreground font-medium">
                             {formatEuroNumber(
                               parseFloat(entry.value) *
                               parseFloat(entry.quantity)
@@ -316,19 +316,19 @@ const ServiceInput = ({
               <Button
                 variant="outline"
                 onClick={addEntry}
-                className="w-full border-dashed border-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-800"
+                className="w-full border-dashed text-muted-foreground hover:bg-white/5"
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-4 h-4" />
                 Adicionar Valor
               </Button>
 
               {multipleEntries.some(
                 (entry) => entry.value && entry.quantity
               ) && (
-                <div className="pt-4 border-t border-zinc-700">
+                <div className="pt-4 border-t border-border">
                   <p className="text-right">
-                    <span className="text-zinc-400">Total: </span>
-                    <span className="text-white font-medium">
+                    <span className="text-muted-foreground">Total: </span>
+                    <span className="text-foreground font-medium">
                       {formatEuroNumber(calculateMultipleTotal())}€
                     </span>
                   </p>
@@ -347,9 +347,9 @@ const ServiceInput = ({
               (inputMode === "multiple" &&
                 multipleEntries.some((entry) => entry.value === ""))
             }
-            className="w-full bg-green-600 hover:bg-green-700 h-12"
+            className="w-full h-12"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4" />
             Adicionar Serviço
           </Button>
         </>

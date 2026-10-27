@@ -58,6 +58,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+import { PageHeader } from "../../../components/app";
 
 const OrderDetail = () => {
   const { orderId } = useParams();
@@ -446,7 +447,7 @@ const OrderDetail = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -471,34 +472,21 @@ const OrderDetail = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">
-            Ordem de Serviço {order.orderNumber || `#${orderId}`}
-          </h1>
-          <p className="text-sm text-zinc-400">
-            Visualize e gerencie os detalhes da ordem de serviço
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title={<>Ordem de Serviço {order.orderNumber || `#${orderId}`}</>}
+        description="Visualize e gerencie os detalhes da ordem de serviço"
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Status and Actions Card */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Status Badges */}
@@ -546,7 +534,7 @@ const OrderDetail = () => {
 
                   <Button
                     onClick={handleCloseOrder}
-                    className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
+                    className="flex-1 sm:flex-none"
                     disabled={isClosing}
                   >
                     {isClosing ? (
@@ -601,9 +589,9 @@ const OrderDetail = () => {
       </Card>
 
       {/* ✅ ORDER DETAILS CARD MELHORADO */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-lg text-white">
+          <CardTitle className="text-lg">
             Detalhes da Ordem
           </CardTitle>
         </CardHeader>
@@ -611,7 +599,7 @@ const OrderDetail = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* ✅ COLUNA ESQUERDA - DADOS DO CLIENTE */}
             <div className="space-y-4">
-              <div className="flex items-start gap-3 p-4 bg-zinc-700/30 rounded-lg">
+              <div className="flex items-start gap-3 p-4 bg-muted/30 rounded-lg">
                 <div className="flex-shrink-0">
                   {order.isUnregisteredClient ? (
                     <UserX className="h-5 w-5 text-blue-400 mt-1" />
@@ -621,7 +609,7 @@ const OrderDetail = () => {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-medium text-zinc-300">Cliente</p>
+                    <p className="text-sm font-medium text-foreground/90">Cliente</p>
                     <Badge
                       variant="outline"
                       className={
@@ -639,42 +627,42 @@ const OrderDetail = () => {
                   {/* ✅ MOSTRAR DADOS BASEADO NO TIPO DE CLIENTE */}
                   {order.isUnregisteredClient ? (
                     <div className="space-y-1">
-                      <p className="text-white font-medium">
+                      <p className="text-foreground font-medium">
                         {order.unregisteredClient?.name || "N/A"}
                       </p>
                       {order.unregisteredClient?.email && (
-                        <p className="text-sm text-zinc-400">
+                        <p className="text-sm text-muted-foreground">
                           📧 {order.unregisteredClient.email}
                         </p>
                       )}
                       {order.unregisteredClient?.phone && (
-                        <p className="text-sm text-zinc-400">
+                        <p className="text-sm text-muted-foreground">
                           📞 {order.unregisteredClient.phone}
                         </p>
                       )}
                       {order.unregisteredClient?.company && (
-                        <p className="text-sm text-zinc-400">
+                        <p className="text-sm text-muted-foreground">
                           🏢 {order.unregisteredClient.company}
                         </p>
                       )}
                     </div>
                   ) : (
                     <div className="space-y-1">
-                      <p className="text-white font-medium">
+                      <p className="text-foreground font-medium">
                         {order.clientInfo?.name || client?.name || "N/A"}
                       </p>
                       {(order.clientInfo?.email || client?.email) && (
-                        <p className="text-sm text-zinc-400">
+                        <p className="text-sm text-muted-foreground">
                           📧 {order.clientInfo?.email || client?.email}
                         </p>
                       )}
                       {(order.clientInfo?.phone || client?.phone) && (
-                        <p className="text-sm text-zinc-400">
+                        <p className="text-sm text-muted-foreground">
                           📞 {order.clientInfo?.phone || client?.phone}
                         </p>
                       )}
                       {(order.clientInfo?.company || client?.company) && (
-                        <p className="text-sm text-zinc-400">
+                        <p className="text-sm text-muted-foreground">
                           🏢 {order.clientInfo?.company || client?.company}
                         </p>
                       )}
@@ -686,20 +674,20 @@ const OrderDetail = () => {
               {/* ✅ DATA E TIPO DE SERVIÇO */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-zinc-400" />
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm text-zinc-400">Data</p>
-                    <p className="text-white">
+                    <p className="text-sm text-muted-foreground">Data</p>
+                    <p className="text-foreground">
                       {new Date(order.date).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Settings className="h-4 w-4 text-zinc-400" />
+                  <Settings className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm text-zinc-400">Tipo de Serviço</p>
-                    <p className="text-white">{order.serviceType}</p>
+                    <p className="text-sm text-muted-foreground">Tipo de Serviço</p>
+                    <p className="text-foreground">{order.serviceType}</p>
                   </div>
                 </div>
               </div>
@@ -707,13 +695,13 @@ const OrderDetail = () => {
 
             {/* ✅ COLUNA DIREITA - DADOS DO EQUIPAMENTO */}
             <div className="space-y-4">
-              <div className="flex items-start gap-3 p-4 bg-zinc-700/30 rounded-lg">
+              <div className="flex items-start gap-3 p-4 bg-muted/30 rounded-lg">
                 <div className="flex-shrink-0">
                   <Printer className="h-5 w-5 text-orange-400 mt-1" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-medium text-zinc-300">
+                    <p className="text-sm font-medium text-foreground/90">
                       Equipamento
                     </p>
                     <Badge
@@ -728,12 +716,12 @@ const OrderDetail = () => {
                   {order.manualEquipment?.model ? (
                     // Equipamento manual (cliente não registrado)
                     <div className="space-y-1">
-                      <p className="text-white font-medium">
+                      <p className="text-foreground font-medium">
                         {order.manualEquipment.brand} -{" "}
                         {order.manualEquipment.model}
                       </p>
                       {order.manualEquipment.serialNumber && (
-                        <p className="text-sm text-zinc-400">
+                        <p className="text-sm text-muted-foreground">
                           🏷️ Nº Série: {order.manualEquipment.serialNumber}
                         </p>
                       )}
@@ -741,18 +729,18 @@ const OrderDetail = () => {
                   ) : (
                     // Equipamento registrado
                     <div className="space-y-1">
-                      <p className="text-white font-medium">
+                      <p className="text-foreground font-medium">
                         {equipment
                           ? `${equipment.brand} - ${equipment.model}`
                           : "N/A"}
                       </p>
                       {equipment?.serialNumber && (
-                        <p className="text-sm text-zinc-400">
+                        <p className="text-sm text-muted-foreground">
                           🏷️ Nº Série: {equipment.serialNumber}
                         </p>
                       )}
                       {equipment?.installationDate && (
-                        <p className="text-sm text-zinc-400">
+                        <p className="text-sm text-muted-foreground">
                           📅 Instalação:{" "}
                           {new Date(
                             equipment.installationDate
@@ -767,10 +755,10 @@ const OrderDetail = () => {
               {/* ✅ INFORMAÇÕES EXTRAS */}
               {order.description && (
                 <div className="flex items-start gap-2">
-                  <FileText className="h-4 w-4 text-zinc-400 mt-1" />
+                  <FileText className="h-4 w-4 text-muted-foreground mt-1" />
                   <div>
-                    <p className="text-sm text-zinc-400">Descrição</p>
-                    <p className="text-white">{order.description}</p>
+                    <p className="text-sm text-muted-foreground">Descrição</p>
+                    <p className="text-foreground">{order.description}</p>
                   </div>
                 </div>
               )}
@@ -780,9 +768,9 @@ const OrderDetail = () => {
       </Card>
 
       {/* Checklist Status Card */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-lg text-white">
+          <CardTitle className="text-lg">
             Status do Checklist
           </CardTitle>
         </CardHeader>
@@ -793,11 +781,11 @@ const OrderDetail = () => {
                 {value ? (
                   <CheckSquare className="h-4 w-4 text-green-500" />
                 ) : (
-                  <AlertCircle className="h-4 w-4 text-zinc-400" />
+                  <AlertCircle className="h-4 w-4 text-muted-foreground" />
                 )}
                 <span
                   className={`text-sm ${
-                    value ? "text-green-400" : "text-zinc-400"
+                    value ? "text-green-400" : "text-muted-foreground"
                   }`}
                 >
                   {key === "concluido"
@@ -823,9 +811,9 @@ const OrderDetail = () => {
 
       {/* ✅ SEÇÃO DE ORÇAMENTO DE PEÇAS (SE EXISTIR) */}
       {hasQuote && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white flex items-center">
+            <CardTitle className="text-lg flex items-center">
               <ShoppingCart className="h-5 w-5 mr-2 text-purple-400" />
               Orçamento de Peças
               <Badge className="ml-2 bg-purple-500/20 text-purple-400">
@@ -839,34 +827,34 @@ const OrderDetail = () => {
               {order.partsQuoteItems.map((item, index) => (
                 <div
                   key={item.id || index}
-                  className="grid grid-cols-12 gap-4 items-center p-3 bg-zinc-700/30 rounded-lg border border-zinc-600"
+                  className="grid grid-cols-12 gap-4 items-center p-3 bg-muted/30 rounded-lg border border-border"
                 >
                   <div className="col-span-12 md:col-span-5">
                     <div className="flex items-center gap-2 mb-1">
                       <Package className="h-4 w-4 text-purple-400" />
-                      <span className="font-medium text-white">
+                      <span className="font-medium text-foreground">
                         {item.name}
                       </span>
                     </div>
-                    <p className="text-sm text-zinc-400">
+                    <p className="text-sm text-muted-foreground">
                       Código: {item.code || "N/A"}
                     </p>
                   </div>
 
                   <div className="col-span-4 md:col-span-2">
-                    <p className="text-sm text-zinc-400">Quantidade</p>
-                    <p className="text-white font-medium">{item.quantity}</p>
+                    <p className="text-sm text-muted-foreground">Quantidade</p>
+                    <p className="text-foreground font-medium">{item.quantity}</p>
                   </div>
 
                   <div className="col-span-4 md:col-span-2">
-                    <p className="text-sm text-zinc-400">Preço Unitário</p>
-                    <p className="text-white font-medium">
+                    <p className="text-sm text-muted-foreground">Preço Unitário</p>
+                    <p className="text-foreground font-medium">
                       {formatPrice(item.price)}
                     </p>
                   </div>
 
                   <div className="col-span-4 md:col-span-3">
-                    <p className="text-sm text-zinc-400">Subtotal</p>
+                    <p className="text-sm text-muted-foreground">Subtotal</p>
                     <p className="text-green-400 font-medium">
                       {formatPrice(item.quantity * (item.price || 0))}
                     </p>
@@ -877,18 +865,18 @@ const OrderDetail = () => {
 
             {/* Informações de Envio */}
             {order.shippingType && (
-              <div className="mt-4 p-3 bg-zinc-700/50 rounded-lg border border-zinc-600">
-                <h5 className="text-sm font-medium text-white mb-2">
+              <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-border">
+                <h5 className="text-sm font-medium text-foreground mb-2">
                   Informações de Envio
                 </h5>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-zinc-400">Tipo de Envio</p>
-                    <p className="text-white">{order.shippingType}</p>
+                    <p className="text-sm text-muted-foreground">Tipo de Envio</p>
+                    <p className="text-foreground">{order.shippingType}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-zinc-400">Preço do Envio</p>
-                    <p className="text-white">
+                    <p className="text-sm text-muted-foreground">Preço do Envio</p>
+                    <p className="text-foreground">
                       {formatPrice(order.shippingPrice)}
                     </p>
                   </div>
@@ -897,22 +885,22 @@ const OrderDetail = () => {
             )}
 
             {/* Resumo de Totais */}
-            <div className="mt-4 p-4 bg-zinc-700/50 rounded-lg border border-zinc-600">
-              <h5 className="text-md font-medium text-white mb-3">
+            <div className="mt-4 p-4 bg-muted/50 rounded-lg border border-border">
+              <h5 className="text-md font-medium text-foreground mb-3">
                 Resumo do Orçamento
               </h5>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-white">Subtotal Peças:</span>
-                  <span className="text-white">
+                  <span className="text-foreground">Subtotal Peças:</span>
+                  <span className="text-foreground">
                     {formatPrice(quoteTotals.subtotal)}
                   </span>
                 </div>
 
                 {quoteTotals.shipping > 0 && (
                   <div className="flex justify-between items-center">
-                    <span className="text-white">Envio:</span>
-                    <span className="text-white">
+                    <span className="text-foreground">Envio:</span>
+                    <span className="text-foreground">
                       {formatPrice(quoteTotals.shipping)}
                     </span>
                   </div>
@@ -921,26 +909,26 @@ const OrderDetail = () => {
                 {order.includeVat && quoteTotals.vatAmount > 0 && (
                   <>
                     <div className="flex justify-between items-center">
-                      <span className="text-white">Total s/ IVA:</span>
-                      <span className="text-white">
+                      <span className="text-foreground">Total s/ IVA:</span>
+                      <span className="text-foreground">
                         {formatPrice(quoteTotals.totalBeforeVat)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-white">
+                      <span className="text-foreground">
                         IVA ({order.vatRate}%):
                       </span>
-                      <span className="text-white">
+                      <span className="text-foreground">
                         {formatPrice(quoteTotals.vatAmount)}
                       </span>
                     </div>
                   </>
                 )}
 
-                <hr className="border-zinc-600" />
+                <hr className="border-border" />
 
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-bold text-white">
+                  <span className="text-lg font-bold text-foreground">
                     Total Final:
                   </span>
                   <span className="text-xl font-bold text-green-400">
@@ -966,14 +954,14 @@ const OrderDetail = () => {
       />
 
       {/* Workdays Card */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader className="flex flex-row justify-between items-center">
-          <CardTitle className="text-lg text-white">Dias de Trabalho</CardTitle>
+          <CardTitle className="text-lg">Dias de Trabalho</CardTitle>
           <Button
             onClick={() => navigate(`/app/order/${orderId}/add-workday`)}
-            className="bg-green-600 hover:bg-green-700"
+           
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4" />
             Novo Dia
           </Button>
         </CardHeader>
@@ -983,13 +971,13 @@ const OrderDetail = () => {
               <div
                 key={workday.id}
                 onClick={() => navigate(`/app/edit-workday/${workday.id}`)}
-                className="bg-zinc-700/50 hover:bg-zinc-700 p-4 rounded-lg cursor-pointer transition-colors"
+                className="bg-muted/50 hover:bg-accent p-4 rounded-lg cursor-pointer transition-colors"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Calendar className="h-5 w-5 text-zinc-400" />
+                    <Calendar className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="text-white">
+                      <p className="text-foreground">
                         {new Date(workday.workDate).toLocaleDateString()}
                       </p>
                       {workday.machineEntries?.length > 0 ? (
@@ -998,7 +986,7 @@ const OrderDetail = () => {
                             {workday.machineEntries.map((entry, entryIdx) => (
                               <span
                                 key={entryIdx}
-                                className="text-xs bg-zinc-900 border border-zinc-700 rounded px-2 py-0.5 text-zinc-300"
+                                className="text-xs bg-muted/50 border border-border rounded px-2 py-0.5 text-foreground/90"
                               >
                                 {entry.equipmentLabel || "Máquina"}{" "}
                                 {entry.startHour}-{entry.endHour}
@@ -1010,21 +998,21 @@ const OrderDetail = () => {
                           </p>
                         </>
                       ) : (
-                        <p className="text-sm text-zinc-400">
+                        <p className="text-sm text-muted-foreground">
                           {workday.startHour} - {workday.endHour}
                         </p>
                       )}
                     </div>
                   </div>
-                  <Edit2 className="w-4 h-4 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Edit2 className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </div>
             ))
           ) : (
             <div className="text-center py-8">
-              <PackageOpen className="w-12 h-12 text-zinc-600 mx-auto mb-3" />
-              <p className="text-zinc-400">Nenhum dia de trabalho registrado</p>
-              <p className="text-sm text-zinc-500">
+              <PackageOpen className="w-12 h-12 text-muted-foreground/70 mx-auto mb-3" />
+              <p className="text-muted-foreground">Nenhum dia de trabalho registrado</p>
+              <p className="text-sm text-muted-foreground">
                 Adicione um novo dia de trabalho clicando no botão acima
               </p>
             </div>
@@ -1034,27 +1022,27 @@ const OrderDetail = () => {
 
       {/* Notes Card */}
       {(order.resultDescription || order.pontosEmAberto) && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Observações</CardTitle>
+            <CardTitle className="text-lg">Observações</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {order.resultDescription && (
               <div>
-                <h4 className="text-sm font-medium text-zinc-400 mb-2">
+                <h4 className="text-sm font-medium text-muted-foreground mb-2">
                   Descrição / Observações
                 </h4>
-                <p className="text-white bg-zinc-700/50 rounded-lg p-3">
+                <p className="text-foreground bg-muted/50 rounded-lg p-3">
                   {order.resultDescription}
                 </p>
               </div>
             )}
             {order.pontosEmAberto && (
               <div>
-                <h4 className="text-sm font-medium text-zinc-400 mb-2">
+                <h4 className="text-sm font-medium text-muted-foreground mb-2">
                   Pontos em Aberto
                 </h4>
-                <p className="text-white bg-zinc-700/50 rounded-lg p-3">
+                <p className="text-foreground bg-muted/50 rounded-lg p-3">
                   {order.pontosEmAberto}
                 </p>
               </div>
@@ -1065,10 +1053,10 @@ const OrderDetail = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem certeza que deseja excluir esta ordem de serviço? A ordem
               será movida para a Reciclagem e pode ser restaurada mais tarde.
             </DialogDescription>
@@ -1077,7 +1065,7 @@ const OrderDetail = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
@@ -1104,17 +1092,17 @@ const OrderDetail = () => {
           onClick={() => navigate(-1)}
           variant="outline"
           size="icon"
-          className="h-12 w-12 rounded-full border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
+          className="h-12 w-12 rounded-full"
         >
-          <ArrowLeft className="h-5 w-5 text-white" />
+          <ArrowLeft className="h-5 w-5 text-foreground" />
         </Button>
         <Button
           onClick={() => navigate(`/app/edit-service-order/${orderId}`)}
           variant="outline"
           size="icon"
-          className="h-12 w-12 rounded-full border-zinc-700 bg-green-600 hover:bg-green-700"
+          className="h-12 w-12 rounded-full bg-primary hover:bg-primary/90"
         >
-          <Edit2 className="h-5 w-5 text-white" />
+          <Edit2 className="h-5 w-5 text-foreground" />
         </Button>
       </div>
     </div>

@@ -5,7 +5,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { SingleGroupField } from "../../../components/shared/GroupFields.jsx";
 import { GROUP_KINDS } from "../../../services/groupsStore.js";
 import {
-  ArrowLeft,
   Loader2,
   Save,
   AlertTriangle,
@@ -31,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
+import { PageHeader } from "../../../components/app";
 
 const EditService = () => {
   const navigate = useNavigate();
@@ -129,7 +129,7 @@ const EditService = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -141,50 +141,35 @@ const EditService = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <ClipboardEdit className="h-5 w-5 text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">Editar Serviço</h1>
-            <p className="text-sm text-zinc-400">
-              Atualize as informações do serviço
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Editar Serviço"
+        description="Atualize as informações do serviço"
+        icon={ClipboardEdit}
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Service Information Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">
+            <CardTitle className="text-lg">
               Informações do Serviço
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Nome do Serviço
               </label>
               <div className="relative">
-                <Wrench className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Wrench className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="text"
                   name="name"
@@ -192,7 +177,7 @@ const EditService = () => {
                   onChange={handleChange}
                   onBlur={() => handleBlur("name")}
                   placeholder="Ex: Manutenção Básica"
-                  className={`pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 ${
+                  className={`pl-10 bg-muted/50 border-border text-foreground ${
                     touched.name && !formData.name ? "border-red-500" : ""
                   }`}
                 />
@@ -210,42 +195,42 @@ const EditService = () => {
             />
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Tipo de Serviço
               </label>
               <Select value={formData.type} onValueChange={handleTypeChange}>
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white pl-10 relative">
-                  <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <SelectTrigger className="pl-10 relative">
+                  <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectContent>
                   <SelectItem
                     value="base"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Valor Base
                   </SelectItem>
                   <SelectItem
                     value="un"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Despesa
                   </SelectItem>
                   <SelectItem
                     value="hour"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Por Hora
                   </SelectItem>
                   <SelectItem
                     value="day"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Por Dia
                   </SelectItem>
                   <SelectItem
                     value="km"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Por Km
                   </SelectItem>
@@ -254,7 +239,7 @@ const EditService = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Descrição (Opcional)
               </label>
               <textarea
@@ -262,7 +247,7 @@ const EditService = () => {
                 value={formData.description}
                 onChange={handleChange}
                 placeholder="Descreva o serviço..."
-                className="w-full p-3 bg-zinc-900 border-zinc-700 text-white rounded-md resize-none h-32 focus:outline-none focus:ring-2 focus:ring-green-500 [&::placeholder]:text-zinc-500"
+                className="w-full p-3 bg-muted/50 border-border text-foreground rounded-md resize-none h-32 focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
           </CardContent>
@@ -272,7 +257,7 @@ const EditService = () => {
         <Button
           type="submit"
           disabled={isSubmitting || !hasChanges}
-          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-zinc-700"
+          className="w-full disabled:bg-accent"
         >
           {isSubmitting ? (
             <>

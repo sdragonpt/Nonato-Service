@@ -24,6 +24,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { isStaffRole, getRoleLabel, getRoleBadgeStyle } from "../../config/roles.js";
 import { timeToMinutes, DEFAULT_DURATION_MINUTES } from "../agendamentos/utils/agendaConflicts.js";
 import { toDateKey } from "../../utils/formatDate.js";
+import { PageHeader } from "../../components/app";
 
 const todayStr = () => toDateKey();
 
@@ -156,59 +157,53 @@ const ManageTechnicianStatus = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6 pb-24">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
-            <UserCog className="h-5 w-5 text-green-500" />
+      <PageHeader
+        title="Estado Visual do Técnico"
+        description="Disponibilidade da equipa em tempo real"
+        icon={UserCog}
+        actions={
+          <>
+            <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/app/technician-skills")}
+             
+            >
+              <GraduationCap className="h-4 w-4" />
+              Competências
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/app/manage-agenda")}
+             
+            >
+              <Calendar className="h-4 w-4" />
+              Ver Agenda
+            </Button>
           </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">
-              Estado Visual do Técnico
-            </h1>
-            <p className="text-sm text-zinc-400">
-              Disponibilidade da equipa em tempo real
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => navigate("/app/technician-skills")}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
-          >
-            <GraduationCap className="h-4 w-4 mr-2" />
-            Competências
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate("/app/manage-agenda")}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
-          >
-            <Calendar className="h-4 w-4 mr-2" />
-            Ver Agenda
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {boardData.length === 0 ? (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="p-8 text-center">
-            <UserCog className="h-10 w-10 text-zinc-600 mx-auto mb-3" />
-            <p className="text-zinc-400">
+            <UserCog className="h-10 w-10 text-muted-foreground/70 mx-auto mb-3" />
+            <p className="text-muted-foreground">
               Nenhum utilizador com papel de equipa interna (gestor/técnico) encontrado.
             </p>
           </CardContent>
@@ -218,13 +213,13 @@ const ManageTechnicianStatus = () => {
           {boardData.map(({ user, status, statusDetail, todayCount, futureCount }) => {
             const meta = STATUS_META[status];
             return (
-              <Card key={user.id} className="bg-zinc-800 border-zinc-700">
+              <Card key={user.id}>
                 <CardHeader className="flex flex-row items-center gap-3 space-y-0 pb-3">
-                  <div className="h-10 w-10 rounded-full bg-zinc-700 flex items-center justify-center text-sm font-bold text-white shrink-0">
+                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-sm font-bold text-foreground shrink-0">
                     {initials(user.displayName)}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <CardTitle className="text-base text-white truncate">
+                    <CardTitle className="text-base truncate">
                       {user.displayName || "Sem nome"}
                     </CardTitle>
                     <Badge
@@ -244,18 +239,18 @@ const ManageTechnicianStatus = () => {
                   </Badge>
 
                   {status === "em_servico" && statusDetail && (
-                    <p className="text-sm text-zinc-300 text-center">
+                    <p className="text-sm text-foreground/90 text-center">
                       {statusDetail.clientName} · {statusDetail.hora}–
                       {statusDetail.fimEstimado}
                     </p>
                   )}
                   {status === "proximo" && statusDetail && (
-                    <p className="text-sm text-zinc-300 text-center">
+                    <p className="text-sm text-foreground/90 text-center">
                       {statusDetail.hora} · {statusDetail.clientName}
                     </p>
                   )}
 
-                  <div className="flex items-center justify-between text-xs text-zinc-500 border-t border-zinc-700 pt-2">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-2">
                     <span>{todayCount} agendamento(s) hoje</span>
                     <span>{futureCount} futuro(s)</span>
                   </div>

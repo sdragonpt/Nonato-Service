@@ -11,7 +11,6 @@ import { useClients } from "../../../context/ClientsContext.jsx";
 import { useEquipments } from "../../../context/EquipmentsContext.jsx";
 import { searchCatalogParts } from "../../../utils/catalogPartSearch.js";
 import {
-  ArrowLeft,
   Loader2,
   Save,
   AlertTriangle,
@@ -50,6 +49,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs.jsx";
 import { toDateKey } from "../../../utils/formatDate.js";
+import { PageHeader } from "../../../components/app";
 
 const EditPartBudget = () => {
   const { quoteId } = useParams();
@@ -437,7 +437,7 @@ const EditPartBudget = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -445,39 +445,22 @@ const EditPartBudget = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <ClipboardEdit className="h-5 w-5 text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">
-              Editar Orçamento de Peças
-            </h1>
-            <p className="text-sm text-zinc-400">
-              Atualize as informações do orçamento de peças
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate("/app/parts-budgets")}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Editar Orçamento de Peças"
+        description="Atualize as informações do orçamento de peças"
+        icon={ClipboardEdit}
+        back="/app/parts-budgets"
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 bg-zinc-800 border-zinc-700">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="general">Geral</TabsTrigger>
           <TabsTrigger value="client">Cliente</TabsTrigger>
           <TabsTrigger value="parts">Peças</TabsTrigger>
@@ -487,32 +470,32 @@ const EditPartBudget = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* General Tab */}
           <TabsContent value="general" className="space-y-6">
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-lg text-white">
+                <CardTitle className="text-lg">
                   Informações Gerais
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400">
+                    <label className="text-sm font-medium text-muted-foreground">
                       Data
                     </label>
                     <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         type="date"
                         name="date"
                         value={formData.date}
                         onChange={handleChange}
-                        className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800 hover:border-zinc-600 focus:border-zinc-500"
+                        className="w-full pl-10 hover:bg-white/5 hover:border-border focus:border-muted-foreground/40"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400">
+                    <label className="text-sm font-medium text-muted-foreground">
                       Tipo de Serviço
                     </label>
                     <Select
@@ -521,19 +504,19 @@ const EditPartBudget = () => {
                         handleChange({ target: { name: "serviceType", value } })
                       }
                     >
-                      <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800 hover:border-zinc-600">
+                      <SelectTrigger className="hover:bg-white/5 hover:border-border">
                         <SelectValue placeholder="Selecione o tipo de serviço" />
                       </SelectTrigger>
-                      <SelectContent className="bg-zinc-800 border-zinc-600 shadow-lg">
+                      <SelectContent className="shadow-lg">
                         <SelectItem
                           value="Orçamento de Peças"
-                          className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white"
+                          className="hover:text-foreground focus:text-foreground"
                         >
                           Orçamento de Peças
                         </SelectItem>
                         <SelectItem
                           value="Orçamento de Serviços"
-                          className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white"
+                          className="hover:text-foreground focus:text-foreground"
                         >
                           Orçamento de Serviços
                         </SelectItem>
@@ -542,7 +525,7 @@ const EditPartBudget = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400">
+                    <label className="text-sm font-medium text-muted-foreground">
                       Status
                     </label>
                     <Select
@@ -551,25 +534,25 @@ const EditPartBudget = () => {
                         handleChange({ target: { name: "status", value } })
                       }
                     >
-                      <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800 hover:border-zinc-600">
+                      <SelectTrigger className="hover:bg-white/5 hover:border-border">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-zinc-800 border-zinc-600 shadow-lg">
+                      <SelectContent className="shadow-lg">
                         <SelectItem
                           value="Aberto"
-                          className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white"
+                          className="hover:text-foreground focus:text-foreground"
                         >
                           Em Análise
                         </SelectItem>
                         <SelectItem
                           value="Em Andamento"
-                          className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white"
+                          className="hover:text-foreground focus:text-foreground"
                         >
                           Em Andamento
                         </SelectItem>
                         <SelectItem
                           value="Fechado"
-                          className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white"
+                          className="hover:text-foreground focus:text-foreground"
                         >
                           Concluído
                         </SelectItem>
@@ -579,14 +562,14 @@ const EditPartBudget = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400">
+                  <label className="text-sm font-medium text-muted-foreground">
                     Descrição
                   </label>
                   <Textarea
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
-                    className="bg-zinc-900 border-zinc-700 text-white"
+                   
                     rows={3}
                   />
                 </div>
@@ -596,9 +579,9 @@ const EditPartBudget = () => {
 
           {/* Client Tab */}
           <TabsContent value="client" className="space-y-6">
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-lg text-white">
+                <CardTitle className="text-lg">
                   Informações do Cliente
                 </CardTitle>
               </CardHeader>
@@ -613,7 +596,7 @@ const EditPartBudget = () => {
                       onChange={() => handleClientTypeToggle(true)}
                       className="text-green-600"
                     />
-                    <span className="text-white">Cliente Não Registrado</span>
+                    <span className="text-foreground">Cliente Não Registrado</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -623,14 +606,14 @@ const EditPartBudget = () => {
                       onChange={() => handleClientTypeToggle(false)}
                       className="text-green-600"
                     />
-                    <span className="text-white">Cliente Registrado</span>
+                    <span className="text-foreground">Cliente Registrado</span>
                   </label>
                 </div>
 
                 {formData.isUnregisteredClient ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400">
+                      <label className="text-sm font-medium text-muted-foreground">
                         Nome do Cliente *
                       </label>
                       <Input
@@ -638,12 +621,12 @@ const EditPartBudget = () => {
                         onChange={(e) =>
                           handleUnregisteredClientChange("name", e.target.value)
                         }
-                        className="bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800 hover:border-zinc-600 focus:border-zinc-500"
+                        className="hover:bg-white/5 hover:border-border focus:border-muted-foreground/40"
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400">
+                      <label className="text-sm font-medium text-muted-foreground">
                         Email
                       </label>
                       <Input
@@ -655,11 +638,11 @@ const EditPartBudget = () => {
                             e.target.value
                           )
                         }
-                        className="bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800 hover:border-zinc-600 focus:border-zinc-500"
+                        className="hover:bg-white/5 hover:border-border focus:border-muted-foreground/40"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400">
+                      <label className="text-sm font-medium text-muted-foreground">
                         Telefone
                       </label>
                       <Input
@@ -670,11 +653,11 @@ const EditPartBudget = () => {
                             e.target.value
                           )
                         }
-                        className="bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800 hover:border-zinc-600 focus:border-zinc-500"
+                        className="hover:bg-white/5 hover:border-border focus:border-muted-foreground/40"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400">
+                      <label className="text-sm font-medium text-muted-foreground">
                         Empresa
                       </label>
                       <Input
@@ -685,14 +668,14 @@ const EditPartBudget = () => {
                             e.target.value
                           )
                         }
-                        className="bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800 hover:border-zinc-600 focus:border-zinc-500"
+                        className="hover:bg-white/5 hover:border-border focus:border-muted-foreground/40"
                       />
                     </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400">
+                      <label className="text-sm font-medium text-muted-foreground">
                         Cliente *
                       </label>
                       <ClientCombobox
@@ -703,7 +686,7 @@ const EditPartBudget = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400">
+                      <label className="text-sm font-medium text-muted-foreground">
                         Equipamento *
                       </label>
                       <Select
@@ -719,16 +702,16 @@ const EditPartBudget = () => {
                         }}
                         disabled={!formData.clientId}
                       >
-                        <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800 hover:border-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <SelectTrigger className="hover:bg-white/5 hover:border-border disabled:opacity-50 disabled:cursor-not-allowed">
                           <SelectValue placeholder="Selecione um equipamento" />
                         </SelectTrigger>
-                        <SelectContent className="bg-zinc-800 border-zinc-600 shadow-lg">
+                        <SelectContent className="shadow-lg">
                           {filteredEquipments.length > 0 ? (
                             filteredEquipments.map((equipment) => (
                               <SelectItem
                                 key={equipment.id}
                                 value={equipment.id}
-                                className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white"
+                                className="hover:text-foreground focus:text-foreground"
                               >
                                 {equipment.brand} {equipment.model} -{" "}
                                 {equipment.serialNumber}
@@ -738,7 +721,7 @@ const EditPartBudget = () => {
                             <SelectItem
                               value="no-equipment"
                               disabled
-                              className="text-zinc-400"
+                              className="text-muted-foreground"
                             >
                               {formData.clientId
                                 ? "Nenhum equipamento encontrado para este cliente"
@@ -756,9 +739,9 @@ const EditPartBudget = () => {
 
           {/* Parts Tab */}
           <TabsContent value="parts" className="space-y-6">
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-lg text-white">
+                <CardTitle className="text-lg">
                   Peças do Orçamento
                 </CardTitle>
               </CardHeader>
@@ -766,16 +749,16 @@ const EditPartBudget = () => {
                 {/* Search Parts */}
                 <div className="space-y-4">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input
                       type="text"
                       placeholder="Pesquisar peças por código ou nome..."
                       value={partSearchTerm}
                       onChange={(e) => setPartSearchTerm(e.target.value)}
-                      className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 hover:bg-zinc-800 hover:border-zinc-600 focus:border-zinc-500"
+                      className="pl-10 hover:bg-white/5 hover:border-border focus:border-muted-foreground/40"
                     />
                     {isSearching && (
-                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4 animate-spin" />
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4 animate-spin" />
                     )}
                   </div>
 
@@ -790,16 +773,16 @@ const EditPartBudget = () => {
 
                   {/* Resultados da pesquisa */}
                   {searchResults.length > 0 && (
-                    <div className="border border-zinc-600 rounded-lg max-h-60 overflow-y-auto">
+                    <div className="border border-border rounded-lg max-h-60 overflow-y-auto">
                       {searchResults.map((part) => (
                         <div
                           key={part.id}
-                          className="flex items-center justify-between p-3 border-b border-zinc-700 last:border-b-0 hover:bg-zinc-700/50 cursor-pointer"
+                          className="flex items-center justify-between p-3 border-b border-border last:border-b-0 hover:bg-white/5 cursor-pointer"
                           onClick={() => addPartToQuote(part)}
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-white">
+                              <span className="font-medium text-foreground">
                                 {part.name}
                               </span>
                               <Badge className="bg-blue-500/20 text-blue-400 text-xs">
@@ -810,9 +793,9 @@ const EditPartBudget = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="bg-zinc-900 border-green-500 text-green-400 hover:bg-green-500/20 hover:text-green-300 hover:border-green-400"
+                            className="border-green-500 text-green-400 hover:bg-green-500/20 hover:text-green-300 hover:border-green-400"
                           >
-                            <Plus className="h-4 w-4 mr-1" />
+                            <Plus className="h-4 w-4" />
                             Adicionar
                           </Button>
                         </div>
@@ -825,11 +808,11 @@ const EditPartBudget = () => {
                 {formData.partsQuoteItems.length > 0 && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-lg font-medium text-white">
+                      <h4 className="text-lg font-medium text-foreground">
                         Peças Selecionadas
                       </h4>
                       <div className="text-right">
-                        <p className="text-sm text-zinc-400">Subtotal</p>
+                        <p className="text-sm text-muted-foreground">Subtotal</p>
                         <p className="text-xl font-bold text-green-400">
                           {formatPrice(calculateSubtotal())}
                         </p>
@@ -840,11 +823,11 @@ const EditPartBudget = () => {
                       {formData.partsQuoteItems.map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-center gap-4 p-4 bg-zinc-700/50 rounded-lg border border-zinc-600"
+                          className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg border border-border"
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <span className="font-medium text-white">
+                              <span className="font-medium text-foreground">
                                 {item.name}
                               </span>
                               <Badge className="bg-blue-500/20 text-blue-400 text-xs">
@@ -853,7 +836,7 @@ const EditPartBudget = () => {
                             </div>
                             <div className="grid grid-cols-3 gap-3">
                               <div>
-                                <label className="text-xs text-zinc-400">
+                                <label className="text-xs text-muted-foreground">
                                   Quantidade
                                 </label>
                                 <Input
@@ -863,11 +846,11 @@ const EditPartBudget = () => {
                                   onChange={(e) =>
                                     updatePartQuantity(item.id, e.target.value)
                                   }
-                                  className="bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800 hover:border-zinc-600 focus:border-zinc-500"
+                                  className="hover:bg-white/5 hover:border-border focus:border-muted-foreground/40"
                                 />
                               </div>
                               <div>
-                                <label className="text-xs text-zinc-400">
+                                <label className="text-xs text-muted-foreground">
                                   Preço Unitário (€)
                                 </label>
                                 <Input
@@ -878,15 +861,15 @@ const EditPartBudget = () => {
                                   onChange={(e) =>
                                     updatePartPrice(item.id, e.target.value)
                                   }
-                                  className="bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800 hover:border-zinc-600 focus:border-zinc-500"
+                                  className="hover:bg-white/5 hover:border-border focus:border-muted-foreground/40"
                                 />
                               </div>
                               <div>
-                                <label className="text-xs text-zinc-400">
+                                <label className="text-xs text-muted-foreground">
                                   Total
                                 </label>
                                 <div className="flex items-center gap-2">
-                                  <span className="text-white font-medium">
+                                  <span className="text-foreground font-medium">
                                     {formatPrice(
                                       item.quantity *
                                         (formData.includeProfitMargin &&
@@ -925,9 +908,9 @@ const EditPartBudget = () => {
 
           {/* ✅ NOVA ABA: Pricing */}
           <TabsContent value="pricing" className="space-y-6">
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-lg text-white">
+                <CardTitle className="text-lg">
                   Configurações de Preço
                 </CardTitle>
               </CardHeader>
@@ -945,11 +928,11 @@ const EditPartBudget = () => {
                           includeProfitMargin: e.target.checked,
                         }))
                       }
-                      className="rounded border-zinc-600"
+                      className="rounded border-border"
                     />
                     <label
                       htmlFor="includeProfitMargin"
-                      className="text-sm text-zinc-400 flex items-center gap-2"
+                      className="text-sm text-muted-foreground flex items-center gap-2"
                     >
                       <Percent className="h-4 w-4" />
                       Incluir margem de lucro
@@ -959,7 +942,7 @@ const EditPartBudget = () => {
                   {formData.includeProfitMargin && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-6">
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-zinc-400">
+                        <label className="text-sm font-medium text-muted-foreground">
                           Margem de Lucro (%)
                         </label>
                         <Input
@@ -970,14 +953,14 @@ const EditPartBudget = () => {
                           name="profitMargin"
                           value={formData.profitMargin}
                           onChange={handleChange}
-                          className="bg-zinc-900 border-zinc-700 text-white"
+                         
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-zinc-400">
+                        <label className="text-sm font-medium text-muted-foreground">
                           Valor do Lucro
                         </label>
-                        <div className="flex items-center h-10 px-3 bg-zinc-900 border border-zinc-700 rounded-lg">
+                        <div className="flex items-center h-10 px-3 bg-muted/50 border border-border rounded-lg">
                           <span className="text-green-400 font-medium">
                             {formatPrice(calculateProfitAmount())}
                           </span>
@@ -988,9 +971,9 @@ const EditPartBudget = () => {
                 </div>
 
                 {/* Configurações de Envio e IVA */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-zinc-700">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-border">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400">
+                    <label className="text-sm font-medium text-muted-foreground">
                       Preço do Envio (€)
                     </label>
                     <Input
@@ -1001,12 +984,12 @@ const EditPartBudget = () => {
                       value={formData.shippingPrice}
                       onChange={handleChange}
                       placeholder="0.00"
-                      className="bg-zinc-900 border-zinc-700 text-white"
+                     
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400">
+                    <label className="text-sm font-medium text-muted-foreground">
                       Taxa de IVA (%)
                     </label>
                     <Input
@@ -1016,7 +999,7 @@ const EditPartBudget = () => {
                       name="vatRate"
                       value={formData.vatRate}
                       onChange={handleChange}
-                      className="bg-zinc-900 border-zinc-700 text-white"
+                     
                     />
                   </div>
 
@@ -1032,11 +1015,11 @@ const EditPartBudget = () => {
                             includeVat: e.target.checked,
                           }))
                         }
-                        className="rounded border-zinc-600"
+                        className="rounded border-border"
                       />
                       <label
                         htmlFor="includeVat"
-                        className="text-sm text-zinc-400"
+                        className="text-sm text-muted-foreground"
                       >
                         Incluir IVA no orçamento
                       </label>
@@ -1045,11 +1028,11 @@ const EditPartBudget = () => {
                 </div>
 
                 {/* Resumo Total */}
-                <div className="p-4 bg-zinc-700/50 rounded-lg border border-zinc-600">
+                <div className="p-4 bg-muted/50 rounded-lg border border-border">
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-white">Subtotal Peças:</span>
-                      <span className="text-white">
+                      <span className="text-foreground">Subtotal Peças:</span>
+                      <span className="text-foreground">
                         {formatPrice(calculateSubtotal())}
                       </span>
                     </div>
@@ -1068,8 +1051,8 @@ const EditPartBudget = () => {
 
                     {formData.shippingPrice > 0 && (
                       <div className="flex justify-between items-center">
-                        <span className="text-white">Envio:</span>
-                        <span className="text-white">
+                        <span className="text-foreground">Envio:</span>
+                        <span className="text-foreground">
                           {formatPrice(formData.shippingPrice)}
                         </span>
                       </div>
@@ -1077,10 +1060,10 @@ const EditPartBudget = () => {
 
                     {formData.includeVat && (
                       <div className="flex justify-between items-center">
-                        <span className="text-white">
+                        <span className="text-foreground">
                           IVA ({formData.vatRate}%):
                         </span>
-                        <span className="text-white">
+                        <span className="text-foreground">
                           {formatPrice(
                             ((calculateSubtotal() +
                               parseFloat(formData.shippingPrice || 0)) *
@@ -1091,8 +1074,8 @@ const EditPartBudget = () => {
                       </div>
                     )}
 
-                    <div className="flex justify-between items-center pt-2 border-t border-zinc-600">
-                      <span className="text-xl font-bold text-white">
+                    <div className="flex justify-between items-center pt-2 border-t border-border">
+                      <span className="text-xl font-bold text-foreground">
                         Total:
                       </span>
                       <span className="text-xl font-bold text-green-400">
@@ -1111,14 +1094,14 @@ const EditPartBudget = () => {
               type="button"
               variant="outline"
               onClick={() => navigate("/app/parts-budgets")}
-              className="bg-zinc-900 border-zinc-600 text-zinc-300 hover:bg-zinc-700 hover:text-white hover:border-zinc-500"
+              className="text-foreground/90 hover:border-muted-foreground/40"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting || formData.partsQuoteItems.length === 0}
-              className="bg-green-600 hover:bg-green-700 text-white border-0 shadow-md"
+              className="border-0 shadow-md"
             >
               {isSubmitting ? (
                 <>

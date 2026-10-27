@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
+import { PageHeader } from "../../components/app";
 
 const TIPO_META = {
   "ordem-preparacao": { label: "Ordem de Preparação", className: "bg-blue-500/20 text-blue-400" },
@@ -149,46 +150,49 @@ const ManageFormulariosTecnicos = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6 pb-24">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-white">
-          Formulários e Checklist para Técnicos
-        </h1>
-        <p className="text-sm text-zinc-400">
-          Fila de formulários gerados a partir de ordens de preparação e checklists
-        </p>
-      </div>
+      <PageHeader
+        title="Formulários e Checklist para Técnicos"
+        description="Fila de formulários gerados a partir de ordens de preparação e checklists"
+        actions={
+          <>
+            <p className="text-sm text-muted-foreground">
+            Fila de formulários gerados a partir de ordens de preparação e checklists
+          </p>
+          </>
+        }
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Pesquisar por código, cliente ou técnico..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-zinc-700 border-zinc-600 text-white placeholder:text-zinc-400"
+                className="pl-10 bg-muted"
               />
             </div>
             <Select value={tipoFilter} onValueChange={setTipoFilter}>
-              <SelectTrigger className="w-full sm:w-56 bg-zinc-900 border-zinc-700 text-white">
+              <SelectTrigger className="w-full sm:w-56">
                 <SelectValue placeholder="Tipo" />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+              <SelectContent>
                 <SelectItem value="all">Todos os Tipos</SelectItem>
                 {Object.entries(TIPO_META).map(([value, meta]) => (
                   <SelectItem key={value} value={value}>
@@ -198,10 +202,10 @@ const ManageFormulariosTecnicos = () => {
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-48 bg-zinc-900 border-zinc-700 text-white">
+              <SelectTrigger className="w-full sm:w-48">
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+              <SelectContent>
                 <SelectItem value="all">Todos os Estados</SelectItem>
                 {Object.entries(STATUS_META).map(([value, meta]) => (
                   <SelectItem key={value} value={value}>
@@ -215,11 +219,11 @@ const ManageFormulariosTecnicos = () => {
       </Card>
 
       {filtered.length === 0 ? (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="p-8 sm:p-12 text-center">
-            <FileCheck2 className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2 text-white">Nenhum formulário encontrado</p>
-            <p className="text-sm text-zinc-400">
+            <FileCheck2 className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
+            <p className="text-lg font-medium mb-2 text-foreground">Nenhum formulário encontrado</p>
+            <p className="text-sm text-muted-foreground">
               Os formulários aparecem aqui depois de gerados a partir de uma Ordem de
               Preparação.
             </p>
@@ -232,7 +236,7 @@ const ManageFormulariosTecnicos = () => {
             const statusMeta = STATUS_META[item.status] || STATUS_META.pendente;
             const isFinal = item.status === "concluido";
             return (
-              <Card key={item.id} className="bg-zinc-800 border-zinc-700">
+              <Card key={item.id}>
                 <CardContent className="p-4 flex items-center justify-between flex-wrap gap-3">
                   <div
                     className="min-w-0 cursor-pointer flex-1"
@@ -242,11 +246,11 @@ const ManageFormulariosTecnicos = () => {
                     }
                   >
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-white font-medium">SME_UP {item.codigoSmeUp || "—"}</p>
+                      <p className="text-foreground font-medium">SME_UP {item.codigoSmeUp || "—"}</p>
                       <Badge className={tipoMeta.className}>{tipoMeta.label}</Badge>
                       <Badge className={statusMeta.className}>{statusMeta.label}</Badge>
                     </div>
-                    <p className="text-sm text-zinc-400 truncate">
+                    <p className="text-sm text-muted-foreground truncate">
                       {item.clientName || "Sem cliente"}
                       {item.tecnicoResponsavelNome ? ` · ${item.tecnicoResponsavelNome}` : ""}
                     </p>
@@ -280,7 +284,7 @@ const ManageFormulariosTecnicos = () => {
             variant="outline"
             onClick={loadMore}
             disabled={isLoadingMore}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+            className="gap-2"
           >
             {isLoadingMore ? (
               <>

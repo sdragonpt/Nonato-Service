@@ -10,7 +10,6 @@ import {
 } from "firebase/storage";
 import { db, storage } from "../../../firebase.jsx";
 import {
-  ArrowLeft,
   Loader2,
   AlertTriangle,
   CheckCircle2,
@@ -37,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
+import { PageHeader } from "../../../components/app";
 
 let blockIdCounter = 0;
 const nextBlockId = () => `blk_${Date.now()}_${++blockIdCounter}`;
@@ -101,10 +101,10 @@ const BlockSection = ({ title, accent, blocks, onChange, protocolId }) => {
   };
 
   return (
-    <Card className="bg-zinc-800 border-zinc-700">
+    <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className={`text-lg text-white flex items-center gap-2`}>
+          <CardTitle className={`text-lg text-foreground flex items-center gap-2`}>
             <span className={`h-2.5 w-2.5 rounded-full ${accent}`} />
             {title}
           </CardTitle>
@@ -114,9 +114,9 @@ const BlockSection = ({ title, accent, blocks, onChange, protocolId }) => {
               size="sm"
               variant="outline"
               onClick={addTextBlock}
-              className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+             
             >
-              <Type className="w-4 h-4 mr-2" />
+              <Type className="w-4 h-4" />
               Texto
             </Button>
             <input
@@ -132,7 +132,7 @@ const BlockSection = ({ title, accent, blocks, onChange, protocolId }) => {
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
               disabled={!!uploadingId}
-              className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+             
             >
               {uploadingId ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -146,14 +146,14 @@ const BlockSection = ({ title, accent, blocks, onChange, protocolId }) => {
       </CardHeader>
       <CardContent className="space-y-3">
         {blocks.length === 0 ? (
-          <p className="text-sm text-zinc-500 text-center py-6">
+          <p className="text-sm text-muted-foreground text-center py-6">
             Sem blocos ainda — adicione texto ou imagens acima
           </p>
         ) : (
           blocks.map((block) => (
             <div
               key={block.id}
-              className="p-3 bg-zinc-700/30 rounded-lg border border-zinc-600 relative"
+              className="p-3 bg-muted/30 rounded-lg border border-border relative"
             >
               <Button
                 type="button"
@@ -170,13 +170,13 @@ const BlockSection = ({ title, accent, blocks, onChange, protocolId }) => {
                   onChange={(e) => updateTextBlock(block.id, e.target.value)}
                   placeholder="Descreva o estado, observações ou intervenção..."
                   rows={3}
-                  className="bg-zinc-900 border-zinc-700 text-white pr-8 [&::placeholder]:text-zinc-500"
+                  className="pr-8"
                 />
               ) : (
                 <img
                   src={block.imageUrl}
                   alt="Anexo do protocolo"
-                  className="max-h-64 rounded-lg border border-zinc-600"
+                  className="max-h-64 rounded-lg border border-border"
                 />
               )}
             </div>
@@ -276,7 +276,7 @@ const EditProtocol = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -286,10 +286,10 @@ const EditProtocol = () => {
       <div className="flex justify-center items-center min-h-[50vh]">
         <div className="text-center">
           <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <p className="text-lg font-medium text-white">Protocolo não encontrado</p>
+          <p className="text-lg font-medium text-foreground">Protocolo não encontrado</p>
           <Button
             onClick={() => navigate("/app/protocols")}
-            className="mt-4 bg-green-600 hover:bg-green-700"
+            className="mt-4"
           >
             Voltar à Lista
           </Button>
@@ -301,61 +301,48 @@ const EditProtocol = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3 min-w-0">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate("/app/protocols")}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 shrink-0"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <FileCheck className="h-5 w-5 text-green-400" />
+      <PageHeader
+        title="Editar Protocolo"
+        description={<>{protocol.clientName}
+              {protocol.equipmentName ? ` · ${protocol.equipmentName}` : ""}</>}
+        icon={FileCheck}
+        back="/app/protocols"
+        actions={
+          <>
+            <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/app/protocol/${protocolId}`)}
+             
+            >
+              <Eye className="w-4 h-4" />
+              Pré-visualizar
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+             
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              Guardar
+            </Button>
           </div>
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-white truncate">
-              Editar Protocolo
-            </h1>
-            <p className="text-sm text-zinc-400 truncate">
-              {protocol.clientName}
-              {protocol.equipmentName ? ` · ${protocol.equipmentName}` : ""}
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => navigate(`/app/protocol/${protocolId}`)}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            Pré-visualizar
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            {saving ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4 mr-2" />
-            )}
-            Guardar
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
       {saved && (
-        <Alert className="border-green-600 bg-green-600/10">
+        <Alert className="border-primary bg-green-600/10">
           <CheckCircle2 className="h-4 w-4 text-green-500" />
           <AlertDescription className="text-green-400">
             Protocolo guardado com sucesso.
@@ -364,30 +351,30 @@ const EditProtocol = () => {
       )}
 
       {/* Título e Estado */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="sm:col-span-2 space-y-2">
-            <label className="text-sm font-medium text-zinc-400">Título</label>
+            <label className="text-sm font-medium text-muted-foreground">Título</label>
             <Input
               value={protocol.title || ""}
               onChange={(e) => updateField("title", e.target.value)}
-              className="bg-zinc-900 border-zinc-700 text-white"
+             
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-zinc-400">Estado</label>
+            <label className="text-sm font-medium text-muted-foreground">Estado</label>
             <Select
               value={protocol.status || "rascunho"}
               onValueChange={(value) => updateField("status", value)}
             >
-              <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700">
-                <SelectItem value="rascunho" className="text-white hover:bg-zinc-700">
+              <SelectContent>
+                <SelectItem value="rascunho">
                   Rascunho
                 </SelectItem>
-                <SelectItem value="concluido" className="text-white hover:bg-zinc-700">
+                <SelectItem value="concluido">
                   Concluído
                 </SelectItem>
               </SelectContent>
@@ -407,7 +394,7 @@ const EditProtocol = () => {
         />
         <BlockSection
           title="Depois"
-          accent="bg-green-500"
+          accent="bg-primary"
           blocks={protocol.blocosDepois || []}
           onChange={(blocks) => updateField("blocosDepois", blocks)}
           protocolId={protocolId}
@@ -415,13 +402,13 @@ const EditProtocol = () => {
       </div>
 
       {/* Peças Trocadas */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2">
               <Wrench className="h-5 w-5" />
               Peças Trocadas
-              <Badge className="bg-zinc-700 text-white hover:bg-zinc-700">
+              <Badge className="bg-muted text-foreground hover:bg-accent">
                 {(protocol.pecasTrocadas || []).length}
               </Badge>
             </CardTitle>
@@ -429,16 +416,16 @@ const EditProtocol = () => {
               type="button"
               size="sm"
               onClick={addPeca}
-              className="bg-green-600 hover:bg-green-700"
+             
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4" />
               Adicionar Peça
             </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
           {(protocol.pecasTrocadas || []).length === 0 ? (
-            <p className="text-sm text-zinc-500 text-center py-4">
+            <p className="text-sm text-muted-foreground text-center py-4">
               Nenhuma peça registada
             </p>
           ) : (
@@ -448,13 +435,13 @@ const EditProtocol = () => {
                   value={peca.name}
                   onChange={(e) => updatePeca(peca.id, { name: e.target.value })}
                   placeholder="Nome da peça"
-                  className="bg-zinc-900 border-zinc-700 text-white flex-1 min-w-[160px]"
+                  className="flex-1 min-w-[160px]"
                 />
                 <Input
                   value={peca.code}
                   onChange={(e) => updatePeca(peca.id, { code: e.target.value })}
                   placeholder="Código"
-                  className="bg-zinc-900 border-zinc-700 text-white w-32"
+                  className="w-32"
                 />
                 <Input
                   type="number"
@@ -463,7 +450,7 @@ const EditProtocol = () => {
                   onChange={(e) =>
                     updatePeca(peca.id, { quantity: parseInt(e.target.value) || 1 })
                   }
-                  className="bg-zinc-900 border-zinc-700 text-white w-20"
+                  className="w-20"
                 />
                 <Button
                   type="button"
@@ -483,7 +470,7 @@ const EditProtocol = () => {
       <Button
         onClick={handleSave}
         disabled={saving}
-        className="w-full bg-green-600 hover:bg-green-700"
+        className="w-full"
       >
         {saving ? (
           <>

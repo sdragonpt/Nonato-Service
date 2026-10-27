@@ -147,9 +147,9 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 p-4 relative overflow-hidden select-none touch-manipulation">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-card to-background p-4 relative overflow-hidden select-none touch-manipulation">
       {/* Efeitos de fundo animados */}
-      <div className="absolute inset-0 bg-zinc-900 bg-[radial-gradient(#262626_1px,transparent_1px)] [background-size:16px_16px] opacity-25" />
+      <div className="absolute inset-0 bg-muted/50 bg-[radial-gradient(#262626_1px,transparent_1px)] [background-size:16px_16px] opacity-25" />
 
       {/* Partículas flutuantes */}
       <div className="absolute inset-0 overflow-hidden">
@@ -190,9 +190,9 @@ const LoginPage = () => {
           onClick={() => navigate("/start")}
           variant="ghost"
           size="sm"
-          className="text-zinc-400 hover:text-white hover:bg-zinc-800/50 backdrop-blur-sm border border-zinc-700/50 text-xs sm:text-sm px-2 sm:px-3 py-2"
+          className="text-muted-foreground hover:bg-white/5 backdrop-blur-sm border border-border text-xs sm:text-sm px-2 sm:px-3 py-2"
         >
-          <ArrowLeft className="w-3 sm:w-4 h-3 sm:h-4 mr-1 sm:mr-2" />
+          <ArrowLeft className="w-3 sm:w-4 h-3 sm:h-4 sm:mr-2" />
           <span className="hidden sm:inline">Voltar ao início</span>
           <span className="sm:hidden">Voltar</span>
         </Button>
@@ -231,7 +231,7 @@ const LoginPage = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="text-3xl sm:text-4xl font-bold text-white mb-2"
+            className="text-3xl sm:text-4xl font-bold text-foreground mb-2"
           >
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-green-400 via-emerald-500 to-green-600">
               Nonato Service
@@ -242,7 +242,7 @@ const LoginPage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="flex items-center justify-center gap-2 text-zinc-400 text-sm sm:text-base"
+            className="flex items-center justify-center gap-2 text-muted-foreground text-sm sm:text-base"
           >
             <span>Sistema de Gestão Empresarial</span>
           </motion.div>
@@ -254,13 +254,13 @@ const LoginPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
-          <Card className="bg-zinc-800/90 border-zinc-700/50 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+          <Card className="bg-card/90 backdrop-blur-xl shadow-2xl relative overflow-hidden">
             <CardHeader className="relative z-10">
-              <CardTitle className="text-xl sm:text-2xl text-center text-white flex items-center justify-center gap-2">
+              <CardTitle className="text-xl sm:text-2xl text-center flex items-center justify-center gap-2">
                 <LogIn className="w-5 sm:w-6 h-5 sm:h-6 text-green-500" />
                 Entrar no Sistema
               </CardTitle>
-              <CardDescription className="text-center text-zinc-400 text-sm sm:text-base">
+              <CardDescription className="text-center text-muted-foreground text-sm sm:text-base">
                 Acesse sua conta para gerenciar seus serviços
               </CardDescription>
             </CardHeader>
@@ -274,10 +274,10 @@ const LoginPage = () => {
                 >
                   <Alert
                     variant="destructive"
-                    className="border-red-500/50 bg-red-500/10 backdrop-blur-sm"
+                    className="backdrop-blur-sm"
                   >
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription className="text-red-400 font-medium">
+                    <AlertDescription className="font-medium">
                       {error}
                       {error.includes("não autorizado") && (
                         <p className="text-sm font-normal mt-1 text-red-300">
@@ -296,18 +296,18 @@ const LoginPage = () => {
                   transition={{ delay: 0.6 }}
                   className="space-y-2"
                 >
-                  <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                  <label className="text-sm font-medium text-foreground/90 flex items-center gap-2">
                     <Mail className="w-3 sm:w-4 h-3 sm:h-4 text-green-500" />
                     Email
                   </label>
                   <div className="relative group">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-green-500 transition-colors w-4 h-4" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-green-500 transition-colors w-4 h-4" />
                     <Input
                       type="email"
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className="pl-10 bg-zinc-900/80 border-zinc-600 text-white [&::placeholder]:text-zinc-500 focus:border-green-500 focus:ring-green-500/20 transition-all text-sm sm:text-base"
+                      className="pl-10 bg-background/80 focus:border-green-500 focus:ring-ring transition-all text-sm sm:text-base"
                       placeholder="seu@email.com"
                       required
                     />
@@ -320,18 +320,18 @@ const LoginPage = () => {
                   transition={{ delay: 0.7 }}
                   className="space-y-2"
                 >
-                  <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                  <label className="text-sm font-medium text-foreground/90 flex items-center gap-2">
                     <Lock className="w-3 sm:w-4 h-3 sm:h-4 text-green-500" />
                     Senha
                   </label>
                   <div className="relative group">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-green-500 transition-colors w-4 h-4" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-green-500 transition-colors w-4 h-4" />
                     <Input
                       type={showPassword ? "text" : "password"}
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
-                      className="pl-10 pr-10 bg-zinc-900/80 border-zinc-600 text-white [&::placeholder]:text-zinc-500 focus:border-green-500 focus:ring-green-500/20 transition-all text-sm sm:text-base"
+                      className="pl-10 pr-10 bg-background/80 focus:border-green-500 focus:ring-ring transition-all text-sm sm:text-base"
                       placeholder="••••••••"
                       required
                     />
@@ -339,7 +339,7 @@ const LoginPage = () => {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="absolute right-0 top-0 h-full px-3 text-zinc-400 hover:text-green-500"
+                      className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-green-500"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? (
@@ -360,7 +360,7 @@ const LoginPage = () => {
                   <Button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3 transition-all transform hover:scale-[1.02] text-sm sm:text-base"
+                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 font-semibold py-3 transition-all transform hover:scale-[1.02] text-sm sm:text-base"
                   >
                     {isLoading ? (
                       <>
@@ -377,10 +377,10 @@ const LoginPage = () => {
 
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-zinc-600" />
+                      <span className="w-full border-t border-border" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-zinc-800 px-2 text-zinc-400">
+                      <span className="bg-card px-2 text-muted-foreground">
                         ou continue com
                       </span>
                     </div>
@@ -391,7 +391,7 @@ const LoginPage = () => {
                     onClick={handleGoogleLogin}
                     disabled={isGoogleLoading}
                     variant="outline"
-                    className="w-full text-white border-red-600/50 hover:text-white hover:bg-red-600/10 hover:border-red-500 bg-red-600/5 backdrop-blur-sm font-semibold py-3 transition-all transform hover:scale-[1.02] text-sm sm:text-base"
+                    className="w-full border-red-600/50 hover:bg-red-600/10 hover:border-red-500 bg-red-600/5 backdrop-blur-sm font-semibold py-3 transition-all transform hover:scale-[1.02] text-sm sm:text-base"
                   >
                     {isGoogleLoading ? (
                       <>
@@ -423,9 +423,9 @@ const LoginPage = () => {
                   onClick={() => navigate("/start")}
                   variant="ghost"
                   size="sm"
-                  className="text-zinc-400 hover:text-green-400 hover:bg-green-500/10 text-xs sm:text-sm px-3 py-2"
+                  className="text-muted-foreground hover:text-green-400 hover:bg-green-500/10 text-xs sm:text-sm px-3 py-2"
                 >
-                  <Home className="w-3 sm:w-4 h-3 sm:h-4 mr-1 sm:mr-2" />
+                  <Home className="w-3 sm:w-4 h-3 sm:h-4 sm:mr-2" />
                   <span className="hidden sm:inline">
                     Ir para página inicial do sistema
                   </span>
@@ -440,7 +440,7 @@ const LoginPage = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.2 }}
-          className="text-center text-zinc-500 text-xs sm:text-sm mt-6 sm:mt-8"
+          className="text-center text-muted-foreground text-xs sm:text-sm mt-6 sm:mt-8"
         >
           © {new Date().getFullYear()} Nonato Service. Todos os direitos
           reservados.

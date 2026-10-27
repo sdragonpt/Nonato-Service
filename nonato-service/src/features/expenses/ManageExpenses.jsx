@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/dialog.jsx";
 
 import { formatPrice } from "../../utils/financialUtils";
+import { PageHeader } from "../../components/app";
 
 const months = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -112,7 +113,7 @@ const ManageExpenses = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -120,35 +121,33 @@ const ManageExpenses = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Comprovantes de Despesas
-          </h1>
-          <p className="text-sm text-zinc-400">
-            Registo de despesas (cliente ou pessoais) para efeitos de IRS
-          </p>
-        </div>
-        <Button
-          onClick={() => navigate("/app/add-expense")}
-          className="bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Despesa
-        </Button>
-      </div>
+      <PageHeader
+        title="Comprovantes de Despesas"
+        description="Registo de despesas (cliente ou pessoais) para efeitos de IRS"
+        actions={
+          <>
+            <Button
+            onClick={() => navigate("/app/add-expense")}
+           
+          >
+            <Plus className="w-4 h-4" />
+            Nova Despesa
+          </Button>
+          </>
+        }
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Filtros */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
-          <div className="flex items-center bg-zinc-900 rounded-lg">
+          <div className="flex items-center bg-muted/50 rounded-lg">
             <Button
               variant="ghost"
               size="icon"
@@ -160,13 +159,13 @@ const ManageExpenses = () => {
                   setSelectedMonth((prev) => prev - 1);
                 }
               }}
-              className="text-zinc-400 hover:text-white"
+              className="text-muted-foreground"
             >
               <ChevronLeft className="w-5 h-5" />
             </Button>
             <div className="flex items-center px-4">
               <Calendar className="w-4 h-4 text-blue-400 mr-2" />
-              <span className="text-white font-medium">
+              <span className="text-foreground font-medium">
                 {months[selectedMonth]} {selectedYear}
               </span>
             </div>
@@ -181,45 +180,45 @@ const ManageExpenses = () => {
                   setSelectedMonth((prev) => prev + 1);
                 }
               }}
-              className="text-zinc-400 hover:text-white"
+              className="text-muted-foreground"
             >
               <ChevronRight className="w-5 h-5" />
             </Button>
           </div>
 
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white sm:w-48">
+            <SelectTrigger className="sm:w-48">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-zinc-800 border-zinc-700">
-              <SelectItem value="all" className="text-white hover:bg-zinc-700">
+            <SelectContent>
+              <SelectItem value="all">
                 Todas
               </SelectItem>
-              <SelectItem value="cliente" className="text-white hover:bg-zinc-700">
+              <SelectItem value="cliente">
                 Ligadas a Cliente
               </SelectItem>
-              <SelectItem value="pessoal" className="text-white hover:bg-zinc-700">
+              <SelectItem value="pessoal">
                 Pessoais
               </SelectItem>
             </SelectContent>
           </Select>
 
           <div className="text-right">
-            <p className="text-sm text-zinc-400">Total do período</p>
-            <p className="text-xl font-bold text-white">{formatPrice(total)}</p>
+            <p className="text-sm text-muted-foreground">Total do período</p>
+            <p className="text-xl font-bold text-foreground">{formatPrice(total)}</p>
           </div>
         </CardContent>
       </Card>
 
       {/* Lista */}
       {filtered.length === 0 ? (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="p-8 sm:p-12 text-center">
-            <Receipt className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2 text-white">
+            <Receipt className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
+            <p className="text-lg font-medium mb-2 text-foreground">
               Nenhuma despesa neste período
             </p>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               Use o botão &ldquo;Nova Despesa&rdquo; para registar uma
             </p>
           </CardContent>
@@ -227,10 +226,10 @@ const ManageExpenses = () => {
       ) : (
         <div className="space-y-2">
           {filtered.map((expense) => (
-            <Card key={expense.id} className="bg-zinc-800 border-zinc-700">
+            <Card key={expense.id}>
               <CardContent className="p-4 flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="h-10 w-10 rounded-full bg-zinc-700 flex items-center justify-center shrink-0">
+                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
                     {expense.type === "cliente" ? (
                       <User className="h-5 w-5 text-blue-400" />
                     ) : (
@@ -238,10 +237,10 @@ const ManageExpenses = () => {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-white font-medium truncate">
+                    <p className="text-foreground font-medium truncate">
                       {expense.description || "Sem descrição"}
                     </p>
-                    <div className="flex items-center gap-2 text-xs text-zinc-400">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span>{formatDate(expense.date)}</span>
                       {expense.type === "cliente" && expense.clientName && (
                         <>
@@ -262,13 +261,13 @@ const ManageExpenses = () => {
                   >
                     {expense.type === "cliente" ? "Cliente" : "Pessoal"}
                   </Badge>
-                  <p className="text-white font-bold">{formatPrice(expense.amount)}</p>
+                  <p className="text-foreground font-bold">{formatPrice(expense.amount)}</p>
                   {expense.receiptUrl && (
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => window.open(expense.receiptUrl, "_blank")}
-                      className="text-zinc-400 hover:text-white hover:bg-zinc-700 h-8 w-8"
+                      className="text-muted-foreground h-8 w-8"
                     >
                       <Download className="h-4 w-4" />
                     </Button>
@@ -290,10 +289,10 @@ const ManageExpenses = () => {
 
       {/* Delete Confirmation */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem a certeza que deseja apagar esta despesa? Esta ação não pode
               ser desfeita.
             </DialogDescription>
@@ -302,7 +301,7 @@ const ManageExpenses = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteTarget(null)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
@@ -311,7 +310,7 @@ const ManageExpenses = () => {
               onClick={handleDelete}
               className="bg-red-600 hover:bg-red-700"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
+              <Trash2 className="w-4 h-4" />
               Apagar
             </Button>
           </DialogFooter>

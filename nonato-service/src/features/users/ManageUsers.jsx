@@ -42,6 +42,7 @@ import {
 import AddUser from "./components/AddUser.jsx";
 import EditUser from "./components/EditUser.jsx";
 import { getRoleLabel, getRoleBadgeStyle, isStaffRole } from "../../config/roles.js";
+import { PageHeader } from "../../components/app";
 
 const ManageUsers = () => {
   // ✅ Tempo real (onSnapshot) via UsersContext partilhado — a lista
@@ -157,7 +158,7 @@ const ManageUsers = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -165,29 +166,29 @@ const ManageUsers = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Gerenciar Usuários</h1>
-          <p className="text-sm text-zinc-400">
-            Gerencie todas as contas de usuário em um só lugar
-          </p>
-        </div>
-        <Button
-          onClick={() => setAddUserDialogOpen(true)}
-          className="hidden sm:flex bg-green-600 hover:bg-green-700"
-        >
-          <UserPlus className="w-4 h-4 mr-2" />
-          Novo Usuário
-        </Button>
-      </div>
+      <PageHeader
+        title="Gerenciar Usuários"
+        description="Gerencie todas as contas de usuário em um só lugar"
+        actions={
+          <>
+            <Button
+            onClick={() => setAddUserDialogOpen(true)}
+            className="hidden sm:flex"
+          >
+            <UserPlus className="w-4 h-4" />
+            Novo Usuário
+          </Button>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Total</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <p className="text-sm font-medium text-muted-foreground">Total</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {stats.total}
               </h3>
             </div>
@@ -195,13 +196,13 @@ const ManageUsers = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">
+              <p className="text-sm font-medium text-muted-foreground">
                 Equipa Interna
               </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {stats.staff}
               </h3>
             </div>
@@ -209,11 +210,11 @@ const ManageUsers = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Clientes</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <p className="text-sm font-medium text-muted-foreground">Clientes</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {stats.client}
               </h3>
             </div>
@@ -224,39 +225,39 @@ const ManageUsers = () => {
 
       {/* Error Alert */}
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Users Table */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-lg text-white">
+          <CardTitle className="text-lg">
             Lista de Usuários
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-zinc-800 border-zinc-700">
-                <TableCell className="text-zinc-400">Nome</TableCell>
-                <TableCell className="text-zinc-400">Email</TableCell>
-                <TableCell className="text-zinc-400">Função</TableCell>
-                <TableCell className="text-zinc-400">Ações</TableCell>
+              <TableRow className="hover:bg-white/5 border-border">
+                <TableCell className="text-muted-foreground">Nome</TableCell>
+                <TableCell className="text-muted-foreground">Email</TableCell>
+                <TableCell className="text-muted-foreground">Função</TableCell>
+                <TableCell className="text-muted-foreground">Ações</TableCell>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.map((user) => (
                 <TableRow
                   key={user.id}
-                  className="hover:bg-zinc-700/50 border-zinc-700"
+                  className="hover:bg-white/5 border-border"
                 >
-                  <TableCell className="text-white">
+                  <TableCell className="text-foreground">
                     {user.displayName || "N/A"}
                   </TableCell>
-                  <TableCell className="text-white">{user.email}</TableCell>
+                  <TableCell className="text-foreground">{user.email}</TableCell>
                   <TableCell>
                     <Badge className={getRoleBadgeStyle(user.role)}>
                       {getRoleLabel(user.role)}
@@ -268,7 +269,7 @@ const ManageUsers = () => {
                         variant="ghost"
                         size="icon"
                         onClick={() => openEditUser(user)}
-                        className="text-zinc-400 hover:text-white hover:bg-zinc-700"
+                        className="text-muted-foreground"
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
@@ -291,25 +292,25 @@ const ManageUsers = () => {
 
       {/* Convites pendentes — autorizados que ainda não entraram */}
       {pendingInvites.length > 0 && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2">
               <Clock className="h-5 w-5 text-amber-400" />
               Convites pendentes
             </CardTitle>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               Estas pessoas já têm acesso mas ainda não entraram na app. Ficam com a função
               indicada no primeiro login.
             </p>
           </CardHeader>
           <CardContent>
-            <ul className="divide-y divide-zinc-700">
+            <ul className="divide-y divide-border">
               {pendingInvites.map((inv) => (
                 <li key={inv.email} className="flex items-center gap-3 py-2">
                   <div className="flex-1 min-w-0">
-                    <p className="text-white truncate">{inv.displayName || inv.email}</p>
+                    <p className="text-foreground truncate">{inv.displayName || inv.email}</p>
                     {inv.displayName && (
-                      <p className="text-sm text-zinc-400 truncate">{inv.email}</p>
+                      <p className="text-sm text-muted-foreground truncate">{inv.email}</p>
                     )}
                   </div>
                   <Badge className={getRoleBadgeStyle(inv.role || "client")}>
@@ -333,12 +334,12 @@ const ManageUsers = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem certeza que deseja excluir o usuário{" "}
-              <span className="font-semibold text-white">
+              <span className="font-semibold text-foreground">
                 {userToDelete?.displayName || userToDelete?.email}
               </span>
               ? Esta ação não pode ser desfeita.
@@ -348,7 +349,7 @@ const ManageUsers = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
@@ -364,13 +365,13 @@ const ManageUsers = () => {
       </Dialog>
 
       <Dialog open={addUserDialogOpen} onOpenChange={setAddUserDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700 sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px]">
           <AddUser onClose={() => setAddUserDialogOpen(false)} />
         </DialogContent>
       </Dialog>
 
       <Dialog open={editUserDialogOpen} onOpenChange={setEditUserDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700 sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px]">
           <EditUser
             user={userToEdit}
             onClose={() => {
@@ -386,7 +387,7 @@ const ManageUsers = () => {
         <Button
           onClick={() => setAddUserDialogOpen(true)}
           size="icon"
-          className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
+          className="rounded-full shadow-lg"
         >
           <UserPlus className="h-5 w-5" />
         </Button>

@@ -33,6 +33,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.j
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
+import { PageHeader } from "../../components/app";
 
 const COMPANY_DOC_REF = ["config", "companyProfile"];
 
@@ -79,10 +80,10 @@ const withDefaults = (data) => {
 function Field({ label, icon: Icon, children }) {
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-zinc-400">{label}</label>
+      <label className="text-sm font-medium text-muted-foreground">{label}</label>
       <div className="relative">
         {Icon && (
-          <Icon className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+          <Icon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
         )}
         {children}
       </div>
@@ -268,7 +269,7 @@ const CompanyProfile = () => {
         onChange={handleChange}
         disabled={!isAdmin}
         placeholder={placeholder}
-        className={`${icon ? "pl-10 " : ""}bg-zinc-900 border-zinc-700 text-white disabled:opacity-70 placeholder:text-zinc-600`}
+        className={`${icon ? "pl-10 " : ""}bg-muted/50 border-border text-foreground disabled:opacity-70 placeholder:text-muted-foreground`}
       />
     </Field>
   );
@@ -276,22 +277,18 @@ const CompanyProfile = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Building2 className="h-8 w-8 text-green-500" />
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">Cadastro da Nonato Service</h1>
-          <p className="text-sm text-zinc-400">
-            Dados bancários e de contacto usados nos documentos enviados a clientes
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Cadastro da Nonato Service"
+        description="Dados bancários e de contacto usados nos documentos enviados a clientes"
+        icon={Building2}
+      />
 
       {!isAdmin && (
         <Alert className="border-blue-500/30 bg-blue-500/10">
@@ -304,9 +301,9 @@ const CompanyProfile = () => {
       )}
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
@@ -330,15 +327,15 @@ const CompanyProfile = () => {
       )}
 
       {/* Documentos da empresa */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-lg text-white flex items-center gap-2">
+          <CardTitle className="text-lg flex items-center gap-2">
             <FileText className="h-5 w-5 text-green-500" />
             Documentos da Empresa
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-muted-foreground">
             Gera os PDFs com os dados que estão neste ecrã. Campos vazios saem em branco, para
             preencher à mão.
           </p>
@@ -352,7 +349,7 @@ const CompanyProfile = () => {
                 type="button"
                 onClick={() => handleGenerate(kind)}
                 disabled={generating !== null}
-                className="h-auto justify-start gap-3 bg-zinc-900 border border-zinc-700 py-3 text-left text-white hover:bg-zinc-700"
+                className="h-auto justify-start gap-3 bg-muted/50 border border-border py-3 text-left hover:bg-accent"
               >
                 {generating === kind ? (
                   <Loader2 className="h-5 w-5 shrink-0 animate-spin text-green-400" />
@@ -361,7 +358,7 @@ const CompanyProfile = () => {
                 )}
                 <span>
                   <span className="block font-semibold">{title}</span>
-                  <span className="block text-xs font-normal text-zinc-400">{hint}</span>
+                  <span className="block text-xs font-normal text-muted-foreground">{hint}</span>
                 </span>
               </Button>
             ))}
@@ -371,9 +368,9 @@ const CompanyProfile = () => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Logo */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Logo</CardTitle>
+            <CardTitle className="text-lg">Logo</CardTitle>
           </CardHeader>
           <CardContent>
             {logoPreview ? (
@@ -381,7 +378,7 @@ const CompanyProfile = () => {
                 <img
                   src={logoPreview}
                   alt="Logo da Nonato Service"
-                  className="w-full h-full rounded-lg object-contain bg-zinc-900 border border-zinc-700"
+                  className="w-full h-full rounded-lg object-contain bg-muted/50 border border-border"
                 />
                 {isAdmin && (
                   <Button
@@ -396,23 +393,23 @@ const CompanyProfile = () => {
                 )}
               </div>
             ) : isAdmin ? (
-              <label className="flex flex-col items-center justify-center w-32 h-32 bg-zinc-900 border-2 border-dashed border-zinc-700 rounded-lg cursor-pointer hover:bg-zinc-700/50 transition-colors">
-                <Camera className="h-6 w-6 text-zinc-400 mb-2" />
-                <span className="text-xs text-zinc-400 text-center px-2">
+              <label className="flex flex-col items-center justify-center w-32 h-32 bg-muted/50 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-white/5 transition-colors">
+                <Camera className="h-6 w-6 text-muted-foreground mb-2" />
+                <span className="text-xs text-muted-foreground text-center px-2">
                   Carregar logo
                 </span>
                 <input type="file" className="hidden" onChange={handleLogoChange} accept="image/*" />
               </label>
             ) : (
-              <p className="text-sm text-zinc-500">Sem logo definido.</p>
+              <p className="text-sm text-muted-foreground">Sem logo definido.</p>
             )}
           </CardContent>
         </Card>
 
         {/* Identificação */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Identificação</CardTitle>
+            <CardTitle className="text-lg">Identificação</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -427,9 +424,9 @@ const CompanyProfile = () => {
         </Card>
 
         {/* Morada */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Morada</CardTitle>
+            <CardTitle className="text-lg">Morada</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {textField("morada", "Morada", { icon: MapPin })}
@@ -444,9 +441,9 @@ const CompanyProfile = () => {
         </Card>
 
         {/* Contactos */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Contactos</CardTitle>
+            <CardTitle className="text-lg">Contactos</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -459,15 +456,15 @@ const CompanyProfile = () => {
         </Card>
 
         {/* Dados bancários */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2">
               <Landmark className="h-5 w-5 text-green-500" />
               Dados Bancários
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted-foreground">
               Estes dados aparecem nos documentos de pagamento enviados aos clientes. Usa o botão
               de copiar para os partilhares rapidamente.
             </p>
@@ -479,7 +476,7 @@ const CompanyProfile = () => {
               { name: "swift", label: "SWIFT / BIC" },
             ].map(({ name, label }) => (
               <div key={name} className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">{label}</label>
+                <label className="text-sm font-medium text-muted-foreground">{label}</label>
                 <div className="flex gap-2">
                   <Input
                     type="text"
@@ -487,14 +484,14 @@ const CompanyProfile = () => {
                     value={formData[name]}
                     onChange={handleChange}
                     disabled={!isAdmin}
-                    className="bg-zinc-900 border-zinc-700 text-white disabled:opacity-70 font-mono"
+                    className="disabled:opacity-70 font-mono"
                   />
                   <Button
                     type="button"
                     variant="outline"
                     size="icon"
                     onClick={() => handleCopy(name, formData[name])}
-                    className="border-zinc-700 text-white bg-zinc-800 hover:bg-zinc-700 shrink-0"
+                    className="shrink-0"
                     title="Copiar"
                   >
                     {copiedField === name ? (
@@ -513,7 +510,7 @@ const CompanyProfile = () => {
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-green-600 hover:bg-green-700"
+            className="w-full"
           >
             {isSubmitting ? (
               <>

@@ -54,6 +54,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+import { PageHeader } from "../../components/app";
 
 export const ESTADO_META = {
   reutilizavel: { label: "Reutilizável", className: "bg-green-500/20 text-green-400 border-green-500/30" },
@@ -190,89 +191,89 @@ const ManageDisassembledParts = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6 pb-24">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">Peças Desmontadas</h1>
-          <p className="text-sm sm:text-base text-zinc-400">
-            Peças retiradas de equipamentos, ainda reaproveitáveis, com localização em prateleira
-          </p>
-        </div>
-        <Button
-          onClick={() => navigate("/app/add-disassembled-part")}
-          className="hidden sm:flex bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Peça Desmontada
-        </Button>
-      </div>
+      <PageHeader
+        title="Peças Desmontadas"
+        description="Peças retiradas de equipamentos, ainda reaproveitáveis, com localização em prateleira"
+        actions={
+          <>
+            <Button
+            onClick={() => navigate("/app/add-disassembled-part")}
+            className="hidden sm:flex"
+          >
+            <Plus className="w-4 h-4" />
+            Nova Peça Desmontada
+          </Button>
+          </>
+        }
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Total</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <p className="text-sm font-medium text-muted-foreground">Total</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {totalCount}
               </h3>
             </div>
             <PackageOpen className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
           </CardContent>
         </Card>
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Reutilizáveis</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <p className="text-sm font-medium text-muted-foreground">Reutilizáveis</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {reutilizavelCount}
               </h3>
             </div>
             <PackageOpen className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
           </CardContent>
         </Card>
-        <Card className="bg-zinc-800 border-zinc-700 col-span-2 md:col-span-2">
+        <Card className="col-span-2 md:col-span-2">
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Resultados</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <p className="text-sm font-medium text-muted-foreground">Resultados</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {filteredItems.length}
               </h3>
             </div>
-            <Search className="h-6 w-6 sm:h-8 sm:w-8 text-zinc-500" />
+            <Search className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
           </CardContent>
         </Card>
       </div>
 
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Pesquisar por nome, localização, cliente de origem..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-zinc-700 border-zinc-600 text-white placeholder:text-zinc-400"
+                className="pl-10 bg-muted"
               />
             </div>
             <Select value={estadoFilter} onValueChange={setEstadoFilter}>
-              <SelectTrigger className="w-full sm:w-48 bg-zinc-900 border-zinc-700 text-white">
+              <SelectTrigger className="w-full sm:w-48">
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+              <SelectContent>
                 <SelectItem value="all">Todos os estados</SelectItem>
                 {Object.entries(ESTADO_META).map(([value, meta]) => (
                   <SelectItem key={value} value={value}>
@@ -286,10 +287,10 @@ const ManageDisassembledParts = () => {
       </Card>
 
       {filteredItems.length === 0 ? (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="p-8 sm:p-12 text-center">
-            <PackageOpen className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2 text-white">
+            <PackageOpen className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
+            <p className="text-lg font-medium mb-2 text-foreground">
               {searchTerm || estadoFilter !== "all"
                 ? "Nenhuma peça encontrada"
                 : "Nenhuma peça desmontada registada"}
@@ -304,14 +305,14 @@ const ManageDisassembledParts = () => {
               <Card
                 key={item.id}
                 onClick={() => navigate(`/app/edit-disassembled-part/${item.id}`)}
-                className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+                className="hover:bg-accent transition-colors cursor-pointer"
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-2">
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-medium text-white truncate">{item.nome || "Sem nome"}</h3>
+                      <h3 className="font-medium text-foreground truncate">{item.nome || "Sem nome"}</h3>
                       {item.quantidade && (
-                        <p className="text-sm text-zinc-400">Qtd: {item.quantidade}</p>
+                        <p className="text-sm text-muted-foreground">Qtd: {item.quantidade}</p>
                       )}
                     </div>
                     <DropdownMenu>
@@ -322,7 +323,6 @@ const ManageDisassembledParts = () => {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent
                         align="end"
-                        className="bg-zinc-800 border-zinc-700"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <DropdownMenuItem
@@ -344,13 +344,13 @@ const ManageDisassembledParts = () => {
                   <Badge className={`${meta.className} border mb-2`}>{meta.label}</Badge>
                   <div className="space-y-1">
                     {item.localizacao && (
-                      <p className="text-zinc-400 text-xs sm:text-sm truncate flex items-center gap-2">
+                      <p className="text-muted-foreground text-xs sm:text-sm truncate flex items-center gap-2">
                         <MapPin className="w-4 h-4 shrink-0" />
                         {item.localizacao}
                       </p>
                     )}
                     {item.origemClientName && (
-                      <p className="text-zinc-500 text-xs truncate">
+                      <p className="text-muted-foreground text-xs truncate">
                         Origem: {item.origemClientName}
                         {item.origemEquipamento ? ` — ${item.origemEquipamento}` : ""}
                       </p>
@@ -370,7 +370,7 @@ const ManageDisassembledParts = () => {
             variant="outline"
             onClick={loadMore}
             disabled={isLoadingMore}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+            className="gap-2"
           >
             {isLoadingMore ? (
               <>
@@ -388,10 +388,10 @@ const ManageDisassembledParts = () => {
       )}
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar Exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar Exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem a certeza que deseja excluir &ldquo;{itemToDelete?.nome}&rdquo;? Esta ação
               não pode ser desfeita.
             </DialogDescription>
@@ -400,7 +400,7 @@ const ManageDisassembledParts = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700 bg-zinc-800"
+              className="text-foreground/90"
             >
               Cancelar
             </Button>
@@ -415,7 +415,7 @@ const ManageDisassembledParts = () => {
         <Button
           onClick={() => navigate("/app/add-disassembled-part")}
           size="icon"
-          className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
+          className="rounded-full shadow-lg"
         >
           <Plus className="h-5 w-5" />
         </Button>

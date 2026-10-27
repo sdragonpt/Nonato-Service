@@ -42,6 +42,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+import { PageHeader } from "../../components/app";
 
 // ✅ CATEGORY ITEM COMPONENT - Memoizado para evitar re-renders
 const CategoryItem = React.memo(
@@ -106,17 +107,17 @@ const CategoryItem = React.memo(
     );
 
     return (
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="p-0">
           {/* Main Category */}
           <div
-            className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-700/50"
+            className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/5"
             onClick={handleToggle}
           >
             <div className="flex items-center">
               <Folder className="h-5 w-5 text-blue-500 mr-2" />
               <div>
-                <h3 className="font-semibold text-white flex items-center">
+                <h3 className="font-semibold text-foreground flex items-center">
                   {category.name}
                   <Badge
                     className="ml-2 bg-blue-500/10 text-blue-500"
@@ -128,14 +129,14 @@ const CategoryItem = React.memo(
               </div>
             </div>
             <div className="flex items-center">
-              <span className="text-sm text-zinc-400 mr-2">
+              <span className="text-sm text-muted-foreground mr-2">
                 {subcategories.length} subcategorias
               </span>
               <div className="flex items-center space-x-1">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0 text-zinc-400 hover:text-white"
+                  className="h-8 w-8 p-0 text-muted-foreground"
                   onClick={handleEdit} // ✅ Agora handleEdit está definido
                 >
                   <Edit2 className="h-4 w-4" />
@@ -149,9 +150,9 @@ const CategoryItem = React.memo(
                   <Trash2 className="h-4 w-4" />
                 </Button>
                 {isExpanded ? (
-                  <ChevronDown className="h-5 w-5 text-zinc-400" />
+                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
                 ) : (
-                  <ChevronRight className="h-5 w-5 text-zinc-400" />
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
                 )}
               </div>
             </div>
@@ -159,16 +160,16 @@ const CategoryItem = React.memo(
 
           {/* Subcategories */}
           {isExpanded && (
-            <div className="border-t border-zinc-700 pl-4">
+            <div className="border-t border-border pl-4">
               {sortedSubcategories.length > 0 ? (
                 sortedSubcategories.map((subcategory) => (
                   <div
                     key={subcategory.id}
-                    className="flex items-center justify-between p-3 border-b border-zinc-700/50 last:border-b-0 hover:bg-zinc-700/30"
+                    className="flex items-center justify-between p-3 border-b border-border last:border-b-0 hover:bg-white/5"
                   >
                     <div className="flex items-center">
                       <Tag className="h-4 w-4 text-purple-500 mr-2" />
-                      <h4 className="text-sm font-medium text-white flex items-center">
+                      <h4 className="text-sm font-medium text-foreground flex items-center">
                         {subcategory.name}
                         <Badge
                           className="ml-2 bg-purple-500/10 text-purple-500"
@@ -182,7 +183,7 @@ const CategoryItem = React.memo(
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 w-7 p-0 text-zinc-400 hover:text-white"
+                        className="h-7 w-7 p-0 text-muted-foreground"
                         onClick={(e) => handleSubEdit(subcategory, e)}
                       >
                         <Edit2 className="h-3.5 w-3.5" />
@@ -199,7 +200,7 @@ const CategoryItem = React.memo(
                   </div>
                 ))
               ) : (
-                <div className="py-3 px-4 text-sm text-zinc-400">
+                <div className="py-3 px-4 text-sm text-muted-foreground">
                   Nenhuma subcategoria encontrada
                 </div>
               )}
@@ -209,10 +210,10 @@ const CategoryItem = React.memo(
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-sm border-zinc-700 bg-zinc-700/50 hover:bg-zinc-600 text-white"
+                  className="text-sm"
                   onClick={handleAddSub}
                 >
-                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  <Plus className="h-3.5 w-3.5" />
                   Adicionar Subcategoria
                 </Button>
               </div>
@@ -228,11 +229,11 @@ CategoryItem.displayName = "CategoryItem";
 
 // ✅ STATS CARD COMPONENT - Memoizado
 const StatsCard = React.memo(({ title, value, icon: Icon, color }) => (
-  <Card className="bg-zinc-800 border-zinc-700">
+  <Card>
     <CardContent className="flex items-center justify-between p-4 sm:p-6">
       <div>
-        <p className="text-sm font-medium text-zinc-400">{title}</p>
-        <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+        <p className="text-sm font-medium text-muted-foreground">{title}</p>
+        <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
           {value}
         </h3>
       </div>
@@ -490,7 +491,7 @@ const ManageCategories = () => {
   if (categoriesLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -498,33 +499,31 @@ const ManageCategories = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Gerenciar Categorias
-          </h1>
-          <p className="text-sm sm:text-base text-zinc-400">
-            Gerencie categorias e subcategorias para a Biblioteca de Peças
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => navigate("/app/parts-library")}
-            className="bg-zinc-700 hover:bg-zinc-600 text-white"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar para Peças
-          </Button>
-          <Button
-            onClick={() => navigate("/app/add-category")}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Nova Categoria
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Gerenciar Categorias"
+        description="Gerencie categorias e subcategorias para a Biblioteca de Peças"
+        actions={
+          <>
+            <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/app/parts-library")}
+              className="bg-muted"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Voltar para Peças
+            </Button>
+            <Button
+              onClick={() => navigate("/app/add-category")}
+             
+            >
+              <Plus className="w-4 h-4" />
+              Nova Categoria
+            </Button>
+          </div>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -543,25 +542,25 @@ const ManageCategories = () => {
       </div>
 
       {/* Search and Controls */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="space-y-4 p-4 sm:p-6">
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar categorias e subcategorias..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+              className="pl-10 w-full"
             />
           </div>
 
           {error && (
             <Alert
               variant="destructive"
-              className="border-red-500 bg-red-500/10"
+             
             >
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-red-400">
+              <AlertDescription>
                 {error}
               </AlertDescription>
             </Alert>
@@ -572,15 +571,15 @@ const ManageCategories = () => {
               <Button
                 variant="outline"
                 onClick={handleRefreshStats}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
+                className="bg-accent"
               >
-                <TrendingUp className="w-4 h-4 mr-2" />
+                <TrendingUp className="w-4 h-4" />
                 Atualizar Estatísticas
               </Button>
             )}
 
             {statsLoading && (
-              <div className="flex items-center gap-2 text-sm text-zinc-400">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Carregando estatísticas...
               </div>
@@ -613,13 +612,13 @@ const ManageCategories = () => {
             />
           ))
         ) : (
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardContent className="p-8 text-center">
-              <Search className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-              <p className="text-lg font-medium mb-2 text-white">
+              <Search className="w-12 h-12 text-muted-foreground/70 mx-auto mb-4" />
+              <p className="text-lg font-medium mb-2 text-foreground">
                 Nenhuma categoria encontrada
               </p>
-              <p className="text-zinc-400">
+              <p className="text-muted-foreground">
                 {searchTerm
                   ? "Tente buscar com outros termos"
                   : "Comece criando sua primeira categoria"}
@@ -631,15 +630,15 @@ const ManageCategories = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               {categoryToDelete?.isMainCategory ? (
                 <>
                   <p>
                     Tem certeza que deseja excluir a categoria{" "}
-                    <span className="font-semibold text-white">
+                    <span className="font-semibold text-foreground">
                       {categoryToDelete?.name}
                     </span>
                     ?
@@ -653,7 +652,7 @@ const ManageCategories = () => {
                 <>
                   <p>
                     Tem certeza que deseja excluir a subcategoria{" "}
-                    <span className="font-semibold text-white">
+                    <span className="font-semibold text-foreground">
                       {categoryToDelete?.name}
                     </span>
                     ?
@@ -673,7 +672,7 @@ const ManageCategories = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
@@ -696,21 +695,21 @@ const ManageCategories = () => {
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-foreground">
               Editar{" "}
               {categoryToEdit?.isMainCategory ? "Categoria" : "Subcategoria"}
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Nome</label>
+              <label className="text-sm font-medium text-muted-foreground">Nome</label>
               <Input
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 placeholder="Nome da categoria"
-                className="bg-zinc-900 border-zinc-700 text-white"
+               
               />
             </div>
           </div>
@@ -718,13 +717,13 @@ const ManageCategories = () => {
             <Button
               variant="outline"
               onClick={() => setEditDialogOpen(false)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleEdit}
-              className="bg-green-600 hover:bg-green-700"
+             
               disabled={isSubmitting || !editName.trim()}
             >
               {isSubmitting ? (

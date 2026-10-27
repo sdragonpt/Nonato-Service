@@ -49,6 +49,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+import { PageHeader } from "../../components/app";
 
 const STATUS_META = {
   pendente: { label: "Pendente", className: "bg-yellow-500/20 text-yellow-400" },
@@ -198,7 +199,7 @@ const ManageWarehouse = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -206,53 +207,51 @@ const ManageWarehouse = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Almoxarifado / Armazém
-          </h1>
-          <p className="text-sm text-zinc-400">
-            Pedidos de separação de peças para clientes e ordens de serviço
-          </p>
-        </div>
-        <Button
-          onClick={() => navigate("/app/add-warehouse-request")}
-          className="bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Pedido
-        </Button>
-      </div>
+      <PageHeader
+        title="Almoxarifado / Armazém"
+        description="Pedidos de separação de peças para clientes e ordens de serviço"
+        actions={
+          <>
+            <Button
+            onClick={() => navigate("/app/add-warehouse-request")}
+           
+          >
+            <Plus className="w-4 h-4" />
+            Novo Pedido
+          </Button>
+          </>
+        }
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Filtros */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar por cliente ou ordem..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+              className="pl-10"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white sm:w-56">
+            <SelectTrigger className="sm:w-56">
               <SelectValue placeholder="Filtrar por estado" />
             </SelectTrigger>
-            <SelectContent className="bg-zinc-800 border-zinc-700">
-              <SelectItem value="all" className="text-white hover:bg-zinc-700">
+            <SelectContent>
+              <SelectItem value="all">
                 Todos os estados
               </SelectItem>
               {STATUS_ORDER.map((status) => (
-                <SelectItem key={status} value={status} className="text-white hover:bg-zinc-700">
+                <SelectItem key={status} value={status}>
                   {STATUS_META[status].label}
                 </SelectItem>
               ))}
@@ -263,13 +262,13 @@ const ManageWarehouse = () => {
 
       {/* Lista */}
       {filtered.length === 0 ? (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="p-8 sm:p-12 text-center">
-            <Package className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2 text-white">
+            <Package className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
+            <p className="text-lg font-medium mb-2 text-foreground">
               Nenhum pedido de armazém encontrado
             </p>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               Use o botão &ldquo;Novo Pedido&rdquo; para registar uma separação de peças
             </p>
           </CardContent>
@@ -282,21 +281,21 @@ const ManageWarehouse = () => {
             const pickedCount = (request.itens || []).filter((i) => i.separado).length;
 
             return (
-              <Card key={request.id} className="bg-zinc-800 border-zinc-700">
+              <Card key={request.id}>
                 <CardContent className="p-4 space-y-3">
                   <div
                     className="flex items-center justify-between gap-3 cursor-pointer"
                     onClick={() => setExpandedId(isExpanded ? null : request.id)}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-10 w-10 rounded-full bg-zinc-700 flex items-center justify-center shrink-0">
-                        <User className="h-5 w-5 text-zinc-300" />
+                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                        <User className="h-5 w-5 text-foreground/90" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-white font-medium truncate">
+                        <p className="text-foreground font-medium truncate">
                           {request.clientName || "Cliente removido"}
                         </p>
-                        <div className="flex items-center gap-2 text-xs text-zinc-400">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <span>{formatDate(request.updatedAt)}</span>
                           {request.orderLabel && (
                             <>
@@ -314,19 +313,19 @@ const ManageWarehouse = () => {
                     <div className="flex items-center gap-2 shrink-0">
                       <Badge className={statusMeta.className}>{statusMeta.label}</Badge>
                       {isExpanded ? (
-                        <ChevronUp className="h-4 w-4 text-zinc-500" />
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
                       ) : (
-                        <ChevronDown className="h-4 w-4 text-zinc-500" />
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
                       )}
                     </div>
                   </div>
 
                   {isExpanded && (
-                    <div className="pt-3 border-t border-zinc-700 space-y-2">
+                    <div className="pt-3 border-t border-border space-y-2">
                       {(request.itens || []).map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-center gap-3 p-2 bg-zinc-700/30 rounded-lg border border-zinc-600"
+                          className="flex items-center gap-3 p-2 bg-muted/30 rounded-lg border border-border"
                         >
                           <Checkbox
                             checked={!!item.separado}
@@ -336,21 +335,21 @@ const ManageWarehouse = () => {
                           <div className="flex-1 min-w-0">
                             <p
                               className={`text-sm ${
-                                item.separado ? "text-zinc-500 line-through" : "text-white"
+                                item.separado ? "text-muted-foreground line-through" : "text-foreground"
                               }`}
                             >
                               {item.partName}
                               {item.partCode ? ` (${item.partCode})` : ""}
                             </p>
                           </div>
-                          <Badge className="bg-zinc-700 text-white hover:bg-zinc-700">
+                          <Badge className="bg-muted text-foreground hover:bg-accent">
                             x{item.quantity || 1}
                           </Badge>
                         </div>
                       ))}
 
                       {request.observacoes && (
-                        <p className="text-sm text-zinc-400 italic pt-1">
+                        <p className="text-sm text-muted-foreground italic pt-1">
                           {request.observacoes}
                         </p>
                       )}
@@ -362,7 +361,7 @@ const ManageWarehouse = () => {
                           onClick={() => setDeleteTarget(request)}
                           className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
                         >
-                          <Trash2 className="w-4 h-4 mr-2" />
+                          <Trash2 className="w-4 h-4" />
                           Apagar
                         </Button>
                         {request.status !== "entregue" && (
@@ -370,7 +369,7 @@ const ManageWarehouse = () => {
                             size="sm"
                             onClick={() => advanceStatus(request)}
                             disabled={savingId === request.id}
-                            className="bg-green-600 hover:bg-green-700"
+                           
                           >
                             {request.status === "separado" ? (
                               <>
@@ -402,7 +401,7 @@ const ManageWarehouse = () => {
             variant="outline"
             onClick={loadMore}
             disabled={isLoadingMore}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+            className="gap-2"
           >
             {isLoadingMore ? (
               <>
@@ -421,10 +420,10 @@ const ManageWarehouse = () => {
 
       {/* Delete Confirmation */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem a certeza que deseja apagar este pedido de armazém? Esta
               ação não pode ser desfeita.
             </DialogDescription>
@@ -433,7 +432,7 @@ const ManageWarehouse = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteTarget(null)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
@@ -442,7 +441,7 @@ const ManageWarehouse = () => {
               onClick={handleDelete}
               className="bg-red-600 hover:bg-red-700"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
+              <Trash2 className="w-4 h-4" />
               Apagar
             </Button>
           </DialogFooter>

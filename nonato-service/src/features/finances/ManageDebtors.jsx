@@ -13,7 +13,6 @@ import {
   Euro,
   Download,
   MessageCircle,
-  ArrowLeft,
   TrendingDown,
   Calendar,
 } from "lucide-react";
@@ -29,6 +28,7 @@ import {
   getPaymentStatus,
   formatPrice,
 } from "../../utils/financialUtils";
+import { PageHeader } from "../../components/app";
 
 const buildWhatsAppLink = (phone, message) => {
   if (!phone) return null;
@@ -164,7 +164,7 @@ const ManageDebtors = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -172,65 +172,51 @@ const ManageDebtors = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate("/app/manage-finances")}
-          className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Clientes Devedores &amp; Controlo de IVA
-          </h1>
-          <p className="text-sm text-zinc-400">
-            Vista agregada por cliente e por período, a partir de Orçamentos e
-            Fechamentos
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Clientes Devedores &amp; Controlo de IVA"
+        description="Vista agregada por cliente e por período, a partir de Orçamentos e Fechamentos"
+        back="/app/manage-finances"
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <Tabs defaultValue="devedores">
-        <TabsList className="bg-zinc-800 border border-zinc-700">
+        <TabsList className="border">
           <TabsTrigger value="devedores">Clientes Devedores</TabsTrigger>
           <TabsTrigger value="iva">Controlo de IVA</TabsTrigger>
         </TabsList>
 
         {/* Devedores */}
         <TabsContent value="devedores" className="space-y-4 mt-4">
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardContent className="p-4 sm:p-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center">
                   <TrendingDown className="h-5 w-5 text-red-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-zinc-400">Total em Dívida</p>
+                  <p className="text-sm text-muted-foreground">Total em Dívida</p>
                   <p className="text-xl font-bold text-red-400">
                     {formatPrice(totalOverdueAll)}
                   </p>
                 </div>
               </div>
-              <Badge className="bg-zinc-700 text-white hover:bg-zinc-700">
+              <Badge className="bg-muted text-foreground hover:bg-accent">
                 {debtorsByClient.length} cliente(s)
               </Badge>
             </CardContent>
           </Card>
 
           {debtorsByClient.length === 0 ? (
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card>
               <CardContent className="p-8 text-center">
-                <Users className="h-10 w-10 text-zinc-600 mx-auto mb-3" />
-                <p className="text-zinc-400">Nenhum cliente com valores em atraso</p>
+                <Users className="h-10 w-10 text-muted-foreground/70 mx-auto mb-3" />
+                <p className="text-muted-foreground">Nenhum cliente com valores em atraso</p>
               </CardContent>
             </Card>
           ) : (
@@ -242,16 +228,16 @@ const ManageDebtors = () => {
                   `Olá ${entry.client?.name || ""}, aqui é da Nonato Service. Gostaríamos de relembrar que existe um valor pendente de ${formatPrice(entry.totalOverdue)} referente aos nossos serviços. Poderá entrar em contacto connosco para regularizar? Obrigado.`
                 );
                 return (
-                  <Card key={entry.clientId} className="bg-zinc-800 border-zinc-700">
+                  <Card key={entry.clientId}>
                     <CardContent className="p-4 flex items-center justify-between flex-wrap gap-3">
                       <div
                         className="min-w-0 cursor-pointer"
                         onClick={() => navigate(`/app/client/${entry.clientId}`)}
                       >
-                        <p className="text-white font-medium truncate">
+                        <p className="text-foreground font-medium truncate">
                           {entry.client?.name || "Cliente removido"}
                         </p>
-                        <p className="text-sm text-zinc-400">
+                        <p className="text-sm text-muted-foreground">
                           {entry.count} documento(s) em atraso
                         </p>
                       </div>
@@ -263,9 +249,9 @@ const ManageDebtors = () => {
                           <Button
                             size="sm"
                             onClick={() => window.open(whatsappLink, "_blank")}
-                            className="bg-green-600 hover:bg-green-700"
+                           
                           >
-                            <MessageCircle className="w-4 h-4 mr-2" />
+                            <MessageCircle className="w-4 h-4" />
                             Cobrar
                           </Button>
                         )}
@@ -280,14 +266,14 @@ const ManageDebtors = () => {
 
         {/* IVA */}
         <TabsContent value="iva" className="space-y-4 mt-4">
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardContent className="p-4 sm:p-6 flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
                   <Euro className="h-5 w-5 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-zinc-400">IVA Total Acumulado</p>
+                  <p className="text-sm text-muted-foreground">IVA Total Acumulado</p>
                   <p className="text-xl font-bold text-blue-400">
                     {formatPrice(totalVatAll)}
                   </p>
@@ -296,41 +282,41 @@ const ManageDebtors = () => {
               <Button
                 variant="outline"
                 onClick={exportVatCsv}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+               
               >
-                <Download className="w-4 h-4 mr-2" />
+                <Download className="w-4 h-4" />
                 Exportar CSV
               </Button>
             </CardContent>
           </Card>
 
           {vatByMonth.length === 0 ? (
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card>
               <CardContent className="p-8 text-center">
-                <Calendar className="h-10 w-10 text-zinc-600 mx-auto mb-3" />
-                <p className="text-zinc-400">Sem dados de IVA disponíveis</p>
+                <Calendar className="h-10 w-10 text-muted-foreground/70 mx-auto mb-3" />
+                <p className="text-muted-foreground">Sem dados de IVA disponíveis</p>
               </CardContent>
             </Card>
           ) : (
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-base text-white">IVA por Mês</CardTitle>
+                <CardTitle className="text-base">IVA por Mês</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {vatByMonth.map((m) => (
                   <div
                     key={m.month}
-                    className="flex items-center justify-between p-3 bg-zinc-700/30 rounded-lg border border-zinc-600"
+                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border"
                   >
                     <div>
-                      <p className="text-white font-medium">{m.month}</p>
-                      <p className="text-xs text-zinc-400">
+                      <p className="text-foreground font-medium">{m.month}</p>
+                      <p className="text-xs text-muted-foreground">
                         {m.count} documento(s) · Base {formatPrice(m.base)}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-blue-400 font-bold">{formatPrice(m.vat)}</p>
-                      <p className="text-xs text-zinc-500">
+                      <p className="text-xs text-muted-foreground">
                         Total {formatPrice(m.total)}
                       </p>
                     </div>

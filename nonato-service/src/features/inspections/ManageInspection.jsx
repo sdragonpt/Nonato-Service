@@ -55,6 +55,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+import { PageHeader } from "../../components/app";
 
 const PAGE_SIZE = 10;
 const MAX_AUTO_LOADS = 15; // salvaguarda: nº máx. de lotes extra a carregar automaticamente ao pesquisar
@@ -69,11 +70,11 @@ const InspectionCard = ({
   const navigate = useNavigate();
 
   return (
-    <Card className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors">
+    <Card className="hover:bg-accent transition-colors">
       <CardContent className="p-4 cursor-pointer">
         <div className="flex items-center gap-3">
           <div
-            className="h-10 w-10 rounded-full bg-green-600 dark:bg-green-700 flex items-center justify-center transform transition-all duration-200 hover:scale-105 cursor-help"
+            className="h-10 w-10 rounded-full bg-primary dark:bg-primary/90 flex items-center justify-center transform transition-all duration-200 hover:scale-105 cursor-help"
             title={
               inspection.type === "training"
                 ? "Training Inspection"
@@ -81,9 +82,9 @@ const InspectionCard = ({
             }
           >
             {inspection.type === "training" ? (
-              <GraduationCap className="w-5 h-5 text-white" />
+              <GraduationCap className="w-5 h-5 text-foreground" />
             ) : (
-              <ClipboardCheck className="w-5 h-5 text-white" />
+              <ClipboardCheck className="w-5 h-5 text-foreground" />
             )}
           </div>
 
@@ -95,13 +96,13 @@ const InspectionCard = ({
               }
             }}
           >
-            <h3 className="font-semibold text-lg text-white truncate">
+            <h3 className="font-semibold text-lg text-foreground truncate">
               {inspection.clientName}
             </h3>
-            <p className="text-xs text-zinc-500 font-mono">
+            <p className="text-xs text-muted-foreground font-mono">
               {inspection.inspectionNumber || `INSP-${inspection.id}`}
             </p>
-            <div className="flex flex-col text-sm text-zinc-400">
+            <div className="flex flex-col text-sm text-muted-foreground">
               <div className="flex items-center">
                 <Package className="w-4 h-4 mr-1" />
                 <span className="truncate">{inspection.equipmentType}</span>
@@ -111,7 +112,7 @@ const InspectionCard = ({
                 <span className="truncate">{inspection.checklistType}</span>
               </div>
             </div>
-            <p className="text-zinc-400 text-sm mt-1">
+            <p className="text-muted-foreground text-sm mt-1">
               {inspection.createdAt?.toDate().toLocaleDateString()}
             </p>
           </div>
@@ -121,19 +122,18 @@ const InspectionCard = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-full hover:bg-zinc-700 text-white"
+                className="rounded-full"
               >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="bg-zinc-800 border-zinc-700"
             >
               <DropdownMenuItem
                 onClick={() => onGeneratePDF(inspection)}
                 disabled={isGeneratingPDF}
-                className="text-white hover:bg-zinc-700 cursor-pointer"
+                className="cursor-pointer"
               >
                 {isGeneratingPDF ? (
                   <>
@@ -149,14 +149,14 @@ const InspectionCard = ({
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => onEdit(inspection.id)}
-                className="text-white hover:bg-zinc-700 cursor-pointer"
+                className="cursor-pointer"
               >
                 <Edit2 className="w-4 h-4 mr-2" />
                 Editar
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => onDelete(inspection)}
-                className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
+                className="text-red-400 focus:text-red-400 cursor-pointer"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Excluir
@@ -429,7 +429,7 @@ const ManageInspection = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -437,43 +437,41 @@ const ManageInspection = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Gerenciar Inspeções
-          </h1>
-          <p className="text-sm sm:text-base text-zinc-400">
-            Gerencie todas as suas inspeções em um só lugar
-          </p>
-        </div>
-        <div className="hidden sm:flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => navigate("/app/recycle-bin")}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Reciclagem
-          </Button>
-          <Button
-            onClick={() => navigate("/app/add-inspection")}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Nova Inspeção
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Gerenciar Inspeções"
+        description="Gerencie todas as suas inspeções em um só lugar"
+        actions={
+          <>
+            <div className="hidden sm:flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/app/recycle-bin")}
+             
+            >
+              <Trash2 className="w-4 h-4" />
+              Reciclagem
+            </Button>
+            <Button
+              onClick={() => navigate("/app/add-inspection")}
+             
+            >
+              <Plus className="w-4 h-4" />
+              Nova Inspeção
+            </Button>
+          </div>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">
+              <p className="text-sm font-medium text-muted-foreground">
                 Total Carregado
               </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {stats.total}
               </h3>
             </div>
@@ -481,11 +479,11 @@ const ManageInspection = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Inspeções</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <p className="text-sm font-medium text-muted-foreground">Inspeções</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {stats.inspections}
               </h3>
             </div>
@@ -493,11 +491,11 @@ const ManageInspection = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Treinamentos</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <p className="text-sm font-medium text-muted-foreground">Treinamentos</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {stats.trainings}
               </h3>
             </div>
@@ -507,7 +505,7 @@ const ManageInspection = () => {
       </div>
 
       {/* Filters Card */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="space-y-4 p-4 sm:p-6">
           {(clientIdFilter || equipmentIdFilter) && (
             <div className="flex items-center justify-between bg-blue-500/10 border border-blue-500/30 rounded-lg px-3 py-2">
@@ -518,7 +516,7 @@ const ManageInspection = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => setSearchParams({})}
-                className="text-blue-300 hover:text-white hover:bg-blue-500/20 h-7"
+                className="text-blue-300 hover:bg-blue-500/20 h-7"
               >
                 Limpar filtro
               </Button>
@@ -526,29 +524,29 @@ const ManageInspection = () => {
           )}
           {/* Search */}
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar por cliente, equipamento ou tipo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+              className="pl-10 w-full"
             />
           </div>
 
           {error && (
             <Alert
               variant="destructive"
-              className="border-red-500 bg-red-500/10"
+             
             >
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-red-400">
+              <AlertDescription>
                 {error}
               </AlertDescription>
             </Alert>
           )}
 
           <div className="flex justify-between">
-            <span className="text-sm text-zinc-400">
+            <span className="text-sm text-muted-foreground">
               {filteredInspections.length} inspeção(ões) carregada(s)
               {hasMore && " — há mais por carregar"}
             </span>
@@ -561,9 +559,9 @@ const ManageInspection = () => {
         <Button
           variant="outline"
           onClick={fetchInspections}
-          className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
+          className="bg-accent"
         >
-          <RefreshCw className="w-4 h-4 mr-2" />
+          <RefreshCw className="w-4 h-4" />
           Atualizar Lista
         </Button>
       </div>
@@ -582,13 +580,13 @@ const ManageInspection = () => {
             />
           ))
         ) : (
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardContent className="p-8 sm:p-12 text-center">
-              <Search className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
-              <p className="text-lg font-medium mb-2 text-white">
+              <Search className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
+              <p className="text-lg font-medium mb-2 text-foreground">
                 Nenhuma inspeção encontrada
               </p>
-              <p className="text-sm sm:text-base text-zinc-400">
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Tente ajustar sua busca ou adicione uma nova inspeção
               </p>
             </CardContent>
@@ -603,7 +601,7 @@ const ManageInspection = () => {
             variant="outline"
             onClick={loadMore}
             disabled={isLoadingMore}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+            className="gap-2"
           >
             {isLoadingMore ? (
               <>
@@ -630,12 +628,12 @@ const ManageInspection = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem certeza que deseja excluir esta inspeção de{" "}
-              <span className="font-semibold text-white">
+              <span className="font-semibold text-foreground">
                 {inspectionToDelete?.clientName}
               </span>
               ? A inspeção será movida para a Reciclagem e pode ser restaurada
@@ -646,7 +644,7 @@ const ManageInspection = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
@@ -666,14 +664,14 @@ const ManageInspection = () => {
         <Button
           onClick={fetchInspections}
           size="icon"
-          className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
+          className="rounded-full shadow-lg bg-muted hover:bg-accent"
         >
           <RefreshCw className="h-5 w-5" />
         </Button>
         <Button
           onClick={() => navigate("/app/add-inspection")}
           size="icon"
-          className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
+          className="rounded-full shadow-lg"
         >
           <Plus className="h-5 w-5" />
         </Button>

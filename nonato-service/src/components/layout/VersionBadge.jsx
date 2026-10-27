@@ -266,7 +266,7 @@ const VersionBadge = ({ user }) => {
           <DialogFooter>
             <Button
               onClick={() => handleOpenChange(false)}
-              className="bg-primary hover:bg-primary/90 text-foreground"
+             
             >
               {showingNews ? "Entendido" : "Fechar"}
             </Button>

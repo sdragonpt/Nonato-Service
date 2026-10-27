@@ -5,7 +5,10 @@
 //
 // Modelo de dados (coleção "mensagensInternas"):
 //   { conversationId, remetenteId, remetenteNome, destinatarioId,
-//     destinatarioNome, mensagem, dataEnvio, lida }
+//     destinatarioNome, mensagem, dataEnvio, lida, lidaEm,
+//     entregue, entregueEm }
+// "entregue" é marcado pela app do destinatário assim que a mensagem lhe
+// chega (hooks/useUnreadMessages.js); "lida" quando abre a conversa.
 // conversationId = [uidA, uidB] ordenados e juntos por "_" — permite
 // consultar uma conversa 1-para-1 com uma única query, sem precisar de OR.
 
@@ -26,15 +29,48 @@ import { useAuth } from "../../hooks/useAuth";
 import { useUsers } from "../../context/UsersContext.jsx";
 import { getRoleLabel, getRoleBadgeStyle, isStaffRole } from "../../config/roles.js";
 import { getInitials } from "../../utils/getInitials.js";
-import { MessageCircle, Send, Loader2, Search, Users } from "lucide-react";
+import { MessageCircle, Send, Loader2, Users, Check, CheckCheck, ArrowLeft } from "lucide-react";
 
-import { Card } from "@/components/ui/card.jsx";
-import { Input } from "@/components/ui/input.jsx";
 import { Textarea } from "@/components/ui/textarea.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { ScrollArea } from "@/components/ui/scroll-area.jsx";
+import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
+import { PageHeader, SearchInput, EmptyState } from "../../components/app";
+
+const formatTime = (ts) =>
+  ts?.toDate
+    ? ts.toDate().toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+    : null;
+
+// Estado de uma mensagem enviada: a enviar → enviada (✓) → entregue (✓✓) → vista (✓✓ verde).
+const ReceiptIcon = ({ message }) => {
+  if (!message.dataEnvio) {
+    return <Loader2 className="h-3 w-3 animate-spin" aria-label="A enviar" />;
+  }
+  if (message.lida) {
+    const when = formatTime(message.lidaEm);
+    return (
+      <span title={when ? `Vista em ${when}` : "Vista"} className="inline-flex">
+        <CheckCheck className="h-3.5 w-3.5 text-sky-300" aria-label="Vista" />
+      </span>
+    );
+  }
+  if (message.entregue) {
+    const when = formatTime(message.entregueEm);
+    return (
+      <span title={when ? `Entregue em ${when}` : "Entregue"} className="inline-flex">
+        <CheckCheck className="h-3.5 w-3.5" aria-label="Entregue" />
+      </span>
+    );
+  }
+  return (
+    <span title="Enviada" className="inline-flex">
+      <Check className="h-3.5 w-3.5" aria-label="Enviada" />
+    </span>
+  );
+};
 
 function conversationIdFor(uidA, uidB) {
   return [uidA, uidB].sort().join("_");
@@ -140,7 +176,11 @@ const ManageCommunicationHub = () => {
       try {
         const batch = writeBatch(db);
         unreadFromContact.forEach((m) => {
-          batch.update(doc(db, "mensagensInternas", m.id), { lida: true });
+          batch.update(doc(db, "mensagensInternas", m.id), {
+            lida: true,
+            lidaEm: serverTimestamp(),
+            entregue: true,
+          });
         });
         await batch.commit();
       } catch (err) {
@@ -206,45 +246,35 @@ const ManageCommunicationHub = () => {
 
   const totalUnread = Object.values(unreadByContact).reduce((sum, n) => sum + n, 0);
 
+  const lastSeenMineId = [...messages]
+    .reverse()
+    .find((m) => m.remetenteId === user?.uid && m.lida)?.id;
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <MessageCircle className="h-8 w-8 text-green-500" />
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
-            Hub de Comunicação
-            {totalUnread > 0 && (
-              <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
-                {totalUnread} por ler
-              </Badge>
-            )}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Mensagens internas entre administração, gestores e técnicos
-          </p>
-        </div>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="Hub de Comunicação"
+        description="Mensagens internas entre administração, gestores e técnicos"
+        icon={MessageCircle}
+        actions={totalUnread > 0 && <Badge variant="danger">{totalUnread} por ler</Badge>}
+      />
 
       {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-          <p className="text-red-400 text-sm">{error}</p>
-        </div>
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
-      <Card className="overflow-hidden">
-        <div className="grid h-[calc(100dvh-13rem)] min-h-[460px] grid-cols-1 grid-rows-[auto_minmax(0,1fr)] md:grid-cols-[280px_1fr] md:grid-rows-1">
-          {/* Lista de contactos */}
-          <div className="flex max-h-48 min-h-0 flex-col border-b border-border md:max-h-none md:border-b-0 md:border-r">
-            <div className="p-3 border-b border-border">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Pesquisar colega..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 bg-muted/50 border-border text-foreground placeholder:text-muted-foreground h-9"
-                />
-              </div>
+      <div className="surface overflow-hidden shadow-elev">
+        <div className="grid h-[calc(100dvh-14rem)] min-h-[460px] grid-cols-1 md:grid-cols-[300px_1fr]">
+          {/* Lista de contactos (no telemóvel some quando há conversa aberta) */}
+          <div
+            className={`min-h-0 flex-col border-border md:flex md:border-r ${
+              selectedContact ? "hidden" : "flex"
+            }`}
+          >
+            <div className="border-b border-border p-3">
+              <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Pesquisar colega…" />
             </div>
 
             <ScrollArea className="flex-1">
@@ -253,15 +283,14 @@ const ManageCommunicationHub = () => {
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 </div>
               ) : filteredContacts.length === 0 ? (
-                <div className="text-center py-10 px-4">
-                  <Users className="h-8 w-8 text-muted-foreground/70 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Sem colegas de equipa registados ainda. Adiciona utilizadores com papel de
-                    Gestor ou Técnico em "Gerenciar Usuários".
-                  </p>
-                </div>
+                <EmptyState
+                  icon={Users}
+                  title="Sem colegas"
+                  description='Adicione utilizadores com papel de Gestor ou Técnico em "Gerenciar Usuários".'
+                  className="border-0 bg-transparent"
+                />
               ) : (
-                <div className="divide-y divide-border/50">
+                <div className="space-y-0.5 p-2">
                   {filteredContacts.map((contact) => {
                     const unread = unreadByContact[contact.uid] || 0;
                     const isActive = selectedContact?.uid === contact.uid;
@@ -270,28 +299,26 @@ const ManageCommunicationHub = () => {
                         key={contact.uid}
                         type="button"
                         onClick={() => setSelectedContact(contact)}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
-                          isActive ? "bg-green-600/20" : "hover:bg-zinc-700/40"
+                        className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors ${
+                          isActive ? "bg-primary/15" : "hover:bg-white/5"
                         }`}
                       >
                         <Avatar className="h-9 w-9 shrink-0">
                           <AvatarImage src={contact.photoURL || ""} alt={contact.displayName} />
-                          <AvatarFallback className="bg-muted text-foreground/90 text-xs">
+                          <AvatarFallback className="bg-muted text-xs text-foreground/90">
                             {getInitials(contact.displayName || contact.email)}
                           </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-foreground truncate">
+                          <p className={`truncate text-sm ${unread > 0 ? "font-semibold" : "font-medium"}`}>
                             {contact.displayName || contact.email}
                           </p>
-                          <Badge
-                            className={`${getRoleBadgeStyle(contact.role)} text-[10px] px-1.5 py-0 mt-0.5`}
-                          >
+                          <Badge className={`${getRoleBadgeStyle(contact.role)} mt-0.5 px-1.5 py-0 text-[10px]`}>
                             {getRoleLabel(contact.role)}
                           </Badge>
                         </div>
                         {unread > 0 && (
-                          <span className="shrink-0 h-5 min-w-5 px-1 rounded-full bg-green-500 text-zinc-900 text-[11px] font-bold flex items-center justify-center">
+                          <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">
                             {unread}
                           </span>
                         )}
@@ -304,71 +331,75 @@ const ManageCommunicationHub = () => {
           </div>
 
           {/* Conversa */}
-          <div className="flex min-h-0 flex-col">
+          <div className={`min-h-0 flex-col ${selectedContact ? "flex" : "hidden md:flex"}`}>
             {!selectedContact ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                <MessageCircle className="h-10 w-10 text-muted-foreground/70 mb-3" />
-                <p className="text-muted-foreground text-sm">
-                  Seleciona um colega à esquerda para iniciar ou continuar uma conversa.
-                </p>
-              </div>
+              <EmptyState
+                icon={MessageCircle}
+                title="Nenhuma conversa aberta"
+                description="Escolha um colega à esquerda para iniciar ou continuar uma conversa."
+                className="my-auto border-0 bg-transparent"
+              />
             ) : (
               <>
-                <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={selectedContact.photoURL || ""} />
-                    <AvatarFallback className="bg-muted text-foreground/90 text-xs">
+                <div className="flex items-center gap-3 border-b border-border px-3 py-2.5 sm:px-4">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 md:hidden"
+                    onClick={() => setSelectedContact(null)}
+                    aria-label="Voltar aos contactos"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src={selectedContact.photoURL || ""} alt={selectedContact.displayName} />
+                    <AvatarFallback className="bg-muted text-xs">
                       {getInitials(selectedContact.displayName || selectedContact.email)}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">
                       {selectedContact.displayName || selectedContact.email}
                     </p>
                     <p className="text-xs text-muted-foreground">{getRoleLabel(selectedContact.role)}</p>
                   </div>
                 </div>
 
-                <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+                <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto bg-black/10 p-3 sm:p-5">
                   {loadingMessages ? (
                     <div className="flex justify-center py-8">
                       <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                     </div>
                   ) : messages.length === 0 ? (
-                    <p className="text-center text-sm text-muted-foreground py-8">
-                      Ainda não há mensagens. Diz olá!
+                    <p className="py-8 text-center text-sm text-muted-foreground">
+                      Ainda não há mensagens. Diga olá!
                     </p>
                   ) : (
                     messages.map((m) => {
                       const isMine = m.remetenteId === user?.uid;
+                      const seenWhen = m.id === lastSeenMineId ? formatTime(m.lidaEm) : null;
                       return (
-                        <div
-                          key={m.id}
-                          className={`flex ${isMine ? "justify-end" : "justify-start"}`}
-                        >
+                        <div key={m.id} className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}>
                           <div
-                            className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${
+                            className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm shadow-sm sm:max-w-[70%] ${
                               isMine
-                                ? "bg-green-600 text-foreground rounded-br-sm"
-                                : "bg-muted text-zinc-100 rounded-bl-sm"
+                                ? "rounded-br-md bg-primary text-primary-foreground"
+                                : "rounded-bl-md bg-muted text-foreground"
                             }`}
                           >
                             <p className="whitespace-pre-wrap break-words">{m.mensagem}</p>
                             <p
-                              className={`text-[10px] mt-1 ${
-                                isMine ? "text-green-100/70" : "text-muted-foreground"
+                              className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${
+                                isMine ? "text-primary-foreground/70" : "text-muted-foreground"
                               }`}
                             >
-                              {m.dataEnvio?.toDate
-                                ? m.dataEnvio.toDate().toLocaleString("pt-PT", {
-                                    day: "2-digit",
-                                    month: "2-digit",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })
-                                : "A enviar..."}
+                              {formatTime(m.dataEnvio) || "A enviar…"}
+                              {isMine && <ReceiptIcon message={m} />}
                             </p>
                           </div>
+                          {seenWhen && (
+                            <span className="mt-0.5 px-1 text-[10px] text-muted-foreground">Vista {seenWhen}</span>
+                          )}
                         </div>
                       );
                     })
@@ -383,28 +414,31 @@ const ManageCommunicationHub = () => {
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Escreve uma mensagem... (Enter para enviar, Shift+Enter para nova linha)"
+                    placeholder="Escreva uma mensagem… (Enter envia, Shift+Enter muda de linha)"
                     rows={1}
-                    className="min-h-[40px] max-h-32 resize-none bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
+                    className="max-h-32 min-h-[42px] resize-none rounded-xl"
                   />
                   <Button
                     type="submit"
                     disabled={sending || !draft.trim()}
-                    className="bg-primary hover:bg-primary/90 shrink-0"
+                    className="h-[42px] w-[42px] shrink-0 rounded-xl"
                     size="icon"
+                    aria-label="Enviar"
                   >
-                    {sending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
+                    {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   </Button>
                 </form>
               </>
             )}
           </div>
         </div>
-      </Card>
+      </div>
+
+      <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1"><Check className="h-3.5 w-3.5" /> Enviada</span>
+        <span className="inline-flex items-center gap-1"><CheckCheck className="h-3.5 w-3.5" /> Entregue (a app do colega recebeu)</span>
+        <span className="inline-flex items-center gap-1"><CheckCheck className="h-3.5 w-3.5 text-sky-400" /> Vista</span>
+      </p>
     </div>
   );
 };

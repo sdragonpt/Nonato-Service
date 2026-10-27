@@ -42,6 +42,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+import { PageHeader } from "../../components/app";
 
 const SupplierCard = ({ supplier, onEdit, onDelete, onView }) => {
   const confirmDelete = (e) => {
@@ -52,21 +53,21 @@ const SupplierCard = ({ supplier, onEdit, onDelete, onView }) => {
   return (
     <Card
       onClick={() => onView(supplier.id)}
-      className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+      className="hover:bg-accent transition-colors cursor-pointer"
     >
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <Avatar className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
-              <AvatarFallback className="bg-zinc-700 text-zinc-300">
+              <AvatarFallback className="bg-muted text-foreground/90">
                 {getInitials(supplier.nomeEmpresa)}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <h3 className="font-medium text-white truncate" title={supplier.nomeEmpresa}>
+              <h3 className="font-medium text-foreground truncate" title={supplier.nomeEmpresa}>
                 {supplier.nomeEmpresa || "Sem nome"}
               </h3>
-              <p className="text-sm text-zinc-400 truncate">
+              <p className="text-sm text-muted-foreground truncate">
                 {supplier.telefones || "Sem telefone"}
               </p>
             </div>
@@ -80,7 +81,6 @@ const SupplierCard = ({ supplier, onEdit, onDelete, onView }) => {
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="bg-zinc-800 border-zinc-700"
               onClick={(e) => e.stopPropagation()}
             >
               <DropdownMenuItem onClick={() => onView(supplier.id)}>
@@ -101,19 +101,19 @@ const SupplierCard = ({ supplier, onEdit, onDelete, onView }) => {
 
         <div className="space-y-1.5">
           {supplier.localidade && (
-            <p className="text-zinc-400 text-xs sm:text-sm truncate flex items-center gap-2">
+            <p className="text-muted-foreground text-xs sm:text-sm truncate flex items-center gap-2">
               <MapPin className="w-4 h-4 shrink-0" />
               {supplier.localidade}
             </p>
           )}
           {supplier.numeroContribuicaoFiscal && (
-            <p className="text-zinc-400 text-xs sm:text-sm truncate flex items-center gap-2">
+            <p className="text-muted-foreground text-xs sm:text-sm truncate flex items-center gap-2">
               <CreditCard className="w-4 h-4 shrink-0" />
               NIF: {supplier.numeroContribuicaoFiscal}
             </p>
           )}
           {supplier.email && (
-            <p className="text-zinc-400 text-xs sm:text-sm truncate flex items-center gap-2">
+            <p className="text-muted-foreground text-xs sm:text-sm truncate flex items-center gap-2">
               <Mail className="w-4 h-4 shrink-0" />
               {supplier.email}
             </p>
@@ -236,7 +236,7 @@ const ManageSuppliers = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -244,29 +244,29 @@ const ManageSuppliers = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">Fornecedores</h1>
-          <p className="text-sm sm:text-base text-zinc-400">
-            Gerencie os fornecedores da Nonato Service
-          </p>
-        </div>
-        <Button
-          onClick={() => navigate("/app/add-supplier")}
-          className="hidden sm:flex bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Fornecedor
-        </Button>
-      </div>
+      <PageHeader
+        title="Fornecedores"
+        description="Gerencie os fornecedores da Nonato Service"
+        actions={
+          <>
+            <Button
+            onClick={() => navigate("/app/add-supplier")}
+            className="hidden sm:flex"
+          >
+            <Plus className="w-4 h-4" />
+            Novo Fornecedor
+          </Button>
+          </>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Total de Fornecedores</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <p className="text-sm font-medium text-muted-foreground">Total de Fornecedores</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {suppliers.length}
               </h3>
             </div>
@@ -274,11 +274,11 @@ const ManageSuppliers = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Com IBAN registado</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <p className="text-sm font-medium text-muted-foreground">Com IBAN registado</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {suppliers.filter((s) => s.iban).length}
               </h3>
             </div>
@@ -286,30 +286,30 @@ const ManageSuppliers = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700 col-span-2 md:col-span-1">
+        <Card className="col-span-2 md:col-span-1">
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Resultados da Pesquisa</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <p className="text-sm font-medium text-muted-foreground">Resultados da Pesquisa</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {filteredSuppliers.length}
               </h3>
             </div>
-            <Search className="h-6 w-6 sm:h-8 sm:w-8 text-zinc-500" />
+            <Search className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="relative w-full sm:w-96">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Pesquisar por nome, localidade, NIF, email ou telefone..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-zinc-700 border-zinc-600 text-white placeholder:text-zinc-400"
+                className="pl-10 bg-muted"
               />
             </div>
 
@@ -317,24 +317,24 @@ const ManageSuppliers = () => {
               <Button
                 variant="outline"
                 onClick={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
-                className="flex-1 sm:flex-none bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-700"
+                className="flex-1 sm:flex-none"
               >
-                <ArrowUpDown className="w-4 h-4 mr-2" />
+                <ArrowUpDown className="w-4 h-4" />
                 {sortOrder === "asc" ? "A-Z" : "Z-A"}
               </Button>
               <Button
                 variant="outline"
                 onClick={exportToCSV}
-                className="flex-1 sm:flex-none bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-700"
+                className="flex-1 sm:flex-none"
               >
-                <Download className="w-4 h-4 mr-2" />
+                <Download className="w-4 h-4" />
                 Exportar
               </Button>
             </div>
           </div>
 
-          <div className="flex justify-between items-center mt-4 pt-4 border-t border-zinc-700">
-            <span className="text-sm text-zinc-400">
+          <div className="flex justify-between items-center mt-4 pt-4 border-t border-border">
+            <span className="text-sm text-muted-foreground">
               A mostrar {currentSuppliers.length} de {filteredSuppliers.length} fornecedor(es)
             </span>
           </div>
@@ -362,11 +362,11 @@ const ManageSuppliers = () => {
 
       {filteredSuppliers.length === 0 && !isLoading && (
         <div className="text-center py-12">
-          <Truck className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">
+          <Truck className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">
             {searchTerm ? "Nenhum fornecedor encontrado" : "Nenhum fornecedor cadastrado"}
           </h3>
-          <p className="text-zinc-400 mb-4">
+          <p className="text-muted-foreground mb-4">
             {searchTerm
               ? "Tente ajustar os termos de pesquisa"
               : "Comece adicionando o seu primeiro fornecedor"}
@@ -374,9 +374,9 @@ const ManageSuppliers = () => {
           {!searchTerm && (
             <Button
               onClick={() => navigate("/app/add-supplier")}
-              className="bg-green-600 hover:bg-green-700"
+             
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4" />
               Adicionar Fornecedor
             </Button>
           )}
@@ -389,7 +389,7 @@ const ManageSuppliers = () => {
           <Button
             variant="outline"
             onClick={loadMoreVisible}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+            className="gap-2"
           >
             <ArrowDown className="h-4 w-4" />
             Carregar mais
@@ -399,10 +399,10 @@ const ManageSuppliers = () => {
 
       {/* Delete Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar Exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar Exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem a certeza que deseja excluir o fornecedor "{supplierToDelete?.nomeEmpresa}"?
               Esta ação não pode ser desfeita.
             </DialogDescription>
@@ -411,7 +411,7 @@ const ManageSuppliers = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="bg-zinc-900 border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+              className="text-foreground/90"
             >
               Cancelar
             </Button>
@@ -427,7 +427,7 @@ const ManageSuppliers = () => {
         <Button
           onClick={() => navigate("/app/add-supplier")}
           size="icon"
-          className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
+          className="rounded-full shadow-lg"
         >
           <Plus className="h-5 w-5" />
         </Button>

@@ -93,6 +93,7 @@ import {
   getServiceOutcome,
   invalidatePendingServiceConfirmations,
 } from "./utils/workConfirmation.js";
+import { PageHeader } from "../../components/app";
 
 // ✅ NOVO: Lembretes via WhatsApp
 const buildWhatsAppLink = (phone, message) => {
@@ -125,12 +126,12 @@ const PreAgendamentoRow = ({ preAgendamento, onConvert, onDelete }) => {
           isUrgent ? "bg-red-600" : "bg-yellow-600"
         } flex items-center justify-center`}
       >
-        <Zap className="w-4 h-4 text-white" />
+        <Zap className="w-4 h-4 text-foreground" />
       </div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-medium text-sm text-white truncate">
+          <span className="font-medium text-sm text-foreground truncate">
             {clientName}
           </span>
           {isUrgent && (
@@ -144,7 +145,7 @@ const PreAgendamentoRow = ({ preAgendamento, onConvert, onDelete }) => {
             </Badge>
           )}
         </div>
-        <p className="text-xs text-zinc-400 truncate">
+        <p className="text-xs text-muted-foreground truncate">
           {preAgendamento.machineType} • {preAgendamento.serviceType}
           {preAgendamento.quickNotes ? ` — ${preAgendamento.quickNotes}` : ""}
         </p>
@@ -153,10 +154,10 @@ const PreAgendamentoRow = ({ preAgendamento, onConvert, onDelete }) => {
       <div className="flex items-center gap-1 shrink-0">
         <Button
           onClick={() => onConvert(preAgendamento)}
-          className="bg-green-600 hover:bg-green-700 h-8"
+          className="h-8"
           size="sm"
         >
-          <ArrowRight className="w-3.5 h-3.5 mr-1" />
+          <ArrowRight className="w-3.5 h-3.5" />
           Agendar
         </Button>
 
@@ -165,24 +166,23 @@ const PreAgendamentoRow = ({ preAgendamento, onConvert, onDelete }) => {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-full hover:bg-zinc-700 text-yellow-400"
+              className="h-8 w-8 rounded-full text-yellow-400"
             >
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="bg-zinc-800 border-zinc-700"
           >
             <DropdownMenuItem
               onClick={() => onConvert(preAgendamento)}
-              className="text-white hover:bg-zinc-700 cursor-pointer"
+              className="cursor-pointer"
             >
               <Calendar className="w-4 h-4 mr-2" />
               Converter em Agendamento
             </DropdownMenuItem>
             <DropdownMenuItem
-              className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
+              className="text-red-400 focus:text-red-400 cursor-pointer"
               onClick={() => onDelete(preAgendamento)}
             >
               <Trash2 className="w-4 h-4 mr-2" />
@@ -210,23 +210,23 @@ const AppointmentCard = ({
   const whatsappLink = buildWhatsAppLink(phone, buildReminderMessage(appointment));
 
   return (
-    <Card className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors">
+    <Card className="hover:bg-accent transition-colors">
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
               className={`h-10 w-10 rounded-full ${
-                isUrgent ? "bg-red-600" : "bg-green-600"
+                isUrgent ? "bg-red-600" : "bg-primary"
               } flex items-center justify-center`}
             >
-              <Clock className="w-5 h-5 text-white" />
+              <Clock className="w-5 h-5 text-foreground" />
             </div>
 
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-lg text-white truncate">
+              <h3 className="font-semibold text-lg text-foreground truncate">
                 {appointment.cliente?.name || "Cliente não encontrado"}
               </h3>
-              <p className="text-zinc-400 text-sm">
+              <p className="text-muted-foreground text-sm">
                 {appointment.hora}
                 {appointment.hora && (
                   <>
@@ -263,7 +263,7 @@ const AppointmentCard = ({
                 {appointment.tecnicoNome ? (
                   <Badge
                     variant="outline"
-                    className="bg-zinc-700/50 text-zinc-300 border-zinc-600 flex items-center gap-1"
+                    className="bg-muted/50 text-foreground/90 border-border flex items-center gap-1"
                   >
                     <UserCog className="h-3 w-3" />
                     {appointment.tecnicoNome}
@@ -285,18 +285,17 @@ const AppointmentCard = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-full hover:bg-zinc-700 text-white"
+                className="rounded-full"
               >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="bg-zinc-800 border-zinc-700"
             >
               <DropdownMenuItem
                 onClick={() => onEdit(appointment.id)}
-                className="text-white hover:bg-zinc-700 cursor-pointer"
+                className="cursor-pointer"
               >
                 <Edit2 className="w-4 h-4 mr-2" />
                 Editar
@@ -304,7 +303,7 @@ const AppointmentCard = ({
               {whatsappLink && (
                 <DropdownMenuItem
                   onClick={() => window.open(whatsappLink, "_blank")}
-                  className="text-green-400 hover:bg-zinc-700 focus:text-green-400 cursor-pointer"
+                  className="text-green-400 focus:text-green-400 cursor-pointer"
                 >
                   <MessageCircle className="w-4 h-4 mr-2" />
                   Enviar Lembrete WhatsApp
@@ -315,7 +314,7 @@ const AppointmentCard = ({
                   {getServiceOutcome(appointment) !== true && (
                     <DropdownMenuItem
                       onClick={() => onServiceOutcome(appointment, true)}
-                      className="text-emerald-400 hover:bg-zinc-700 focus:text-emerald-400 cursor-pointer"
+                      className="text-emerald-400 focus:text-emerald-400 cursor-pointer"
                     >
                       <BadgeCheck className="w-4 h-4 mr-2" />
                       Serviço realizado
@@ -324,7 +323,7 @@ const AppointmentCard = ({
                   {getServiceOutcome(appointment) !== false && (
                     <DropdownMenuItem
                       onClick={() => onServiceOutcome(appointment, false)}
-                      className="text-orange-400 hover:bg-zinc-700 focus:text-orange-400 cursor-pointer"
+                      className="text-orange-400 focus:text-orange-400 cursor-pointer"
                     >
                       <Ban className="w-4 h-4 mr-2" />
                       Serviço não realizado
@@ -336,7 +335,7 @@ const AppointmentCard = ({
                 onClick={() =>
                   onToggleComplete(appointment.id, appointment.concluido)
                 }
-                className="text-white hover:bg-zinc-700 cursor-pointer"
+                className="cursor-pointer"
               >
                 {appointment.concluido ? (
                   <>
@@ -351,7 +350,7 @@ const AppointmentCard = ({
                 )}
               </DropdownMenuItem>
               <DropdownMenuItem
-                className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
+                className="text-red-400 focus:text-red-400 cursor-pointer"
                 onClick={() => onDelete(appointment)}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -786,7 +785,7 @@ const ManageAgenda = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -794,44 +793,42 @@ const ManageAgenda = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Gerenciar Agenda
-          </h1>
-          <p className="text-sm sm:text-base text-zinc-400">
-            Gerencie todos os seus agendamentos em um só lugar
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => navigate("/app/add-pre-agendamento")}
-            variant="outline"
-            className="hidden sm:flex border-yellow-600 text-white bg-yellow-600 hover:bg-yellow-500/20"
-          >
-            <Zap className="w-4 h-4 mr-2" />
-            Pré-Agendamento
-          </Button>
-          <Button
-            onClick={() => navigate("/app/add-agendamento")}
-            className="hidden sm:flex bg-green-600 hover:bg-green-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Agendamento
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Gerenciar Agenda"
+        description="Gerencie todos os seus agendamentos em um só lugar"
+        actions={
+          <>
+            <div className="flex gap-2">
+            <Button
+              onClick={() => navigate("/app/add-pre-agendamento")}
+              variant="outline"
+              className="hidden sm:flex border-yellow-600 bg-yellow-600 hover:bg-yellow-500/20"
+            >
+              <Zap className="w-4 h-4" />
+              Pré-Agendamento
+            </Button>
+            <Button
+              onClick={() => navigate("/app/add-agendamento")}
+              className="hidden sm:flex"
+            >
+              <Plus className="w-4 h-4" />
+              Novo Agendamento
+            </Button>
+          </div>
+          </>
+        }
+      />
 
       {/* Trabalhos por confirmar (cartão + pop-up) */}
       <PendingWorkConfirmation />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Total do Mês</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <p className="text-sm font-medium text-muted-foreground">Total do Mês</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {stats.total}
               </h3>
             </div>
@@ -839,11 +836,11 @@ const ManageAgenda = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Hoje</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <p className="text-sm font-medium text-muted-foreground">Hoje</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {stats.today}
               </h3>
             </div>
@@ -851,11 +848,11 @@ const ManageAgenda = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Urgentes</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <p className="text-sm font-medium text-muted-foreground">Urgentes</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {stats.urgent}
               </h3>
             </div>
@@ -863,11 +860,11 @@ const ManageAgenda = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Concluídos</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <p className="text-sm font-medium text-muted-foreground">Concluídos</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {stats.completed}
               </h3>
             </div>
@@ -877,7 +874,7 @@ const ManageAgenda = () => {
 
         {/* ✅ CARD: Pré-Agendamentos - clicável para expandir/recolher a lista */}
         <Card
-          className={`bg-zinc-800 border-zinc-700 ${
+          className={` ${
             stats.preAgendamentos > 0
               ? "cursor-pointer hover:border-yellow-500/40 transition-colors"
               : ""
@@ -889,10 +886,10 @@ const ManageAgenda = () => {
         >
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">
+              <p className="text-sm font-medium text-muted-foreground">
                 Pré-Agendamentos
               </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {stats.preAgendamentos}
               </h3>
             </div>
@@ -911,9 +908,9 @@ const ManageAgenda = () => {
 
       {/* Pré-Agendamentos Pendentes - compacto, só aparece quando expandido */}
       {preAgendamentos.length > 0 && preAgendamentosOpen && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between py-3">
-            <CardTitle className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold text-foreground/90 flex items-center gap-2">
               <Zap className="h-4 w-4 text-yellow-400" />
               Pré-Agendamentos Pendentes
             </CardTitle>
@@ -923,7 +920,7 @@ const ManageAgenda = () => {
               size="sm"
               className="h-8 bg-yellow-800/20 border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20"
             >
-              <Plus className="w-3.5 h-3.5 mr-1" />
+              <Plus className="w-3.5 h-3.5" />
               Novo
             </Button>
           </CardHeader>
@@ -944,22 +941,22 @@ const ManageAgenda = () => {
       )}
 
       {/* Filters Card */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="space-y-4 p-4 sm:p-6">
           {/* Search */}
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar por cliente ou horário..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+              className="pl-10 w-full"
             />
           </div>
 
           {/* Month Selector and Filters */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex items-center bg-zinc-900 rounded-lg">
+            <div className="flex items-center bg-muted/50 rounded-lg">
               <Button
                 variant="ghost"
                 size="icon"
@@ -971,14 +968,14 @@ const ManageAgenda = () => {
                     setSelectedMonth((prev) => prev - 1);
                   }
                 }}
-                className="text-zinc-400 hover:text-white"
+                className="text-muted-foreground"
               >
                 <ChevronLeft className="w-5 h-5" />
               </Button>
 
               <div className="flex items-center px-4">
                 <CalendarIcon className="w-5 h-5 text-blue-400 mr-2" />
-                <span className="text-lg font-medium text-white">
+                <span className="text-lg font-medium text-foreground">
                   {months[selectedMonth]} {selectedYear}
                 </span>
               </div>
@@ -994,44 +991,44 @@ const ManageAgenda = () => {
                     setSelectedMonth((prev) => prev + 1);
                   }
                 }}
-                className="text-zinc-400 hover:text-white"
+                className="text-muted-foreground"
               >
                 <ChevronRight className="w-5 h-5" />
               </Button>
             </div>
 
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+              <SelectTrigger>
                 <SelectValue placeholder="Filtrar por status" />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700">
+              <SelectContent>
                 <SelectItem
                   value="all"
-                  className="text-white hover:bg-zinc-700"
+                 
                 >
                   Todos os status
                 </SelectItem>
                 <SelectItem
                   value="agendado"
-                  className="text-white hover:bg-zinc-700"
+                 
                 >
                   Agendado
                 </SelectItem>
                 <SelectItem
                   value="confirmado"
-                  className="text-white hover:bg-zinc-700"
+                 
                 >
                   Confirmado
                 </SelectItem>
                 <SelectItem
                   value="terminado"
-                  className="text-white hover:bg-zinc-700"
+                 
                 >
                   Terminado
                 </SelectItem>
                 <SelectItem
                   value="cancelado"
-                  className="text-white hover:bg-zinc-700"
+                 
                 >
                   Cancelado
                 </SelectItem>
@@ -1045,7 +1042,7 @@ const ManageAgenda = () => {
               onClick={() =>
                 setViewMode(viewMode === "calendar" ? "list" : "calendar")
               }
-              className="w-full sm:w-auto gap-2 text-white border-zinc-700 hover:bg-zinc-700 bg-green-600"
+              className="w-full sm:w-auto gap-2 bg-primary"
             >
               {viewMode === "calendar" ? (
                 <>
@@ -1059,20 +1056,20 @@ const ManageAgenda = () => {
                 </>
               )}
             </Button>
-            <span className="text-center sm:text-right text-sm text-zinc-400">
+            <span className="text-center sm:text-right text-sm text-muted-foreground">
               {filteredAppointments.length} agendamento(s) encontrado(s)
             </span>
           </div>
 
           {/* Ações rápidas - Desktop Only */}
-          <div className="hidden sm:flex gap-2 pt-1 border-t border-zinc-700/50">
+          <div className="hidden sm:flex gap-2 pt-1 border-t border-border">
             <Button
               variant="outline"
               onClick={() => setRemindersDialogOpen(true)}
               disabled={stats.today === 0}
-              className="mt-3 border-green-600 text-white hover:bg-green-700 bg-green-600"
+              className="mt-3 border-primary hover:bg-primary/90 bg-primary"
             >
-              <MessageCircle className="w-4 h-4 mr-2" />
+              <MessageCircle className="w-4 h-4" />
               Lembretes de Hoje ({stats.today})
             </Button>
           </div>
@@ -1080,10 +1077,10 @@ const ManageAgenda = () => {
           {error && (
             <Alert
               variant="destructive"
-              className="border-red-500 bg-red-500/10"
+             
             >
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-red-400">
+              <AlertDescription>
                 {error}
               </AlertDescription>
             </Alert>
@@ -1100,7 +1097,7 @@ const ManageAgenda = () => {
               {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((day) => (
                 <div
                   key={day}
-                  className="text-center font-medium text-zinc-400"
+                  className="text-center font-medium text-muted-foreground"
                 >
                   {day}
                 </div>
@@ -1118,7 +1115,7 @@ const ManageAgenda = () => {
                   days.push(
                     <div
                       key={`empty-start-${i}`}
-                      className="h-32 rounded-lg bg-zinc-800/50 border border-zinc-700/50"
+                      className="h-32 rounded-lg bg-card/50 border border-border"
                     />
                   );
                 }
@@ -1147,16 +1144,16 @@ const ManageAgenda = () => {
                       className={`h-32 p-2 rounded-lg cursor-pointer group ${
                         isToday
                           ? "bg-green-900/20 border-2 border-green-500"
-                          : "bg-zinc-800 border border-zinc-700 hover:border-green-500/40"
+                          : "bg-card border border-border hover:border-green-500/40"
                       } overflow-y-auto transition-colors`}
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <Plus className="h-3.5 w-3.5 text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <Plus className="h-3.5 w-3.5 text-muted-foreground/70 opacity-0 group-hover:opacity-100 transition-opacity" />
                         <span
                           className={`text-sm ${
                             isToday
                               ? "text-green-400 font-bold"
-                              : "text-zinc-400"
+                              : "text-muted-foreground"
                           }`}
                         >
                           {date}
@@ -1214,12 +1211,12 @@ const ManageAgenda = () => {
                                         <StatusIcon />
                                       </span>
                                     </div>
-                                    <div className="truncate text-white">
+                                    <div className="truncate text-foreground">
                                       {appointment.cliente?.name ||
                                         "Cliente não encontrado"}
                                     </div>
                                     {appointment.tecnicoNome && (
-                                      <div className="truncate text-zinc-400 flex items-center gap-1">
+                                      <div className="truncate text-muted-foreground flex items-center gap-1">
                                         <UserCog className="h-2.5 w-2.5 shrink-0" />
                                         {appointment.tecnicoNome}
                                       </div>
@@ -1229,7 +1226,6 @@ const ManageAgenda = () => {
                                 <DropdownMenuContent
                                   align="start"
                                   onClick={(e) => e.stopPropagation()}
-                                  className="bg-zinc-800 border-zinc-700"
                                 >
                                   <DropdownMenuItem
                                     onClick={() =>
@@ -1237,7 +1233,7 @@ const ManageAgenda = () => {
                                         `/app/edit-agendamento/${appointment.id}`
                                       )
                                     }
-                                    className="text-white hover:bg-zinc-700 cursor-pointer"
+                                    className="cursor-pointer"
                                   >
                                     <Edit2 className="w-4 h-4 mr-2" />
                                     Editar
@@ -1247,7 +1243,7 @@ const ManageAgenda = () => {
                                       onClick={() =>
                                         window.open(whatsappLink, "_blank")
                                       }
-                                      className="text-green-400 hover:bg-zinc-700 focus:text-green-400 cursor-pointer"
+                                      className="text-green-400 focus:text-green-400 cursor-pointer"
                                     >
                                       <MessageCircle className="w-4 h-4 mr-2" />
                                       Enviar Lembrete WhatsApp
@@ -1258,7 +1254,7 @@ const ManageAgenda = () => {
                                       {getServiceOutcome(appointment) !== true && (
                                         <DropdownMenuItem
                                           onClick={() => handleServiceOutcome(appointment, true)}
-                                          className="text-emerald-400 hover:bg-zinc-700 focus:text-emerald-400 cursor-pointer"
+                                          className="text-emerald-400 focus:text-emerald-400 cursor-pointer"
                                         >
                                           <BadgeCheck className="w-4 h-4 mr-2" />
                                           Serviço realizado
@@ -1267,7 +1263,7 @@ const ManageAgenda = () => {
                                       {getServiceOutcome(appointment) !== false && (
                                         <DropdownMenuItem
                                           onClick={() => handleServiceOutcome(appointment, false)}
-                                          className="text-orange-400 hover:bg-zinc-700 focus:text-orange-400 cursor-pointer"
+                                          className="text-orange-400 focus:text-orange-400 cursor-pointer"
                                         >
                                           <Ban className="w-4 h-4 mr-2" />
                                           Serviço não realizado
@@ -1282,7 +1278,7 @@ const ManageAgenda = () => {
                                         appointment.concluido
                                       )
                                     }
-                                    className="text-white hover:bg-zinc-700 cursor-pointer"
+                                    className="cursor-pointer"
                                   >
                                     {appointment.concluido ? (
                                       <>
@@ -1297,7 +1293,7 @@ const ManageAgenda = () => {
                                     )}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
+                                    className="text-red-400 focus:text-red-400 cursor-pointer"
                                     onClick={() => {
                                       setAppointmentToDelete(appointment);
                                       setDeleteDialogOpen(true);
@@ -1321,7 +1317,7 @@ const ManageAgenda = () => {
                   days.push(
                     <div
                       key={`empty-end-${i}`}
-                      className="h-32 rounded-lg bg-zinc-800/50 border border-zinc-700/50"
+                      className="h-32 rounded-lg bg-card/50 border border-border"
                     />
                   );
                 }
@@ -1355,7 +1351,7 @@ const ManageAgenda = () => {
             <Button
               variant="outline"
               onClick={loadMoreVisible}
-              className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+              className="gap-2"
             >
               <ArrowDown className="h-4 w-4" />
               Carregar mais
@@ -1364,13 +1360,13 @@ const ManageAgenda = () => {
         )}
 
         {filteredAppointments.length === 0 && (
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardContent className="p-8 sm:p-12 text-center">
-              <Calendar className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
-              <p className="text-lg font-medium mb-2 text-white">
+              <Calendar className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
+              <p className="text-lg font-medium mb-2 text-foreground">
                 Nenhum agendamento encontrado
               </p>
-              <p className="text-sm sm:text-base text-zinc-400">
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Tente ajustar seus filtros ou adicione um novo agendamento
               </p>
             </CardContent>
@@ -1380,22 +1376,22 @@ const ManageAgenda = () => {
 
       {/* ✅ DIALOG ATUALIZADO: Para converter pré-agendamento */}
       <Dialog open={convertDialogOpen} onOpenChange={setConvertDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-foreground">
               Converter em Agendamento
             </DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription className="text-muted-foreground">
               Defina a data e hora para finalizar o agendamento
             </DialogDescription>
           </DialogHeader>
 
           {preAgendamentoToConvert && (
             <div className="space-y-4">
-              <div className="p-3 bg-zinc-700/50 rounded-lg space-y-2">
+              <div className="p-3 bg-muted/50 rounded-lg space-y-2">
                 <div>
-                  <p className="text-sm text-zinc-400">Cliente:</p>
-                  <p className="text-white font-medium">
+                  <p className="text-sm text-muted-foreground">Cliente:</p>
+                  <p className="text-foreground font-medium">
                     {preAgendamentoToConvert.isRegisteredClient
                       ? preAgendamentoToConvert.cliente?.name
                       : preAgendamentoToConvert.newClientName}
@@ -1403,8 +1399,8 @@ const ManageAgenda = () => {
                 </div>
 
                 <div>
-                  <p className="text-sm text-zinc-400">Serviço:</p>
-                  <p className="text-sm text-zinc-300">
+                  <p className="text-sm text-muted-foreground">Serviço:</p>
+                  <p className="text-sm text-foreground/90">
                     {preAgendamentoToConvert.machineType} -{" "}
                     {preAgendamentoToConvert.serviceType}
                   </p>
@@ -1413,12 +1409,12 @@ const ManageAgenda = () => {
                 {/* ✅ NOVO: Mostrar equipamento se selecionado */}
                 {preAgendamentoToConvert.equipment && (
                   <div>
-                    <p className="text-sm text-zinc-400">Equipamento:</p>
-                    <p className="text-sm text-zinc-300">
+                    <p className="text-sm text-muted-foreground">Equipamento:</p>
+                    <p className="text-sm text-foreground/90">
                       {preAgendamentoToConvert.equipment.brand}{" "}
                       {preAgendamentoToConvert.equipment.model}
                       {preAgendamentoToConvert.equipment.serialNumber && (
-                        <span className="text-zinc-500">
+                        <span className="text-muted-foreground">
                           {" "}
                           - {preAgendamentoToConvert.equipment.serialNumber}
                         </span>
@@ -1429,8 +1425,8 @@ const ManageAgenda = () => {
 
                 {preAgendamentoToConvert.quickNotes && (
                   <div>
-                    <p className="text-sm text-zinc-400">Observações:</p>
-                    <p className="text-sm text-zinc-300">
+                    <p className="text-sm text-muted-foreground">Observações:</p>
+                    <p className="text-sm text-foreground/90">
                       {preAgendamentoToConvert.quickNotes}
                     </p>
                   </div>
@@ -1439,7 +1435,7 @@ const ManageAgenda = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-zinc-400 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Data *
                   </label>
                   <Input
@@ -1451,12 +1447,12 @@ const ManageAgenda = () => {
                         date: e.target.value,
                       }))
                     }
-                    className="bg-zinc-900 border-zinc-700 text-white"
+                   
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-400 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Hora *
                   </label>
                   <Input
@@ -1468,7 +1464,7 @@ const ManageAgenda = () => {
                         time: e.target.value,
                       }))
                     }
-                    className="bg-zinc-900 border-zinc-700 text-white"
+                   
                     required
                   />
                 </div>
@@ -1480,16 +1476,16 @@ const ManageAgenda = () => {
             <Button
               variant="outline"
               onClick={() => setConvertDialogOpen(false)}
-              className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleConvertPreAgendamento}
               disabled={!convertFormData.date || !convertFormData.time}
-              className="bg-green-600 hover:bg-green-700"
+             
             >
-              <Calendar className="w-4 h-4 mr-2" />
+              <Calendar className="w-4 h-4" />
               Agendar
             </Button>
           </DialogFooter>
@@ -1498,13 +1494,13 @@ const ManageAgenda = () => {
 
       {/* ✅ NOVO: Dialog de Lembretes de Hoje via WhatsApp */}
       <Dialog open={remindersDialogOpen} onOpenChange={setRemindersDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
+            <DialogTitle className="text-foreground flex items-center gap-2">
               <MessageCircle className="h-5 w-5 text-green-500" />
               Lembretes de Hoje
             </DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription className="text-muted-foreground">
               Envie um lembrete via WhatsApp para cada cliente com visita
               agendada hoje.
             </DialogDescription>
@@ -1525,15 +1521,15 @@ const ManageAgenda = () => {
                 return (
                   <div
                     key={appointment.id}
-                    className="flex items-center justify-between p-3 bg-zinc-700/50 rounded-lg border border-zinc-600"
+                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border"
                   >
                     <div>
-                      <p className="text-white font-medium">
+                      <p className="text-foreground font-medium">
                         {appointment.cliente?.name ||
                           appointment.newClientName ||
                           "Cliente"}
                       </p>
-                      <p className="text-sm text-zinc-400">
+                      <p className="text-sm text-muted-foreground">
                         {appointment.hora} · {phone || "sem telefone"}
                       </p>
                     </div>
@@ -1541,9 +1537,9 @@ const ManageAgenda = () => {
                       size="sm"
                       disabled={!link}
                       onClick={() => window.open(link, "_blank")}
-                      className="bg-green-600 hover:bg-green-700"
+                     
                     >
-                      <MessageCircle className="w-4 h-4 mr-2" />
+                      <MessageCircle className="w-4 h-4" />
                       Enviar
                     </Button>
                   </div>
@@ -1554,7 +1550,7 @@ const ManageAgenda = () => {
             <Button
               variant="outline"
               onClick={() => setRemindersDialogOpen(false)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Fechar
             </Button>
@@ -1564,10 +1560,10 @@ const ManageAgenda = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem certeza que deseja excluir este agendamento? Esta ação não
               pode ser desfeita.
             </DialogDescription>
@@ -1576,7 +1572,7 @@ const ManageAgenda = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
@@ -1610,7 +1606,7 @@ const ManageAgenda = () => {
         <Button
           onClick={() => navigate("/app/add-agendamento")}
           size="icon"
-          className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
+          className="rounded-full shadow-lg"
         >
           <Plus className="h-5 w-5" />
         </Button>

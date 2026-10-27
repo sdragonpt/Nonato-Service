@@ -60,7 +60,7 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="w-full min-h-screen flex items-center justify-center p-4 bg-zinc-900">
+        <div className="w-full min-h-screen flex items-center justify-center p-4 bg-muted/50">
           <div className="max-w-md w-full space-y-4">
             {/* Alert principal */}
             <div className="p-4 rounded-lg border border-red-500 bg-red-500/10">
@@ -88,7 +88,7 @@ class ErrorBoundary extends React.Component {
             <div className="flex flex-col gap-2">
               <button
                 onClick={this.handleRetry}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors bg-blue-600 hover:bg-blue-700 text-foreground"
               >
                 <RefreshCw className="w-4 h-4" />
                 Tentar Novamente
@@ -96,7 +96,7 @@ class ErrorBoundary extends React.Component {
 
               <button
                 onClick={this.handleGoBack}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium border border-zinc-600 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium border border-border text-foreground/90 hover:bg-accent transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Voltar
@@ -105,7 +105,7 @@ class ErrorBoundary extends React.Component {
               {this.state.retryCount > 1 && (
                 <button
                   onClick={() => window.location.reload()}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium border border-zinc-600 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium border border-border text-foreground/90 hover:bg-accent transition-colors"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Recarregar Página
@@ -117,7 +117,7 @@ class ErrorBoundary extends React.Component {
                 dar para ler o stack diretamente no telemóvel/PC do cliente
                 se for preciso (ex: pedir print). */}
             {this.state.error && (
-              <details className="mt-4 p-3 bg-zinc-800 rounded text-xs text-zinc-400" open={false}>
+              <details className="mt-4 p-3 bg-card rounded text-xs text-muted-foreground" open={false}>
                 <summary className="cursor-pointer mb-2 font-medium">
                   Detalhes Técnicos
                 </summary>

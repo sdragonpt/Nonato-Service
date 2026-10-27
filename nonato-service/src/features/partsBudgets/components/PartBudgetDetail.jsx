@@ -46,6 +46,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+import { PageHeader } from "../../../components/app";
 
 const PartBudgetDetail = () => {
   const { quoteId } = useParams();
@@ -243,7 +244,7 @@ const PartBudgetDetail = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -253,12 +254,12 @@ const PartBudgetDetail = () => {
       <div className="flex justify-center items-center min-h-[50vh]">
         <div className="text-center">
           <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <p className="text-lg font-medium text-white">
+          <p className="text-lg font-medium text-foreground">
             Orçamento não encontrado
           </p>
           <Button
             onClick={() => navigate("/app/parts-budgets")}
-            className="mt-4 bg-green-600 hover:bg-green-700"
+            className="mt-4"
           >
             Voltar à Lista
           </Button>
@@ -282,34 +283,21 @@ const PartBudgetDetail = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">
-            Orçamento de Peças #{quoteId.substring(0, 8)}...
-          </h1>
-          <p className="text-sm text-zinc-400">
-            Visualize e gerencie os detalhes do orçamento de peças
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate("/app/parts-budgets")}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title={<>Orçamento de Peças #{quoteId.substring(0, 8)}...</>}
+        description="Visualize e gerencie os detalhes do orçamento de peças"
+        back="/app/parts-budgets"
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Status and Actions Card */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Status Badges */}
@@ -349,9 +337,9 @@ const PartBudgetDetail = () => {
 
                   <Button
                     onClick={() => updateQuoteStatus("Fechado")}
-                    className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
+                    className="flex-1 sm:flex-none"
                   >
-                    <CheckSquare className="w-4 h-4 mr-2" />
+                    <CheckSquare className="w-4 h-4" />
                     Concluir
                   </Button>
                 </>
@@ -375,9 +363,9 @@ const PartBudgetDetail = () => {
       </Card>
 
       {/* Quote Details Card */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-lg text-white flex items-center">
+          <CardTitle className="text-lg flex items-center">
             <ShoppingCart className="h-5 w-5 mr-2 text-purple-400" />
             Detalhes do Orçamento
           </CardTitle>
@@ -386,7 +374,7 @@ const PartBudgetDetail = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Cliente */}
             <div className="space-y-4">
-              <div className="flex items-start gap-3 p-4 bg-zinc-700/30 rounded-lg">
+              <div className="flex items-start gap-3 p-4 bg-muted/30 rounded-lg">
                 <div className="flex-shrink-0">
                   {quote.isUnregisteredClient ? (
                     <UserX className="h-5 w-5 text-blue-400 mt-1" />
@@ -396,7 +384,7 @@ const PartBudgetDetail = () => {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-medium text-zinc-300">Cliente</p>
+                    <p className="text-sm font-medium text-foreground/90">Cliente</p>
                     <Badge
                       variant="outline"
                       className={
@@ -413,23 +401,23 @@ const PartBudgetDetail = () => {
 
                   {quote.isUnregisteredClient ? (
                     <div className="space-y-1">
-                      <p className="text-white font-medium">
+                      <p className="text-foreground font-medium">
                         {quote.unregisteredClient?.name || "N/A"}
                       </p>
                       {quote.unregisteredClient?.email && (
-                        <p className="text-sm text-zinc-400 flex items-center gap-2">
+                        <p className="text-sm text-muted-foreground flex items-center gap-2">
                           <Mail className="h-3 w-3" />
                           {quote.unregisteredClient.email}
                         </p>
                       )}
                       {quote.unregisteredClient?.phone && (
-                        <p className="text-sm text-zinc-400 flex items-center gap-2">
+                        <p className="text-sm text-muted-foreground flex items-center gap-2">
                           <Phone className="h-3 w-3" />
                           {quote.unregisteredClient.phone}
                         </p>
                       )}
                       {quote.unregisteredClient?.company && (
-                        <p className="text-sm text-zinc-400 flex items-center gap-2">
+                        <p className="text-sm text-muted-foreground flex items-center gap-2">
                           <Building2 className="h-3 w-3" />
                           {quote.unregisteredClient.company}
                         </p>
@@ -437,23 +425,23 @@ const PartBudgetDetail = () => {
                     </div>
                   ) : (
                     <div className="space-y-1">
-                      <p className="text-white font-medium">
+                      <p className="text-foreground font-medium">
                         {client?.name || "N/A"}
                       </p>
                       {client?.email && (
-                        <p className="text-sm text-zinc-400 flex items-center gap-2">
+                        <p className="text-sm text-muted-foreground flex items-center gap-2">
                           <Mail className="h-3 w-3" />
                           {client.email}
                         </p>
                       )}
                       {client?.phone && (
-                        <p className="text-sm text-zinc-400 flex items-center gap-2">
+                        <p className="text-sm text-muted-foreground flex items-center gap-2">
                           <Phone className="h-3 w-3" />
                           {client.phone}
                         </p>
                       )}
                       {client?.company && (
-                        <p className="text-sm text-zinc-400 flex items-center gap-2">
+                        <p className="text-sm text-muted-foreground flex items-center gap-2">
                           <Building2 className="h-3 w-3" />
                           {client.company}
                         </p>
@@ -466,10 +454,10 @@ const PartBudgetDetail = () => {
               {/* Data e Tipo de Serviço */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-zinc-400" />
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm text-zinc-400">Data de Criação</p>
-                    <p className="text-white">
+                    <p className="text-sm text-muted-foreground">Data de Criação</p>
+                    <p className="text-foreground">
                       {formatDate(quote.createdAt || quote.date)}
                     </p>
                   </div>
@@ -477,10 +465,10 @@ const PartBudgetDetail = () => {
 
                 {quote.serviceType && (
                   <div className="flex items-center gap-2">
-                    <Settings className="h-4 w-4 text-zinc-400" />
+                    <Settings className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-zinc-400">Tipo de Serviço</p>
-                      <p className="text-white">{quote.serviceType}</p>
+                      <p className="text-sm text-muted-foreground">Tipo de Serviço</p>
+                      <p className="text-foreground">{quote.serviceType}</p>
                     </div>
                   </div>
                 )}
@@ -489,13 +477,13 @@ const PartBudgetDetail = () => {
 
             {/* Equipamento */}
             <div className="space-y-4">
-              <div className="flex items-start gap-3 p-4 bg-zinc-700/30 rounded-lg">
+              <div className="flex items-start gap-3 p-4 bg-muted/30 rounded-lg">
                 <div className="flex-shrink-0">
                   <Printer className="h-5 w-5 text-orange-400 mt-1" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-medium text-zinc-300">
+                    <p className="text-sm font-medium text-foreground/90">
                       Equipamento
                     </p>
                     <Badge
@@ -508,29 +496,29 @@ const PartBudgetDetail = () => {
 
                   {quote.manualEquipment?.model ? (
                     <div className="space-y-1">
-                      <p className="text-white font-medium">
+                      <p className="text-foreground font-medium">
                         {quote.manualEquipment.brand} -{" "}
                         {quote.manualEquipment.model}
                       </p>
                       {quote.manualEquipment.serialNumber && (
-                        <p className="text-sm text-zinc-400">
+                        <p className="text-sm text-muted-foreground">
                           Nº Série: {quote.manualEquipment.serialNumber}
                         </p>
                       )}
                     </div>
                   ) : equipment ? (
                     <div className="space-y-1">
-                      <p className="text-white font-medium">
+                      <p className="text-foreground font-medium">
                         {equipment.brand} - {equipment.model}
                       </p>
                       {equipment.serialNumber && (
-                        <p className="text-sm text-zinc-400">
+                        <p className="text-sm text-muted-foreground">
                           Nº Série: {equipment.serialNumber}
                         </p>
                       )}
                     </div>
                   ) : (
-                    <p className="text-zinc-400">
+                    <p className="text-muted-foreground">
                       Equipamento não especificado
                     </p>
                   )}
@@ -541,7 +529,7 @@ const PartBudgetDetail = () => {
               <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/30">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-zinc-400">Total do Orçamento</p>
+                    <p className="text-sm text-muted-foreground">Total do Orçamento</p>
                     <p className="text-2xl font-bold text-green-400">
                       {formatPrice(calculateTotal())}
                     </p>
@@ -549,7 +537,7 @@ const PartBudgetDetail = () => {
                   <Euro className="h-8 w-8 text-green-400" />
                 </div>
                 <div className="mt-2">
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-muted-foreground">
                     {(quote.partsQuoteItems || quote.items || []).length}{" "}
                     item(s)
                   </p>
@@ -561,9 +549,9 @@ const PartBudgetDetail = () => {
       </Card>
 
       {/* Items List */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-lg text-white flex items-center">
+          <CardTitle className="text-lg flex items-center">
             <Package className="h-5 w-5 mr-2 text-purple-400" />
             Peças Solicitadas
             <Badge className="ml-2 bg-purple-500/20 text-purple-400">
@@ -578,12 +566,12 @@ const PartBudgetDetail = () => {
                 (item, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-4 bg-zinc-700/30 rounded-lg border border-zinc-600"
+                    className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border"
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <Package className="h-4 w-4 text-purple-400" />
-                        <span className="font-medium text-white">
+                        <span className="font-medium text-foreground">
                           {item.name}
                         </span>
                         {item.code && (
@@ -592,14 +580,14 @@ const PartBudgetDetail = () => {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-zinc-400">
+                      <p className="text-sm text-muted-foreground">
                         Quantidade: {item.quantity}
                       </p>
                     </div>
                     <div className="text-right">
                       {item.price > 0 ? (
                         <>
-                          <p className="text-sm text-zinc-400">
+                          <p className="text-sm text-muted-foreground">
                             {formatPrice(item.price)} / unidade
                           </p>
                           <p className="text-lg font-medium text-green-400">
@@ -616,8 +604,8 @@ const PartBudgetDetail = () => {
             </div>
           ) : (
             <div className="text-center py-8">
-              <PackageOpen className="w-12 h-12 text-zinc-600 mx-auto mb-3" />
-              <p className="text-zinc-400">Nenhuma peça encontrada</p>
+              <PackageOpen className="w-12 h-12 text-muted-foreground/70 mx-auto mb-3" />
+              <p className="text-muted-foreground">Nenhuma peça encontrada</p>
             </div>
           )}
         </CardContent>
@@ -627,37 +615,37 @@ const PartBudgetDetail = () => {
       {(quote.description ||
         quote.resultDescription ||
         quote.pontosEmAberto) && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Observações</CardTitle>
+            <CardTitle className="text-lg">Observações</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {quote.description && (
               <div>
-                <h4 className="text-sm font-medium text-zinc-400 mb-2">
+                <h4 className="text-sm font-medium text-muted-foreground mb-2">
                   Descrição
                 </h4>
-                <p className="text-white bg-zinc-700/50 rounded-lg p-3">
+                <p className="text-foreground bg-muted/50 rounded-lg p-3">
                   {quote.description}
                 </p>
               </div>
             )}
             {quote.resultDescription && (
               <div>
-                <h4 className="text-sm font-medium text-zinc-400 mb-2">
+                <h4 className="text-sm font-medium text-muted-foreground mb-2">
                   Observações
                 </h4>
-                <p className="text-white bg-zinc-700/50 rounded-lg p-3">
+                <p className="text-foreground bg-muted/50 rounded-lg p-3">
                   {quote.resultDescription}
                 </p>
               </div>
             )}
             {quote.pontosEmAberto && (
               <div>
-                <h4 className="text-sm font-medium text-zinc-400 mb-2">
+                <h4 className="text-sm font-medium text-muted-foreground mb-2">
                   Pontos em Aberto
                 </h4>
-                <p className="text-white bg-zinc-700/50 rounded-lg p-3">
+                <p className="text-foreground bg-muted/50 rounded-lg p-3">
                   {quote.pontosEmAberto}
                 </p>
               </div>
@@ -668,10 +656,10 @@ const PartBudgetDetail = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem certeza que deseja excluir este orçamento de peças? Esta ação
               não pode ser desfeita.
             </DialogDescription>
@@ -680,7 +668,7 @@ const PartBudgetDetail = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
@@ -707,17 +695,17 @@ const PartBudgetDetail = () => {
           onClick={() => navigate("/app/parts-budgets")}
           variant="outline"
           size="icon"
-          className="h-12 w-12 rounded-full border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
+          className="h-12 w-12 rounded-full"
         >
-          <ArrowLeft className="h-5 w-5 text-white" />
+          <ArrowLeft className="h-5 w-5 text-foreground" />
         </Button>
         <Button
           onClick={() => navigate(`/app/edit-part-budget/${quoteId}`)}
           variant="outline"
           size="icon"
-          className="h-12 w-12 rounded-full border-zinc-700 bg-green-600 hover:bg-green-700"
+          className="h-12 w-12 rounded-full bg-primary hover:bg-primary/90"
         >
-          <Edit2 className="h-5 w-5 text-white" />
+          <Edit2 className="h-5 w-5 text-foreground" />
         </Button>
       </div>
     </div>

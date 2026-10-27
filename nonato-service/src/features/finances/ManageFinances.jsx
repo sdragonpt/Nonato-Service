@@ -45,6 +45,7 @@ import {
   formatPrice,
   formatPercentage,
 } from "../../utils/financialUtils";
+import { PageHeader } from "../../components/app";
 
 const ManageFinances = () => {
   const navigate = useNavigate();
@@ -251,7 +252,7 @@ const ManageFinances = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -259,9 +260,9 @@ const ManageFinances = () => {
   if (error) {
     return (
       <div className="space-y-6">
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       </div>
     );
@@ -270,79 +271,75 @@ const ManageFinances = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Gestão Financeira
-          </h1>
-          <p className="text-sm sm:text-base text-zinc-400">
-            Análise completa do desempenho financeiro com separação de vendas e
-            lucros
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            onClick={() => navigate("/app/clientes-devedores")}
-            className="border-red-600 text-white hover:bg-red-700 bg-red-600"
-          >
-            <TrendingDown className="w-4 h-4 mr-2" />
-            Clientes Devedores &amp; IVA
-          </Button>
-          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-            <SelectTrigger className="w-32 bg-zinc-700 border-zinc-600 text-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-zinc-800 border-zinc-700">
-              <SelectItem value="week">Semana</SelectItem>
-              <SelectItem value="month">Mês</SelectItem>
-              <SelectItem value="quarter">Trimestre</SelectItem>
-              <SelectItem value="year">Ano</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {selectedPeriod === "year" && (
-            <Select
-              value={selectedYear.toString()}
-              onValueChange={(value) => setSelectedYear(parseInt(value))}
+      <PageHeader
+        title="Gestão Financeira"
+        description="Análise completa do desempenho financeiro com separação de vendas e lucros"
+        actions={
+          <>
+            <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/app/clientes-devedores")}
+              className="border-red-600 hover:bg-red-700 bg-red-600"
             >
-              <SelectTrigger className="w-20 bg-zinc-700 border-zinc-600 text-white">
+              <TrendingDown className="w-4 h-4" />
+              Clientes Devedores &amp; IVA
+            </Button>
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger className="w-32 bg-muted">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700">
-                {Array.from(
-                  { length: 5 },
-                  (_, i) => new Date().getFullYear() - i
-                ).map((year) => (
-                  <SelectItem key={year} value={year.toString()}>
-                    {year}
-                  </SelectItem>
-                ))}
+              <SelectContent>
+                <SelectItem value="week">Semana</SelectItem>
+                <SelectItem value="month">Mês</SelectItem>
+                <SelectItem value="quarter">Trimestre</SelectItem>
+                <SelectItem value="year">Ano</SelectItem>
               </SelectContent>
             </Select>
-          )}
-
-          <Button
-            variant="outline"
-            onClick={exportFinancialData}
-            disabled={!metrics}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Exportar
-          </Button>
-        </div>
-      </div>
+  
+            {selectedPeriod === "year" && (
+              <Select
+                value={selectedYear.toString()}
+                onValueChange={(value) => setSelectedYear(parseInt(value))}
+              >
+                <SelectTrigger className="w-20 bg-muted">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from(
+                    { length: 5 },
+                    (_, i) => new Date().getFullYear() - i
+                  ).map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+  
+            <Button
+              variant="outline"
+              onClick={exportFinancialData}
+              disabled={!metrics}
+             
+            >
+              <Download className="w-4 h-4" />
+              Exportar
+            </Button>
+          </div>
+          </>
+        }
+      />
 
       {!metrics ? (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="p-12 text-center">
-            <PieChart className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2 text-white">
+            <PieChart className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
+            <p className="text-lg font-medium mb-2 text-foreground">
               Nenhum dado financeiro encontrado
             </p>
-            <p className="text-zinc-400">
+            <p className="text-muted-foreground">
               Não há dados para o período selecionado
             </p>
           </CardContent>
@@ -351,13 +348,13 @@ const ManageFinances = () => {
         <>
           {/* Main Financial Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card>
               <CardContent className="flex items-center justify-between p-4 sm:p-6">
                 <div>
-                  <p className="text-sm font-medium text-zinc-400">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Faturamento Total
                   </p>
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+                  <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                     {formatPrice(metrics.totalRevenue)}
                   </h3>
                   {metrics.revenueGrowth !== 0 && (
@@ -383,25 +380,25 @@ const ManageFinances = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card>
               <CardContent className="flex items-center justify-between p-4 sm:p-6">
                 <div>
-                  <p className="text-sm font-medium text-zinc-400">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Vendas (Base)
                   </p>
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+                  <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                     {formatPrice(metrics.totalSales)}
                   </h3>
-                  <p className="text-xs text-zinc-500 mt-1">Sem margens</p>
+                  <p className="text-xs text-muted-foreground mt-1">Sem margens</p>
                 </div>
                 <BarChart3 className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
               </CardContent>
             </Card>
 
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card>
               <CardContent className="flex items-center justify-between p-4 sm:p-6">
                 <div>
-                  <p className="text-sm font-medium text-zinc-400">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Lucro (Margens)
                   </p>
                   <h3 className="text-xl sm:text-2xl font-bold text-purple-400 mt-1 sm:mt-2">
@@ -430,16 +427,16 @@ const ManageFinances = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card>
               <CardContent className="flex items-center justify-between p-4 sm:p-6">
                 <div>
-                  <p className="text-sm font-medium text-zinc-400">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Margem Média
                   </p>
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+                  <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                     {formatPercentage(metrics.profitMargin)}
                   </h3>
-                  <p className="text-xs text-zinc-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Ticket: {formatPrice(metrics.averageTicket)}
                   </p>
                 </div>
@@ -450,16 +447,16 @@ const ManageFinances = () => {
 
           {/* Payment Status Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card>
               <CardContent className="flex items-center justify-between p-4 sm:p-6">
                 <div>
-                  <p className="text-sm font-medium text-zinc-400">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Valores Recebidos
                   </p>
                   <h3 className="text-xl sm:text-2xl font-bold text-green-500 mt-1 sm:mt-2">
                     {formatPrice(metrics.paidAmount)}
                   </h3>
-                  <p className="text-xs text-zinc-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     {formatPercentage(metrics.conversionRate)} conversão
                   </p>
                 </div>
@@ -467,10 +464,10 @@ const ManageFinances = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card>
               <CardContent className="flex items-center justify-between p-4 sm:p-6">
                 <div>
-                  <p className="text-sm font-medium text-zinc-400">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Valores Pendentes
                   </p>
                   <h3 className="text-xl sm:text-2xl font-bold text-yellow-500 mt-1 sm:mt-2">
@@ -481,10 +478,10 @@ const ManageFinances = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card>
               <CardContent className="flex items-center justify-between p-4 sm:p-6">
                 <div>
-                  <p className="text-sm font-medium text-zinc-400">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Valores em Atraso
                   </p>
                   <h3 className="text-xl sm:text-2xl font-bold text-red-500 mt-1 sm:mt-2">
@@ -499,9 +496,9 @@ const ManageFinances = () => {
           {/* Service Type Analysis */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Parts Budgets Analysis */}
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2">
                   <Package className="h-5 w-5" />
                   Orçamentos de Peças ({serviceGroups.partsBudgets.length})
                 </CardTitle>
@@ -509,25 +506,25 @@ const ManageFinances = () => {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-zinc-400">Faturamento</p>
-                    <p className="text-lg font-bold text-white">
+                    <p className="text-sm text-muted-foreground">Faturamento</p>
+                    <p className="text-lg font-bold text-foreground">
                       {formatPrice(partsBudgetsMetrics.totalRevenue)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-zinc-400">Vendas Base</p>
-                    <p className="text-lg font-bold text-white">
+                    <p className="text-sm text-muted-foreground">Vendas Base</p>
+                    <p className="text-lg font-bold text-foreground">
                       {formatPrice(partsBudgetsMetrics.totalSales)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-zinc-400">Lucro</p>
+                    <p className="text-sm text-muted-foreground">Lucro</p>
                     <p className="text-lg font-bold text-purple-400">
                       {formatPrice(partsBudgetsMetrics.totalProfit)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-zinc-400">IVA</p>
+                    <p className="text-sm text-muted-foreground">IVA</p>
                     <p className="text-lg font-bold text-blue-400">
                       {formatPrice(partsBudgetsMetrics.totalVat)}
                     </p>
@@ -547,9 +544,9 @@ const ManageFinances = () => {
             </Card>
 
             {/* Closures Analysis */}
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2">
                   <Wrench className="h-5 w-5" />
                   Fechamentos ({serviceGroups.closures.length})
                 </CardTitle>
@@ -557,26 +554,26 @@ const ManageFinances = () => {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-zinc-400">Faturamento</p>
-                    <p className="text-lg font-bold text-white">
+                    <p className="text-sm text-muted-foreground">Faturamento</p>
+                    <p className="text-lg font-bold text-foreground">
                       {formatPrice(closuresMetrics.totalRevenue)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-zinc-400">Vendas</p>
-                    <p className="text-lg font-bold text-white">
+                    <p className="text-sm text-muted-foreground">Vendas</p>
+                    <p className="text-lg font-bold text-foreground">
                       {formatPrice(closuresMetrics.totalSales)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-zinc-400">IVA</p>
+                    <p className="text-sm text-muted-foreground">IVA</p>
                     <p className="text-lg font-bold text-blue-400">
                       {formatPrice(closuresMetrics.totalVat)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-zinc-400">Ticket Médio</p>
-                    <p className="text-lg font-bold text-white">
+                    <p className="text-sm text-muted-foreground">Ticket Médio</p>
+                    <p className="text-lg font-bold text-foreground">
                       {formatPrice(closuresMetrics.averageTicket)}
                     </p>
                   </div>
@@ -598,14 +595,14 @@ const ManageFinances = () => {
               onClick={() => navigate("/app/parts-budgets")}
               className="bg-purple-600 hover:bg-purple-700"
             >
-              <Package className="w-4 h-4 mr-2" />
+              <Package className="w-4 h-4" />
               Gerir Orçamentos de Peças
             </Button>
             <Button
               onClick={() => navigate("/app/manage-budgets")}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              <Wrench className="w-4 h-4 mr-2" />
+              <Wrench className="w-4 h-4" />
               Gerir Fechamentos
             </Button>
           </div>

@@ -15,7 +15,6 @@ import { db, storage } from "../../firebase.jsx";
 import { compressImage } from "../../utils/imageCompression.js";
 import { formatDate } from "../../utils/formatDate.js";
 import {
-  ArrowLeft,
   Camera,
   Loader2,
   Trash2,
@@ -55,6 +54,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+import { PageHeader } from "../../components/app";
 
 
 // ✅ Uma ordem pode ter vários equipamentos (ordens "especiais" — ver
@@ -219,7 +219,7 @@ const EquipmentDetail = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -229,57 +229,40 @@ const EquipmentDetail = () => {
   return (
     <div className="space-y-6 pb-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <Printer className="h-5 w-5 text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">
-              Detalhes do Equipamento
-            </h1>
-            <p className="text-sm text-zinc-400">
-              Visualize e gerencie as informações do equipamento
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Detalhes do Equipamento"
+        description="Visualize e gerencie as informações do equipamento"
+        icon={Printer}
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Equipment Info Card */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader>
           <div className="flex items-center gap-4">
             <div className="relative group shrink-0">
-              <Avatar className="h-20 w-20 border-2 border-zinc-700">
+              <Avatar className="h-20 w-20 border-2 border-border">
                 <AvatarImage
                   src={equipment.equipmentPic}
                   alt={equipment.type}
                   className="object-cover"
                 />
-                <AvatarFallback className="bg-zinc-900 text-zinc-500">
+                <AvatarFallback className="bg-muted/50 text-muted-foreground">
                   {equipment.type?.[0]?.toUpperCase() || "?"}
                 </AvatarFallback>
               </Avatar>
               <label className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity cursor-pointer">
                 {isUploadingPhoto ? (
-                  <Loader2 className="w-5 h-5 text-white animate-spin" />
+                  <Loader2 className="w-5 h-5 text-foreground animate-spin" />
                 ) : (
-                  <Camera className="w-6 h-6 text-white" />
+                  <Camera className="w-6 h-6 text-foreground" />
                 )}
                 <input
                   type="file"
@@ -292,11 +275,11 @@ const EquipmentDetail = () => {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-xl font-semibold text-white truncate">
+                <h3 className="text-xl font-semibold text-foreground truncate">
                   {equipment.type}
                 </h3>
                 {equipment.brand && (
-                  <Badge variant="outline" className="text-zinc-300 border-zinc-600">
+                  <Badge variant="outline" className="text-foreground/90 border-border">
                     {equipment.brand}
                   </Badge>
                 )}
@@ -304,7 +287,7 @@ const EquipmentDetail = () => {
               <button
                 type="button"
                 onClick={() => navigate(`/app/client/${equipment.clientId}`)}
-                className="flex items-center gap-2 text-zinc-400 hover:text-green-400 transition-colors"
+                className="flex items-center gap-2 text-muted-foreground hover:text-green-400 transition-colors"
               >
                 <User className="h-4 w-4" />
                 <span className="truncate">{clientName || "Cliente"}</span>
@@ -316,25 +299,25 @@ const EquipmentDetail = () => {
           {/* Equipment Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {equipment.brand && (
-              <div className="flex items-center gap-2 text-zinc-400">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <Package className="h-4 w-4 shrink-0" />
                 <span>{equipment.brand}</span>
               </div>
             )}
             {equipment.model && (
-              <div className="flex items-center gap-2 text-zinc-400">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <Tag className="h-4 w-4 shrink-0" />
                 <span>{equipment.model}</span>
               </div>
             )}
             {equipment.serialNumber && (
-              <div className="flex items-center gap-2 text-zinc-400">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <Barcode className="h-4 w-4 shrink-0" />
                 <span>{equipment.serialNumber}</span>
               </div>
             )}
             {equipment.type && (
-              <div className="flex items-center gap-2 text-zinc-400">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <Shapes className="h-4 w-4 shrink-0" />
                 <span>{equipment.type}</span>
               </div>
@@ -345,9 +328,9 @@ const EquipmentDetail = () => {
           <div className="flex flex-wrap gap-2 mt-6">
             <Button
               onClick={() => navigate(`/app/edit-equipment/${equipmentId}`)}
-              className="bg-green-600 hover:bg-green-700 text-white"
+             
             >
-              <Edit2 className="w-4 h-4 mr-2" />
+              <Edit2 className="w-4 h-4" />
               Editar Equipamento
             </Button>
             <Button
@@ -355,7 +338,7 @@ const EquipmentDetail = () => {
               onClick={() => setDeleteDialogOpen(true)}
               className="bg-red-600 hover:bg-red-700"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
+              <Trash2 className="w-4 h-4" />
               Excluir Equipamento
             </Button>
           </div>
@@ -363,10 +346,10 @@ const EquipmentDetail = () => {
       </Card>
 
       {/* Histórico da Máquina */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2">
               <Wrench className="h-5 w-5 text-green-500" />
               Histórico da Máquina
             </CardTitle>
@@ -376,9 +359,9 @@ const EquipmentDetail = () => {
               onClick={() =>
                 navigate(`/app/add-order?clientId=${equipment.clientId}`)
               }
-              className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+             
             >
-              <Plus className="h-4 w-4 mr-1" />
+              <Plus className="h-4 w-4" />
               Nova Ordem
             </Button>
           </div>
@@ -386,10 +369,10 @@ const EquipmentDetail = () => {
         <CardContent>
           {historyLoading ? (
             <div className="flex justify-center py-6">
-              <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : machineHistory.length === 0 ? (
-            <p className="text-sm text-zinc-400 text-center py-4">
+            <p className="text-sm text-muted-foreground text-center py-4">
               Nenhuma intervenção registada para esta máquina ainda.
             </p>
           ) : (
@@ -400,11 +383,11 @@ const EquipmentDetail = () => {
                   <div
                     key={order.id}
                     onClick={() => navigate(`/app/order-detail/${order.id}`)}
-                    className="flex items-center justify-between p-3 bg-zinc-700/30 hover:bg-zinc-700/60 rounded-lg border border-zinc-600 cursor-pointer transition-colors"
+                    className="flex items-center justify-between p-3 bg-muted/30 hover:bg-white/5 rounded-lg border border-border cursor-pointer transition-colors"
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-white text-sm font-medium truncate">
+                        <p className="text-foreground text-sm font-medium truncate">
                           {order.serviceType || "Intervenção"}
                         </p>
                         {order.priority === "high" && (
@@ -414,10 +397,10 @@ const EquipmentDetail = () => {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-zinc-500 font-mono">
+                      <p className="text-xs text-muted-foreground font-mono">
                         {order.orderNumber || `OS-${order.id}`}
                       </p>
-                      <p className="text-xs text-zinc-500">
+                      <p className="text-xs text-muted-foreground">
                         {formatDate(order.date || order.createdAt)}
                       </p>
                     </div>
@@ -431,7 +414,7 @@ const EquipmentDetail = () => {
                       >
                         {isClosed ? "Fechada" : "Aberta"}
                       </span>
-                      <ChevronRight className="h-4 w-4 text-zinc-500" />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </div>
                 );
@@ -443,7 +426,7 @@ const EquipmentDetail = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => navigate("/app/manage-orders")}
-                    className="border-zinc-600 text-zinc-300 hover:bg-zinc-700 bg-transparent"
+                    className="text-foreground/90"
                   >
                     Ver todas as intervenções ({machineHistory.length})
                   </Button>
@@ -456,12 +439,12 @@ const EquipmentDetail = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem certeza que deseja excluir o equipamento{" "}
-              <span className="font-semibold text-white">
+              <span className="font-semibold text-foreground">
                 {equipment.type} - {equipment.model}
               </span>
               ? Esta ação não pode ser desfeita.
@@ -471,7 +454,7 @@ const EquipmentDetail = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>

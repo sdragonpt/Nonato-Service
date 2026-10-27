@@ -9,7 +9,6 @@ import {
   Clock,
   FileText,
   Save,
-  ArrowLeft,
   Loader2,
   AlertTriangle,
   User,
@@ -44,6 +43,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs.jsx";
+import { PageHeader } from "../../../components/app";
 
 const AddPreAgendamento = () => {
   const navigate = useNavigate();
@@ -210,7 +210,7 @@ const AddPreAgendamento = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -218,25 +218,12 @@ const AddPreAgendamento = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white flex items-center">
-            <Zap className="h-6 w-6 mr-2 text-yellow-400" />
-            Pré-Agendamento Rápido
-          </h1>
-          <p className="text-sm text-zinc-400">
-            Capture rapidamente os dados essenciais para agendar depois
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title={<><Zap className="h-6 w-6 mr-2 text-yellow-400" />
+            Pré-Agendamento Rápido</>}
+        description="Capture rapidamente os dados essenciais para agendar depois"
+        back
+      />
 
       {/* Info Card */}
       <Card className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border-yellow-500/30">
@@ -247,7 +234,7 @@ const AddPreAgendamento = () => {
               <p className="text-sm font-medium text-yellow-400">
                 Modo Rápido Ativado
               </p>
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-muted-foreground">
                 Apenas os dados essenciais. Data e hora serão definidas depois.
               </p>
             </div>
@@ -256,17 +243,17 @@ const AddPreAgendamento = () => {
       </Card>
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Cliente Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">
+            <CardTitle className="text-lg">
               Informações do Cliente
             </CardTitle>
           </CardHeader>
@@ -276,7 +263,7 @@ const AddPreAgendamento = () => {
               onValueChange={setClientType}
               className="space-y-4"
             >
-              <TabsList className="grid w-full grid-cols-2 bg-zinc-700">
+              <TabsList className="grid w-full grid-cols-2 bg-muted">
                 <TabsTrigger
                   value="registered"
                   className="flex items-center gap-2 data-[state=active]:bg-green-600"
@@ -295,7 +282,7 @@ const AddPreAgendamento = () => {
 
               <TabsContent value="registered" className="space-y-4">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-zinc-400 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Selecionar Cliente *
                   </label>
                   <ClientCombobox
@@ -314,7 +301,7 @@ const AddPreAgendamento = () => {
                 {/* ✅ NOVO: Seleção de equipamento para cliente registrado */}
                 {formData.clientId && (
                   <div>
-                    <label className="block text-sm font-medium text-zinc-400 mb-1">
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">
                       Equipamento (Opcional)
                     </label>
                     <Select
@@ -323,21 +310,21 @@ const AddPreAgendamento = () => {
                         setFormData((prev) => ({ ...prev, equipmentId: value }))
                       }
                     >
-                      <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                      <SelectTrigger>
                         <SelectValue placeholder="Selecionar equipamento..." />
                       </SelectTrigger>
-                      <SelectContent className="bg-zinc-800 border-zinc-700 max-h-[200px]">
+                      <SelectContent className="max-h-[200px]">
                         {filteredEquipments.map((equipment) => (
                           <SelectItem
                             key={equipment.id}
                             value={equipment.id}
-                            className="text-white hover:bg-zinc-700"
+                           
                           >
                             <div className="flex flex-col">
                               <span>
                                 {equipment.brand} {equipment.model}
                               </span>
-                              <span className="text-xs text-zinc-400">
+                              <span className="text-xs text-muted-foreground">
                                 {equipment.type} - {equipment.serialNumber}
                               </span>
                             </div>
@@ -352,7 +339,7 @@ const AddPreAgendamento = () => {
               <TabsContent value="new" className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-zinc-400 mb-1">
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">
                       Nome do Cliente *
                     </label>
                     <Input
@@ -362,7 +349,7 @@ const AddPreAgendamento = () => {
                       onChange={handleChange}
                       onBlur={() => handleBlur("newClientName")}
                       placeholder="Nome completo"
-                      className="bg-zinc-900 border-zinc-700 text-white"
+                     
                       required={clientType === "new"}
                     />
                     {touched.newClientName && !isNewClientNameValid && (
@@ -370,7 +357,7 @@ const AddPreAgendamento = () => {
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-zinc-400 mb-1">
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">
                       Telefone *
                     </label>
                     <Input
@@ -380,7 +367,7 @@ const AddPreAgendamento = () => {
                       onChange={handleChange}
                       onBlur={() => handleBlur("newClientPhone")}
                       placeholder="(XX) XXXXX-XXXX"
-                      className="bg-zinc-900 border-zinc-700 text-white"
+                     
                       required={clientType === "new"}
                     />
                     {touched.newClientPhone && !isNewClientPhoneValid && (
@@ -405,11 +392,11 @@ const AddPreAgendamento = () => {
                           type="button"
                           key={match.id}
                           onClick={() => handleUseExistingClient(match)}
-                          className="w-full flex items-center justify-between gap-2 p-2 bg-zinc-900/60 rounded border border-zinc-700 hover:bg-zinc-900 text-left"
+                          className="w-full flex items-center justify-between gap-2 p-2 bg-background/60 rounded border border-border hover:bg-white/5 text-left"
                         >
-                          <span className="text-sm text-white truncate">
+                          <span className="text-sm text-foreground truncate">
                             {match.name}
-                            <span className="text-xs text-zinc-400 ml-2">{match.phone}</span>
+                            <span className="text-xs text-muted-foreground ml-2">{match.phone}</span>
                           </span>
                           <span className="flex items-center gap-1 text-xs text-green-400 shrink-0">
                             <UserCheck className="h-3.5 w-3.5" />
@@ -426,9 +413,9 @@ const AddPreAgendamento = () => {
         </Card>
 
         {/* Serviço Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">
+            <CardTitle className="text-lg">
               Detalhes do Serviço
             </CardTitle>
           </CardHeader>
@@ -436,11 +423,11 @@ const AddPreAgendamento = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* ✅ ALTERADO: Campo manual para tipo de máquina */}
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">
+                <label className="block text-sm font-medium text-muted-foreground mb-1">
                   Tipo de Máquina *
                 </label>
                 <div className="relative">
-                  <Package className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
+                  <Package className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
                   <Input
                     type="text"
                     name="machineType"
@@ -448,7 +435,7 @@ const AddPreAgendamento = () => {
                     onChange={handleChange}
                     onBlur={() => handleBlur("machineType")}
                     placeholder="Ex: Impressora, Scanner, Multifuncional..."
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                    className="pl-10"
                     required
                   />
                 </div>
@@ -459,11 +446,11 @@ const AddPreAgendamento = () => {
 
               {/* ✅ ALTERADO: Campo manual para tipo de serviço */}
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1">
+                <label className="block text-sm font-medium text-muted-foreground mb-1">
                   Tipo de Serviço *
                 </label>
                 <div className="relative">
-                  <Wrench className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
+                  <Wrench className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
                   <Input
                     type="text"
                     name="serviceType"
@@ -471,7 +458,7 @@ const AddPreAgendamento = () => {
                     onChange={handleChange}
                     onBlur={() => handleBlur("serviceType")}
                     placeholder="Ex: Manutenção, Reparo, Limpeza..."
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                    className="pl-10"
                     required
                   />
                 </div>
@@ -482,7 +469,7 @@ const AddPreAgendamento = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
                 Prioridade
               </label>
               <Select
@@ -491,25 +478,25 @@ const AddPreAgendamento = () => {
                   setFormData((prev) => ({ ...prev, priority: value }))
                 }
               >
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger>
                   <SelectValue placeholder="Selecione a prioridade" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectContent>
                   <SelectItem
                     value="baixa"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Baixa
                   </SelectItem>
                   <SelectItem
                     value="normal"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Normal
                   </SelectItem>
                   <SelectItem
                     value="alta"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Alta
                   </SelectItem>
@@ -518,18 +505,18 @@ const AddPreAgendamento = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
                 Observações Rápidas
               </label>
               <div className="relative">
-                <FileText className="absolute left-3 top-3 text-zinc-400" />
+                <FileText className="absolute left-3 top-3 text-muted-foreground" />
                 <textarea
                   name="quickNotes"
                   value={formData.quickNotes}
                   onChange={handleChange}
                   rows="3"
                   placeholder="Ex: Urgente - não imprime, faz barulho estranho..."
-                  className="w-full pl-10 p-3 bg-zinc-900 text-white rounded-lg border border-zinc-700 focus:ring-2 focus:ring-green-500 focus:outline-none resize-none placeholder:text-zinc-500"
+                  className="w-full pl-10 p-3 bg-muted/50 text-foreground rounded-lg border border-border focus:ring-2 focus:ring-ring focus:outline-none resize-none placeholder:text-muted-foreground"
                 />
               </div>
             </div>
@@ -547,7 +534,7 @@ const AddPreAgendamento = () => {
             (clientType === "new" &&
               (!isNewClientNameValid || !isNewClientPhoneValid))
           }
-          className="w-full bg-green-600 hover:bg-green-700"
+          className="w-full"
         >
           {isSaving ? (
             <>
@@ -563,7 +550,7 @@ const AddPreAgendamento = () => {
         </Button>
 
         <div className="text-center">
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-muted-foreground">
             ⚡ Modo rápido: depois defina data e hora na agenda
           </p>
         </div>

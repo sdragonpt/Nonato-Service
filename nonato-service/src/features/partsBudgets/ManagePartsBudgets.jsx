@@ -71,6 +71,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+import { PageHeader } from "../../components/app";
 
 const PAGE_SIZE = 10;
 const MAX_AUTO_LOADS = 15; // salvaguarda: nº máx. de lotes extra a carregar automaticamente ao pesquisar/filtrar
@@ -399,7 +400,7 @@ const ManagePartsBudgets = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -407,32 +408,29 @@ const ManagePartsBudgets = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Orçamento de Peças
-          </h1>
-          <p className="text-sm sm:text-base text-zinc-400">
-            Gerencie os orçamentos de peças da loja online e criados diretamente
-          </p>
-        </div>
-
-        {/* ✅ NOVO BOTÃO PARA CRIAR ORÇAMENTO */}
-        <Button
-          onClick={() => navigate("/app/add-part-budget")}
-          className="bg-green-600 hover:bg-green-700 text-white border-0 shadow-md"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Orçamento
-        </Button>
-      </div>
+      <PageHeader
+        title="Orçamento de Peças"
+        description="Gerencie os orçamentos de peças da loja online e criados diretamente"
+        actions={
+          <>
+            {/* ✅ NOVO BOTÃO PARA CRIAR ORÇAMENTO */}
+          <Button
+            onClick={() => navigate("/app/add-part-budget")}
+            className="border-0 shadow-md"
+          >
+            <Plus className="w-4 h-4" />
+            Novo Orçamento
+          </Button>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Em Análise</p>
+              <p className="text-sm font-medium text-muted-foreground">Em Análise</p>
               <h3 className="text-xl sm:text-2xl font-bold text-yellow-500 mt-1 sm:mt-2">
                 {statusCounts.Aberto === null ? "…" : statusCounts.Aberto}
               </h3>
@@ -441,10 +439,10 @@ const ManagePartsBudgets = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Em Andamento</p>
+              <p className="text-sm font-medium text-muted-foreground">Em Andamento</p>
               <h3 className="text-xl sm:text-2xl font-bold text-blue-500 mt-1 sm:mt-2">
                 {statusCounts["Em Andamento"] === null
                   ? "…"
@@ -455,10 +453,10 @@ const ManagePartsBudgets = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Concluídos</p>
+              <p className="text-sm font-medium text-muted-foreground">Concluídos</p>
               <h3 className="text-xl sm:text-2xl font-bold text-green-500 mt-1 sm:mt-2">
                 {statusCounts.Fechado === null ? "…" : statusCounts.Fechado}
               </h3>
@@ -467,60 +465,60 @@ const ManagePartsBudgets = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Total</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <p className="text-sm font-medium text-muted-foreground">Total</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {statusCounts.total === null ? "…" : statusCounts.total}
               </h3>
             </div>
-            <Package className="h-6 w-6 sm:h-8 sm:w-8 text-zinc-400" />
+            <Package className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
               <div className="relative w-full sm:w-80">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Pesquisar orçamentos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-zinc-700 border-zinc-600 text-white placeholder:text-zinc-400"
+                  className="pl-10 bg-muted"
                 />
               </div>
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-48 bg-zinc-700 border-zinc-600 text-white hover:bg-zinc-600 hover:border-zinc-500">
+                <SelectTrigger className="w-full sm:w-48 bg-muted hover:bg-accent hover:border-muted-foreground/40">
                   <SelectValue placeholder="Filtrar por status" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-600 shadow-lg">
+                <SelectContent className="shadow-lg">
                   <SelectItem
                     value="all"
-                    className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white"
+                    className="hover:text-foreground focus:text-foreground"
                   >
                     Todos
                   </SelectItem>
                   <SelectItem
                     value="Aberto"
-                    className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white"
+                    className="hover:text-foreground focus:text-foreground"
                   >
                     Em Análise
                   </SelectItem>
                   <SelectItem
                     value="Em Andamento"
-                    className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white"
+                    className="hover:text-foreground focus:text-foreground"
                   >
                     Em Andamento
                   </SelectItem>
                   <SelectItem
                     value="Fechado"
-                    className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white"
+                    className="hover:text-foreground focus:text-foreground"
                   >
                     Concluído
                   </SelectItem>
@@ -529,8 +527,8 @@ const ManagePartsBudgets = () => {
             </div>
           </div>
 
-          <div className="flex justify-between items-center mt-4 pt-4 border-t border-zinc-700">
-            <span className="text-sm text-zinc-400">
+          <div className="flex justify-between items-center mt-4 pt-4 border-t border-border">
+            <span className="text-sm text-muted-foreground">
               {filteredQuotes.length} orçamento(s) carregado(s)
               {hasMore && " — há mais por carregar"}
             </span>
@@ -539,10 +537,10 @@ const ManagePartsBudgets = () => {
           {error && (
             <Alert
               variant="destructive"
-              className="mt-4 border-red-500 bg-red-500/10"
+              className="mt-4"
             >
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-red-400">
+              <AlertDescription>
                 {error}
               </AlertDescription>
             </Alert>
@@ -558,7 +556,7 @@ const ManagePartsBudgets = () => {
           return (
             <Card
               key={quote.id}
-              className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700/50 transition-colors"
+              className="hover:bg-white/5 transition-colors"
             >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
@@ -566,7 +564,7 @@ const ManagePartsBudgets = () => {
                     {/* ✅ NOVO: Avatar com imagem se disponível */}
                     <Avatar className="h-12 w-12">
                       <AvatarImage src={clientData.profilePic} />
-                      <AvatarFallback className="bg-zinc-700 text-zinc-300">
+                      <AvatarFallback className="bg-muted text-foreground/90">
                         {getInitials(clientData.name)}
                       </AvatarFallback>
                     </Avatar>
@@ -574,7 +572,7 @@ const ManagePartsBudgets = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
                         {/* ✅ CORRIGIDO: Nome sempre presente */}
-                        <h3 className="font-medium text-white truncate">
+                        <h3 className="font-medium text-foreground truncate">
                           {clientData.name}
                         </h3>
 
@@ -613,26 +611,26 @@ const ManagePartsBudgets = () => {
 
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                         <div>
-                          <p className="text-zinc-400">Nº do Orçamento</p>
-                          <p className="text-white font-mono">
+                          <p className="text-muted-foreground">Nº do Orçamento</p>
+                          <p className="text-foreground font-mono">
                             {quote.quoteNumber || `ORP-${quote.id.substring(0, 8)}`}
                           </p>
                         </div>
                         <div>
-                          <p className="text-zinc-400">Data</p>
-                          <p className="text-white">
+                          <p className="text-muted-foreground">Data</p>
+                          <p className="text-foreground">
                             {formatDate(quote.createdAt)}
                           </p>
                         </div>
                         <div>
-                          <p className="text-zinc-400">Itens</p>
-                          <p className="text-white">
+                          <p className="text-muted-foreground">Itens</p>
+                          <p className="text-foreground">
                             {(quote.partsQuoteItems || []).length} peça(s)
                           </p>
                         </div>
                         <div>
-                          <p className="text-zinc-400">Total</p>
-                          <p className="text-white font-bold">
+                          <p className="text-muted-foreground">Total</p>
+                          <p className="text-foreground font-bold">
                             {formatPrice(calculateQuoteTotal(quote))}
                           </p>
                         </div>
@@ -658,7 +656,7 @@ const ManagePartsBudgets = () => {
                             updateQuoteStatus(quote.id, "Em Andamento")
                           }
                           disabled={isUpdating}
-                          className="bg-blue-600 hover:bg-blue-700 text-white border-0"
+                          className="bg-blue-600 hover:bg-blue-700 border-0"
                         >
                           Iniciar
                         </Button>
@@ -675,7 +673,7 @@ const ManagePartsBudgets = () => {
                             disabled={isUpdating}
                             className="border-yellow-500 text-yellow-400 hover:bg-yellow-500/20 hover:text-yellow-300 hover:border-yellow-400 bg-amber-600"
                           >
-                            <ArrowLeft className="w-3 h-3 mr-1" />
+                            <ArrowLeft className="w-3 h-3" />
                             Voltar
                           </Button>
                           <Button
@@ -684,7 +682,7 @@ const ManagePartsBudgets = () => {
                               updateQuoteStatus(quote.id, "Fechado")
                             }
                             disabled={isUpdating}
-                            className="bg-green-600 hover:bg-green-700 text-white border-0"
+                            className="border-0"
                           >
                             Concluir
                           </Button>
@@ -701,7 +699,7 @@ const ManagePartsBudgets = () => {
                           disabled={isUpdating}
                           className="border-blue-500 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 hover:border-blue-400 bg-blue-600"
                         >
-                          <Undo2 className="w-3 h-3 mr-1" />
+                          <Undo2 className="w-3 h-3" />
                           Reabrir
                         </Button>
                       )}
@@ -712,32 +710,32 @@ const ManagePartsBudgets = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-zinc-300 hover:text-white hover:bg-zinc-600 border border-zinc-600 hover:border-zinc-500"
+                          className="h-8 w-8 text-foreground/90 border border-border hover:border-muted-foreground/40"
                         >
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent
                         align="end"
-                        className="bg-zinc-800 border-zinc-600 shadow-lg"
+                        className="shadow-lg"
                       >
                         <DropdownMenuItem
                           onClick={() => viewDetails(quote)}
-                          className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white cursor-pointer"
+                          className="hover:text-foreground focus:text-foreground cursor-pointer"
                         >
                           <Eye className="mr-2 h-4 w-4" />
                           Ver Detalhes
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => editQuote(quote)}
-                          className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white cursor-pointer"
+                          className="hover:text-foreground focus:text-foreground cursor-pointer"
                         >
                           <Edit className="mr-2 h-4 w-4" />
                           Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => openNoteDialog(quote)}
-                          className="text-white hover:bg-zinc-700 hover:text-white focus:bg-zinc-700 focus:text-white cursor-pointer"
+                          className="hover:text-foreground focus:text-foreground cursor-pointer"
                         >
                           <FileText className="mr-2 h-4 w-4" />
                           Adicionar Nota
@@ -762,13 +760,13 @@ const ManagePartsBudgets = () => {
         })}
 
         {filteredQuotes.length === 0 && !isLoading && (
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardContent className="p-12 text-center">
-              <Package className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-              <p className="text-lg font-medium mb-2 text-white">
+              <Package className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
+              <p className="text-lg font-medium mb-2 text-foreground">
                 Nenhum orçamento encontrado
               </p>
-              <p className="text-zinc-400 mb-4">
+              <p className="text-muted-foreground mb-4">
                 {searchTerm || statusFilter !== "all"
                   ? "Tente ajustar os filtros de pesquisa"
                   : "Comece criando seu primeiro orçamento de peças"}
@@ -776,9 +774,9 @@ const ManagePartsBudgets = () => {
               {!searchTerm && statusFilter === "all" && (
                 <Button
                   onClick={() => navigate("/app/add-part-budget")}
-                  className="bg-green-600 hover:bg-green-700 text-white border-0 shadow-md"
+                  className="border-0 shadow-md"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-4 h-4" />
                   Criar Primeiro Orçamento
                 </Button>
               )}
@@ -794,7 +792,7 @@ const ManagePartsBudgets = () => {
             variant="outline"
             onClick={loadMore}
             disabled={isLoadingMore}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+            className="gap-2"
           >
             {isLoadingMore ? (
               <>
@@ -813,12 +811,12 @@ const ManagePartsBudgets = () => {
 
       {/* Note Dialog */}
       <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-foreground">
               Adicionar Nota Administrativa
             </DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription className="text-muted-foreground">
               Adicione uma nota interna para este orçamento de peças.
             </DialogDescription>
           </DialogHeader>
@@ -828,7 +826,7 @@ const ManagePartsBudgets = () => {
               value={currentNote}
               onChange={(e) => setCurrentNote(e.target.value)}
               placeholder="Digite sua nota aqui..."
-              className="w-full h-32 p-3 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 resize-none"
+              className="w-full h-32 p-3 bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground resize-none"
             />
           </div>
 
@@ -836,14 +834,14 @@ const ManagePartsBudgets = () => {
             <Button
               variant="outline"
               onClick={() => setNoteDialogOpen(false)}
-              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700 hover:text-white hover:border-zinc-500 bg-zinc-800"
+              className="text-foreground/90 hover:border-muted-foreground/40"
             >
               Cancelar
             </Button>
             <Button
               onClick={addNoteToQuote}
               disabled={isUpdating || !currentNote.trim()}
-              className="bg-blue-600 hover:bg-blue-700 text-white border-0"
+              className="bg-blue-600 hover:bg-blue-700 border-0"
             >
               {isUpdating ? (
                 <>
@@ -860,10 +858,10 @@ const ManagePartsBudgets = () => {
 
       {/* Delete Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar Exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar Exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem certeza que deseja excluir este orçamento? Esta ação não pode
               ser desfeita.
             </DialogDescription>
@@ -872,7 +870,7 @@ const ManagePartsBudgets = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700 hover:text-white hover:border-zinc-500 bg-zinc-800"
+              className="text-foreground/90 hover:border-muted-foreground/40"
             >
               Cancelar
             </Button>
@@ -880,7 +878,7 @@ const ManagePartsBudgets = () => {
               variant="destructive"
               onClick={deleteQuote}
               disabled={isUpdating}
-              className="bg-red-600 hover:bg-red-700 text-white border-0"
+              className="bg-red-600 hover:bg-red-700 text-foreground border-0"
             >
               {isUpdating ? (
                 <>

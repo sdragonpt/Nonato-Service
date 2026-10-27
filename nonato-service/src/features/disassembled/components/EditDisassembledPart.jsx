@@ -6,7 +6,6 @@ import { db } from "../../../firebase.jsx";
 import { comparePtPt } from "../../../utils/sortHelpers.js";
 import { useClients } from "../../../context/ClientsContext.jsx";
 import {
-  ArrowLeft,
   Loader2,
   Save,
   PackageOpen,
@@ -33,6 +32,7 @@ import {
 import { ClientCombobox } from "@/components/shared/ClientCombobox.jsx";
 
 import { ESTADO_META } from "../ManageDisassembledParts.jsx";
+import { PageHeader } from "../../../components/app";
 
 const emptyForm = {
   nome: "",
@@ -155,50 +155,37 @@ const EditDisassembledPart = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <ClipboardEdit className="h-5 w-5 text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">Editar Peça Desmontada</h1>
-            <p className="text-sm text-zinc-400">Atualize os dados da peça</p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Editar Peça Desmontada"
+        description="Atualize os dados da peça"
+        icon={ClipboardEdit}
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Dados da Peça</CardTitle>
+            <CardTitle className="text-lg">Dados da Peça</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Nome da Peça</label>
+              <label className="text-sm font-medium text-muted-foreground">Nome da Peça</label>
               <div className="relative">
-                <PackageOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                <PackageOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   type="text"
                   name="nome"
@@ -206,7 +193,7 @@ const EditDisassembledPart = () => {
                   onChange={handleChange}
                   onBlur={() => handleBlur("nome")}
                   placeholder="Ex: Motor de Avanço, Placa Eletrónica..."
-                  className={`pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 ${
+                  className={`pl-10 bg-muted/50 border-border text-foreground ${
                     touched.nome && !formData.nome ? "border-red-500" : ""
                   }`}
                 />
@@ -218,45 +205,45 @@ const EditDisassembledPart = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Quantidade</label>
+                <label className="text-sm font-medium text-muted-foreground">Quantidade</label>
                 <div className="relative">
-                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     type="number"
                     min="1"
                     name="quantidade"
                     value={formData.quantidade}
                     onChange={handleChange}
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                    className="pl-10"
                   />
                 </div>
               </div>
               <div className="space-y-2 sm:col-span-2">
-                <label className="text-sm font-medium text-zinc-400">Localização (Prateleira)</label>
+                <label className="text-sm font-medium text-muted-foreground">Localização (Prateleira)</label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     type="text"
                     name="localizacao"
                     value={formData.localizacao}
                     onChange={handleChange}
                     placeholder="Ex: Prateleira B2, Armazém Central"
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                    className="pl-10"
                   />
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Estado</label>
+              <label className="text-sm font-medium text-muted-foreground">Estado</label>
               <Select
                 value={formData.estado}
                 onValueChange={(value) => handleSelectChange("estado", value)}
               >
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger>
                   <SelectValue placeholder="Estado" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+                <SelectContent>
                   {Object.entries(ESTADO_META).map(([value, meta]) => (
                     <SelectItem key={value} value={value}>
                       {meta.label}
@@ -266,16 +253,16 @@ const EditDisassembledPart = () => {
               </Select>
             </div>
 
-            <Card className="bg-zinc-900 border-zinc-700">
+            <Card className="bg-muted/50">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm text-zinc-300 flex items-center gap-2">
+                <CardTitle className="text-sm text-foreground/90 flex items-center gap-2">
                   <Wrench className="h-4 w-4 text-orange-400" />
                   Origem (opcional)
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-0">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400">Cliente</label>
+                  <label className="text-sm font-medium text-muted-foreground">Cliente</label>
                   <ClientCombobox
                     clients={clientOptions}
                     value={formData.origemClientId || "none"}
@@ -285,29 +272,29 @@ const EditDisassembledPart = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400">Equipamento de Origem</label>
+                  <label className="text-sm font-medium text-muted-foreground">Equipamento de Origem</label>
                   <Input
                     type="text"
                     name="origemEquipamento"
                     value={formData.origemEquipamento}
                     onChange={handleChange}
                     placeholder="Ex: CNC Modelo X, Nº série 12345"
-                    className="bg-zinc-800 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                   
                   />
                 </div>
               </CardContent>
             </Card>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Notas</label>
+              <label className="text-sm font-medium text-muted-foreground">Notas</label>
               <div className="relative">
-                <FileText className="absolute left-3 top-3 text-zinc-400 h-4 w-4" />
+                <FileText className="absolute left-3 top-3 text-muted-foreground h-4 w-4" />
                 <Textarea
                   name="notas"
                   value={formData.notas}
                   onChange={handleChange}
                   placeholder="Observações adicionais sobre a peça..."
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 min-h-[80px]"
+                  className="pl-10 min-h-[80px]"
                 />
               </div>
             </div>
@@ -317,7 +304,7 @@ const EditDisassembledPart = () => {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-green-600 hover:bg-green-700"
+          className="w-full"
         >
           {isSubmitting ? (
             <>

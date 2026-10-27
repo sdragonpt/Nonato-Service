@@ -41,7 +41,7 @@ export const PaymentStatusBadge = ({ status, size = "default" }) => {
       default:
         return {
           text: "Indefinido",
-          color: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",
+          color: "bg-muted-foreground/20 text-muted-foreground border-muted-foreground/40",
           icon: FileText,
         };
     }
@@ -80,7 +80,7 @@ export const FinancialMetricCard = ({
     yellow: "text-yellow-500",
     red: "text-red-500",
     purple: "text-purple-500",
-    zinc: "text-zinc-500",
+    zinc: "text-muted-foreground",
   };
 
   const TrendIcon =
@@ -92,21 +92,21 @@ export const FinancialMetricCard = ({
 
   return (
     <Card
-      className={`bg-zinc-800 border-zinc-700 transition-colors ${
-        onClick ? "hover:bg-zinc-700 cursor-pointer" : ""
+      className={` transition-colors ${
+        onClick ? "hover:bg-accent cursor-pointer" : ""
       }`}
       onClick={onClick}
     >
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <p className="text-sm font-medium text-zinc-400 mb-1">{title}</p>
-            <h3 className="text-2xl font-bold text-white mb-1">
+            <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
+            <h3 className="text-2xl font-bold text-foreground mb-1">
               {typeof value === "number" ? formatPrice(value) : value}
             </h3>
             {subtitle && (
               <div className="flex items-center gap-2">
-                <p className="text-xs text-zinc-500">{subtitle}</p>
+                <p className="text-xs text-muted-foreground">{subtitle}</p>
                 {trend && TrendIcon && (
                   <div
                     className={`flex items-center gap-1 ${
@@ -159,21 +159,21 @@ export const PaymentStatusButtons = ({
       status: "paid",
       label: "Pago",
       icon: CheckCircle,
-      color: "bg-green-600 hover:bg-green-700 text-white",
-      outlineColor: "bg-transparent border-green-600 text-green-400 hover:bg-green-600/10",
+      color: "bg-primary hover:bg-primary/90 text-foreground",
+      outlineColor: "bg-transparent border-primary text-green-400 hover:bg-green-600/10",
     },
     {
       status: "pending",
       label: "Pendente",
       icon: Clock,
-      color: "bg-yellow-600 hover:bg-yellow-700 text-white",
+      color: "bg-yellow-600 hover:bg-yellow-700 text-foreground",
       outlineColor: "bg-transparent border-yellow-600 text-yellow-400 hover:bg-yellow-600/10",
     },
     {
       status: "overdue",
       label: "Devedor",
       icon: AlertTriangle,
-      color: "bg-red-600 hover:bg-red-700 text-white",
+      color: "bg-red-600 hover:bg-red-700 text-foreground",
       outlineColor: "bg-transparent border-red-600 text-red-400 hover:bg-red-600/10",
     },
   ];
@@ -214,7 +214,7 @@ export const VATBreakdown = ({
   return (
     <div className="space-y-3">
       {showDetails && (
-        <div className="text-sm text-zinc-400 mb-3">
+        <div className="text-sm text-muted-foreground mb-3">
           <span>Separação Fiscal (IVA {vatRate}%)</span>
         </div>
       )}
@@ -224,7 +224,7 @@ export const VATBreakdown = ({
         <div className="flex justify-between items-center p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-            <span className="text-sm text-zinc-300">Vendas (sem IVA)</span>
+            <span className="text-sm text-foreground/90">Vendas (sem IVA)</span>
           </div>
           <span className="text-purple-400 font-medium">
             {formatPrice(salesAmount)}
@@ -235,7 +235,7 @@ export const VATBreakdown = ({
         <div className="flex justify-between items-center p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-            <span className="text-sm text-zinc-300">IVA ({vatRate}%)</span>
+            <span className="text-sm text-foreground/90">IVA ({vatRate}%)</span>
           </div>
           <span className="text-blue-400 font-medium">
             {formatPrice(vatAmount)}
@@ -243,16 +243,16 @@ export const VATBreakdown = ({
         </div>
 
         {/* Total */}
-        <div className="flex justify-between items-center p-3 bg-zinc-700/50 rounded-lg border border-zinc-600 font-medium">
-          <span className="text-white">Total com IVA</span>
-          <span className="text-white text-lg">
+        <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg border border-border font-medium">
+          <span className="text-foreground">Total com IVA</span>
+          <span className="text-foreground text-lg">
             {formatPrice(totalWithVat)}
           </span>
         </div>
       </div>
 
       {showDetails && (
-        <div className="text-xs text-zinc-500 pt-2 border-t border-zinc-700">
+        <div className="text-xs text-muted-foreground pt-2 border-t border-border">
           <p>
             • IVA a entregar ao Estado:{" "}
             <span className="text-blue-400">{formatPrice(vatAmount)}</span>
@@ -285,21 +285,21 @@ export const CollectionProgress = ({
     <div className="space-y-3">
       {showLabels && (
         <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-zinc-300">
+          <span className="text-sm font-medium text-foreground/90">
             Progresso de Cobrança
           </span>
-          <span className="text-sm text-zinc-400">
+          <span className="text-sm text-muted-foreground">
             {paidPercentage.toFixed(1)}% cobrado
           </span>
         </div>
       )}
 
       {/* Barra de progresso visual */}
-      <div className="w-full bg-zinc-700 rounded-full h-3 overflow-hidden">
+      <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
         <div className="h-full flex">
           {/* Pago (verde) */}
           <div
-            className="bg-green-500 transition-all duration-300"
+            className="bg-primary transition-all duration-300"
             style={{ width: `${paidPercentage}%` }}
           />
           {/* Pendente (amarelo) */}
@@ -319,8 +319,8 @@ export const CollectionProgress = ({
       {showLabels && (
         <div className="grid grid-cols-3 gap-2 text-xs">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-zinc-400">Pago</span>
+            <div className="w-2 h-2 bg-primary rounded-full"></div>
+            <span className="text-muted-foreground">Pago</span>
             <span className="text-green-400 font-medium ml-auto">
               {formatPrice(paid)}
             </span>
@@ -328,7 +328,7 @@ export const CollectionProgress = ({
 
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-            <span className="text-zinc-400">Pendente</span>
+            <span className="text-muted-foreground">Pendente</span>
             <span className="text-yellow-400 font-medium ml-auto">
               {formatPrice(pending)}
             </span>
@@ -336,7 +336,7 @@ export const CollectionProgress = ({
 
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-            <span className="text-zinc-400">Devedor</span>
+            <span className="text-muted-foreground">Devedor</span>
             <span className="text-red-400 font-medium ml-auto">
               {formatPrice(overdue)}
             </span>
@@ -373,9 +373,9 @@ export const FinancialAlert = ({ alert, onDismiss, onViewDetails }) => {
         };
       default:
         return {
-          bgColor: "bg-zinc-500/10 border-zinc-500/30",
-          iconColor: "text-zinc-400",
-          titleColor: "text-zinc-300",
+          bgColor: "bg-muted-foreground/10 border-muted-foreground/40",
+          iconColor: "text-muted-foreground",
+          titleColor: "text-foreground/90",
         };
     }
   };
@@ -392,17 +392,17 @@ export const FinancialAlert = ({ alert, onDismiss, onViewDetails }) => {
               <h4 className={`font-medium ${config.titleColor}`}>
                 {alert.title}
               </h4>
-              <p className="text-sm text-zinc-400 mt-1">{alert.description}</p>
+              <p className="text-sm text-muted-foreground mt-1">{alert.description}</p>
 
               {alert.totalAmount && (
-                <p className="text-sm font-medium text-white mt-2">
+                <p className="text-sm font-medium text-foreground mt-2">
                   Valor total: {formatPrice(alert.totalAmount)}
                 </p>
               )}
 
               {alert.clients && (
                 <div className="mt-2">
-                  <p className="text-xs text-zinc-500">Clientes afetados:</p>
+                  <p className="text-xs text-muted-foreground">Clientes afetados:</p>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {alert.clients.slice(0, 3).map((client) => (
                       <Badge
@@ -430,7 +430,7 @@ export const FinancialAlert = ({ alert, onDismiss, onViewDetails }) => {
                 size="sm"
                 variant="outline"
                 onClick={onViewDetails}
-                className="text-xs border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                className="text-xs text-foreground/90"
               >
                 Detalhes
               </Button>
@@ -440,7 +440,7 @@ export const FinancialAlert = ({ alert, onDismiss, onViewDetails }) => {
                 size="sm"
                 variant="ghost"
                 onClick={onDismiss}
-                className="text-xs text-zinc-400 hover:text-zinc-200"
+                className="text-xs text-muted-foreground hover:text-foreground/90"
               >
                 ×
               </Button>
@@ -469,7 +469,7 @@ export const FinancialServiceCard = ({
   const paymentStatus = getPaymentStatus(service);
 
   return (
-    <Card className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700/50 transition-colors">
+    <Card className="hover:bg-white/5 transition-colors">
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -483,12 +483,12 @@ export const FinancialServiceCard = ({
               </div>
             )}
             <div>
-              <p className="font-medium text-white text-sm">
+              <p className="font-medium text-foreground text-sm">
                 {service.type === "parts_budget"
                   ? "Orçamento de Peças"
                   : "Fechamento"}
               </p>
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-muted-foreground">
                 {formatDate(service.createdAt)}
               </p>
             </div>
@@ -498,21 +498,21 @@ export const FinancialServiceCard = ({
         </div>
 
         {showClient && client && (
-          <div className="mb-3 pb-3 border-b border-zinc-700">
-            <p className="text-xs text-zinc-400">Cliente</p>
-            <p className="text-sm text-white font-medium">{client.name}</p>
+          <div className="mb-3 pb-3 border-b border-border">
+            <p className="text-xs text-muted-foreground">Cliente</p>
+            <p className="text-sm text-foreground font-medium">{client.name}</p>
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-3 text-xs mb-3">
           <div>
-            <p className="text-zinc-400">Subtotal</p>
-            <p className="text-white font-medium">
+            <p className="text-muted-foreground">Subtotal</p>
+            <p className="text-foreground font-medium">
               {formatPrice(financials.totalBeforeVat)}
             </p>
           </div>
           <div>
-            <p className="text-zinc-400">IVA</p>
+            <p className="text-muted-foreground">IVA</p>
             <p className="text-blue-400 font-medium">
               {formatPrice(financials.vatAmount)}
             </p>
@@ -520,8 +520,8 @@ export const FinancialServiceCard = ({
         </div>
 
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-medium text-zinc-300">Total</span>
-          <span className="text-lg font-bold text-white">
+          <span className="text-sm font-medium text-foreground/90">Total</span>
+          <span className="text-lg font-bold text-foreground">
             {formatPrice(financials.totalWithVat)}
           </span>
         </div>
@@ -541,7 +541,7 @@ export const FinancialServiceCard = ({
             size="sm"
             variant="outline"
             onClick={onViewDetails}
-            className="w-full mt-3 border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+            className="w-full mt-3 text-foreground/90"
           >
             Ver Detalhes
           </Button>

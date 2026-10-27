@@ -67,37 +67,37 @@ const EditUser = ({ user, onClose, onUpdated }) => {
             <UserCog className="h-5 w-5 text-green-400" />
           </div>
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white">Editar Usuário</h2>
-            <p className="text-sm text-zinc-400">Atualize o nome e a função do usuário</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">Editar Usuário</h2>
+            <p className="text-sm text-muted-foreground">Atualize o nome e a função do usuário</p>
           </div>
         </div>
         <Button
           variant="outline"
           size="icon"
           onClick={onClose}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 shrink-0"
+          className="h-10 w-10 rounded-full shrink-0"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
       </div>
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
-          <label className="text-sm font-medium text-zinc-400">Nome</label>
+          <label className="text-sm font-medium text-muted-foreground">Nome</label>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+              className="pl-10"
               placeholder="Nome do usuário"
               required
             />
@@ -105,34 +105,34 @@ const EditUser = ({ user, onClose, onUpdated }) => {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-zinc-400">Email</label>
+          <label className="text-sm font-medium text-muted-foreground">Email</label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="email"
               value={user?.email || ""}
               disabled
-              className="pl-10 bg-zinc-900 border-zinc-700 text-zinc-500 disabled:opacity-70"
+              className="pl-10 text-muted-foreground disabled:opacity-70"
             />
           </div>
-          <p className="text-xs text-zinc-500 flex items-center gap-1.5">
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
             <Info className="h-3.5 w-3.5 shrink-0" />
             O email de login não pode ser alterado por aqui.
           </p>
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-zinc-400">Função</label>
+          <label className="text-sm font-medium text-muted-foreground">Função</label>
           <Select value={role} onValueChange={setRole}>
-            <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+            <SelectTrigger>
               <SelectValue placeholder="Selecione a função" />
             </SelectTrigger>
-            <SelectContent className="bg-zinc-800 border-zinc-700">
+            <SelectContent>
               {ROLE_OPTIONS.map((option) => (
                 <SelectItem
                   key={option.value}
                   value={option.value}
-                  className="text-white hover:bg-zinc-700"
+                 
                 >
                   {option.label}
                 </SelectItem>
@@ -144,7 +144,7 @@ const EditUser = ({ user, onClose, onUpdated }) => {
         <Button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-green-600 hover:bg-green-700"
+          className="w-full"
         >
           {isLoading ? (
             <>

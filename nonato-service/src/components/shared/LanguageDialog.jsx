@@ -33,13 +33,13 @@ const LanguageDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-800 border-zinc-700 w-[95%] max-w-md sm:w-full">
+      <DialogContent className="w-[95%] max-w-md sm:w-full">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-white">
+          <DialogTitle className="flex items-center gap-2 text-foreground">
             <Languages className="w-5 h-5" />
             Selecione o Idioma do PDF
           </DialogTitle>
-          <DialogDescription className="text-zinc-400">
+          <DialogDescription className="text-muted-foreground">
             Escolha o idioma em que o PDF será gerado.
           </DialogDescription>
         </DialogHeader>
@@ -52,8 +52,8 @@ const LanguageDialog = ({
               disabled={isGeneratingPDF}
               className={`flex items-center justify-between p-4 h-auto min-h-[3rem] ${
                 isGeneratingPDF && selectedLang === lang.code
-                  ? "bg-green-600 hover:bg-green-600"
-                  : "bg-zinc-700 hover:bg-zinc-600"
+                  ? "bg-primary hover:bg-primary"
+                  : "bg-muted hover:bg-accent"
               } text-white`}
             >
               <div className="flex items-center gap-3">

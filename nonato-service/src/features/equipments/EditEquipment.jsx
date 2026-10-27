@@ -5,7 +5,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { db, storage } from "../../firebase.jsx";
 import { compressImage } from "../../utils/imageCompression.js";
 import {
-  ArrowLeft,
   Camera,
   Loader2,
   Save,
@@ -30,16 +29,17 @@ import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar.jsx";
+import { PageHeader } from "../../components/app";
 
 // ✅ Mesmo bloco reutilizável do AddEquipment.jsx/AddClient.jsx.
 const FieldRow = ({ label, icon: Icon, error, className = "", ...inputProps }) => (
   <div className="space-y-1.5">
-    <label className="text-sm font-medium text-zinc-400">{label}</label>
+    <label className="text-sm font-medium text-muted-foreground">{label}</label>
     <div className="relative">
-      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       <Input
         {...inputProps}
-        className={`pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 ${className} ${
+        className={`pl-10 bg-muted/50 border-border text-foreground ${className} ${
           error ? "border-red-500" : ""
         }`}
       />
@@ -237,7 +237,7 @@ const EditEquipment = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -251,42 +251,25 @@ const EditEquipment = () => {
   return (
     <div className="space-y-6 pb-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-            <UserCog className="h-5 w-5 text-blue-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">
-              Editar Equipamento
-            </h1>
-            <p className="text-sm text-zinc-400">
-              Atualize as informações do equipamento
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Editar Equipamento"
+        description="Atualize as informações do equipamento"
+        icon={UserCog}
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Client Information Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Cliente</CardTitle>
+            <CardTitle className="text-lg">Cliente</CardTitle>
           </CardHeader>
           <CardContent>
             <button
@@ -294,19 +277,19 @@ const EditEquipment = () => {
               onClick={() => clientId && navigate(`/app/client/${clientId}`)}
               className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity"
             >
-              <Building2 className="h-5 w-5 text-zinc-400" />
+              <Building2 className="h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="text-sm text-zinc-400">Nome do Cliente</p>
-                <p className="text-white font-medium">{clientName || "—"}</p>
+                <p className="text-sm text-muted-foreground">Nome do Cliente</p>
+                <p className="text-foreground font-medium">{clientName || "—"}</p>
               </div>
             </button>
           </CardContent>
         </Card>
 
         {/* Equipment Information Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">
+            <CardTitle className="text-lg">
               Informações do Equipamento
             </CardTitle>
           </CardHeader>
@@ -315,18 +298,18 @@ const EditEquipment = () => {
             <div className="flex flex-col sm:flex-row gap-5 items-center sm:items-start">
               <div className="shrink-0 space-y-2">
                 <div className="relative group">
-                  <Avatar className="h-24 w-24 border-2 border-zinc-700">
+                  <Avatar className="h-24 w-24 border-2 border-border">
                     <AvatarImage
                       src={photoPreview}
                       alt="Foto do equipamento"
                       className="object-cover"
                     />
-                    <AvatarFallback className="bg-zinc-900 text-zinc-500">
+                    <AvatarFallback className="bg-muted/50 text-muted-foreground">
                       <Printer className="h-9 w-9" />
                     </AvatarFallback>
                   </Avatar>
                   <label className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity cursor-pointer">
-                    <Camera className="w-6 h-6 text-white" />
+                    <Camera className="w-6 h-6 text-foreground" />
                     <input
                       type="file"
                       accept="image/*"
@@ -346,7 +329,7 @@ const EditEquipment = () => {
                   </button>
                 )}
               </div>
-              <p className="text-xs text-zinc-500 sm:pt-2">
+              <p className="text-xs text-muted-foreground sm:pt-2">
                 Clique na foto para a substituir
               </p>
             </div>
@@ -401,7 +384,7 @@ const EditEquipment = () => {
         <Button
           type="submit"
           disabled={isSubmitting || !hasChanges}
-          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-zinc-700"
+          className="w-full disabled:bg-accent"
         >
           {isSubmitting ? (
             <>

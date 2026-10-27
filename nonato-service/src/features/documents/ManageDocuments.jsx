@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import {
   FolderOpen, Cpu, BookOpen, Image, ListChecks, Upload, Plus,
-  ChevronRight, ArrowLeft, X, Download, Trash2, Loader2,
+  ChevronRight, X, Download, Trash2, Loader2,
   FileText, AlertTriangle, Search, Eye,
 } from "lucide-react";
 
@@ -29,6 +29,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { PageHeader } from "../../components/app";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -74,15 +75,15 @@ const MiniDocCard = ({ d, onClick }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-      className="group bg-zinc-800/50 border border-zinc-700/50 rounded-xl overflow-hidden cursor-pointer hover:border-zinc-600 transition-all hover:-translate-y-0.5"
+      className="group bg-card/50 border border-border rounded-xl overflow-hidden cursor-pointer hover:border-border transition-all hover:-translate-y-0.5"
       onClick={() => onClick(d)}
     >
       <div className="h-[68px] flex items-center justify-center relative overflow-hidden"
         style={{ background: (cat?.color || "#fff") + "0d" }}>
         {isImg && d.fileUrl
           ? <img src={d.fileUrl} alt={d.name} className="h-full w-full object-cover opacity-80" />
-          : <div className="w-8 h-8 rounded-lg bg-zinc-900/80 border border-zinc-700/60 flex items-center justify-center">
-              {cat ? <cat.icon className="w-4 h-4" style={{ color: cat.color }} /> : <FileText className="w-4 h-4 text-zinc-400" />}
+          : <div className="w-8 h-8 rounded-lg bg-background/80 border border-border flex items-center justify-center">
+              {cat ? <cat.icon className="w-4 h-4" style={{ color: cat.color }} /> : <FileText className="w-4 h-4 text-muted-foreground" />}
             </div>
         }
         <span className="absolute top-1.5 right-1.5 text-[8px] font-bold px-1 py-0.5 rounded"
@@ -91,8 +92,8 @@ const MiniDocCard = ({ d, onClick }) => {
         </span>
       </div>
       <div className="p-2.5">
-        <div className="text-[11px] font-semibold text-white truncate mb-0.5" title={d.name}>{d.name}</div>
-        <div className="text-[10px] text-zinc-500 truncate">{d.familyName} › {d.machineTypeName}</div>
+        <div className="text-[11px] font-semibold text-foreground truncate mb-0.5" title={d.name}>{d.name}</div>
+        <div className="text-[10px] text-muted-foreground truncate">{d.familyName} › {d.machineTypeName}</div>
       </div>
     </motion.div>
   );
@@ -340,45 +341,34 @@ const ManageDocuments = () => {
     <div className="space-y-5">
 
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          {view !== "home" && (
-            <Button variant="ghost" size="icon"
-              onClick={view === "machine" ? () => { setView("family"); setSelectedMachine(null); setSearch(""); } : goHome}
-              className="text-zinc-400 hover:text-white hover:bg-zinc-700/50 flex-shrink-0">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          )}
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-white truncate">
-              {view === "home"    ? "Bíblia"               :
+      <PageHeader
+        title={view === "home"    ? "Bíblia"               :
                view === "family"  ? selectedFamily?.name   :
                selectedMachine?.name}
-            </h1>
-            <p className="text-sm text-zinc-400 mt-0.5">
-              {view === "home"    ? "Manuais, imagens e procedimentos das máquinas"   :
+        description={view === "home"    ? "Manuais, imagens e procedimentos das máquinas"   :
                view === "family"  ? `Família: ${selectedFamily?.name}`                :
                `${selectedFamily?.name} › ${selectedMachine?.name}`}
-            </p>
-          </div>
-        </div>
-        <Button onClick={openUpload} className="bg-green-600 hover:bg-green-500 text-white flex-shrink-0">
-          <Upload className="w-4 h-4 mr-2" /> Adicionar
-        </Button>
-      </div>
+        actions={
+          <>
+            <Button onClick={openUpload} className="hover:bg-primary flex-shrink-0">
+            <Upload className="w-4 h-4" /> Adicionar
+          </Button>
+          </>
+        }
+      />
 
       {/* Search */}
       <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
         <Input
           placeholder={view === "home" ? "Pesquisar famílias ou documentos..." : view === "family" ? "Pesquisar tipos de máquina..." : "Pesquisar documentos..."}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-10 pr-8 bg-zinc-800/50 border-zinc-700/50 text-white placeholder:text-zinc-500 focus:border-green-500/50"
+          className="pl-10 pr-8 bg-card/50 focus:border-green-500/50"
         />
         {search && (
           <button onClick={() => setSearch("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors">
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground/90 transition-colors">
             <X className="w-3.5 h-3.5" />
           </button>
         )}
@@ -391,10 +381,10 @@ const ManageDocuments = () => {
           {/* Families */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-zinc-300">Famílias</h2>
+              <h2 className="text-sm font-semibold text-foreground/90">Famílias</h2>
               <Button variant="ghost" size="sm" onClick={() => { setShowNewFamily(true); setNewMachineFamilyId(""); }}
-                className="text-zinc-400 hover:text-green-400 text-xs">
-                <Plus className="w-3.5 h-3.5 mr-1" /> Nova família
+                className="text-muted-foreground hover:text-green-400 text-xs">
+                <Plus className="w-3.5 h-3.5" /> Nova família
               </Button>
             </div>
             {loadingFamilies ? (
@@ -414,27 +404,27 @@ const ManageDocuments = () => {
                   return (
                     <motion.div key={fam.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.05 }}
-                      className="group relative bg-zinc-800/50 border border-zinc-700/50 rounded-xl p-5 cursor-pointer hover:border-zinc-600/50 transition-all hover:bg-zinc-800/80"
+                      className="group relative bg-card/50 border border-border rounded-xl p-5 cursor-pointer hover:border-border transition-all hover:bg-white/5"
                       onClick={() => goFamily(fam)}>
                       <div className="relative w-10 h-10 mb-4">
                         <div className="absolute inset-0 rounded-full blur-lg opacity-60" style={{ background: color }} />
-                        <div className="relative w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center">
+                        <div className="relative w-10 h-10 rounded-xl bg-muted/50 border border-border flex items-center justify-center">
                           <FolderOpen className="w-5 h-5" style={{ color }} />
                         </div>
                       </div>
-                      <div className="text-sm font-semibold text-white mb-1">{fam.name}</div>
-                      <div className="flex items-center text-xs text-zinc-500">
+                      <div className="text-sm font-semibold text-foreground mb-1">{fam.name}</div>
+                      <div className="flex items-center text-xs text-muted-foreground">
                         <ChevronRight className="w-3 h-3 mr-1" /> Ver tipos
                       </div>
                       <button onClick={(e) => { e.stopPropagation(); setDeleteTarget({ type: "family", id: fam.id }); }}
-                        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-500/20 text-zinc-600 hover:text-red-400 transition-all">
+                        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-500/20 text-muted-foreground/70 hover:text-red-400 transition-all">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </motion.div>
                   );
                 })}
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  className="border-2 border-dashed border-zinc-700/50 rounded-xl p-5 cursor-pointer hover:border-green-500/40 hover:bg-green-500/5 flex flex-col items-center justify-center gap-2 text-zinc-600 hover:text-green-400 transition-all min-h-[120px]"
+                  className="border-2 border-dashed border-border rounded-xl p-5 cursor-pointer hover:border-green-500/40 hover:bg-green-500/5 flex flex-col items-center justify-center gap-2 text-muted-foreground/70 hover:text-green-400 transition-all min-h-[120px]"
                   onClick={() => setShowNewFamily(true)}>
                   <Plus className="w-6 h-6" /><span className="text-xs">Nova família</span>
                 </motion.div>
@@ -445,7 +435,7 @@ const ManageDocuments = () => {
           {/* Abertos Recentemente */}
           {!search && recentlyOpened.length > 0 && (
             <div>
-              <h2 className="text-sm font-semibold text-zinc-300 mb-4">Abertos Recentemente</h2>
+              <h2 className="text-sm font-semibold text-foreground/90 mb-4">Abertos Recentemente</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
                 {recentlyOpened.map((d) => <MiniDocCard key={d.id + "-opened"} d={d} onClick={openDoc} />)}
               </div>
@@ -455,7 +445,7 @@ const ManageDocuments = () => {
           {/* Adicionados Recentemente */}
           {!search && recentDocs.length > 0 && (
             <div>
-              <h2 className="text-sm font-semibold text-zinc-300 mb-4">Adicionados Recentemente</h2>
+              <h2 className="text-sm font-semibold text-foreground/90 mb-4">Adicionados Recentemente</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
                 {recentDocs.map((d) => <MiniDocCard key={d.id} d={d} onClick={openDoc} />)}
               </div>
@@ -466,8 +456,8 @@ const ManageDocuments = () => {
           {search && filteredRecent.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <h2 className="text-sm font-semibold text-zinc-300">Documentos encontrados</h2>
-                <Badge variant="secondary" className="text-xs bg-zinc-700 text-zinc-400">{filteredRecent.length}</Badge>
+                <h2 className="text-sm font-semibold text-foreground/90">Documentos encontrados</h2>
+                <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">{filteredRecent.length}</Badge>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
                 {filteredRecent.map((d) => <MiniDocCard key={d.id} d={d} onClick={openDoc} />)}
@@ -481,11 +471,11 @@ const ManageDocuments = () => {
       {view === "family" && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-zinc-300">Tipos de Máquina</h2>
+            <h2 className="text-sm font-semibold text-foreground/90">Tipos de Máquina</h2>
             <Button variant="ghost" size="sm"
               onClick={() => { setNewMachineFamilyId(selectedFamily?.id); setShowNewMachine(true); }}
-              className="text-zinc-400 hover:text-green-400 text-xs">
-              <Plus className="w-3.5 h-3.5 mr-1" /> Novo tipo
+              className="text-muted-foreground hover:text-green-400 text-xs">
+              <Plus className="w-3.5 h-3.5" /> Novo tipo
             </Button>
           </div>
           {loadingMachines ? (
@@ -503,30 +493,30 @@ const ManageDocuments = () => {
               {filteredMachines.map((m, i) => (
                 <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="group relative bg-zinc-800/50 border border-zinc-700/50 rounded-xl p-5 cursor-pointer hover:border-zinc-600/50 transition-all hover:bg-zinc-800/80"
+                  className="group relative bg-card/50 border border-border rounded-xl p-5 cursor-pointer hover:border-border transition-all hover:bg-white/5"
                   onClick={() => goMachine(m)}>
                   <div className="relative w-10 h-10 mb-4">
                     <div className="absolute inset-0 rounded-full blur-lg opacity-50" style={{ background: familyColor }} />
-                    <div className="relative w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center">
+                    <div className="relative w-10 h-10 rounded-xl bg-muted/50 border border-border flex items-center justify-center">
                       <Cpu className="w-5 h-5" style={{ color: familyColor }} />
                     </div>
                   </div>
-                  <div className="text-sm font-semibold text-white mb-2">{m.name}</div>
+                  <div className="text-sm font-semibold text-foreground mb-2">{m.name}</div>
                   {CATEGORIES.map((cat) => (
-                    <div key={cat.id} className="flex items-center justify-between text-xs text-zinc-500 py-0.5">
+                    <div key={cat.id} className="flex items-center justify-between text-xs text-muted-foreground py-0.5">
                       <span className="flex items-center gap-1">
                         <cat.icon className="w-3 h-3" style={{ color: cat.color }} />{cat.label}
                       </span>
                     </div>
                   ))}
                   <button onClick={(e) => { e.stopPropagation(); setDeleteTarget({ type: "machine", id: m.id }); }}
-                    className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-500/20 text-zinc-600 hover:text-red-400 transition-all">
+                    className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-500/20 text-muted-foreground/70 hover:text-red-400 transition-all">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </motion.div>
               ))}
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                className="border-2 border-dashed border-zinc-700/50 rounded-xl p-5 cursor-pointer hover:border-green-500/40 hover:bg-green-500/5 flex flex-col items-center justify-center gap-2 text-zinc-600 hover:text-green-400 transition-all min-h-[140px]"
+                className="border-2 border-dashed border-border rounded-xl p-5 cursor-pointer hover:border-green-500/40 hover:bg-green-500/5 flex flex-col items-center justify-center gap-2 text-muted-foreground/70 hover:text-green-400 transition-all min-h-[140px]"
                 onClick={() => { setNewMachineFamilyId(selectedFamily?.id); setShowNewMachine(true); }}>
                 <Plus className="w-6 h-6" /><span className="text-xs">Novo tipo</span>
               </motion.div>
@@ -545,7 +535,7 @@ const ManageDocuments = () => {
               return (
                 <button key={c.id}
                   onClick={() => { setActiveCategory(c.id); setSearch(""); }}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all ${activeCategory === c.id ? "border-transparent text-white" : "border-zinc-700/50 text-zinc-400 hover:text-white hover:border-zinc-600"}`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all ${activeCategory === c.id ? "border-transparent text-foreground" : "border-border text-muted-foreground hover:text-foreground hover:border-border"}`}
                   style={activeCategory === c.id ? { background: c.color + "22", borderColor: c.color + "60", color: c.color } : {}}>
                   <c.icon className="w-4 h-4" />
                   {c.label}
@@ -578,15 +568,15 @@ const ManageDocuments = () => {
                 return (
                   <motion.div key={d.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.04 }}
-                    className="group relative bg-zinc-800/50 border border-zinc-700/50 rounded-xl overflow-hidden cursor-pointer hover:border-zinc-600 transition-all hover:-translate-y-0.5"
+                    className="group relative bg-card/50 border border-border rounded-xl overflow-hidden cursor-pointer hover:border-border transition-all hover:-translate-y-0.5"
                     onClick={() => openDoc(d)}>
                     <div className="h-[80px] flex items-center justify-center relative overflow-hidden"
                       style={{ background: (cat?.color || "#fff") + "0d" }}>
                       <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 70%, ${cat?.color || "#fff"}18 0%, transparent 70%)` }} />
                       {isImg && d.fileUrl
                         ? <img src={d.fileUrl} alt={d.name} className="h-full w-full object-cover opacity-80" />
-                        : <div className="relative w-9 h-9 rounded-xl bg-zinc-900/80 border border-zinc-700/60 flex items-center justify-center">
-                            {cat ? <cat.icon className="w-5 h-5" style={{ color: cat.color }} /> : <FileText className="w-5 h-5 text-zinc-400" />}
+                        : <div className="relative w-9 h-9 rounded-xl bg-background/80 border border-border flex items-center justify-center">
+                            {cat ? <cat.icon className="w-5 h-5" style={{ color: cat.color }} /> : <FileText className="w-5 h-5 text-muted-foreground" />}
                           </div>
                       }
                       <span className="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded"
@@ -595,20 +585,20 @@ const ManageDocuments = () => {
                       </span>
                     </div>
                     <div className="p-3">
-                      <div className="text-xs font-semibold text-white truncate mb-1" title={d.name}>{d.name}</div>
-                      <div className="flex items-center justify-between text-[10px] text-zinc-500">
+                      <div className="text-xs font-semibold text-foreground truncate mb-1" title={d.name}>{d.name}</div>
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                         <span>{formatSize(d.fileSize)}</span>
                         <span>{d.createdAt?.toDate?.()?.toLocaleDateString("pt-PT") || "—"}</span>
                       </div>
                     </div>
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <button onClick={(e) => { e.stopPropagation(); openDoc(d); }}
-                        className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors">
+                        className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-foreground transition-colors">
                         <Eye className="w-4 h-4" />
                       </button>
                       <a href={d.fileUrl} target="_blank" rel="noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors">
+                        className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-foreground transition-colors">
                         <Download className="w-4 h-4" />
                       </a>
                       <button onClick={(e) => { e.stopPropagation(); setDeleteTarget({ type: "doc", id: d.id, storagePath: d.storagePath }); }}
@@ -630,23 +620,23 @@ const ManageDocuments = () => {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/90 flex flex-col"
             onClick={(e) => e.target === e.currentTarget && setViewerDoc(null)}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 bg-zinc-900/95 flex-shrink-0">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background/95 flex-shrink-0">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center flex-shrink-0">
-                  {(() => { const cat = CATEGORIES.find((c) => c.id === viewerDoc.category); return cat ? <cat.icon className="w-4 h-4" style={{ color: cat.color }} /> : <FileText className="w-4 h-4 text-zinc-400" />; })()}
+                <div className="w-8 h-8 rounded-lg bg-card border border-border flex items-center justify-center flex-shrink-0">
+                  {(() => { const cat = CATEGORIES.find((c) => c.id === viewerDoc.category); return cat ? <cat.icon className="w-4 h-4" style={{ color: cat.color }} /> : <FileText className="w-4 h-4 text-muted-foreground" />; })()}
                 </div>
                 <div className="min-w-0">
-                  <div className="text-sm font-semibold text-white truncate">{viewerDoc.name}</div>
-                  <div className="text-xs text-zinc-400">{viewerDoc.familyName} › {viewerDoc.machineTypeName} › {CATEGORIES.find((c) => c.id === viewerDoc.category)?.label}</div>
+                  <div className="text-sm font-semibold text-foreground truncate">{viewerDoc.name}</div>
+                  <div className="text-xs text-muted-foreground">{viewerDoc.familyName} › {viewerDoc.machineTypeName} › {CATEGORIES.find((c) => c.id === viewerDoc.category)?.label}</div>
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                 <a href={viewerDoc.fileUrl} target="_blank" rel="noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-700 hover:border-zinc-500 text-xs text-zinc-400 hover:text-white transition-colors">
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border hover:border-muted-foreground/40 text-xs text-muted-foreground hover:text-foreground transition-colors">
                   <Download className="w-3.5 h-3.5" /> Descarregar
                 </a>
                 <Button variant="ghost" size="icon" onClick={() => setViewerDoc(null)}
-                  className="text-zinc-400 hover:text-white hover:bg-zinc-800">
+                  className="text-muted-foreground hover:bg-white/5">
                   <X className="w-5 h-5" />
                 </Button>
               </div>
@@ -654,7 +644,7 @@ const ManageDocuments = () => {
             <div className="flex-1 overflow-hidden flex items-center justify-center p-4">
               {isImage(viewerDoc.fileName)
                 ? <img src={viewerDoc.fileUrl} alt={viewerDoc.name} className="max-w-full max-h-full object-contain rounded-xl" />
-                : <iframe src={viewerDoc.fileUrl} title={viewerDoc.name} className="w-full h-full rounded-xl border border-zinc-800" />
+                : <iframe src={viewerDoc.fileUrl} title={viewerDoc.name} className="w-full h-full rounded-xl border border-border" />
               }
             </div>
           </motion.div>
@@ -663,10 +653,10 @@ const ManageDocuments = () => {
 
       {/* ── UPLOAD DIALOG ── */}
       <Dialog open={showUpload} onOpenChange={setShowUpload}>
-        <DialogContent className="bg-zinc-900 border-zinc-700/50 text-white max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Adicionar Documento</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
-            <div className="border-2 border-dashed border-zinc-700 hover:border-green-500/50 rounded-xl p-6 text-center cursor-pointer transition-colors hover:bg-green-500/5 group"
+            <div className="border-2 border-dashed border-border hover:border-green-500/50 rounded-xl p-6 text-center cursor-pointer transition-colors hover:bg-green-500/5 group"
               onClick={() => fileInputRef.current?.click()}>
               <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.docx" className="hidden"
                 onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
@@ -674,59 +664,59 @@ const ManageDocuments = () => {
                 ? <div className="flex items-center justify-center gap-2 text-green-400">
                     <FileText className="w-5 h-5" />
                     <span className="text-sm font-medium truncate max-w-[200px]">{uploadFile.name}</span>
-                    <span className="text-xs text-zinc-400">({formatSize(uploadFile.size)})</span>
+                    <span className="text-xs text-muted-foreground">({formatSize(uploadFile.size)})</span>
                   </div>
                 : <>
-                    <Upload className="w-8 h-8 text-zinc-600 group-hover:text-green-400 mx-auto mb-2 transition-colors" />
-                    <p className="text-sm text-zinc-400"><span className="text-green-400 font-medium">Clique para selecionar</span> ou arraste aqui</p>
-                    <p className="text-xs text-zinc-600 mt-1">PDF, JPG, PNG — máx. 50 MB</p>
+                    <Upload className="w-8 h-8 text-muted-foreground/70 group-hover:text-green-400 mx-auto mb-2 transition-colors" />
+                    <p className="text-sm text-muted-foreground"><span className="text-green-400 font-medium">Clique para selecionar</span> ou arraste aqui</p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">PDF, JPG, PNG — máx. 50 MB</p>
                   </>
               }
             </div>
             <div className="flex gap-2">
               <Select value={uploadFamily} onValueChange={(v) => { setUploadFamily(v); setUploadMachine(""); if (v) fetchMachinesForUpload(v); }}>
-                <SelectTrigger className="flex-1 bg-zinc-800 border-zinc-700 text-white"><SelectValue placeholder="Família..." /></SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+                <SelectTrigger className="flex-1"><SelectValue placeholder="Família..." /></SelectTrigger>
+                <SelectContent>
                   {families.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Button variant="outline" size="icon" onClick={() => { setShowUpload(false); setShowNewFamily(true); }}
-                className="border-zinc-700 text-zinc-400 hover:text-green-400 hover:border-green-500/50 bg-zinc-800"><Plus className="w-4 h-4" /></Button>
+                className="text-muted-foreground hover:text-green-400 hover:border-green-500/50"><Plus className="w-4 h-4" /></Button>
             </div>
             <div className="flex gap-2">
               <Select value={uploadMachine} onValueChange={setUploadMachine} disabled={!uploadFamily}>
-                <SelectTrigger className="flex-1 bg-zinc-800 border-zinc-700 text-white"><SelectValue placeholder="Tipo de máquina..." /></SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+                <SelectTrigger className="flex-1"><SelectValue placeholder="Tipo de máquina..." /></SelectTrigger>
+                <SelectContent>
                   {uploadMachineOptions.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Button variant="outline" size="icon"
                 onClick={() => { if (!uploadFamily) return; setNewMachineFamilyId(uploadFamily); setShowUpload(false); setShowNewMachine(true); }}
                 disabled={!uploadFamily}
-                className="border-zinc-700 text-zinc-400 hover:text-green-400 hover:border-green-500/50 bg-zinc-800"><Plus className="w-4 h-4" /></Button>
+                className="text-muted-foreground hover:text-green-400 hover:border-green-500/50"><Plus className="w-4 h-4" /></Button>
             </div>
             <Select value={uploadCat} onValueChange={setUploadCat}>
-              <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white"><SelectValue placeholder="Categoria..." /></SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+              <SelectTrigger><SelectValue placeholder="Categoria..." /></SelectTrigger>
+              <SelectContent>
                 {CATEGORIES.map((c) => <SelectItem key={c.id} value={c.id}><span className="flex items-center gap-2"><c.icon className="w-3.5 h-3.5" style={{ color: c.color }} />{c.label}</span></SelectItem>)}
               </SelectContent>
             </Select>
             <Input placeholder="Nome do documento (opcional)" value={uploadName} onChange={(e) => setUploadName(e.target.value)}
-              className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500" />
+              />
             {uploading && (
               <div className="space-y-1.5">
-                <div className="flex justify-between text-xs text-zinc-400"><span>A enviar...</span><span>{uploadProgress}%</span></div>
-                <div className="h-1.5 bg-zinc-700 rounded-full overflow-hidden">
-                  <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
+                <div className="flex justify-between text-xs text-muted-foreground"><span>A enviar...</span><span>{uploadProgress}%</span></div>
+                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
                 </div>
               </div>
             )}
             <div className="flex gap-2 pt-1">
               <Button variant="outline" onClick={() => setShowUpload(false)} disabled={uploading}
-                className="flex-1 border-zinc-700 text-zinc-400 hover:text-white bg-zinc-800">Cancelar</Button>
+                className="flex-1 text-muted-foreground">Cancelar</Button>
               <Button onClick={handleUpload}
                 disabled={!uploadFile || !uploadFamily || !uploadMachine || !uploadCat || uploading}
-                className="flex-1 bg-green-600 hover:bg-green-500 text-white disabled:opacity-50">
+                className="flex-1 hover:bg-primary disabled:opacity-50">
                 {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
                 {uploading ? "A enviar..." : "Enviar"}
               </Button>
@@ -737,15 +727,15 @@ const ManageDocuments = () => {
 
       {/* ── NEW FAMILY ── */}
       <Dialog open={showNewFamily} onOpenChange={setShowNewFamily}>
-        <DialogContent className="bg-zinc-900 border-zinc-700/50 text-white max-w-sm">
+        <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Nova Família</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
             <Input placeholder="Ex: Selecionadora, Maggi, Biesse..." value={newFamilyName}
               onChange={(e) => setNewFamilyName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && createFamily()}
-              className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500" autoFocus />
+              autoFocus />
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setShowNewFamily(false)} className="border-zinc-700 text-zinc-400 hover:text-white bg-zinc-800">Cancelar</Button>
-              <Button onClick={createFamily} className="bg-green-600 hover:bg-green-500">Criar Família</Button>
+              <Button variant="outline" onClick={() => setShowNewFamily(false)} className="text-muted-foreground">Cancelar</Button>
+              <Button onClick={createFamily} className="hover:bg-primary">Criar Família</Button>
             </div>
           </div>
         </DialogContent>
@@ -753,16 +743,16 @@ const ManageDocuments = () => {
 
       {/* ── NEW MACHINE ── */}
       <Dialog open={showNewMachine} onOpenChange={setShowNewMachine}>
-        <DialogContent className="bg-zinc-900 border-zinc-700/50 text-white max-w-sm">
+        <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Novo Tipo de Máquina</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
-            <p className="text-sm text-zinc-400">Família: <span className="text-green-400 font-medium">{families.find((f) => f.id === (newMachineFamilyId || selectedFamily?.id))?.name}</span></p>
+            <p className="text-sm text-muted-foreground">Família: <span className="text-green-400 font-medium">{families.find((f) => f.id === (newMachineFamilyId || selectedFamily?.id))?.name}</span></p>
             <Input placeholder="Ex: HP 230, Rover B, Modelo A..." value={newMachineName}
               onChange={(e) => setNewMachineName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && createMachineType()}
-              className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500" autoFocus />
+              autoFocus />
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setShowNewMachine(false)} className="border-zinc-700 text-zinc-400 hover:text-white bg-zinc-800">Cancelar</Button>
-              <Button onClick={createMachineType} className="bg-green-600 hover:bg-green-500">Criar Tipo</Button>
+              <Button variant="outline" onClick={() => setShowNewMachine(false)} className="text-muted-foreground">Cancelar</Button>
+              <Button onClick={createMachineType} className="hover:bg-primary">Criar Tipo</Button>
             </div>
           </div>
         </DialogContent>
@@ -770,20 +760,20 @@ const ManageDocuments = () => {
 
       {/* ── DELETE CONFIRM ── */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
-        <AlertDialogContent className="bg-zinc-900 border-zinc-700/50 text-white">
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-red-400" /> Confirmar eliminação
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-zinc-400">
+            <AlertDialogDescription className="text-muted-foreground">
               {deleteTarget?.type === "doc" && "O documento será eliminado permanentemente."}
               {deleteTarget?.type === "family" && "A família será eliminada permanentemente."}
               {deleteTarget?.type === "machine" && "Este tipo de máquina será eliminado."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700">Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-500 text-white">Eliminar</AlertDialogAction>
+            <AlertDialogCancel className="text-foreground/90 hover:bg-accent">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-500 text-foreground">Eliminar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -796,14 +786,14 @@ const ManageDocuments = () => {
 const EmptyState = ({ icon: Icon, title, description, action }) => (
   <div className="flex flex-col items-center justify-center py-16 text-center">
     <div className="relative w-14 h-14 mb-4 flex items-center justify-center">
-      <div className="absolute inset-0 bg-zinc-800 rounded-2xl" />
-      <Icon className="relative w-7 h-7 text-zinc-600" />
+      <div className="absolute inset-0 bg-card rounded-2xl" />
+      <Icon className="relative w-7 h-7 text-muted-foreground/70" />
     </div>
-    <p className="text-sm font-medium text-zinc-400 mb-1">{title}</p>
-    <p className="text-xs text-zinc-600 mb-4">{description}</p>
+    <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
+    <p className="text-xs text-muted-foreground/70 mb-4">{description}</p>
     {action && (
-      <Button size="sm" onClick={action.onClick} className="bg-green-600 hover:bg-green-500 text-white">
-        <Plus className="w-3.5 h-3.5 mr-1.5" />{action.label}
+      <Button size="sm" onClick={action.onClick} className="hover:bg-primary">
+        <Plus className="w-3.5 h-3.5" />{action.label}
       </Button>
     )}
   </div>

@@ -66,6 +66,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs.jsx";
+import { PageHeader } from "../../components/app";
 
 const generateToken = () => {
   // Gerar token de 8 caracteres alfanuméricos
@@ -414,7 +415,7 @@ const ManageShopAccess = () => {
   const renderAccessStatusBadge = (token) => {
     if (!token.isComplete) {
       return (
-        <Badge className="bg-zinc-500/10 text-zinc-400">Não Preenchido</Badge>
+        <Badge className="bg-muted-foreground/10 text-muted-foreground">Não Preenchido</Badge>
       );
     }
 
@@ -451,7 +452,7 @@ const ManageShopAccess = () => {
   if (loading || isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -459,33 +460,31 @@ const ManageShopAccess = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Acesso à Loja
-          </h1>
-          <p className="text-sm sm:text-base text-zinc-400">
-            Gerencie tokens de acesso para a loja online
-          </p>
-        </div>
-        <Button
-          onClick={() => setShowAddDialog(true)}
-          className="bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Token
-        </Button>
-      </div>
+      <PageHeader
+        title="Acesso à Loja"
+        description="Gerencie tokens de acesso para a loja online"
+        actions={
+          <>
+            <Button
+            onClick={() => setShowAddDialog(true)}
+           
+          >
+            <Plus className="w-4 h-4" />
+            Novo Token
+          </Button>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">
+              <p className="text-sm font-medium text-muted-foreground">
                 Total de Tokens
               </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {accessTokens.length}
               </h3>
             </div>
@@ -493,10 +492,10 @@ const ManageShopAccess = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Pendentes</p>
+              <p className="text-sm font-medium text-muted-foreground">Pendentes</p>
               <h3 className="text-xl sm:text-2xl font-bold text-amber-500 mt-1 sm:mt-2">
                 {getPendingCount()}
               </h3>
@@ -505,10 +504,10 @@ const ManageShopAccess = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Aprovados</p>
+              <p className="text-sm font-medium text-muted-foreground">Aprovados</p>
               <h3 className="text-xl sm:text-2xl font-bold text-emerald-500 mt-1 sm:mt-2">
                 {getApprovedCount()}
               </h3>
@@ -517,10 +516,10 @@ const ManageShopAccess = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Rejeitados</p>
+              <p className="text-sm font-medium text-muted-foreground">Rejeitados</p>
               <h3 className="text-xl sm:text-2xl font-bold text-red-500 mt-1 sm:mt-2">
                 {getRejectedCount()}
               </h3>
@@ -529,32 +528,32 @@ const ManageShopAccess = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">
+              <p className="text-sm font-medium text-muted-foreground">
                 Não Preenchidos
               </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-zinc-400 mt-1 sm:mt-2">
+              <h3 className="text-xl sm:text-2xl font-bold text-muted-foreground mt-1 sm:mt-2">
                 {getUncompletedCount()}
               </h3>
             </div>
-            <User className="h-6 w-6 sm:h-8 sm:w-8 text-zinc-400" />
+            <User className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
           </CardContent>
         </Card>
       </div>
 
       {/* Search and Tabs */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="space-y-4 p-4 sm:p-6">
           <div className="flex flex-wrap gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar por nome, email, empresa ou token..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                className="pl-10"
               />
             </div>
           </div>
@@ -562,10 +561,10 @@ const ManageShopAccess = () => {
           {error && (
             <Alert
               variant="destructive"
-              className="border-red-500 bg-red-500/10"
+             
             >
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-red-400">
+              <AlertDescription>
                 {error}
               </AlertDescription>
             </Alert>
@@ -576,34 +575,34 @@ const ManageShopAccess = () => {
             onValueChange={setActiveTab}
             className="w-full"
           >
-            <TabsList className="w-full grid grid-cols-5 bg-zinc-900 border border-zinc-700">
+            <TabsList className="w-full grid grid-cols-5 bg-muted/50 border">
               <TabsTrigger
                 value="all"
-                className="data-[state=active]:bg-zinc-700"
+                className="data-[state=active]:bg-muted"
               >
                 Todos
               </TabsTrigger>
               <TabsTrigger
                 value="pending"
-                className="data-[state=active]:bg-zinc-700"
+                className="data-[state=active]:bg-muted"
               >
                 Pendentes ({getPendingCount()})
               </TabsTrigger>
               <TabsTrigger
                 value="approved"
-                className="data-[state=active]:bg-zinc-700"
+                className="data-[state=active]:bg-muted"
               >
                 Aprovados ({getApprovedCount()})
               </TabsTrigger>
               <TabsTrigger
                 value="rejected"
-                className="data-[state=active]:bg-zinc-700"
+                className="data-[state=active]:bg-muted"
               >
                 Rejeitados ({getRejectedCount()})
               </TabsTrigger>
               <TabsTrigger
                 value="uncompleted"
-                className="data-[state=active]:bg-zinc-700"
+                className="data-[state=active]:bg-muted"
               >
                 Não Preenchidos ({getUncompletedCount()})
               </TabsTrigger>
@@ -614,13 +613,13 @@ const ManageShopAccess = () => {
 
       {/* Tokens List */}
       {currentTokens.length === 0 ? (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="p-8 text-center">
-            <Store className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2 text-white">
+            <Store className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
+            <p className="text-lg font-medium mb-2 text-foreground">
               Nenhum token de acesso encontrado
             </p>
-            <p className="text-zinc-400">
+            <p className="text-muted-foreground">
               {searchTerm
                 ? "Tente ajustar os filtros ou buscar por outro termo."
                 : "Adicione um novo token para permitir acesso à loja online."}
@@ -634,13 +633,13 @@ const ManageShopAccess = () => {
               key={token.id}
               open={expandedTokens[token.id]}
               onOpenChange={() => toggleExpandToken(token.id)}
-              className="bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden transition-all duration-200"
+              className="bg-card border border-border rounded-lg overflow-hidden transition-all duration-200"
             >
               <div className="p-4">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-white">{token.name}</h3>
+                      <h3 className="font-semibold text-foreground">{token.name}</h3>
                       <Badge
                         className={`${
                           token.status === "active"
@@ -654,31 +653,31 @@ const ManageShopAccess = () => {
                       {renderAccessStatusBadge(token)}
                     </div>
                     {token.isComplete && token.company && (
-                      <p className="text-sm text-zinc-400 flex items-center gap-2">
+                      <p className="text-sm text-muted-foreground flex items-center gap-2">
                         <Building2 className="h-4 w-4" />
                         {token.company}
                       </p>
                     )}
                     {token.isComplete && token.email && (
-                      <p className="text-sm text-zinc-400 flex items-center gap-2">
+                      <p className="text-sm text-muted-foreground flex items-center gap-2">
                         <Mail className="h-4 w-4" />
                         {token.email}
                       </p>
                     )}
                     {token.isComplete && token.phone && (
-                      <p className="text-sm text-zinc-400 flex items-center gap-2">
+                      <p className="text-sm text-muted-foreground flex items-center gap-2">
                         <Phone className="h-4 w-4" />
                         {token.phone}
                       </p>
                     )}
                     <div className="flex flex-wrap items-center mt-2 gap-2">
-                      <p className="text-sm font-medium text-white">
+                      <p className="text-sm font-medium text-foreground">
                         Token: <span className="font-mono">{token.token}</span>
                       </p>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 px-2 text-zinc-400 hover:text-white"
+                        className="h-6 px-2 text-muted-foreground"
                         onClick={(e) => {
                           e.stopPropagation();
                           copyToClipboard(token.token);
@@ -695,7 +694,7 @@ const ManageShopAccess = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 px-2 text-zinc-400 hover:text-white"
+                        className="h-6 px-2 text-muted-foreground"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleShareToken(token);
@@ -705,7 +704,7 @@ const ManageShopAccess = () => {
                       </Button>
                     </div>
 
-                    <div className="flex items-center gap-4 mt-1 text-xs text-zinc-500">
+                    <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
                       <span className="flex items-center">
                         <Calendar className="h-3.5 w-3.5 mr-1" />
                         Criado: {formatDate(token.createdAt)}
@@ -728,9 +727,9 @@ const ManageShopAccess = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-700"
+                        className="bg-muted"
                       >
-                        <Info className="h-4 w-4 mr-1" />
+                        <Info className="h-4 w-4" />
                         {expandedTokens[token.id] ? "Ocultar" : "Detalhes"}
                       </Button>
                     </CollapsibleTrigger>
@@ -741,27 +740,27 @@ const ManageShopAccess = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="border-emerald-600 text-white bg-emerald-600 hover:bg-emerald-500"
+                          className="border-emerald-600 bg-emerald-600 hover:bg-emerald-500"
                           onClick={(e) => {
                             e.stopPropagation();
                             setTokenToApprove(token);
                             setShowApproveDialog(true);
                           }}
                         >
-                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          <CheckCircle2 className="h-4 w-4" />
                           Aprovar
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="border-red-600 text-white bg-red-600 hover:bg-red-500"
+                          className="border-red-600 bg-red-600 hover:bg-red-500"
                           onClick={(e) => {
                             e.stopPropagation();
                             setTokenToReject(token);
                             setShowRejectDialog(true);
                           }}
                         >
-                          <XCircle className="h-4 w-4 mr-1" />
+                          <XCircle className="h-4 w-4" />
                           Rejeitar
                         </Button>
                       </>
@@ -772,8 +771,8 @@ const ManageShopAccess = () => {
                       size="sm"
                       className={`${
                         token.status === "active"
-                          ? "border-red-600 text-white hover:bg-red-500/20 bg-red-600"
-                          : "border-green-600 text-white hover:bg-green-500/20 bg-green-600"
+                          ? "border-red-600 text-foreground hover:bg-red-500/20 bg-red-600"
+                          : "border-primary text-foreground hover:bg-green-500/20 bg-primary"
                       }`}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -792,7 +791,7 @@ const ManageShopAccess = () => {
                         confirmDeleteToken(token);
                       }}
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />
+                      <Trash2 className="h-4 w-4" />
                       Excluir
                     </Button>
                   </div>
@@ -801,39 +800,39 @@ const ManageShopAccess = () => {
 
               {/* Conteúdo expandido com detalhes do token */}
               <CollapsibleContent>
-                <div className="px-4 pb-4 pt-2 border-t border-zinc-700 bg-zinc-800/50">
+                <div className="px-4 pb-4 pt-2 border-t border-border bg-card/50">
                   <div className="space-y-4">
                     {token.isComplete ? (
                       <>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-1">
-                            <p className="text-sm font-medium text-zinc-400">
+                            <p className="text-sm font-medium text-muted-foreground">
                               Informações do Contato
                             </p>
-                            <div className="bg-zinc-900/50 rounded-lg p-3 space-y-2">
+                            <div className="bg-background/50 rounded-lg p-3 space-y-2">
                               <div>
-                                <p className="text-xs text-zinc-500">Nome</p>
-                                <p className="text-sm text-white">
+                                <p className="text-xs text-muted-foreground">Nome</p>
+                                <p className="text-sm text-foreground">
                                   {token.name || "Não informado"}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-xs text-zinc-500">Email</p>
-                                <p className="text-sm text-white">
+                                <p className="text-xs text-muted-foreground">Email</p>
+                                <p className="text-sm text-foreground">
                                   {token.email || "Não informado"}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-xs text-zinc-500">
+                                <p className="text-xs text-muted-foreground">
                                   Telemóvel
                                 </p>
-                                <p className="text-sm text-white">
+                                <p className="text-sm text-foreground">
                                   {token.phone || "Não informado"}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-xs text-zinc-500">Empresa</p>
-                                <p className="text-sm text-white">
+                                <p className="text-xs text-muted-foreground">Empresa</p>
+                                <p className="text-sm text-foreground">
                                   {token.company || "Não informado"}
                                 </p>
                               </div>
@@ -841,11 +840,11 @@ const ManageShopAccess = () => {
                           </div>
 
                           <div className="space-y-1">
-                            <p className="text-sm font-medium text-zinc-400">
+                            <p className="text-sm font-medium text-muted-foreground">
                               Observações
                             </p>
-                            <div className="bg-zinc-900/50 rounded-lg p-3 min-h-[100px]">
-                              <p className="text-sm text-white whitespace-pre-line">
+                            <div className="bg-background/50 rounded-lg p-3 min-h-[100px]">
+                              <p className="text-sm text-foreground whitespace-pre-line">
                                 {token.notes || "Nenhuma observação fornecida."}
                               </p>
                             </div>
@@ -853,27 +852,27 @@ const ManageShopAccess = () => {
                         </div>
 
                         <div className="space-y-1">
-                          <p className="text-sm font-medium text-zinc-400">
+                          <p className="text-sm font-medium text-muted-foreground">
                             Histórico de Acesso
                           </p>
-                          <div className="bg-zinc-900/50 rounded-lg p-3">
+                          <div className="bg-background/50 rounded-lg p-3">
                             <div className="flex flex-wrap gap-x-6 gap-y-3 text-xs">
                               <div>
-                                <p className="text-zinc-500">Criado por:</p>
-                                <p className="text-white">
+                                <p className="text-muted-foreground">Criado por:</p>
+                                <p className="text-foreground">
                                   {token.createdByName || "Sistema"}
                                 </p>
-                                <p className="text-white">
+                                <p className="text-foreground">
                                   {formatDate(token.createdAt)}
                                 </p>
                               </div>
 
                               {token.requestedAt && (
                                 <div>
-                                  <p className="text-zinc-500">
+                                  <p className="text-muted-foreground">
                                     Acesso solicitado em:
                                   </p>
-                                  <p className="text-white">
+                                  <p className="text-foreground">
                                     {formatDate(token.requestedAt)}
                                   </p>
                                 </div>
@@ -882,13 +881,13 @@ const ManageShopAccess = () => {
                               {token.accessStatus === "approved" &&
                                 token.approvedAt && (
                                   <div>
-                                    <p className="text-zinc-500">
+                                    <p className="text-muted-foreground">
                                       Aprovado por:
                                     </p>
-                                    <p className="text-white">
+                                    <p className="text-foreground">
                                       {token.approvedByName || "Administrador"}
                                     </p>
-                                    <p className="text-white">
+                                    <p className="text-foreground">
                                       {formatDate(token.approvedAt)}
                                     </p>
                                   </div>
@@ -897,13 +896,13 @@ const ManageShopAccess = () => {
                               {token.accessStatus === "rejected" &&
                                 token.rejectedAt && (
                                   <div>
-                                    <p className="text-zinc-500">
+                                    <p className="text-muted-foreground">
                                       Rejeitado por:
                                     </p>
-                                    <p className="text-white">
+                                    <p className="text-foreground">
                                       {token.rejectedByName || "Administrador"}
                                     </p>
-                                    <p className="text-white">
+                                    <p className="text-foreground">
                                       {formatDate(token.rejectedAt)}
                                     </p>
                                   </div>
@@ -911,10 +910,10 @@ const ManageShopAccess = () => {
 
                               {token.updatedAt && (
                                 <div>
-                                  <p className="text-zinc-500">
+                                  <p className="text-muted-foreground">
                                     Última atualização:
                                   </p>
-                                  <p className="text-white">
+                                  <p className="text-foreground">
                                     {formatDate(token.updatedAt)}
                                   </p>
                                 </div>
@@ -922,10 +921,10 @@ const ManageShopAccess = () => {
 
                               {token.lastAccess && (
                                 <div>
-                                  <p className="text-zinc-500">
+                                  <p className="text-muted-foreground">
                                     Último acesso:
                                   </p>
-                                  <p className="text-white">
+                                  <p className="text-foreground">
                                     {formatDate(token.lastAccess)}
                                   </p>
                                 </div>
@@ -933,8 +932,8 @@ const ManageShopAccess = () => {
 
                               {token.revokedAt && (
                                 <div>
-                                  <p className="text-zinc-500">Revogado em:</p>
-                                  <p className="text-white">
+                                  <p className="text-muted-foreground">Revogado em:</p>
+                                  <p className="text-foreground">
                                     {formatDate(token.revokedAt)}
                                   </p>
                                 </div>
@@ -946,11 +945,11 @@ const ManageShopAccess = () => {
                         {token.accessStatus === "rejected" &&
                           token.rejectionReason && (
                             <div className="space-y-1">
-                              <p className="text-sm font-medium text-zinc-400">
+                              <p className="text-sm font-medium text-muted-foreground">
                                 Motivo da Rejeição
                               </p>
                               <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
-                                <p className="text-sm text-white whitespace-pre-line">
+                                <p className="text-sm text-foreground whitespace-pre-line">
                                   {token.rejectionReason}
                                 </p>
                               </div>
@@ -965,7 +964,7 @@ const ManageShopAccess = () => {
                             <p className="text-sm font-medium text-yellow-400 mb-1">
                               Aguardando preenchimento
                             </p>
-                            <p className="text-sm text-zinc-400">
+                            <p className="text-sm text-muted-foreground">
                               Este token ainda não foi usado. Quando o usuário
                               acessar a loja pela primeira vez, ele preencherá
                               suas informações completas que serão exibidas
@@ -989,7 +988,7 @@ const ManageShopAccess = () => {
           <Button
             variant="outline"
             onClick={loadMoreVisible}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+            className="gap-2"
           >
             <ArrowDown className="h-4 w-4" />
             Carregar mais
@@ -999,27 +998,27 @@ const ManageShopAccess = () => {
 
       {/* Add Token Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="bg-zinc-800 border-zinc-700 text-white">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Adicionar Novo Token de Acesso</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription className="text-muted-foreground">
               Preencha o nome para criar um novo token de acesso à loja online
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300">
+              <label className="text-sm font-medium text-foreground/90">
                 Nome da Pessoa*
               </label>
               <Input
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                className="bg-zinc-700 border-zinc-600 text-white"
+                className="bg-muted"
                 placeholder="Nome do responsável"
               />
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-muted-foreground">
                 Ao primeiro acesso, o usuário será solicitado a completar seu
                 cadastro com suas informações.
               </p>
@@ -1030,14 +1029,14 @@ const ManageShopAccess = () => {
             <Button
               variant="outline"
               onClick={() => setShowAddDialog(false)}
-              className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-800"
+             
             >
               Cancelar
             </Button>
             <Button
               onClick={handleAddToken}
               disabled={isSubmitting || !formData.name}
-              className="bg-green-600 hover:bg-green-700"
+             
             >
               {isSubmitting ? (
                 <>
@@ -1054,10 +1053,10 @@ const ManageShopAccess = () => {
 
       {/* Share Token Dialog */}
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
-        <DialogContent className="bg-zinc-800 border-zinc-700 text-white">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Compartilhar Acesso à Loja</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription className="text-muted-foreground">
               Compartilhe o link de acesso direto através de diferentes métodos
             </DialogDescription>
           </DialogHeader>
@@ -1068,25 +1067,25 @@ const ManageShopAccess = () => {
               <div className="bg-white p-3 rounded-md mb-2">
                 <QRCode value={shareUrl} size={200} />
               </div>
-              <p className="text-sm text-zinc-300">
+              <p className="text-sm text-foreground/90">
                 Escaneie com a câmera do celular
               </p>
             </div>
 
             {/* Link de acesso direto */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300">
+              <label className="text-sm font-medium text-foreground/90">
                 Link de acesso direto
               </label>
               <div className="flex">
                 <Input
                   value={shareUrl}
                   readOnly
-                  className="bg-zinc-700 border-zinc-600 text-white"
+                  className="bg-muted"
                 />
                 <Button
                   variant="outline"
-                  className="ml-2 bg-zinc-800 border-zinc-600 text-white hover:bg-zinc-700"
+                  className="ml-2"
                   onClick={() => {
                     navigator.clipboard.writeText(shareUrl);
                     alert("Link copiado!");
@@ -1099,12 +1098,12 @@ const ManageShopAccess = () => {
 
             {/* Botões de compartilhamento para apps específicos */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300">
+              <label className="text-sm font-medium text-foreground/90">
                 Compartilhar via
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <Button
-                  className="bg-green-600 hover:bg-green-700"
+                 
                   onClick={() => {
                     window.open(
                       `https://wa.me/?text=${encodeURIComponent(
@@ -1160,7 +1159,7 @@ const ManageShopAccess = () => {
             </div>
 
             {/* Abrir diretamente */}
-            <div className="pt-2 border-t border-zinc-700">
+            <div className="pt-2 border-t border-border">
               <Button
                 className="w-full bg-blue-600 hover:bg-blue-700"
                 onClick={() => {
@@ -1168,7 +1167,7 @@ const ManageShopAccess = () => {
                   setShowShareDialog(false);
                 }}
               >
-                <ExternalLink className="w-4 h-4 mr-2" />
+                <ExternalLink className="w-4 h-4" />
                 Abrir Link no Navegador
               </Button>
             </div>
@@ -1178,7 +1177,7 @@ const ManageShopAccess = () => {
             <Button
               variant="outline"
               onClick={() => setShowShareDialog(false)}
-              className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-800"
+             
             >
               Fechar
             </Button>
@@ -1188,55 +1187,55 @@ const ManageShopAccess = () => {
 
       {/* Approve Access Dialog */}
       <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
-        <DialogContent className="bg-zinc-800 border-zinc-700 text-white">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <CheckCircle2 className="h-5 w-5 mr-2 text-emerald-500" />
               Aprovar Acesso
             </DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription className="text-muted-foreground">
               Confirmar aprovação de acesso à loja para {tokenToApprove?.name}
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-4">
-            <div className="p-4 border border-zinc-700 rounded-md bg-zinc-900/50">
+            <div className="p-4 border border-border rounded-md bg-background/50">
               <div className="space-y-2 text-sm">
                 <div className="flex">
-                  <span className="font-medium w-28 text-zinc-400">Nome:</span>
-                  <span className="text-white">{tokenToApprove?.name}</span>
+                  <span className="font-medium w-28 text-muted-foreground">Nome:</span>
+                  <span className="text-foreground">{tokenToApprove?.name}</span>
                 </div>
                 {tokenToApprove?.email && (
                   <div className="flex">
-                    <span className="font-medium w-28 text-zinc-400">
+                    <span className="font-medium w-28 text-muted-foreground">
                       Email:
                     </span>
-                    <span className="text-white">{tokenToApprove?.email}</span>
+                    <span className="text-foreground">{tokenToApprove?.email}</span>
                   </div>
                 )}
                 {tokenToApprove?.company && (
                   <div className="flex">
-                    <span className="font-medium w-28 text-zinc-400">
+                    <span className="font-medium w-28 text-muted-foreground">
                       Empresa:
                     </span>
-                    <span className="text-white">
+                    <span className="text-foreground">
                       {tokenToApprove?.company}
                     </span>
                   </div>
                 )}
                 {tokenToApprove?.phone && (
                   <div className="flex">
-                    <span className="font-medium w-28 text-zinc-400">
+                    <span className="font-medium w-28 text-muted-foreground">
                       Telemóvel:
                     </span>
-                    <span className="text-white">{tokenToApprove?.phone}</span>
+                    <span className="text-foreground">{tokenToApprove?.phone}</span>
                   </div>
                 )}
                 <div className="flex">
-                  <span className="font-medium w-28 text-zinc-400">
+                  <span className="font-medium w-28 text-muted-foreground">
                     Solicitado em:
                   </span>
-                  <span className="text-white">
+                  <span className="text-foreground">
                     {tokenToApprove?.requestedAt
                       ? formatDate(tokenToApprove.requestedAt)
                       : "N/A"}
@@ -1261,7 +1260,7 @@ const ManageShopAccess = () => {
                 setShowApproveDialog(false);
                 setTokenToApprove(null);
               }}
-              className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-800"
+             
             >
               Cancelar
             </Button>
@@ -1288,51 +1287,51 @@ const ManageShopAccess = () => {
 
       {/* Reject Access Dialog */}
       <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <DialogContent className="bg-zinc-800 border-zinc-700 text-white">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <XCircle className="h-5 w-5 mr-2 text-red-500" />
               Rejeitar Acesso
             </DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription className="text-muted-foreground">
               Informe o motivo da rejeição de acesso para {tokenToReject?.name}
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-4">
-            <div className="p-4 border border-zinc-700 rounded-md bg-zinc-900/50 mb-4">
+            <div className="p-4 border border-border rounded-md bg-background/50 mb-4">
               <div className="space-y-2 text-sm">
                 <div className="flex">
-                  <span className="font-medium w-28 text-zinc-400">Nome:</span>
-                  <span className="text-white">{tokenToReject?.name}</span>
+                  <span className="font-medium w-28 text-muted-foreground">Nome:</span>
+                  <span className="text-foreground">{tokenToReject?.name}</span>
                 </div>
                 {tokenToReject?.email && (
                   <div className="flex">
-                    <span className="font-medium w-28 text-zinc-400">
+                    <span className="font-medium w-28 text-muted-foreground">
                       Email:
                     </span>
-                    <span className="text-white">{tokenToReject?.email}</span>
+                    <span className="text-foreground">{tokenToReject?.email}</span>
                   </div>
                 )}
                 {tokenToReject?.company && (
                   <div className="flex">
-                    <span className="font-medium w-28 text-zinc-400">
+                    <span className="font-medium w-28 text-muted-foreground">
                       Empresa:
                     </span>
-                    <span className="text-white">{tokenToReject?.company}</span>
+                    <span className="text-foreground">{tokenToReject?.company}</span>
                   </div>
                 )}
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300">
+              <label className="text-sm font-medium text-foreground/90">
                 Motivo da Rejeição *
               </label>
               <textarea
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                className="w-full rounded-md border border-zinc-600 bg-zinc-700 px-3 py-2 text-white"
+                className="w-full rounded-md border border-border bg-muted px-3 py-2 text-foreground"
                 rows="4"
                 placeholder="Informe o motivo pelo qual este pedido está sendo rejeitado..."
               />
@@ -1355,7 +1354,7 @@ const ManageShopAccess = () => {
                 setTokenToReject(null);
                 setRejectionReason("");
               }}
-              className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-800"
+             
             >
               Cancelar
             </Button>
@@ -1382,12 +1381,12 @@ const ManageShopAccess = () => {
 
       {/* Delete Token Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="bg-zinc-800 border-zinc-700 text-white">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription className="text-muted-foreground">
               Tem a certeza que deseja excluir o token de acesso de{" "}
-              <span className="font-semibold text-white">{tokenToDelete?.name}</span>?
+              <span className="font-semibold text-foreground">{tokenToDelete?.name}</span>?
               Esta ação não pode ser desfeita e removerá o acesso à loja.
             </DialogDescription>
           </DialogHeader>
@@ -1398,7 +1397,7 @@ const ManageShopAccess = () => {
                 setShowDeleteDialog(false);
                 setTokenToDelete(null);
               }}
-              className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-800"
+             
             >
               Cancelar
             </Button>

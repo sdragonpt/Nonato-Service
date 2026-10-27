@@ -219,7 +219,7 @@ const AddClient = () => {
                 </AvatarFallback>
               </Avatar>
               <label className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black/60 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
-                <Camera className="h-6 w-6 text-white" />
+                <Camera className="h-6 w-6 text-foreground" />
                 <input type="file" accept="image/*" onChange={handleProfilePicChange} className="hidden" />
               </label>
             </div>

@@ -73,6 +73,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible.jsx";
+import { PageHeader } from "../../components/app";
 
 const PAGE_SIZE = 10;
 const MAX_AUTO_LOADS = 15; // salvaguarda: nº máx. de lotes extra a carregar automaticamente ao pesquisar
@@ -399,25 +400,17 @@ const ManageOnlineQuotes = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="bg-zinc-900">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">
-              Orçamentos Online
-            </h1>
-            <p className="text-sm sm:text-base text-zinc-400">
-              Gerencie os pedidos de orçamento recebidos pela loja online
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Orçamentos Online"
+        description="Gerencie os pedidos de orçamento recebidos pela loja online"
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Pendentes</p>
+              <p className="text-sm font-medium text-muted-foreground">Pendentes</p>
               <h3 className="text-xl sm:text-2xl font-bold text-yellow-500 mt-1 sm:mt-2">
                 {statusCounts.pending === null ? "…" : statusCounts.pending}
               </h3>
@@ -426,10 +419,10 @@ const ManageOnlineQuotes = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Aprovados</p>
+              <p className="text-sm font-medium text-muted-foreground">Aprovados</p>
               <h3 className="text-xl sm:text-2xl font-bold text-green-500 mt-1 sm:mt-2">
                 {statusCounts.approved === null ? "…" : statusCounts.approved}
               </h3>
@@ -438,10 +431,10 @@ const ManageOnlineQuotes = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Convertidos</p>
+              <p className="text-sm font-medium text-muted-foreground">Convertidos</p>
               <h3 className="text-xl sm:text-2xl font-bold text-blue-500 mt-1 sm:mt-2">
                 {statusCounts.converted === null ? "…" : statusCounts.converted}
               </h3>
@@ -450,65 +443,65 @@ const ManageOnlineQuotes = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Total</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <p className="text-sm font-medium text-muted-foreground">Total</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {statusCounts.total === null ? "…" : statusCounts.total}
               </h3>
             </div>
-            <Tag className="h-6 w-6 sm:h-8 sm:w-8 text-zinc-400" />
+            <Tag className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="space-y-4 p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar por nome, email ou empresa..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                className="pl-10"
               />
             </div>
 
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+              <SelectTrigger>
                 <SelectValue placeholder="Filtrar por status" />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700">
+              <SelectContent>
                 <SelectItem
                   value="all"
-                  className="text-white hover:bg-zinc-700"
+                 
                 >
                   Todos os Status
                 </SelectItem>
                 <SelectItem
                   value="pending"
-                  className="text-white hover:bg-zinc-700"
+                 
                 >
                   Pendente
                 </SelectItem>
                 <SelectItem
                   value="approved"
-                  className="text-white hover:bg-zinc-700"
+                 
                 >
                   Aprovado
                 </SelectItem>
                 <SelectItem
                   value="rejected"
-                  className="text-white hover:bg-zinc-700"
+                 
                 >
                   Rejeitado
                 </SelectItem>
                 <SelectItem
                   value="converted"
-                  className="text-white hover:bg-zinc-700"
+                 
                 >
                   Convertido
                 </SelectItem>
@@ -518,14 +511,14 @@ const ManageOnlineQuotes = () => {
             <Button
               variant="outline"
               onClick={fetchQuotes}
-              className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
-              <RefreshCw className="w-4 h-4 mr-2" />
+              <RefreshCw className="w-4 h-4" />
               Atualizar
             </Button>
           </div>
 
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-muted-foreground">
             {filteredQuotes.length} orçamento(s) carregado(s)
             {hasMore && " — há mais por carregar"}
           </p>
@@ -533,10 +526,10 @@ const ManageOnlineQuotes = () => {
           {error && (
             <Alert
               variant="destructive"
-              className="border-red-500 bg-red-500/10"
+             
             >
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-red-400">
+              <AlertDescription>
                 {error}
               </AlertDescription>
             </Alert>
@@ -550,13 +543,13 @@ const ManageOnlineQuotes = () => {
           <Loader2 className="h-8 w-8 animate-spin text-green-500" />
         </div>
       ) : filteredQuotes.length === 0 ? (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="p-8 text-center">
-            <Search className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2 text-white">
+            <Search className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
+            <p className="text-lg font-medium mb-2 text-foreground">
               Nenhum orçamento encontrado
             </p>
-            <p className="text-zinc-400">
+            <p className="text-muted-foreground">
               Os orçamentos solicitados na loja online aparecerão aqui
             </p>
           </CardContent>
@@ -564,7 +557,7 @@ const ManageOnlineQuotes = () => {
       ) : (
         <div className="space-y-4">
           {filteredQuotes.map((quote) => (
-            <Card key={quote.id} className="bg-zinc-800 border-zinc-700">
+            <Card key={quote.id}>
               <Collapsible>
                 <CardHeader className="p-4">
                   <div className="flex items-center justify-between">
@@ -572,7 +565,7 @@ const ManageOnlineQuotes = () => {
                       <div className="flex items-center gap-4">
                         <div>
                           <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-white">
+                            <h3 className="font-semibold text-foreground">
                               {quote.clientInfo?.name || "Cliente"}
                             </h3>
                             <Badge
@@ -586,7 +579,7 @@ const ManageOnlineQuotes = () => {
                                 quote.status}
                             </Badge>
                           </div>
-                          <p className="text-sm text-zinc-400">
+                          <p className="text-sm text-muted-foreground">
                             {quote.clientInfo?.email}
                           </p>
                         </div>
@@ -594,14 +587,14 @@ const ManageOnlineQuotes = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <p className="text-sm text-zinc-400">
+                      <p className="text-sm text-muted-foreground">
                         {formatDate(quote.createdAt)}
                       </p>
                       <CollapsibleTrigger asChild>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-zinc-400 hover:text-white"
+                          className="text-muted-foreground"
                         >
                           <ChevronDown className="h-4 w-4" />
                         </Button>
@@ -611,27 +604,27 @@ const ManageOnlineQuotes = () => {
                 </CardHeader>
 
                 <CollapsibleContent>
-                  <CardContent className="p-4 border-t border-zinc-700">
+                  <CardContent className="p-4 border-t border-border">
                     <div className="space-y-4">
                       {/* Client Info */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <h4 className="text-sm font-medium text-zinc-300">
+                          <h4 className="text-sm font-medium text-foreground/90">
                             Informações do Cliente
                           </h4>
                           <div className="space-y-1">
-                            <p className="text-sm text-zinc-400 flex items-center gap-2">
+                            <p className="text-sm text-muted-foreground flex items-center gap-2">
                               <Mail className="h-4 w-4" />
                               {quote.clientInfo?.email}
                             </p>
                             {quote.clientInfo?.phone && (
-                              <p className="text-sm text-zinc-400 flex items-center gap-2">
+                              <p className="text-sm text-muted-foreground flex items-center gap-2">
                                 <Phone className="h-4 w-4" />
                                 {quote.clientInfo.phone}
                               </p>
                             )}
                             {quote.clientInfo?.company && (
-                              <p className="text-sm text-zinc-400 flex items-center gap-2">
+                              <p className="text-sm text-muted-foreground flex items-center gap-2">
                                 <Building2 className="h-4 w-4" />
                                 {quote.clientInfo.company}
                               </p>
@@ -640,11 +633,11 @@ const ManageOnlineQuotes = () => {
                         </div>
 
                         <div className="space-y-2">
-                          <h4 className="text-sm font-medium text-zinc-300">
+                          <h4 className="text-sm font-medium text-foreground/90">
                             Detalhes do Pedido
                           </h4>
                           <div className="space-y-1">
-                            <p className="text-sm text-zinc-400">
+                            <p className="text-sm text-muted-foreground">
                               {quote.items?.length || 0} item(s)
                             </p>
                           </div>
@@ -653,24 +646,24 @@ const ManageOnlineQuotes = () => {
 
                       {/* Items */}
                       <div className="space-y-2">
-                        <h4 className="text-sm font-medium text-zinc-300">
+                        <h4 className="text-sm font-medium text-foreground/90">
                           Itens
                         </h4>
                         <div className="space-y-2">
                           {quote.items?.map((item, index) => (
                             <div
                               key={index}
-                              className="flex items-center gap-4 p-2 bg-zinc-700/30 rounded"
+                              className="flex items-center gap-4 p-2 bg-muted/30 rounded"
                             >
                               <div className="flex-1">
-                                <p className="text-sm font-medium text-white">
+                                <p className="text-sm font-medium text-foreground">
                                   {item.name}
                                 </p>
-                                <p className="text-sm text-zinc-400">
+                                <p className="text-sm text-muted-foreground">
                                   Código: {item.code}
                                 </p>
                               </div>
-                              <p className="text-sm text-zinc-400">
+                              <p className="text-sm text-muted-foreground">
                                 Quantidade: {item.quantity}
                               </p>
                             </div>
@@ -683,10 +676,10 @@ const ManageOnlineQuotes = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-600"
+                          className="bg-accent"
                           onClick={() => viewDetails(quote)}
                         >
-                          <Eye className="h-4 w-4 mr-2" />
+                          <Eye className="h-4 w-4" />
                           Ver Detalhes
                         </Button>
 
@@ -695,25 +688,25 @@ const ManageOnlineQuotes = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="border-green-600 text-white hover:bg-green-500/20 bg-green-600"
+                              className="border-primary hover:bg-green-500/20 bg-primary"
                               onClick={() =>
                                 updateQuoteStatus(quote.id, "approved")
                               }
                               disabled={isUpdating}
                             >
-                              <CheckCircle className="h-4 w-4 mr-2" />
+                              <CheckCircle className="h-4 w-4" />
                               Aprovar
                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
-                              className="border-red-600 text-white hover:bg-red-500/20 bg-red-600"
+                              className="border-red-600 hover:bg-red-500/20 bg-red-600"
                               onClick={() =>
                                 updateQuoteStatus(quote.id, "rejected")
                               }
                               disabled={isUpdating}
                             >
-                              <XCircle className="h-4 w-4 mr-2" />
+                              <XCircle className="h-4 w-4" />
                               Rejeitar
                             </Button>
                           </>
@@ -724,11 +717,11 @@ const ManageOnlineQuotes = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="border-blue-600 text-white hover:bg-blue-500/20 bg-blue-600"
+                            className="border-blue-600 hover:bg-blue-500/20 bg-blue-600"
                             onClick={() => convertToOrder(quote)}
                             disabled={isUpdating}
                           >
-                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            <ShoppingCart className="h-4 w-4" />
                             Converter em Orçamento de Peças
                           </Button>
                         )}
@@ -736,13 +729,13 @@ const ManageOnlineQuotes = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-600"
+                          className="bg-accent"
                           onClick={() => {
                             setSelectedQuoteForNote(quote);
                             setNoteDialogOpen(true);
                           }}
                         >
-                          <MessageSquare className="h-4 w-4 mr-2" />
+                          <MessageSquare className="h-4 w-4" />
                           Adicionar Nota
                         </Button>
 
@@ -751,18 +744,18 @@ const ManageOnlineQuotes = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-zinc-400 hover:bg-zinc-600"
+                              className="text-muted-foreground"
                             >
                               Status
                               <ChevronDown className="h-4 w-4 ml-1" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent className="bg-zinc-800 border-zinc-700">
+                          <DropdownMenuContent>
                             {Object.entries(statusLabels).map(
                               ([status, { label }]) => (
                                 <DropdownMenuItem
                                   key={status}
-                                  className="text-white hover:bg-zinc-700"
+                                 
                                   onClick={() =>
                                     updateQuoteStatus(quote.id, status)
                                   }
@@ -784,7 +777,7 @@ const ManageOnlineQuotes = () => {
                           onClick={() => confirmDeleteQuote(quote)}
                           disabled={isUpdating}
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
+                          <Trash2 className="h-4 w-4" />
                           Excluir
                         </Button>
                       </div>
@@ -804,7 +797,7 @@ const ManageOnlineQuotes = () => {
             variant="outline"
             onClick={loadMore}
             disabled={isLoadingMore}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+            className="gap-2"
           >
             {isLoadingMore ? (
               <>
@@ -823,12 +816,12 @@ const ManageOnlineQuotes = () => {
 
       {/* Quote Detail Modal */}
       <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
-        <DialogContent className="bg-zinc-800 border-zinc-700 text-white max-w-3xl">
+        <DialogContent className="max-w-3xl">
           {selectedQuote && (
             <>
               <DialogHeader>
                 <DialogTitle>Detalhes do Orçamento</DialogTitle>
-                <DialogDescription className="text-zinc-400">
+                <DialogDescription className="text-muted-foreground">
                   Informações completas do pedido de orçamento
                 </DialogDescription>
               </DialogHeader>
@@ -839,33 +832,33 @@ const ManageOnlineQuotes = () => {
                   <h3 className="text-lg font-semibold mb-3">
                     Informações do Cliente
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-zinc-700/50 p-4 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/50 p-4 rounded-lg">
                     <div>
-                      <label className="text-sm text-zinc-400">Nome</label>
-                      <p className="text-white">
+                      <label className="text-sm text-muted-foreground">Nome</label>
+                      <p className="text-foreground">
                         {selectedQuote.clientInfo?.name}
                       </p>
                     </div>
                     <div>
-                      <label className="text-sm text-zinc-400">Email</label>
-                      <p className="text-white">
+                      <label className="text-sm text-muted-foreground">Email</label>
+                      <p className="text-foreground">
                         {selectedQuote.clientInfo?.email}
                       </p>
                     </div>
                     {selectedQuote.clientInfo?.phone && (
                       <div>
-                        <label className="text-sm text-zinc-400">
+                        <label className="text-sm text-muted-foreground">
                           Telefone
                         </label>
-                        <p className="text-white">
+                        <p className="text-foreground">
                           {selectedQuote.clientInfo.phone}
                         </p>
                       </div>
                     )}
                     {selectedQuote.clientInfo?.company && (
                       <div>
-                        <label className="text-sm text-zinc-400">Empresa</label>
-                        <p className="text-white">
+                        <label className="text-sm text-muted-foreground">Empresa</label>
+                        <p className="text-foreground">
                           {selectedQuote.clientInfo.company}
                         </p>
                       </div>
@@ -882,16 +875,16 @@ const ManageOnlineQuotes = () => {
                     {selectedQuote.items?.map((item, index) => (
                       <div
                         key={index}
-                        className="flex justify-between items-center bg-zinc-700/50 p-4 rounded-lg"
+                        className="flex justify-between items-center bg-muted/50 p-4 rounded-lg"
                       >
                         <div>
-                          <p className="font-medium text-white">{item.name}</p>
-                          <p className="text-sm text-zinc-400">
+                          <p className="font-medium text-foreground">{item.name}</p>
+                          <p className="text-sm text-muted-foreground">
                             Código: {item.code}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-white">
+                          <p className="text-foreground">
                             Quantidade: {item.quantity}
                           </p>
                         </div>
@@ -904,8 +897,8 @@ const ManageOnlineQuotes = () => {
                 {selectedQuote.clientInfo?.message && (
                   <div>
                     <h3 className="text-lg font-semibold mb-3">Mensagem</h3>
-                    <div className="bg-zinc-700/50 p-4 rounded-lg">
-                      <p className="text-white whitespace-pre-wrap">
+                    <div className="bg-muted/50 p-4 rounded-lg">
+                      <p className="text-foreground whitespace-pre-wrap">
                         {selectedQuote.clientInfo.message}
                       </p>
                     </div>
@@ -922,10 +915,10 @@ const ManageOnlineQuotes = () => {
                       {selectedQuote.adminNotes.map((note, index) => (
                         <div
                           key={index}
-                          className="bg-zinc-700/50 p-4 rounded-lg"
+                          className="bg-muted/50 p-4 rounded-lg"
                         >
-                          <p className="text-white">{note.text}</p>
-                          <p className="text-sm text-zinc-400 mt-1">
+                          <p className="text-foreground">{note.text}</p>
+                          <p className="text-sm text-muted-foreground mt-1">
                             {note.adminName} - {formatDate(note.timestamp)}
                           </p>
                         </div>
@@ -939,7 +932,7 @@ const ManageOnlineQuotes = () => {
                 <Button
                   variant="outline"
                   onClick={() => setShowDetailModal(false)}
-                  className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-600"
+                  className="bg-accent"
                 >
                   Fechar
                 </Button>
@@ -951,7 +944,7 @@ const ManageOnlineQuotes = () => {
                         updateQuoteStatus(selectedQuote.id, "approved");
                         setShowDetailModal(false);
                       }}
-                      className="bg-green-600 hover:bg-green-700"
+                     
                       disabled={isUpdating}
                     >
                       Aprovar
@@ -989,10 +982,10 @@ const ManageOnlineQuotes = () => {
 
       {/* Add Note Dialog */}
       <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700 text-white">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Adicionar Nota</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription className="text-muted-foreground">
               Adicione uma nota interna para este orçamento
             </DialogDescription>
           </DialogHeader>
@@ -1001,7 +994,7 @@ const ManageOnlineQuotes = () => {
             <textarea
               value={currentNote}
               onChange={(e) => setCurrentNote(e.target.value)}
-              className="w-full h-32 p-3 rounded-md border border-zinc-600 bg-zinc-700 text-white"
+              className="w-full h-32 p-3 rounded-md border border-border bg-muted text-foreground"
               placeholder="Digite sua nota aqui..."
             />
           </div>
@@ -1010,13 +1003,13 @@ const ManageOnlineQuotes = () => {
             <Button
               variant="outline"
               onClick={() => setNoteDialogOpen(false)}
-              className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleSubmitNote}
-              className="bg-green-600 hover:bg-green-700"
+             
               disabled={!currentNote.trim() || isUpdating}
             >
               Salvar Nota
@@ -1027,12 +1020,12 @@ const ManageOnlineQuotes = () => {
 
       {/* Delete Quote Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700 text-white">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription className="text-muted-foreground">
               Tem a certeza que deseja excluir o orçamento de{" "}
-              <span className="font-semibold text-white">
+              <span className="font-semibold text-foreground">
                 {quoteToDelete?.clientInfo?.name || "Cliente"}
               </span>
               ? Esta ação não pode ser desfeita.
@@ -1045,7 +1038,7 @@ const ManageOnlineQuotes = () => {
                 setDeleteDialogOpen(false);
                 setQuoteToDelete(null);
               }}
-              className="border-zinc-600 text-white hover:bg-zinc-700 bg-zinc-800"
+             
             >
               Cancelar
             </Button>

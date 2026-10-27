@@ -27,7 +27,6 @@ import { downloadFileFromUrl } from "../../../utils/reportStorage.js";
 import { formatDate } from "../../../utils/formatDate.js";
 import { getInitials } from "../../../utils/getInitials.js";
 import {
-  ArrowLeft,
   Loader2,
   AlertTriangle,
   Edit2,
@@ -89,6 +88,7 @@ import {
   getPaymentStatus,
   formatPrice,
 } from "../../../utils/financialUtils";
+import { PageHeader } from "../../../components/app";
 
 
 // ===================================
@@ -220,16 +220,16 @@ const ClientFinancialSection = ({ clientId }) => {
 
   if (isLoading) {
     return (
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2">
             <Euro className="h-5 w-5" />
             Situação Financeira
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-white" />
+            <Loader2 className="h-6 w-6 animate-spin text-foreground" />
           </div>
         </CardContent>
       </Card>
@@ -242,9 +242,9 @@ const ClientFinancialSection = ({ clientId }) => {
   ];
 
   return (
-    <Card className="bg-zinc-800 border-zinc-700">
+    <Card>
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2">
           <Euro className="h-5 w-5" />
           Situação Financeira
         </CardTitle>
@@ -252,29 +252,29 @@ const ClientFinancialSection = ({ clientId }) => {
       <CardContent className="space-y-6">
         {/* Resumo Financeiro */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-zinc-700/50 p-4 rounded-lg">
-            <p className="text-sm text-zinc-400">Total Faturado</p>
-            <p className="text-xl font-bold text-white">
+          <div className="bg-muted/50 p-4 rounded-lg">
+            <p className="text-sm text-muted-foreground">Total Faturado</p>
+            <p className="text-xl font-bold text-foreground">
               {formatPrice(financialData.summary.total)}
             </p>
           </div>
 
           <div className="bg-green-500/10 p-4 rounded-lg">
-            <p className="text-sm text-zinc-400">Pagos</p>
+            <p className="text-sm text-muted-foreground">Pagos</p>
             <p className="text-xl font-bold text-green-400">
               {formatPrice(financialData.summary.paid)}
             </p>
           </div>
 
           <div className="bg-yellow-500/10 p-4 rounded-lg">
-            <p className="text-sm text-zinc-400">Pendentes</p>
+            <p className="text-sm text-muted-foreground">Pendentes</p>
             <p className="text-xl font-bold text-yellow-400">
               {formatPrice(financialData.summary.pending)}
             </p>
           </div>
 
           <div className="bg-red-500/10 p-4 rounded-lg">
-            <p className="text-sm text-zinc-400">Devedores</p>
+            <p className="text-sm text-muted-foreground">Devedores</p>
             <p className="text-xl font-bold text-red-400">
               {formatPrice(financialData.summary.overdue)}
             </p>
@@ -282,16 +282,16 @@ const ClientFinancialSection = ({ clientId }) => {
         </div>
 
         {/* Detalhamento IVA/Vendas */}
-        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-zinc-700">
+        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
           <div className="bg-blue-500/10 p-4 rounded-lg">
-            <p className="text-sm text-zinc-400">IVA Total</p>
+            <p className="text-sm text-muted-foreground">IVA Total</p>
             <p className="text-lg font-bold text-blue-400">
               {formatPrice(financialData.summary.vatTotal)}
             </p>
           </div>
 
           <div className="bg-purple-500/10 p-4 rounded-lg">
-            <p className="text-sm text-zinc-400">Vendas (s/ IVA)</p>
+            <p className="text-sm text-muted-foreground">Vendas (s/ IVA)</p>
             <p className="text-lg font-bold text-purple-400">
               {formatPrice(financialData.summary.salesTotal)}
             </p>
@@ -301,7 +301,7 @@ const ClientFinancialSection = ({ clientId }) => {
         {/* Lista de Serviços */}
         {allServices.length > 0 ? (
           <div className="space-y-4">
-            <h4 className="font-medium text-white border-b border-zinc-700 pb-2">
+            <h4 className="font-medium text-foreground border-b border-border pb-2">
               Histórico de Serviços ({allServices.length})
             </h4>
 
@@ -313,7 +313,7 @@ const ClientFinancialSection = ({ clientId }) => {
                 return (
                   <div
                     key={`${service.type}-${service.id}`}
-                    className="bg-zinc-700/30 p-4 rounded-lg border border-zinc-600"
+                    className="bg-muted/30 p-4 rounded-lg border border-border"
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
@@ -322,7 +322,7 @@ const ClientFinancialSection = ({ clientId }) => {
                         ) : (
                           <FileText className="h-4 w-4 text-green-400" />
                         )}
-                        <span className="font-medium text-white">
+                        <span className="font-medium text-foreground">
                           {service.type === "parts_budget"
                             ? "Orçamento"
                             : "Fechamento"}
@@ -340,29 +340,29 @@ const ClientFinancialSection = ({ clientId }) => {
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
                       <div>
-                        <p className="text-zinc-400">Data</p>
-                        <p className="text-white">
+                        <p className="text-muted-foreground">Data</p>
+                        <p className="text-foreground">
                           {formatDate(service.createdAt)}
                         </p>
                       </div>
 
                       <div>
-                        <p className="text-zinc-400">Subtotal</p>
-                        <p className="text-white">
+                        <p className="text-muted-foreground">Subtotal</p>
+                        <p className="text-foreground">
                           {formatPrice(financials.totalBeforeVat)}
                         </p>
                       </div>
 
                       <div>
-                        <p className="text-zinc-400">IVA</p>
-                        <p className="text-white">
+                        <p className="text-muted-foreground">IVA</p>
+                        <p className="text-foreground">
                           {formatPrice(financials.vatAmount)}
                         </p>
                       </div>
 
                       <div>
-                        <p className="text-zinc-400">Total</p>
-                        <p className="text-white font-bold">
+                        <p className="text-muted-foreground">Total</p>
+                        <p className="text-foreground font-bold">
                           {formatPrice(financials.totalWithVat)}
                         </p>
                       </div>
@@ -390,8 +390,8 @@ const ClientFinancialSection = ({ clientId }) => {
           </div>
         ) : (
           <div className="text-center py-8">
-            <Calculator className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-zinc-400">
+            <Calculator className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
+            <p className="text-muted-foreground">
               Nenhum serviço financeiro encontrado
             </p>
           </div>
@@ -512,10 +512,10 @@ const ClientAttachments = ({ clientId }) => {
   };
 
   return (
-    <Card className="bg-zinc-800 border-zinc-700">
+    <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2">
             <Paperclip className="h-5 w-5" />
             Anexos ({attachments.length})
           </CardTitle>
@@ -529,7 +529,7 @@ const ClientAttachments = ({ clientId }) => {
             <Button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="bg-green-600 hover:bg-green-700"
+             
             >
               {uploading ? (
                 <>
@@ -550,29 +550,29 @@ const ClientAttachments = ({ clientId }) => {
         {error && (
           <Alert
             variant="destructive"
-            className="border-red-500 bg-red-500/10 mb-4"
+            className="mb-4"
           >
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="text-red-400">{error}</AlertDescription>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
         {isLoading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-white" />
+            <Loader2 className="h-6 w-6 animate-spin text-foreground" />
           </div>
         ) : attachments.length > 0 ? (
           <div className="space-y-2">
             {attachments.map((att) => (
               <div
                 key={att.id}
-                className="flex items-center justify-between p-3 bg-zinc-700/50 rounded-lg border border-zinc-600"
+                className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <FileText className="h-5 w-5 text-blue-400 shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-white truncate">{att.name}</p>
-                    <p className="text-xs text-zinc-400">
+                    <p className="text-foreground truncate">{att.name}</p>
+                    <p className="text-xs text-muted-foreground">
                       {formatSize(att.size)} · {formatDate(att.uploadedAt)}
                     </p>
                   </div>
@@ -582,7 +582,7 @@ const ClientAttachments = ({ clientId }) => {
                     variant="ghost"
                     size="icon"
                     onClick={() => window.open(att.url, "_blank")}
-                    className="text-zinc-400 hover:text-white hover:bg-zinc-700"
+                    className="text-muted-foreground"
                   >
                     <Download className="h-4 w-4" />
                   </Button>
@@ -600,8 +600,8 @@ const ClientAttachments = ({ clientId }) => {
           </div>
         ) : (
           <div className="text-center py-8">
-            <Paperclip className="h-10 w-10 text-zinc-600 mx-auto mb-3" />
-            <p className="text-zinc-400">
+            <Paperclip className="h-10 w-10 text-muted-foreground/70 mx-auto mb-3" />
+            <p className="text-muted-foreground">
               Nenhum anexo (contratos, solicitações, documentos) carregado
             </p>
           </div>
@@ -609,10 +609,10 @@ const ClientAttachments = ({ clientId }) => {
       </CardContent>
 
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Apagar anexo</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Apagar anexo</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem a certeza que deseja apagar &ldquo;{deleteTarget?.name}
               &rdquo;? Esta ação não pode ser desfeita.
             </DialogDescription>
@@ -621,7 +621,7 @@ const ClientAttachments = ({ clientId }) => {
             <Button
               variant="outline"
               onClick={() => setDeleteTarget(null)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
@@ -691,9 +691,9 @@ const ClientInspectionsSection = ({ clientId }) => {
   }, [clientId]);
 
   return (
-    <Card className="bg-zinc-800 border-zinc-700">
+    <Card>
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2">
           <ClipboardCheck className="h-5 w-5" />
           Inspeções Recentes ({inspections.length})
         </CardTitle>
@@ -701,12 +701,12 @@ const ClientInspectionsSection = ({ clientId }) => {
       <CardContent>
         {loading ? (
           <div className="flex justify-center py-6">
-            <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : inspections.length === 0 ? (
           <div className="text-center py-6">
-            <ClipboardCheck className="h-10 w-10 text-zinc-600 mx-auto mb-3" />
-            <p className="text-zinc-400">Nenhuma inspeção registada</p>
+            <ClipboardCheck className="h-10 w-10 text-muted-foreground/70 mx-auto mb-3" />
+            <p className="text-muted-foreground">Nenhuma inspeção registada</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -718,13 +718,13 @@ const ClientInspectionsSection = ({ clientId }) => {
                 <div
                   key={insp.id}
                   onClick={() => navigate(`/app/inspection-detail/${insp.id}`)}
-                  className="flex items-center justify-between p-3 bg-zinc-700/30 hover:bg-zinc-700/60 rounded-lg border border-zinc-600 cursor-pointer transition-colors"
+                  className="flex items-center justify-between p-3 bg-muted/30 hover:bg-white/5 rounded-lg border border-border cursor-pointer transition-colors"
                 >
                   <div className="min-w-0">
-                    <p className="text-white text-sm font-medium truncate">
+                    <p className="text-foreground text-sm font-medium truncate">
                       {insp.checklistTypeName}
                     </p>
-                    <p className="text-xs text-zinc-400">
+                    <p className="text-xs text-muted-foreground">
                       {date.toLocaleDateString("pt-PT")}
                     </p>
                   </div>
@@ -738,7 +738,7 @@ const ClientInspectionsSection = ({ clientId }) => {
                     >
                       {isCompleted ? "Concluída" : "Pendente"}
                     </span>
-                    <ChevronRight className="h-4 w-4 text-zinc-500" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </div>
                 </div>
               );
@@ -748,7 +748,7 @@ const ClientInspectionsSection = ({ clientId }) => {
                 <Button
                   variant="outline"
                   onClick={() => navigate(`/app/manage-inspection?clientId=${clientId}`)}
-                  className="border-zinc-600 text-zinc-300 bg-zinc-800 hover:bg-zinc-700"
+                  className="text-foreground/90"
                 >
                   Ver todas ({inspections.length})
                 </Button>
@@ -818,9 +818,9 @@ const ClientReportsSection = ({ clientId }) => {
   };
 
   return (
-    <Card className="bg-zinc-800 border-zinc-700">
+    <Card>
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5" />
           Relatórios ({reports.length})
         </CardTitle>
@@ -828,37 +828,37 @@ const ClientReportsSection = ({ clientId }) => {
       <CardContent>
         {loading ? (
           <div className="flex justify-center py-6">
-            <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : reports.length === 0 ? (
           <div className="text-center py-6">
-            <FileText className="h-10 w-10 text-zinc-600 mx-auto mb-3" />
-            <p className="text-zinc-400">Nenhum relatório gerado</p>
+            <FileText className="h-10 w-10 text-muted-foreground/70 mx-auto mb-3" />
+            <p className="text-muted-foreground">Nenhum relatório gerado</p>
           </div>
         ) : (
           <div className="space-y-2">
             {reports.map((report) => (
               <div
                 key={report.id}
-                className="flex items-center justify-between p-3 bg-zinc-700/30 hover:bg-zinc-700/60 rounded-lg border border-zinc-600 transition-colors"
+                className="flex items-center justify-between p-3 bg-muted/30 hover:bg-white/5 rounded-lg border border-border transition-colors"
               >
                 <div
                   className="min-w-0 flex-1 cursor-pointer"
                   onClick={() => handleDownload(report)}
                 >
-                  <p className="text-white text-sm font-medium truncate">
+                  <p className="text-foreground text-sm font-medium truncate">
                     {report.tipo === "especial" ? "Relatório Especial" : "Relatório"}
                     {report.orderNumber ? ` — Ordem ${report.orderNumber}` : ""}
                     {report.equipmentLabel ? ` — ${report.equipmentLabel}` : ""}
                   </p>
-                  <p className="text-xs text-zinc-400">{formatDate(report.createdAt)}</p>
+                  <p className="text-xs text-muted-foreground">{formatDate(report.createdAt)}</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => handleDownload(report)}
-                    className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-zinc-700"
+                    className="h-8 w-8 text-muted-foreground"
                   >
                     <Download className="h-4 w-4" />
                   </Button>
@@ -991,7 +991,7 @@ const ClientDetail = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -1001,12 +1001,12 @@ const ClientDetail = () => {
       <div className="flex justify-center items-center min-h-[50vh]">
         <div className="text-center">
           <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <p className="text-lg font-medium text-white">
+          <p className="text-lg font-medium text-foreground">
             Cliente não encontrado
           </p>
           <Button
             onClick={() => navigate("/app/manage-clients")}
-            className="mt-4 bg-green-600 hover:bg-green-700"
+            className="mt-4"
           >
             Voltar à Lista
           </Button>
@@ -1020,49 +1020,34 @@ const ClientDetail = () => {
   return (
     <div className="space-y-6 pb-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <Users className="h-5 w-5 text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">Detalhes do Cliente</h1>
-            <p className="text-sm text-zinc-400">
-              Visualize e gerencie informações do cliente
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate("/app/manage-clients")}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Detalhes do Cliente"
+        description="Visualize e gerencie informações do cliente"
+        icon={Users}
+        back="/app/manage-clients"
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Identidade — sempre visível, independente do separador ativo */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <Avatar className="h-20 w-20 border-2 border-zinc-700 shrink-0">
+            <Avatar className="h-20 w-20 border-2 border-border shrink-0">
               <AvatarImage src={client.profilePic} className="object-cover" />
-              <AvatarFallback className="bg-zinc-700 text-zinc-300 text-xl">
+              <AvatarFallback className="bg-muted text-foreground/90 text-xl">
                 {getInitials(client.name)}
               </AvatarFallback>
             </Avatar>
 
             <div className="flex-1 min-w-0 space-y-1.5">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-xl font-bold text-white truncate">{client.name}</h3>
+                <h3 className="text-xl font-bold text-foreground truncate">{client.name}</h3>
                 <Badge
                   className={
                     isCompany
@@ -1075,9 +1060,9 @@ const ClientDetail = () => {
                 </Badge>
               </div>
               {client.company && (
-                <p className="text-sm text-zinc-400">{client.company}</p>
+                <p className="text-sm text-muted-foreground">{client.company}</p>
               )}
-              <p className="text-sm text-zinc-400">{client.nif || "Sem NIF"}</p>
+              <p className="text-sm text-muted-foreground">{client.nif || "Sem NIF"}</p>
             </div>
 
             <div className="flex gap-2 shrink-0">
@@ -1085,7 +1070,7 @@ const ClientDetail = () => {
                 onClick={() => navigate(`/app/edit-client/${clientId}`)}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                <Edit2 className="w-4 h-4 mr-2" />
+                <Edit2 className="w-4 h-4" />
                 Editar
               </Button>
               <Button
@@ -1093,7 +1078,7 @@ const ClientDetail = () => {
                 onClick={() => setDeleteDialogOpen(true)}
                 className="bg-red-600 hover:bg-red-700"
               >
-                <Trash2 className="w-4 h-4 mr-2" />
+                <Trash2 className="w-4 h-4" />
                 Excluir
               </Button>
             </div>
@@ -1103,7 +1088,7 @@ const ClientDetail = () => {
 
       {/* Separadores — antes eram 7 secções empilhadas numa scroll só */}
       <Tabs defaultValue="geral" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 bg-zinc-800 border border-zinc-700">
+        <TabsList className="grid w-full grid-cols-4 border">
           <TabsTrigger value="geral" className="flex items-center gap-2 data-[state=active]:bg-green-600">
             <LayoutGrid className="h-4 w-4" />
             <span className="hidden sm:inline">Visão Geral</span>
@@ -1124,49 +1109,49 @@ const ClientDetail = () => {
 
         {/* Visão Geral */}
         <TabsContent value="geral" className="space-y-4">
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-white">Informações do Cliente</CardTitle>
+              <CardTitle>Informações do Cliente</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                 <div className="flex items-center gap-3">
-                  <Phone className="h-4 w-4 text-zinc-400" />
+                  <Phone className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm text-zinc-400">Telefone</p>
-                    <p className="text-white">{client.phone || "N/A"}</p>
+                    <p className="text-sm text-muted-foreground">Telefone</p>
+                    <p className="text-foreground">{client.phone || "N/A"}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <CreditCard className="h-4 w-4 text-zinc-400" />
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm text-zinc-400">NIF</p>
-                    <p className="text-white">{client.nif || "N/A"}</p>
+                    <p className="text-sm text-muted-foreground">NIF</p>
+                    <p className="text-foreground">{client.nif || "N/A"}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <MapPin className="h-4 w-4 text-zinc-400" />
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm text-zinc-400">Endereço</p>
-                    <p className="text-white">{client.address || "N/A"}</p>
+                    <p className="text-sm text-muted-foreground">Endereço</p>
+                    <p className="text-foreground">{client.address || "N/A"}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <MapPin className="h-4 w-4 text-zinc-400" />
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm text-zinc-400">Código Postal</p>
-                    <p className="text-white">{client.postalCode || "N/A"}</p>
+                    <p className="text-sm text-muted-foreground">Código Postal</p>
+                    <p className="text-foreground">{client.postalCode || "N/A"}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <Calendar className="h-4 w-4 text-zinc-400" />
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm text-zinc-400">Cliente desde</p>
-                    <p className="text-white">{formatDate(client.createdAt)}</p>
+                    <p className="text-sm text-muted-foreground">Cliente desde</p>
+                    <p className="text-foreground">{formatDate(client.createdAt)}</p>
                   </div>
                 </div>
               </div>
@@ -1174,9 +1159,9 @@ const ClientDetail = () => {
           </Card>
 
           {/* Service History */}
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
                 Histórico de Serviços ({services.length})
               </CardTitle>
@@ -1190,10 +1175,10 @@ const ClientDetail = () => {
                     .map((service) => (
                       <div
                         key={service.id}
-                        className="p-4 bg-zinc-700/50 rounded-lg border border-zinc-600"
+                        className="p-4 bg-muted/50 rounded-lg border border-border"
                       >
                         <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium text-white">
+                          <h4 className="font-medium text-foreground">
                             {service.isQuote ? "Orçamento" : "Fechamento"}
                           </h4>
                           <Badge
@@ -1206,10 +1191,10 @@ const ClientDetail = () => {
                             {service.status}
                           </Badge>
                         </div>
-                        <p className="text-sm text-zinc-400 mb-2 font-mono">
+                        <p className="text-sm text-muted-foreground mb-2 font-mono">
                           {service.id}
                         </p>
-                        <div className="text-xs text-zinc-500">
+                        <div className="text-xs text-muted-foreground">
                           {formatDate(service.date || service.createdAt)}
                         </div>
                       </div>
@@ -1220,7 +1205,7 @@ const ClientDetail = () => {
                       <Button
                         variant="outline"
                         onClick={() => navigate("/app/manage-orders")}
-                        className="border-zinc-600 text-zinc-300 bg-zinc-800 hover:bg-zinc-700"
+                        className="text-foreground/90"
                       >
                         Ver todos os serviços ({services.length})
                       </Button>
@@ -1229,11 +1214,11 @@ const ClientDetail = () => {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <Users className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-                  <p className="text-zinc-400">Nenhum serviço registrado</p>
+                  <Users className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
+                  <p className="text-muted-foreground">Nenhum serviço registrado</p>
                   <Button
                     onClick={() => navigate(`/app/add-order?clientId=${clientId}`)}
-                    className="mt-4 bg-green-600 hover:bg-green-700"
+                    className="mt-4"
                   >
                     Criar Primeira Ordem
                   </Button>
@@ -1245,10 +1230,10 @@ const ClientDetail = () => {
 
         {/* Equipamentos */}
         <TabsContent value="equipamentos">
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2">
                   <Printer className="h-5 w-5" />
                   Equipamentos ({equipments.length})
                 </CardTitle>
@@ -1256,9 +1241,9 @@ const ClientDetail = () => {
                   onClick={() =>
                     navigate(`/app/add-equipment?clientId=${clientId}`)
                   }
-                  className="bg-green-600 hover:bg-green-700"
+                 
                 >
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-4 h-4" />
                   Adicionar Equipamento
                 </Button>
               </div>
@@ -1269,42 +1254,42 @@ const ClientDetail = () => {
                   {equipments.map((equipment) => (
                     <div
                       key={equipment.id}
-                      className="flex items-center gap-3 p-4 bg-zinc-700/50 rounded-lg border border-zinc-600 hover:bg-zinc-700 hover:border-zinc-500 transition-colors cursor-pointer"
+                      className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg border border-border hover:bg-accent hover:border-muted-foreground/40 transition-colors cursor-pointer"
                       onClick={() => navigate(`/app/equipment/${equipment.id}`)}
                     >
-                      <Avatar className="h-12 w-12 border border-zinc-600 shrink-0">
+                      <Avatar className="h-12 w-12 border border-border shrink-0">
                         <AvatarImage src={equipment.equipmentPic} className="object-cover" />
-                        <AvatarFallback className="bg-zinc-800 text-blue-400">
+                        <AvatarFallback className="bg-card text-blue-400">
                           <Printer className="h-5 w-5" />
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-medium text-white truncate">
+                          <h4 className="font-medium text-foreground truncate">
                             {equipment.brand} {equipment.model}
                           </h4>
                           {equipment.type && (
-                            <Badge variant="outline" className="text-[10px] border-zinc-600 text-zinc-400 shrink-0">
+                            <Badge variant="outline" className="text-[10px] border-border text-muted-foreground shrink-0">
                               {equipment.type}
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-zinc-400 truncate">
+                        <p className="text-sm text-muted-foreground truncate">
                           {equipment.serialNumber || "Sem nº série"}
                         </p>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-xs text-muted-foreground">
                           Adicionado em {formatDate(equipment.createdAt)}
                         </p>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-zinc-500 shrink-0" />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <Printer className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-                  <p className="text-zinc-400">Nenhum equipamento cadastrado</p>
-                  <p className="text-sm text-zinc-500 mt-2">
+                  <Printer className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
+                  <p className="text-muted-foreground">Nenhum equipamento cadastrado</p>
+                  <p className="text-sm text-muted-foreground mt-2">
                     Use o botão &ldquo;Adicionar Equipamento&rdquo; acima para começar
                   </p>
                 </div>
@@ -1328,10 +1313,10 @@ const ClientDetail = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar Exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar Exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem certeza que deseja excluir este cliente? As ordens de serviço
               associadas vão para a Reciclagem junto com o cliente (podem ser
               restauradas mais tarde). Os equipamentos associados são apagados
@@ -1343,7 +1328,7 @@ const ClientDetail = () => {
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
               disabled={isSubmitting}
-              className="border-zinc-600 text-zinc-300 bg-zinc-800 hover:bg-zinc-700"
+              className="text-foreground/90"
             >
               Cancelar
             </Button>

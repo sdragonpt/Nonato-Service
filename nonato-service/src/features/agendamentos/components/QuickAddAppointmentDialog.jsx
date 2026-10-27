@@ -307,41 +307,41 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-800 border-zinc-700 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-white">Novo Agendamento</DialogTitle>
-          <DialogDescription className="text-zinc-400 capitalize">
+          <DialogTitle className="text-foreground">Novo Agendamento</DialogTitle>
+          <DialogDescription className="text-muted-foreground capitalize">
             {formattedDate}
           </DialogDescription>
         </DialogHeader>
 
         {isLoadingData ? (
           <div className="flex justify-center items-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-white" />
+            <Loader2 className="h-6 w-6 animate-spin text-foreground" />
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Cliente - com pesquisa */}
             <div className="relative" ref={searchBoxRef}>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
                 Cliente *
               </label>
               {selectedClient ? (
-                <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700">
-                  <span className="text-white text-sm truncate">
+                <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/50 border border-border">
+                  <span className="text-foreground text-sm truncate">
                     {selectedClient.name}
                   </span>
                   <button
                     type="button"
                     onClick={handleClearClient}
-                    className="text-zinc-400 hover:text-white shrink-0 ml-2"
+                    className="text-muted-foreground hover:text-foreground shrink-0 ml-2"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     value={clientSearch}
                     onChange={(e) => {
@@ -350,16 +350,16 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
                     }}
                     onFocus={() => setClientResultsOpen(true)}
                     placeholder="Pesquisar cliente..."
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                    className="pl-10"
                   />
                   {clientResultsOpen && filteredClients.length > 0 && (
-                    <div className="absolute z-10 mt-1 w-full max-h-56 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-900 shadow-lg">
+                    <div className="absolute z-10 mt-1 w-full max-h-56 overflow-y-auto rounded-lg border border-border bg-muted/50 shadow-lg">
                       {filteredClients.map((client) => (
                         <button
                           type="button"
                           key={client.id}
                           onClick={() => handleSelectClient(client)}
-                          className="w-full text-left px-3 py-2 text-sm text-white hover:bg-zinc-700 transition-colors"
+                          className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors"
                         >
                           {client.name}
                         </button>
@@ -372,26 +372,26 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
 
             {/* Hora */}
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
                 Hora *
               </label>
               <div className="relative">
-                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="time"
                   value={formData.hora}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, hora: e.target.value }))
                   }
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                  className="pl-10"
                   required
                 />
               </div>
             </div>
 
             {/* Vários dias */}
-            <div className="rounded-lg border border-zinc-700 bg-zinc-900/60 p-3 space-y-2">
-              <label className="block text-sm font-medium text-zinc-400">
+            <div className="rounded-lg border border-border bg-background/60 p-3 space-y-2">
+              <label className="block text-sm font-medium text-muted-foreground">
                 Até ao dia (para marcar vários dias seguidos)
               </label>
               <Input
@@ -399,9 +399,9 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
                 value={endDate}
                 min={date}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="bg-zinc-900 border-zinc-700 text-white"
+               
               />
-              <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-foreground/90 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={skipWeekends}
@@ -418,11 +418,11 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
 
             {/* Tipo de Serviço */}
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
                 Tipo de Serviço
               </label>
               <div className="relative">
-                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   value={formData.tipoServico}
                   onChange={(e) =>
@@ -432,14 +432,14 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
                     }))
                   }
                   placeholder="Descreva o tipo de serviço"
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                  className="pl-10"
                 />
               </div>
             </div>
 
             {/* Técnico */}
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
                 Técnico Responsável
               </label>
               <Select
@@ -451,19 +451,19 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
                   }))
                 }
               >
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white pl-10 relative">
-                  <UserCog className="absolute left-3 h-4 w-4 text-zinc-400" />
+                <SelectTrigger className="pl-10 relative">
+                  <UserCog className="absolute left-3 h-4 w-4 text-muted-foreground" />
                   <SelectValue placeholder="Por atribuir" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  <SelectItem value="none" className="text-white hover:bg-zinc-700">
+                <SelectContent>
+                  <SelectItem value="none">
                     Por atribuir
                   </SelectItem>
                   {staffUsers.map((user) => (
                     <SelectItem
                       key={user.id}
                       value={user.id}
-                      className="text-white hover:bg-zinc-700"
+                     
                     >
                       {user.displayName || user.email}
                     </SelectItem>
@@ -474,7 +474,7 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
 
             {/* Período — preenche a hora e a duração */}
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
                 Período
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -496,8 +496,8 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
                       aria-pressed={active}
                       className={`px-2 py-2 rounded-lg text-sm border transition-colors ${
                         active
-                          ? "bg-green-600 border-green-600 text-white"
-                          : "bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-zinc-600"
+                          ? "bg-primary border-primary text-foreground"
+                          : "bg-muted/50 border-border text-foreground/90 hover:border-border"
                       }`}
                     >
                       <span className="block font-medium">{period.label}</span>
@@ -512,7 +512,7 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
             <button
               type="button"
               onClick={() => setShowMoreOptions((prev) => !prev)}
-              className="flex items-center gap-1 text-sm text-zinc-400 hover:text-white transition-colors"
+              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <ChevronDown
                 className={`w-4 h-4 transition-transform ${
@@ -525,7 +525,7 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
             {showMoreOptions && (
               <div className="space-y-4 pt-1">
                 <div>
-                  <label className="block text-sm font-medium text-zinc-400 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Equipamento
                   </label>
                   <Select
@@ -538,18 +538,18 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
                     }
                     disabled={!selectedClient}
                   >
-                    <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                    <SelectTrigger>
                       <SelectValue placeholder="Selecione um equipamento" />
                     </SelectTrigger>
-                    <SelectContent className="bg-zinc-800 border-zinc-700">
-                      <SelectItem value="none" className="text-white hover:bg-zinc-700">
+                    <SelectContent>
+                      <SelectItem value="none">
                         Nenhum
                       </SelectItem>
                       {clientEquipments.map((equipment) => (
                         <SelectItem
                           key={equipment.id}
                           value={equipment.id}
-                          className="text-white hover:bg-zinc-700"
+                         
                         >
                           {equipment.brand} - {equipment.model}
                         </SelectItem>
@@ -559,7 +559,7 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-zinc-400 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Prioridade
                   </label>
                   <Select
@@ -568,17 +568,17 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
                       setFormData((prev) => ({ ...prev, prioridade: value }))
                     }
                   >
-                    <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                    <SelectTrigger>
                       <SelectValue placeholder="Selecione a prioridade" />
                     </SelectTrigger>
-                    <SelectContent className="bg-zinc-800 border-zinc-700">
-                      <SelectItem value="baixa" className="text-white hover:bg-zinc-700">
+                    <SelectContent>
+                      <SelectItem value="baixa">
                         Baixa
                       </SelectItem>
-                      <SelectItem value="normal" className="text-white hover:bg-zinc-700">
+                      <SelectItem value="normal">
                         Normal
                       </SelectItem>
-                      <SelectItem value="alta" className="text-white hover:bg-zinc-700">
+                      <SelectItem value="alta">
                         Alta
                       </SelectItem>
                     </SelectContent>
@@ -586,7 +586,7 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-zinc-400 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Observações
                   </label>
                   <textarea
@@ -599,16 +599,16 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
                     }
                     rows="3"
                     placeholder="Adicione observações importantes"
-                    className="w-full p-3 bg-zinc-900 text-white rounded-lg border border-zinc-700 focus:ring-2 focus:ring-green-500 focus:outline-none resize-none placeholder:text-zinc-500 text-sm"
+                    className="w-full p-3 bg-muted/50 text-foreground rounded-lg border border-border focus:ring-2 focus:ring-ring focus:outline-none resize-none placeholder:text-muted-foreground text-sm"
                   />
                 </div>
               </div>
             )}
 
             {error && (
-              <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+              <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertDescription className="text-red-400">
+                <AlertDescription>
                   {error}
                 </AlertDescription>
               </Alert>
@@ -619,14 +619,14 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
+                className="bg-accent"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
                 disabled={isSaving}
-                className="bg-green-600 hover:bg-green-700"
+               
               >
                 {isSaving ? (
                   <>
@@ -647,13 +647,13 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
 
       {/* Conflito de horário */}
       <Dialog open={conflictDialogOpen} onOpenChange={setConflictDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
+            <DialogTitle className="text-foreground flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-yellow-500" />
               Conflito de horário
             </DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription className="text-muted-foreground">
               {formData.tecnicoId ? "Este técnico já tem " : "Já existe "}
               {conflicts.length === 1
                 ? "um agendamento"
@@ -665,13 +665,13 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
             {conflicts.map((c) => (
               <div
                 key={c.id}
-                className="p-3 bg-zinc-700/50 rounded-lg border border-zinc-600 text-sm"
+                className="p-3 bg-muted/50 rounded-lg border border-border text-sm"
               >
-                <p className="text-white font-medium">
+                <p className="text-foreground font-medium">
                   {c.data} às {c.hora} (
                   {c.duracaoMinutos || DEFAULT_DURATION_MINUTES} min)
                 </p>
-                <p className="text-zinc-400">
+                <p className="text-muted-foreground">
                   {c.tipoServico || "Sem descrição"}
                 </p>
               </div>
@@ -681,7 +681,7 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
             <Button
               variant="outline"
               onClick={() => setConflictDialogOpen(false)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Alterar horário
             </Button>

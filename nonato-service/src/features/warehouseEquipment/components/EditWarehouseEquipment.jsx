@@ -5,7 +5,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../../../firebase.jsx";
 import { comparePtPt } from "../../../utils/sortHelpers.js";
 import {
-  ArrowLeft,
   Loader2,
   Save,
   Wrench,
@@ -36,6 +35,7 @@ import {
 } from "@/components/ui/select.jsx";
 
 import { ESTADO_META } from "../ManageWarehouseEquipment.jsx";
+import { PageHeader } from "../../../components/app";
 
 const emptyForm = {
   nome: "",
@@ -177,50 +177,37 @@ const EditWarehouseEquipment = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <ClipboardEdit className="h-5 w-5 text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">Editar Equipamento</h1>
-            <p className="text-sm text-zinc-400">Atualize os dados do equipamento</p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Editar Equipamento"
+        description="Atualize os dados do equipamento"
+        icon={ClipboardEdit}
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Dados do Equipamento</CardTitle>
+            <CardTitle className="text-lg">Dados do Equipamento</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Nome / Designação</label>
+              <label className="text-sm font-medium text-muted-foreground">Nome / Designação</label>
               <div className="relative">
-                <Wrench className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                <Wrench className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   type="text"
                   name="nome"
@@ -228,7 +215,7 @@ const EditWarehouseEquipment = () => {
                   onChange={handleChange}
                   onBlur={() => handleBlur("nome")}
                   placeholder="Ex: Compressor de Ar Industrial"
-                  className={`pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 ${
+                  className={`pl-10 bg-muted/50 border-border text-foreground ${
                     touched.nome && !formData.nome ? "border-red-500" : ""
                   }`}
                 />
@@ -239,21 +226,21 @@ const EditWarehouseEquipment = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 ID do Equipamento
               </label>
               <div className="relative">
-                <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   type="text"
                   name="equipmentCode"
                   value={formData.equipmentCode}
                   onChange={handleChange}
                   placeholder="Ex: 008323 (o número que o cliente atribui/escreve na etiqueta)"
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                  className="pl-10"
                 />
               </div>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-muted-foreground">
                 Este ID identifica a máquina toda. Cada volume/peça (a máquina
                 em si + os itens inclusos) gera uma etiqueta com este ID mais
                 um sufixo — ex: {formData.equipmentCode || "008323"}-01,{" "}
@@ -264,29 +251,29 @@ const EditWarehouseEquipment = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Categoria</label>
+                <label className="text-sm font-medium text-muted-foreground">Categoria</label>
                 <div className="relative">
-                  <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                  <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     type="text"
                     name="categoria"
                     value={formData.categoria}
                     onChange={handleChange}
                     placeholder="Ex: Ferramentas, Máquinas, Veículos"
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                    className="pl-10"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Estado</label>
+                <label className="text-sm font-medium text-muted-foreground">Estado</label>
                 <Select
                   value={formData.estado}
                   onValueChange={(value) => handleSelectChange("estado", value)}
                 >
-                  <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                  <SelectTrigger>
                     <SelectValue placeholder="Estado" />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+                  <SelectContent>
                     {Object.entries(ESTADO_META).map(([value, meta]) => (
                       <SelectItem key={value} value={value}>
                         {meta.label}
@@ -297,26 +284,26 @@ const EditWarehouseEquipment = () => {
               </div>
             </div>
 
-            <Card className="bg-zinc-900 border-zinc-700">
+            <Card className="bg-muted/50">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm text-zinc-300 flex items-center gap-2">
+                <CardTitle className="text-sm text-foreground/90 flex items-center gap-2">
                   <Layers className="h-4 w-4 text-orange-400" />
                   Família / Grupo (opcional)
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-0">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400">Família</label>
+                  <label className="text-sm font-medium text-muted-foreground">Família</label>
                   <Select
                     value={formData.familyId || "none"}
                     onValueChange={(value) =>
                       handleSelectChange("familyId", value === "none" ? "" : value)
                     }
                   >
-                    <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
+                    <SelectTrigger>
                       <SelectValue placeholder="Sem família" />
                     </SelectTrigger>
-                    <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+                    <SelectContent>
                       <SelectItem value="none">Sem família</SelectItem>
                       {familyOptions.map((f) => (
                         <SelectItem key={f.id} value={f.id}>
@@ -327,7 +314,7 @@ const EditWarehouseEquipment = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400">Grupo</label>
+                  <label className="text-sm font-medium text-muted-foreground">Grupo</label>
                   <Select
                     value={formData.groupId || "none"}
                     onValueChange={(value) =>
@@ -335,10 +322,10 @@ const EditWarehouseEquipment = () => {
                     }
                     disabled={!formData.familyId}
                   >
-                    <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
+                    <SelectTrigger>
                       <SelectValue placeholder="Sem grupo" />
                     </SelectTrigger>
-                    <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+                    <SelectContent>
                       <SelectItem value="none">Sem grupo</SelectItem>
                       {groupOptions.map((g) => (
                         <SelectItem key={g.id} value={g.id}>
@@ -353,55 +340,55 @@ const EditWarehouseEquipment = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Marca</label>
+                <label className="text-sm font-medium text-muted-foreground">Marca</label>
                 <Input
                   type="text"
                   name="marca"
                   value={formData.marca}
                   onChange={handleChange}
                   placeholder="Ex: Bosch"
-                  className="bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                 
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Modelo</label>
+                <label className="text-sm font-medium text-muted-foreground">Modelo</label>
                 <Input
                   type="text"
                   name="modelo"
                   value={formData.modelo}
                   onChange={handleChange}
                   placeholder="Ex: GSB 21-2"
-                  className="bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                 
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Nº de Série</label>
+                <label className="text-sm font-medium text-muted-foreground">Nº de Série</label>
                 <div className="relative">
-                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     type="text"
                     name="numeroSerie"
                     value={formData.numeroSerie}
                     onChange={handleChange}
                     placeholder="Ex: SN-2024-001"
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                    className="pl-10"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Localização</label>
+                <label className="text-sm font-medium text-muted-foreground">Localização</label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     type="text"
                     name="localizacao"
                     value={formData.localizacao}
                     onChange={handleChange}
                     placeholder="Ex: Prateleira A3, Armazém Central"
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                    className="pl-10"
                   />
                 </div>
               </div>
@@ -409,22 +396,22 @@ const EditWarehouseEquipment = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Data de Aquisição</label>
+                <label className="text-sm font-medium text-muted-foreground">Data de Aquisição</label>
                 <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     type="date"
                     name="dataAquisicao"
                     value={formData.dataAquisicao}
                     onChange={handleChange}
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                    className="pl-10"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Valor de Aquisição</label>
+                <label className="text-sm font-medium text-muted-foreground">Valor de Aquisição</label>
                 <div className="relative">
-                  <Euro className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                  <Euro className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     type="number"
                     step="0.01"
@@ -432,36 +419,36 @@ const EditWarehouseEquipment = () => {
                     value={formData.valorAquisicao}
                     onChange={handleChange}
                     placeholder="0.00"
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                    className="pl-10"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Responsável</label>
+                <label className="text-sm font-medium text-muted-foreground">Responsável</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     type="text"
                     name="responsavel"
                     value={formData.responsavel}
                     onChange={handleChange}
                     placeholder="Ex: João Nonato"
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                    className="pl-10"
                   />
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Notas</label>
+              <label className="text-sm font-medium text-muted-foreground">Notas</label>
               <div className="relative">
-                <FileText className="absolute left-3 top-3 text-zinc-400 h-4 w-4" />
+                <FileText className="absolute left-3 top-3 text-muted-foreground h-4 w-4" />
                 <Textarea
                   name="notas"
                   value={formData.notas}
                   onChange={handleChange}
                   placeholder="Observações adicionais sobre o equipamento..."
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 min-h-[80px]"
+                  className="pl-10 min-h-[80px]"
                 />
               </div>
             </div>
@@ -471,7 +458,7 @@ const EditWarehouseEquipment = () => {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-green-600 hover:bg-green-700"
+          className="w-full"
         >
           {isSubmitting ? (
             <>

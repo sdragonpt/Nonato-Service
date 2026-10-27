@@ -29,6 +29,7 @@ import {
   formatPrice,
 } from "../../utils/financialUtils";
 import { toDateKey } from "../../utils/formatDate.js";
+import { PageHeader } from "../../components/app";
 
 const todayStr = () => toDateKey();
 
@@ -170,54 +171,48 @@ const ManageAlerts = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6 pb-24">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
-            <Bell className="h-5 w-5 text-green-500" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">
-              Central de Alertas
-            </h1>
-            <p className="text-sm text-zinc-400">
-              Pendências que precisam da sua atenção
-            </p>
-          </div>
-        </div>
-        <Badge className="bg-zinc-700 text-white hover:bg-zinc-700 text-sm px-3 py-1">
-          {totalAlerts} alerta(s)
-        </Badge>
-      </div>
+      <PageHeader
+        title="Central de Alertas"
+        description="Pendências que precisam da sua atenção"
+        icon={Bell}
+        actions={
+          <>
+            <Badge className="bg-muted text-foreground hover:bg-accent text-sm px-3 py-1">
+            {totalAlerts} alerta(s)
+          </Badge>
+          </>
+        }
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {totalAlerts === 0 && !error && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="p-8 text-center">
             <CheckCircle2 className="h-10 w-10 text-green-500 mx-auto mb-3" />
-            <p className="text-zinc-300 font-medium">Tudo em dia!</p>
-            <p className="text-sm text-zinc-500">Não há pendências no momento.</p>
+            <p className="text-foreground/90 font-medium">Tudo em dia!</p>
+            <p className="text-sm text-muted-foreground">Não há pendências no momento.</p>
           </CardContent>
         </Card>
       )}
 
       {/* Clientes Devedores */}
       {debtors.length > 0 && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-base text-white flex items-center gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
               <Users className="h-4 w-4 text-red-400" />
               Clientes Devedores
             </CardTitle>
@@ -230,9 +225,9 @@ const ManageAlerts = () => {
               <div
                 key={entry.clientId}
                 onClick={() => navigate(`/app/client/${entry.clientId}`)}
-                className="flex items-center justify-between p-3 bg-zinc-700/30 rounded-lg border border-zinc-600 cursor-pointer hover:bg-zinc-700/50"
+                className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border cursor-pointer hover:bg-white/5"
               >
-                <p className="text-white truncate">
+                <p className="text-foreground truncate">
                   {entry.client?.name || "Cliente removido"}
                 </p>
                 <p className="text-red-400 font-semibold">
@@ -242,7 +237,7 @@ const ManageAlerts = () => {
             ))}
             <Button
               variant="outline"
-              className="w-full border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900 mt-2"
+              className="w-full mt-2"
               onClick={() => navigate("/app/clientes-devedores")}
             >
               Ver todos <ChevronRight className="h-4 w-4 ml-1" />
@@ -253,9 +248,9 @@ const ManageAlerts = () => {
 
       {/* Agendamentos de Hoje */}
       {todayAppointments.length > 0 && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-base text-white flex items-center gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
               <CalendarClock className="h-4 w-4 text-blue-400" />
               Agendamentos de Hoje
             </CardTitle>
@@ -268,17 +263,17 @@ const ManageAlerts = () => {
               <div
                 key={a.id}
                 onClick={() => navigate("/app/manage-agenda")}
-                className="flex items-center justify-between p-3 bg-zinc-700/30 rounded-lg border border-zinc-600 cursor-pointer hover:bg-zinc-700/50"
+                className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border cursor-pointer hover:bg-white/5"
               >
-                <p className="text-white truncate">
+                <p className="text-foreground truncate">
                   {a.client?.name || a.newClientName || "Cliente"}
                 </p>
-                <p className="text-zinc-400 text-sm">{a.hora || "--:--"}</p>
+                <p className="text-muted-foreground text-sm">{a.hora || "--:--"}</p>
               </div>
             ))}
             <Button
               variant="outline"
-              className="w-full border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900 mt-2"
+              className="w-full mt-2"
               onClick={() => navigate("/app/manage-agenda")}
             >
               Ver Agenda <ChevronRight className="h-4 w-4 ml-1" />
@@ -289,9 +284,9 @@ const ManageAlerts = () => {
 
       {/* Pedidos de Armazém pendentes */}
       {warehousePending.length > 0 && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-base text-white flex items-center gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
               <Package className="h-4 w-4 text-purple-400" />
               Pedidos de Armazém Pendentes
             </CardTitle>
@@ -304,17 +299,17 @@ const ManageAlerts = () => {
               <div
                 key={r.id}
                 onClick={() => navigate("/app/warehouse")}
-                className="flex items-center justify-between p-3 bg-zinc-700/30 rounded-lg border border-zinc-600 cursor-pointer hover:bg-zinc-700/50"
+                className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border cursor-pointer hover:bg-white/5"
               >
-                <p className="text-white truncate">{r.clientName || "Cliente"}</p>
-                <p className="text-zinc-400 text-sm">
+                <p className="text-foreground truncate">{r.clientName || "Cliente"}</p>
+                <p className="text-muted-foreground text-sm">
                   {r.daysWaiting === 0 ? "Hoje" : `${r.daysWaiting} dia(s)`}
                 </p>
               </div>
             ))}
             <Button
               variant="outline"
-              className="w-full border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900 mt-2"
+              className="w-full mt-2"
               onClick={() => navigate("/app/warehouse")}
             >
               Ver Armazém <ChevronRight className="h-4 w-4 ml-1" />
@@ -325,9 +320,9 @@ const ManageAlerts = () => {
 
       {/* Orçamentos Online pendentes */}
       {onlineQuotesPending.length > 0 && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-base text-white flex items-center gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
               <FileClock className="h-4 w-4 text-yellow-400" />
               Orçamentos Online por Aprovar
             </CardTitle>
@@ -340,16 +335,16 @@ const ManageAlerts = () => {
               <div
                 key={q.id}
                 onClick={() => navigate("/app/orcamento-online")}
-                className="flex items-center justify-between p-3 bg-zinc-700/30 rounded-lg border border-zinc-600 cursor-pointer hover:bg-zinc-700/50"
+                className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border cursor-pointer hover:bg-white/5"
               >
-                <p className="text-white truncate">
+                <p className="text-foreground truncate">
                   {q.clientInfo?.name || "Pedido de orçamento"}
                 </p>
               </div>
             ))}
             <Button
               variant="outline"
-              className="w-full border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900 mt-2"
+              className="w-full mt-2"
               onClick={() => navigate("/app/orcamento-online")}
             >
               Ver Orçamentos Online <ChevronRight className="h-4 w-4 ml-1" />

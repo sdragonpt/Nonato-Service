@@ -35,8 +35,8 @@ const Field = ({ label, value }) => {
   if (!value) return null;
   return (
     <div>
-      <p className="text-xs text-zinc-500">{label}</p>
-      <p className="text-sm text-white">{value}</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-sm text-foreground">{value}</p>
     </div>
   );
 };
@@ -46,7 +46,7 @@ const TagList = ({ items }) => {
   return (
     <div className="flex flex-wrap gap-1.5">
       {items.map((item) => (
-        <Badge key={item} className="bg-zinc-700 text-white hover:bg-zinc-700">
+        <Badge key={item} className="bg-muted text-foreground hover:bg-accent">
           {item}
         </Badge>
       ))}
@@ -213,16 +213,16 @@ const OrdemPreparacaoDetail = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
 
   if (error && !order) {
     return (
-      <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+      <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
-        <AlertDescription className="text-red-400">{error}</AlertDescription>
+        <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
   }
@@ -237,12 +237,12 @@ const OrdemPreparacaoDetail = () => {
             variant="outline"
             size="icon"
             onClick={() => navigate("/app/ordens-preparacao")}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
+           
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">
               SME_UP {order.codigoSmeUp}
             </h1>
             <Badge className={meta.className}>{meta.label}</Badge>
@@ -252,9 +252,9 @@ const OrdemPreparacaoDetail = () => {
           <Button
             variant="outline"
             onClick={handlePrint}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+           
           >
-            <Printer className="w-4 h-4 mr-2" />
+            <Printer className="w-4 h-4" />
             Imprimir
           </Button>
           <Button
@@ -272,29 +272,29 @@ const OrdemPreparacaoDetail = () => {
           <Button
             variant="outline"
             onClick={() => setDeleteOpen(true)}
-            className="border-red-600 text-red-400 hover:bg-red-600/10 bg-zinc-900"
+            className="border-red-600 text-red-400 hover:bg-red-600/10"
           >
-            <Trash2 className="w-4 h-4 mr-2" />
+            <Trash2 className="w-4 h-4" />
             Apagar
           </Button>
         </div>
       </div>
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
       {generatedMsg && (
-        <Alert className="border-green-600 bg-green-600/10">
+        <Alert className="border-primary bg-green-600/10">
           <CheckCircle2 className="h-4 w-4 text-green-500" />
           <AlertDescription className="text-green-400 flex items-center justify-between gap-4">
             <span>{generatedMsg}</span>
             <Button
               size="sm"
               onClick={() => navigate("/app/formularios-tecnicos")}
-              className="bg-green-600 hover:bg-green-700"
+             
             >
               Ver Formulários
             </Button>
@@ -302,9 +302,9 @@ const OrdemPreparacaoDetail = () => {
         </Alert>
       )}
 
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-base text-white">Dados Gerais</CardTitle>
+          <CardTitle className="text-base">Dados Gerais</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Field label="Descrição" value={order.descricao} />
@@ -319,9 +319,9 @@ const OrdemPreparacaoDetail = () => {
         </CardContent>
       </Card>
 
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-base text-white">Material e Configuração</CardTitle>
+          <CardTitle className="text-base">Material e Configuração</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <TagList items={order.materialTrabalhado} />
@@ -343,9 +343,9 @@ const OrdemPreparacaoDetail = () => {
         </CardContent>
       </Card>
 
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-base text-white">Ferramentas &amp; Test Run</CardTitle>
+          <CardTitle className="text-base">Ferramentas &amp; Test Run</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Ferramentas Fornecidas pelo Cliente" value={order.ferramentasFornecidoCliente ? "Sim" : "Não"} />
@@ -360,9 +360,9 @@ const OrdemPreparacaoDetail = () => {
         </CardContent>
       </Card>
 
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-base text-white">Documentação &amp; Notas</CardTitle>
+          <CardTitle className="text-base">Documentação &amp; Notas</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Field label="Língua Destino" value={order.linguaDestino} />
@@ -370,24 +370,24 @@ const OrdemPreparacaoDetail = () => {
           <Field label="Adesivos" value={order.adesivos} />
           {order.notasProducao && (
             <div className="sm:col-span-3">
-              <p className="text-xs text-zinc-500">Notas de Produção</p>
-              <p className="text-sm text-white whitespace-pre-wrap">{order.notasProducao}</p>
+              <p className="text-xs text-muted-foreground">Notas de Produção</p>
+              <p className="text-sm text-foreground whitespace-pre-wrap">{order.notasProducao}</p>
             </div>
           )}
           {order.impressoes && (
             <div className="sm:col-span-3">
-              <p className="text-xs text-zinc-500">Impressões</p>
-              <p className="text-sm text-white whitespace-pre-wrap">{order.impressoes}</p>
+              <p className="text-xs text-muted-foreground">Impressões</p>
+              <p className="text-sm text-foreground whitespace-pre-wrap">{order.impressoes}</p>
             </div>
           )}
         </CardContent>
       </Card>
 
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar Exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar Exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem a certeza que deseja excluir esta ordem de preparação? Esta ação não pode
               ser desfeita.
             </DialogDescription>
@@ -396,7 +396,7 @@ const OrdemPreparacaoDetail = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteOpen(false)}
-              className="border-zinc-600 text-zinc-300 bg-zinc-800 hover:bg-zinc-700"
+              className="text-foreground/90"
             >
               Cancelar
             </Button>

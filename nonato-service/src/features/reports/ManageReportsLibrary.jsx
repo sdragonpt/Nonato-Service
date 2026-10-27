@@ -13,7 +13,6 @@ import {
   Search,
   Loader2,
   AlertTriangle,
-  ArrowLeft,
   User,
   Printer,
   FileText,
@@ -30,6 +29,7 @@ import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
+import { PageHeader } from "../../components/app";
 
 const formatDate = (timestamp) => {
   if (!timestamp) return "N/A";
@@ -40,16 +40,16 @@ const formatDate = (timestamp) => {
 // Linha de um relatório gerado (normal ou especial) — clicar descarrega;
 // botão à parte para excluir (soft-delete, vai para a Reciclagem).
 const ReportRow = ({ report, onDownload, onDelete, deleting }) => (
-  <div className="flex items-center justify-between gap-2 p-3 bg-zinc-700/30 rounded-lg border border-zinc-600 hover:bg-zinc-700/60">
+  <div className="flex items-center justify-between gap-2 p-3 bg-muted/30 rounded-lg border border-border hover:bg-white/5">
     <div className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer" onClick={() => onDownload(report)}>
       <Download className="h-4 w-4 text-blue-300 shrink-0" />
       <div className="min-w-0">
-        <p className="text-white text-sm truncate">
+        <p className="text-foreground text-sm truncate">
           {report.tipo === "especial" ? "Relatório Especial" : "Relatório Gerado"}
           {report.orderNumber ? ` — Ordem ${report.orderNumber}` : ""}
           {!report.clientId && report.clientName ? ` — ${report.clientName}` : ""}
         </p>
-        <p className="text-xs text-zinc-500">{formatDate(report.createdAt)}</p>
+        <p className="text-xs text-muted-foreground">{formatDate(report.createdAt)}</p>
       </div>
     </div>
     <div className="flex items-center gap-1 shrink-0">
@@ -230,7 +230,7 @@ const ManageReportsLibrary = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -238,63 +238,47 @@ const ManageReportsLibrary = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        {selectedClientId ? (
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setSelectedClientId(null)}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        ) : null}
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Biblioteca de Relatórios
-          </h1>
-          <p className="text-sm text-zinc-400">
-            {selectedClientId === ISOLATED_KEY
+      <PageHeader
+        title="Biblioteca de Relatórios"
+        description={selectedClientId === ISOLATED_KEY
               ? "Serviços Isolados — relatórios sem cliente associado"
               : selectedClientId
               ? `${selectedClient?.name || "Cliente"} — arquivo por equipamento`
               : "Arquivo de relatórios de serviço e fechamentos por cliente"}
-          </p>
-        </div>
-      </div>
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {!selectedClientId ? (
         <>
           {/* Busca de clientes */}
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardContent className="p-4 sm:p-6">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Buscar cliente..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                  className="pl-10"
                 />
               </div>
             </CardContent>
           </Card>
 
           {filteredClients.length === 0 && isolatedReports.length === 0 ? (
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card>
               <CardContent className="p-8 sm:p-12 text-center">
-                <FolderOpen className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
-                <p className="text-lg font-medium mb-2 text-white">
+                <FolderOpen className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
+                <p className="text-lg font-medium mb-2 text-foreground">
                   Nenhum arquivo encontrado
                 </p>
-                <p className="text-sm text-zinc-400">
+                <p className="text-sm text-muted-foreground">
                   Os clientes aparecem aqui assim que tiverem relatórios ou
                   fechamentos registados
                 </p>
@@ -304,46 +288,46 @@ const ManageReportsLibrary = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {isolatedReports.length > 0 && (
                 <Card
-                  className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700/50 transition-colors cursor-pointer"
+                  className="hover:bg-white/5 transition-colors cursor-pointer"
                   onClick={() => setSelectedClientId(ISOLATED_KEY)}
                 >
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-10 w-10 rounded-full bg-zinc-700 flex items-center justify-center shrink-0">
-                        <UserX className="h-5 w-5 text-zinc-300" />
+                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                        <UserX className="h-5 w-5 text-foreground/90" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-white font-medium truncate">
+                        <p className="text-foreground font-medium truncate">
                           Serviços Isolados / Sem Cliente
                         </p>
-                        <p className="text-xs text-zinc-400">
+                        <p className="text-xs text-muted-foreground">
                           {isolatedReports.length} documento(s)
                         </p>
                       </div>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-zinc-500 shrink-0" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                   </CardContent>
                 </Card>
               )}
               {filteredClients.map((client) => (
                 <Card
                   key={client.id}
-                  className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700/50 transition-colors cursor-pointer"
+                  className="hover:bg-white/5 transition-colors cursor-pointer"
                   onClick={() => setSelectedClientId(client.id)}
                 >
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-10 w-10 rounded-full bg-zinc-700 flex items-center justify-center shrink-0">
-                        <User className="h-5 w-5 text-zinc-300" />
+                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                        <User className="h-5 w-5 text-foreground/90" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-white font-medium truncate">{client.name}</p>
-                        <p className="text-xs text-zinc-400">
+                        <p className="text-foreground font-medium truncate">{client.name}</p>
+                        <p className="text-xs text-muted-foreground">
                           {docsCountByClient[client.id] || 0} documento(s)
                         </p>
                       </div>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-zinc-500 shrink-0" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                   </CardContent>
                 </Card>
               ))}
@@ -365,13 +349,13 @@ const ManageReportsLibrary = () => {
       ) : (
         <div className="space-y-4">
           {groupedByEquipment.map((group) => (
-            <Card key={group.key} className="bg-zinc-800 border-zinc-700">
+            <Card key={group.key}>
               <CardContent className="p-4 space-y-3">
-                <div className="flex items-center gap-2 pb-2 border-b border-zinc-700">
+                <div className="flex items-center gap-2 pb-2 border-b border-border">
                   {group.equipment ? (
                     <>
                       <Printer className="h-4 w-4 text-blue-400" />
-                      <span className="text-white font-medium">
+                      <span className="text-foreground font-medium">
                         {group.equipment.brand} {group.equipment.model}
                         {group.equipment.serialNumber
                           ? ` — ${group.equipment.serialNumber}`
@@ -380,8 +364,8 @@ const ManageReportsLibrary = () => {
                     </>
                   ) : (
                     <>
-                      <FolderOpen className="h-4 w-4 text-zinc-400" />
-                      <span className="text-white font-medium">
+                      <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-foreground font-medium">
                         Sem equipamento / Fechamentos
                       </span>
                     </>
@@ -391,16 +375,16 @@ const ManageReportsLibrary = () => {
                 {group.orders.map((order) => (
                   <div
                     key={`order-${order.id}`}
-                    className="flex items-center justify-between p-3 bg-zinc-700/30 rounded-lg border border-zinc-600 cursor-pointer hover:bg-zinc-700/60"
+                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border cursor-pointer hover:bg-white/5"
                     onClick={() => navigate(`/app/order-detail/${order.id}`)}
                   >
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-green-400" />
                       <div>
-                        <p className="text-white text-sm">
+                        <p className="text-foreground text-sm">
                           Relatório de Serviço — {order.id}
                         </p>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-xs text-muted-foreground">
                           {formatDate(order.date || order.createdAt)}
                         </p>
                       </div>
@@ -424,16 +408,16 @@ const ManageReportsLibrary = () => {
                 {group.closures.map((closure) => (
                   <div
                     key={`closure-${closure.id}`}
-                    className="flex items-center justify-between p-3 bg-zinc-700/30 rounded-lg border border-zinc-600 cursor-pointer hover:bg-zinc-700/60"
+                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border cursor-pointer hover:bg-white/5"
                     onClick={() => navigate(`/app/edit-budget/${closure.id}`)}
                   >
                     <div className="flex items-center gap-2">
                       <Package className="h-4 w-4 text-purple-400" />
                       <div>
-                        <p className="text-white text-sm">
+                        <p className="text-foreground text-sm">
                           Fechamento — {closure.id}
                         </p>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-xs text-muted-foreground">
                           {formatDate(closure.createdAt)}
                         </p>
                       </div>

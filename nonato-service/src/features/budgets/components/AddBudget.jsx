@@ -12,7 +12,6 @@ import {
   AlertTriangle,
   Plus,
   Trash2,
-  ArrowLeft,
   Clock,
   Receipt,
   Calculator,
@@ -43,6 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select.jsx";
 import { ClientCombobox } from "@/components/shared/ClientCombobox.jsx";
+import { PageHeader } from "../../../components/app";
 
 const AddBudget = () => {
   const navigate = useNavigate();
@@ -350,7 +350,7 @@ const AddBudget = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -358,40 +358,25 @@ const AddBudget = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <FileSignature className="h-5 w-5 text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">Novo Fechamento</h1>
-            <p className="text-sm text-zinc-400">
-              Gere um fechamento para uma ordem de serviço
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Novo Fechamento"
+        description="Gere um fechamento para uma ordem de serviço"
+        icon={FileSignature}
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <div className="grid gap-6">
         {/* Client Selection */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2">
               <User className="w-5 h-5" />
               Selecionar Cliente
             </CardTitle>
@@ -410,9 +395,9 @@ const AddBudget = () => {
         </Card>
 
         {/* IVA */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2">
               <Calculator className="w-5 h-5" />
               Configurações de IVA
             </CardTitle>
@@ -424,9 +409,9 @@ const AddBudget = () => {
 
         {/* Service Order Selection */}
         {selectedClient && (
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-lg text-white flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2">
                 <ClipboardList className="w-5 h-5" />
                 Selecionar Ordem de Serviço
               </CardTitle>
@@ -440,15 +425,15 @@ const AddBudget = () => {
                   setOrder(selectedOrder);
                 }}
               >
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger>
                   <SelectValue placeholder="Selecione uma ordem..." />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectContent>
                   {orders.map((order) => (
                     <SelectItem
                       key={order.id}
                       value={order.id}
-                      className="text-white hover:bg-zinc-700"
+                     
                     >
                       Ordem #{order.id} -{" "}
                       {new Date(order.date).toLocaleDateString()}
@@ -462,9 +447,9 @@ const AddBudget = () => {
 
         {/* Order Totals */}
         {selectedOrder && orderTotals && (
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-lg text-white flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2">
                 <Clock className="w-5 h-5" />
                 Totais da Ordem
               </CardTitle>
@@ -472,13 +457,13 @@ const AddBudget = () => {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Work Hours */}
-                <div className="bg-zinc-900 p-4 rounded-lg">
-                  <p className="text-sm text-zinc-400 mb-1">
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">
                     Horas Trabalhadas:
                   </p>
-                  <p className="text-lg font-medium text-white">
+                  <p className="text-lg font-medium text-foreground">
                     {orderTotals.totalWorkHours.toFixed(2)}h
-                    <span className="text-sm text-zinc-400 ml-2">
+                    <span className="text-sm text-muted-foreground ml-2">
                       ({Math.floor(orderTotals.totalWorkHours)}h
                       {Math.round((orderTotals.totalWorkHours % 1) * 60)
                         .toString()
@@ -489,11 +474,11 @@ const AddBudget = () => {
                 </div>
 
                 {/* Travel Hours */}
-                <div className="bg-zinc-900 p-4 rounded-lg">
-                  <p className="text-sm text-zinc-400 mb-1">Horas de Viagem:</p>
-                  <p className="text-lg font-medium text-white">
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Horas de Viagem:</p>
+                  <p className="text-lg font-medium text-foreground">
                     {orderTotals.totalTravelHours.toFixed(2)}h
-                    <span className="text-sm text-zinc-400 ml-2">
+                    <span className="text-sm text-muted-foreground ml-2">
                       ({Math.floor(orderTotals.totalTravelHours)}h
                       {Math.round((orderTotals.totalTravelHours % 1) * 60)
                         .toString()
@@ -504,9 +489,9 @@ const AddBudget = () => {
                 </div>
 
                 {/* Total KMs */}
-                <div className="bg-zinc-900 p-4 rounded-lg">
-                  <p className="text-sm text-zinc-400 mb-1">KMs Rodados:</p>
-                  <p className="text-lg font-medium text-white">
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">KMs Rodados:</p>
+                  <p className="text-lg font-medium text-foreground">
                     {orderTotals.totalKm} km
                   </p>
                 </div>
@@ -517,19 +502,19 @@ const AddBudget = () => {
 
         {/* Diárias */}
         {selectedOrder && orderTotals && (
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-lg text-white flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2">
                 <CalendarDays className="w-5 h-5" />
                 Diárias
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-muted-foreground">
                 {orderTotals.stay.diarias > 0 ? (
                   <>
                     {orderTotals.stay.diasTrabalhados} dias trabalhados ·{" "}
-                    <span className="text-white font-medium">
+                    <span className="text-foreground font-medium">
                       {orderTotals.stay.diarias} dias no cliente
                     </span>{" "}
                     ({formatStayPeriod(orderTotals.stay)}, incluindo fins de semana)
@@ -538,11 +523,11 @@ const AddBudget = () => {
                   "Esta OS não tem dias de trabalho registados — indique o nº de diárias à mão."
                 )}
               </p>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-muted-foreground">
                 Os valores vêm do cartão &quot;Diárias&quot; da Ordem de Serviço. Pode alterá-los aqui só para este fechamento.
               </p>
 
-              <label className="flex items-center gap-2 text-white cursor-pointer">
+              <label className="flex items-center gap-2 text-foreground cursor-pointer">
                 <input
                   type="checkbox"
                   checked={chargeDiarias}
@@ -555,18 +540,18 @@ const AddBudget = () => {
               {chargeDiarias && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
                   <div className="space-y-1">
-                    <label className="text-sm text-zinc-400">Nº de diárias</label>
+                    <label className="text-sm text-muted-foreground">Nº de diárias</label>
                     <input
                       type="number"
                       min="0"
                       step="1"
                       value={diariasQty}
                       onChange={(e) => setDiariasQty(e.target.value)}
-                      className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+                      className="w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-foreground"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-sm text-zinc-400">Valor por diária (€)</label>
+                    <label className="text-sm text-muted-foreground">Valor por diária (€)</label>
                     <input
                       type="number"
                       min="0"
@@ -574,10 +559,10 @@ const AddBudget = () => {
                       value={diariaValue}
                       onChange={(e) => setDiariaValue(e.target.value)}
                       placeholder="Ex: 150"
-                      className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-white placeholder:text-zinc-500"
+                      className="w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-foreground placeholder:text-muted-foreground"
                     />
                   </div>
-                  <p className="text-sm text-zinc-300 sm:pb-2">
+                  <p className="text-sm text-foreground/90 sm:pb-2">
                     ={" "}
                     <span className="text-green-400 font-semibold">
                       {formatEuroNumber(
@@ -595,9 +580,9 @@ const AddBudget = () => {
 
         {/* Services Section */}
         {selectedOrder && (
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-lg text-white flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2">
                 <Receipt className="w-5 h-5" />
                 Adicionar Serviços
               </CardTitle>
@@ -615,9 +600,9 @@ const AddBudget = () => {
 
         {/* Selected Services */}
         {selectedServices.length > 0 && (
-          <Card className="bg-zinc-800 border-zinc-700">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-lg text-white">
+              <CardTitle className="text-lg">
                 Serviços Selecionados
               </CardTitle>
             </CardHeader>
@@ -626,11 +611,11 @@ const AddBudget = () => {
                 {selectedServices.map((service) => (
                   <div
                     key={service.id}
-                    className="flex items-center justify-between p-4 bg-zinc-900 rounded-lg"
+                    className="flex items-center justify-between p-4 bg-muted/50 rounded-lg"
                   >
                     <div>
-                      <p className="text-white font-medium">{service.name}</p>
-                      <p className="text-zinc-400 text-sm">
+                      <p className="text-foreground font-medium">{service.name}</p>
+                      <p className="text-muted-foreground text-sm">
                         {service.multipleEntries
                           ? `Total: ${formatEuroNumber(service.total)}€`
                           : `${formatEuroNumber(service.value)}€ x ${
@@ -638,7 +623,7 @@ const AddBudget = () => {
                             } = ${formatEuroNumber(service.total)}€`}
                       </p>
                       {service.multipleEntries && (
-                        <div className="mt-1 text-xs text-zinc-400">
+                        <div className="mt-1 text-xs text-muted-foreground">
                           {service.multipleEntries.map((entry, idx) => (
                             <div key={idx}>
                               Valor {idx + 1}: {entry.value}€ x {entry.quantity}
@@ -651,14 +636,14 @@ const AddBudget = () => {
                       variant="ghost"
                       size="icon"
                       onClick={() => handleRemoveService(service.id)}
-                      className="text-red-400 hover:text-red-300 hover:bg-zinc-800"
+                      className="text-red-400 hover:text-red-300 hover:bg-white/5"
                     >
                       <Trash2 className="w-5 h-5" />
                     </Button>
                   </div>
                 ))}
-                <div className="pt-4 border-t border-zinc-700">
-                  <p className="text-right font-medium text-white">
+                <div className="pt-4 border-t border-border">
+                  <p className="text-right font-medium text-foreground">
                     Total: {formatEuroNumber(totalAmount)}€
                   </p>
                 </div>
@@ -678,7 +663,7 @@ const AddBudget = () => {
             !selectedClient ||
             !selectedOrder
           }
-          className="h-12 px-6 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="h-12 px-6 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isGeneratingPDF ? (
             <>

@@ -132,55 +132,55 @@ const EditPartDialog = ({ open, onOpenChange, part, onSaved }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-800 border-zinc-700 max-w-lg">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
+          <DialogTitle className="text-foreground flex items-center gap-2">
             <Pencil className="h-4 w-4 text-green-500" />
             Editar Peça
           </DialogTitle>
-          <DialogDescription className="text-zinc-400">
+          <DialogDescription className="text-muted-foreground">
             Código {part?.codigo}
           </DialogDescription>
         </DialogHeader>
 
         {error && (
-          <Alert variant="destructive" className="border-red-500 bg-red-500/10">
-            <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-zinc-400">Nome</label>
+            <label className="text-sm font-medium text-muted-foreground">Nome</label>
             <Input
               value={nome}
               onChange={(e) => setNome(e.target.value)}
-              className="bg-zinc-900 border-zinc-700 text-white"
+             
             />
             {part?.editada && original.nome !== nome.trim() && (
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-muted-foreground">
                 No catálogo: {original.nome}
               </p>
             )}
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-zinc-400">Descrição</label>
+            <label className="text-sm font-medium text-muted-foreground">Descrição</label>
             <Textarea
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
               rows={3}
               placeholder="Notas, medidas, equivalências…"
-              className="bg-zinc-900 border-zinc-700 text-white"
+             
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-zinc-400">Imagem</label>
+            <label className="text-sm font-medium text-muted-foreground">Imagem</label>
             <div className="flex gap-3 items-start">
-              <div className="h-20 w-20 rounded-lg overflow-hidden bg-zinc-700 flex items-center justify-center flex-shrink-0">
+              <div className="h-20 w-20 rounded-lg overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
                 {uploading ? (
-                  <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 ) : imagem && !imageFailed ? (
                   <img
                     src={imagem}
@@ -189,7 +189,7 @@ const EditPartDialog = ({ open, onOpenChange, part, onSaved }) => {
                     onError={() => setImageFailed(true)}
                   />
                 ) : (
-                  <Package className="h-8 w-8 text-zinc-500" />
+                  <Package className="h-8 w-8 text-muted-foreground" />
                 )}
               </div>
               <div className="flex-1 space-y-2">
@@ -200,9 +200,9 @@ const EditPartDialog = ({ open, onOpenChange, part, onSaved }) => {
                     size="sm"
                     disabled={busy}
                     onClick={() => fileInputRef.current?.click()}
-                    className="bg-zinc-700 border-zinc-600 text-white hover:bg-zinc-600 hover:text-white"
+                    className="bg-muted"
                   >
-                    <Upload className="h-4 w-4 mr-2" />
+                    <Upload className="h-4 w-4" />
                     Carregar fotografia
                   </Button>
                   {imagem && (
@@ -212,9 +212,9 @@ const EditPartDialog = ({ open, onOpenChange, part, onSaved }) => {
                       size="sm"
                       disabled={busy}
                       onClick={() => setImagem("")}
-                      className="text-zinc-400 hover:text-white hover:bg-zinc-700"
+                      className="text-muted-foreground"
                     >
-                      <X className="h-4 w-4 mr-1" />
+                      <X className="h-4 w-4" />
                       Tirar imagem
                     </Button>
                   )}
@@ -226,7 +226,7 @@ const EditPartDialog = ({ open, onOpenChange, part, onSaved }) => {
                     setImageFailed(false);
                   }}
                   placeholder="Ou cole o endereço de uma imagem"
-                  className="bg-zinc-900 border-zinc-700 text-white text-xs"
+                  className="text-xs"
                 />
                 <input
                   ref={fileInputRef}
@@ -249,21 +249,21 @@ const EditPartDialog = ({ open, onOpenChange, part, onSaved }) => {
               disabled={busy}
               className="text-amber-400 hover:text-amber-300 hover:bg-amber-400/10 sm:mr-auto"
             >
-              <RotateCcw className="h-4 w-4 mr-2" />
+              <RotateCcw className="h-4 w-4" />
               Repor original
             </Button>
           )}
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+            className="bg-accent"
           >
             Cancelar
           </Button>
           <Button
             onClick={handleSave}
             disabled={busy}
-            className="bg-green-600 hover:bg-green-700"
+           
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Guardar alterações"}
           </Button>

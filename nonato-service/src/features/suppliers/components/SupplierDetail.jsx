@@ -48,6 +48,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
+import { PageHeader } from "../../../components/app";
 
 const STATUS_LABELS = {
   pendente: { label: "Pendente", className: "bg-yellow-500/20 text-yellow-400" },
@@ -59,10 +60,10 @@ const InfoRow = ({ icon: Icon, label, value }) => {
   if (!value) return null;
   return (
     <div className="flex items-start gap-3">
-      <Icon className="h-4 w-4 text-zinc-500 mt-0.5 shrink-0" />
+      <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
       <div>
-        <p className="text-xs text-zinc-500">{label}</p>
-        <p className="text-sm text-white">{value}</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-sm text-foreground">{value}</p>
       </div>
     </div>
   );
@@ -163,7 +164,7 @@ const SupplierDetail = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -172,10 +173,10 @@ const SupplierDetail = () => {
     return (
       <div className="text-center py-12">
         <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-        <p className="text-white">{error}</p>
+        <p className="text-foreground">{error}</p>
         <Button
           variant="outline"
-          className="mt-4 border-zinc-700 text-white bg-zinc-800 hover:bg-zinc-700"
+          className="mt-4"
           onClick={() => navigate("/app/manage-suppliers")}
         >
           Voltar à lista
@@ -189,43 +190,41 @@ const SupplierDetail = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <Building2 className="h-8 w-8 text-green-500 shrink-0" />
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-white truncate">
-              {supplier?.nomeEmpresa}
-            </h1>
-            <p className="text-sm text-zinc-400">Ficha de Fornecedor</p>
+      <PageHeader
+        title={supplier?.nomeEmpresa}
+        description="Ficha de Fornecedor"
+        icon={Building2}
+        actions={
+          <>
+            <div className="flex gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate("/app/manage-suppliers")}
+             
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate(`/app/edit-supplier/${supplierId}`)}
+             
+            >
+              <Edit2 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setDeleteDialogOpen(true)}
+              className="border-red-500/40 text-red-400 hover:bg-red-500/10"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
-        </div>
-        <div className="flex gap-2 shrink-0">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate("/app/manage-suppliers")}
-            className="border-zinc-700 text-white bg-zinc-800 hover:bg-zinc-700"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate(`/app/edit-supplier/${supplierId}`)}
-            className="border-zinc-700 text-white bg-zinc-800 hover:bg-zinc-700"
-          >
-            <Edit2 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setDeleteDialogOpen(true)}
-            className="border-red-500/40 text-red-400 bg-zinc-800 hover:bg-red-500/10"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {error && (
         <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
@@ -234,9 +233,9 @@ const SupplierDetail = () => {
       )}
 
       {/* Info */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-lg text-white">Informações de Contacto</CardTitle>
+          <CardTitle className="text-lg">Informações de Contacto</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <InfoRow icon={User} label="Pessoa de Contacto" value={supplier?.contato} />
@@ -255,18 +254,18 @@ const SupplierDetail = () => {
       </Card>
 
       {/* Faturas */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-lg text-white flex items-center gap-2">
+          <CardTitle className="text-lg flex items-center gap-2">
             <Receipt className="h-5 w-5 text-green-500" />
             Faturas ({faturas.length})
           </CardTitle>
           <Button
             size="sm"
             onClick={() => setShowAddFatura((v) => !v)}
-            className="bg-green-600 hover:bg-green-700"
+           
           >
-            <Plus className="h-4 w-4 mr-1" />
+            <Plus className="h-4 w-4" />
             Nova Fatura
           </Button>
         </CardHeader>
@@ -274,19 +273,19 @@ const SupplierDetail = () => {
           {showAddFatura && (
             <form
               onSubmit={handleAddFatura}
-              className="grid grid-cols-1 sm:grid-cols-5 gap-3 p-4 bg-zinc-900 rounded-lg border border-zinc-700"
+              className="grid grid-cols-1 sm:grid-cols-5 gap-3 p-4 bg-muted/50 rounded-lg border border-border"
             >
               <Input
                 placeholder="Nº Fatura"
                 value={faturaForm.numeroFatura}
                 onChange={(e) => setFaturaForm((p) => ({ ...p, numeroFatura: e.target.value }))}
-                className="bg-zinc-800 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+               
               />
               <Input
                 placeholder="Mês (AAAA-MM)"
                 value={faturaForm.mes}
                 onChange={(e) => setFaturaForm((p) => ({ ...p, mes: e.target.value }))}
-                className="bg-zinc-800 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+               
               />
               <Input
                 type="number"
@@ -294,29 +293,29 @@ const SupplierDetail = () => {
                 placeholder="Valor (€)"
                 value={faturaForm.valor}
                 onChange={(e) => setFaturaForm((p) => ({ ...p, valor: e.target.value }))}
-                className="bg-zinc-800 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+               
               />
               <Select
                 value={faturaForm.status}
                 onValueChange={(v) => setFaturaForm((p) => ({ ...p, status: v }))}
               >
-                <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectContent>
                   <SelectItem value="pendente">Pendente</SelectItem>
                   <SelectItem value="paga">Paga</SelectItem>
                   <SelectItem value="vencida">Vencida</SelectItem>
                 </SelectContent>
               </Select>
-              <Button type="submit" disabled={savingFatura} className="bg-green-600 hover:bg-green-700">
+              <Button type="submit" disabled={savingFatura}>
                 {savingFatura ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}
               </Button>
             </form>
           )}
 
           {faturas.length === 0 ? (
-            <p className="text-sm text-zinc-500 text-center py-6">
+            <p className="text-sm text-muted-foreground text-center py-6">
               Ainda não há faturas registadas para este fornecedor.
             </p>
           ) : (
@@ -326,17 +325,17 @@ const SupplierDetail = () => {
                 return (
                   <div
                     key={fatura.id}
-                    className="flex items-center justify-between p-3 bg-zinc-900 rounded-lg border border-zinc-700"
+                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border"
                   >
                     <div className="flex items-center gap-4 min-w-0">
                       <div>
-                        <p className="text-sm font-medium text-white">{fatura.numeroFatura}</p>
-                        <p className="text-xs text-zinc-500">{fatura.mes}</p>
+                        <p className="text-sm font-medium text-foreground">{fatura.numeroFatura}</p>
+                        <p className="text-xs text-muted-foreground">{fatura.mes}</p>
                       </div>
                       <Badge className={statusMeta.className}>{statusMeta.label}</Badge>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-sm font-medium text-white">
+                      <span className="text-sm font-medium text-foreground">
                         {(fatura.valor || 0).toLocaleString("pt-PT", {
                           style: "currency",
                           currency: "EUR",
@@ -354,10 +353,10 @@ const SupplierDetail = () => {
                   </div>
                 );
               })}
-              <div className="flex justify-end pt-2 border-t border-zinc-700">
-                <p className="text-sm text-zinc-400">
+              <div className="flex justify-end pt-2 border-t border-border">
+                <p className="text-sm text-muted-foreground">
                   Total:{" "}
-                  <span className="text-white font-semibold">
+                  <span className="text-foreground font-semibold">
                     {totalFaturado.toLocaleString("pt-PT", { style: "currency", currency: "EUR" })}
                   </span>
                 </p>
@@ -369,10 +368,10 @@ const SupplierDetail = () => {
 
       {/* Delete Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar Exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar Exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem a certeza que deseja excluir o fornecedor "{supplier?.nomeEmpresa}"? Esta ação
               não pode ser desfeita.
             </DialogDescription>
@@ -381,7 +380,7 @@ const SupplierDetail = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-600 text-zinc-300 bg-zinc-800 hover:bg-zinc-700"
+              className="text-foreground/90"
             >
               Cancelar
             </Button>

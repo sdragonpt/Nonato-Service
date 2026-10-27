@@ -65,8 +65,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.jsx";
+import { PageHeader } from "../../components/app";
 
-const fieldClass = "bg-zinc-900 border-zinc-700 text-white";
+const fieldClass = "bg-muted/50 border-border text-foreground";
 
 const isLow = (item) => item.minimo > 0 && item.quantidade <= item.minimo;
 
@@ -75,9 +76,9 @@ const isLow = (item) => item.minimo > 0 && item.quantidade <= item.minimo;
 const StockImage = ({ item }) => (
   <div className="relative shrink-0 h-16 w-16">
     <div
-      className={`absolute inset-0 rounded-lg overflow-hidden bg-zinc-900 origin-left ${
+      className={`absolute inset-0 rounded-lg overflow-hidden bg-muted/50 origin-left ${
         item.imagem
-          ? "transition-transform duration-200 ease-out hover:z-30 hover:scale-[3] hover:shadow-2xl hover:ring-1 hover:ring-zinc-600"
+          ? "transition-transform duration-200 ease-out hover:z-30 hover:scale-[3] hover:shadow-2xl hover:ring-1 hover:ring-border"
           : ""
       }`}
     >
@@ -253,7 +254,7 @@ const ItemFormDialog = ({ open, onOpenChange, item, existingCodes }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-800 border-zinc-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar artigo" : "Novo artigo de stock"}</DialogTitle>
         </DialogHeader>
@@ -261,11 +262,11 @@ const ItemFormDialog = ({ open, onOpenChange, item, existingCodes }) => {
         <div className="space-y-4">
           {!isEdit && (
             <div className="space-y-2">
-              <label className="text-sm text-zinc-400">
+              <label className="text-sm text-muted-foreground">
                 Procurar no catálogo HOMAG (preenche código, nome, imagem e categoria)
               </label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   value={catalogTerm}
                   onChange={(e) => setCatalogTerm(e.target.value)}
@@ -274,16 +275,16 @@ const ItemFormDialog = ({ open, onOpenChange, item, existingCodes }) => {
                 />
               </div>
               {catalogResults.length > 0 && (
-                <ul className="rounded-md border border-zinc-700 divide-y divide-zinc-700 max-h-56 overflow-y-auto">
+                <ul className="rounded-md border border-border divide-y divide-border max-h-56 overflow-y-auto">
                   {catalogResults.map((p) => (
                     <li key={p.code}>
                       <button
                         type="button"
                         onClick={() => pickCatalogPart(p)}
-                        className="w-full text-left px-3 py-2 hover:bg-zinc-700 text-sm"
+                        className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
                       >
-                        <span className="text-white">{p.name}</span>
-                        <span className="block text-xs text-zinc-400">{p.code}</span>
+                        <span className="text-foreground">{p.name}</span>
+                        <span className="block text-xs text-muted-foreground">{p.code}</span>
                       </button>
                     </li>
                   ))}
@@ -294,7 +295,7 @@ const ItemFormDialog = ({ open, onOpenChange, item, existingCodes }) => {
 
           {/* Foto */}
           <div className="flex items-center gap-3">
-            <div className="h-24 w-24 shrink-0 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-700">
+            <div className="h-24 w-24 shrink-0 rounded-lg overflow-hidden bg-muted/50 border border-border">
               <PartImage
                 src={photoPreview || form.imagem || null}
                 alt={form.nome}
@@ -305,7 +306,7 @@ const ItemFormDialog = ({ open, onOpenChange, item, existingCodes }) => {
             <div className="flex flex-col gap-2">
               <label className="inline-flex">
                 <input type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-                <span className="inline-flex items-center rounded-md border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm text-white hover:bg-zinc-700 cursor-pointer">
+                <span className="inline-flex items-center rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground hover:bg-accent cursor-pointer">
                   <Camera className="h-4 w-4 mr-2" />
                   {photoPreview || form.imagem ? "Trocar foto" : "Tirar / carregar foto"}
                 </span>
@@ -324,15 +325,15 @@ const ItemFormDialog = ({ open, onOpenChange, item, existingCodes }) => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1 sm:col-span-2">
-              <label className="text-sm text-zinc-400">Nome *</label>
+              <label className="text-sm text-muted-foreground">Nome *</label>
               <Input value={form.nome} onChange={set("nome")} className={fieldClass} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-zinc-400">Código</label>
+              <label className="text-sm text-muted-foreground">Código</label>
               <Input value={form.codigo} onChange={set("codigo")} className={fieldClass} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-zinc-400">Categoria</label>
+              <label className="text-sm text-muted-foreground">Categoria</label>
               <Select
                 value={form.categoryId || NONE}
                 onValueChange={(v) =>
@@ -342,10 +343,10 @@ const ItemFormDialog = ({ open, onOpenChange, item, existingCodes }) => {
                 <SelectTrigger className={fieldClass}>
                   <SelectValue placeholder="Sem categoria" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  <SelectItem value={NONE} className="text-zinc-400">Sem categoria</SelectItem>
+                <SelectContent>
+                  <SelectItem value={NONE} className="text-muted-foreground">Sem categoria</SelectItem>
                   {sortedCategories.map((c) => (
-                    <SelectItem key={c.id} value={c.id} className="text-white">
+                    <SelectItem key={c.id} value={c.id}>
                       {c.name}
                     </SelectItem>
                   ))}
@@ -353,7 +354,7 @@ const ItemFormDialog = ({ open, onOpenChange, item, existingCodes }) => {
               </Select>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-zinc-400">Subcategoria</label>
+              <label className="text-sm text-muted-foreground">Subcategoria</label>
               <Select
                 value={form.subcategoryId || NONE}
                 onValueChange={(v) => setForm((f) => ({ ...f, subcategoryId: v === NONE ? "" : v }))}
@@ -362,10 +363,10 @@ const ItemFormDialog = ({ open, onOpenChange, item, existingCodes }) => {
                 <SelectTrigger className={fieldClass}>
                   <SelectValue placeholder="Sem subcategoria" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  <SelectItem value={NONE} className="text-zinc-400">Sem subcategoria</SelectItem>
+                <SelectContent>
+                  <SelectItem value={NONE} className="text-muted-foreground">Sem subcategoria</SelectItem>
                   {subcategories.map((s) => (
-                    <SelectItem key={s.id} value={s.id} className="text-white">
+                    <SelectItem key={s.id} value={s.id}>
                       {s.name}
                     </SelectItem>
                   ))}
@@ -373,7 +374,7 @@ const ItemFormDialog = ({ open, onOpenChange, item, existingCodes }) => {
               </Select>
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-zinc-400">Localização (prateleira)</label>
+              <label className="text-sm text-muted-foreground">Localização (prateleira)</label>
               <Input
                 value={form.localizacao}
                 onChange={set("localizacao")}
@@ -383,39 +384,39 @@ const ItemFormDialog = ({ open, onOpenChange, item, existingCodes }) => {
             </div>
             {!isEdit && (
               <div className="space-y-1">
-                <label className="text-sm text-zinc-400">Quantidade atual</label>
+                <label className="text-sm text-muted-foreground">Quantidade atual</label>
                 <Input type="number" min="0" value={form.quantidade} onChange={set("quantidade")} className={fieldClass} />
               </div>
             )}
             <div className="space-y-1">
-              <label className="text-sm text-zinc-400">Stock mínimo (alerta)</label>
+              <label className="text-sm text-muted-foreground">Stock mínimo (alerta)</label>
               <Input type="number" min="0" value={form.minimo} onChange={set("minimo")} className={fieldClass} />
             </div>
             <div className="space-y-1 sm:col-span-2">
-              <label className="text-sm text-zinc-400">Notas</label>
+              <label className="text-sm text-muted-foreground">Notas</label>
               <Textarea value={form.notas} onChange={set("notas")} rows={2} className={fieldClass} />
             </div>
           </div>
 
           {isEdit && (
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted-foreground">
               A quantidade muda com Entrada, Saída ou Acerto de inventário, para ficar no histórico.
             </p>
           )}
 
           {error && (
-            <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+            <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-red-400">{error}</AlertDescription>
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-zinc-600 bg-zinc-900 text-white hover:bg-zinc-700">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-green-600 hover:bg-green-700 text-white">
+          <Button onClick={handleSave} disabled={saving}>
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Guardar
           </Button>
@@ -475,19 +476,19 @@ const MoveDialog = ({ open, onOpenChange, item, mode }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-800 border-zinc-700 text-white max-w-md">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{labels.title}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>
             <p className="font-medium">{item.nome}</p>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               {item.codigo && `${item.codigo} · `}Em stock: {item.quantidade}
             </p>
           </div>
           <div className="space-y-1">
-            <label className="text-sm text-zinc-400">{labels.qty}</label>
+            <label className="text-sm text-muted-foreground">{labels.qty}</label>
             <Input
               type="number"
               min="0"
@@ -498,23 +499,23 @@ const MoveDialog = ({ open, onOpenChange, item, mode }) => {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-sm text-zinc-400">
+            <label className="text-sm text-muted-foreground">
               Motivo {mode === "saida" ? "(ex: OS 123, cliente…)" : "(opcional)"}
             </label>
             <Input value={motivo} onChange={(e) => setMotivo(e.target.value)} className={fieldClass} />
           </div>
           {error && (
-            <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+            <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-red-400">{error}</AlertDescription>
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-zinc-600 bg-zinc-900 text-white hover:bg-zinc-700">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-green-600 hover:bg-green-700 text-white">
+          <Button onClick={handleSave} disabled={saving}>
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             {labels.button}
           </Button>
@@ -527,7 +528,7 @@ const MoveDialog = ({ open, onOpenChange, item, mode }) => {
 // ─── Histórico ─────────────────────────────────────────────────────────
 
 const TIPO_LABEL = {
-  criacao: { text: "Criado", cls: "bg-zinc-700 text-zinc-300" },
+  criacao: { text: "Criado", cls: "bg-muted text-foreground/90" },
   entrada: { text: "Entrada", cls: "bg-green-500/15 text-green-400" },
   saida: { text: "Saída", cls: "bg-red-500/15 text-red-400" },
   acerto: { text: "Acerto", cls: "bg-blue-500/15 text-blue-400" },
@@ -551,18 +552,18 @@ const HistoryDialog = ({ open, onOpenChange, item }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-800 border-zinc-700 text-white max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Histórico — {item.nome}</DialogTitle>
         </DialogHeader>
         {moves === null ? (
-          <div className="flex items-center gap-2 text-zinc-400">
+          <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> A carregar…
           </div>
         ) : moves.length === 0 ? (
-          <p className="text-zinc-400">Sem movimentos.</p>
+          <p className="text-muted-foreground">Sem movimentos.</p>
         ) : (
-          <ul className="divide-y divide-zinc-700">
+          <ul className="divide-y divide-border">
             {moves.map((m) => {
               const t = TIPO_LABEL[m.tipo] || TIPO_LABEL.acerto;
               const sign = m.tipo === "saida" ? "−" : m.tipo === "acerto" && m.quantidade < 0 ? "" : "+";
@@ -570,16 +571,16 @@ const HistoryDialog = ({ open, onOpenChange, item }) => {
                 <li key={m.id} className="py-2 text-sm">
                   <div className="flex items-center justify-between gap-2">
                     <Badge className={t.cls}>{t.text}</Badge>
-                    <span className="text-white font-medium">
+                    <span className="text-foreground font-medium">
                       {sign}
                       {m.quantidade} → {m.quantidadeFinal}
                     </span>
                   </div>
-                  <p className="text-zinc-400 mt-1">
+                  <p className="text-muted-foreground mt-1">
                     {m.data ? m.data.toLocaleString("pt-PT") : ""}
                     {m.utilizador && ` · ${m.utilizador}`}
                   </p>
-                  {m.motivo && <p className="text-zinc-300">{m.motivo}</p>}
+                  {m.motivo && <p className="text-foreground/90">{m.motivo}</p>}
                 </li>
               );
             })}
@@ -684,45 +685,43 @@ const ManageStock = () => {
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-green-500/10 rounded-lg">
-            <Boxes className="h-6 w-6 text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white">Stock Interno de Peças</h1>
-            <p className="text-zinc-400">Peças que a Nonato Service tem em armazém.</p>
-          </div>
-        </div>
-        <Button
-          onClick={() => {
-            setEditItem(null);
-            setFormOpen(true);
-          }}
-          className="bg-green-600 hover:bg-green-700 text-white"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Novo artigo
-        </Button>
-      </div>
+      <PageHeader
+        title="Stock Interno de Peças"
+        description="Peças que a Nonato Service tem em armazém."
+        icon={Boxes}
+        actions={
+          <>
+            <Button
+            onClick={() => {
+              setEditItem(null);
+              setFormOpen(true);
+            }}
+           
+          >
+            <Plus className="h-4 w-4" />
+            Novo artigo
+          </Button>
+          </>
+        }
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          ["Artigos", stats.artigos, "text-white"],
-          ["Unidades em stock", stats.unidades, "text-white"],
-          ["Abaixo do mínimo", stats.baixo, stats.baixo ? "text-amber-400" : "text-white"],
-          ["Sem stock", stats.semStock, stats.semStock ? "text-red-400" : "text-white"],
+          ["Artigos", stats.artigos, "text-foreground"],
+          ["Unidades em stock", stats.unidades, "text-foreground"],
+          ["Abaixo do mínimo", stats.baixo, stats.baixo ? "text-amber-400" : "text-foreground"],
+          ["Sem stock", stats.semStock, stats.semStock ? "text-red-400" : "text-foreground"],
         ].map(([label, value, cls]) => (
-          <Card key={label} className="bg-zinc-800 border-zinc-700">
+          <Card key={label}>
             <CardContent className="p-4">
-              <p className="text-sm text-zinc-400">{label}</p>
+              <p className="text-sm text-muted-foreground">{label}</p>
               <p className={`text-2xl font-bold mt-1 ${cls}`}>
                 {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : value.toLocaleString("pt-PT")}
               </p>
@@ -733,7 +732,7 @@ const ManageStock = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_16rem_16rem] gap-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -744,7 +743,7 @@ const ManageStock = () => {
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               aria-label="Limpar pesquisa"
             >
               <X className="h-4 w-4" />
@@ -755,35 +754,35 @@ const ManageStock = () => {
           <SelectTrigger className={fieldClass}>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-zinc-800 border-zinc-700">
-            <SelectItem value="all" className="text-white">Todos os artigos</SelectItem>
-            <SelectItem value="low" className="text-white">Abaixo do mínimo</SelectItem>
-            <SelectItem value="empty" className="text-white">Sem stock</SelectItem>
+          <SelectContent>
+            <SelectItem value="all">Todos os artigos</SelectItem>
+            <SelectItem value="low">Abaixo do mínimo</SelectItem>
+            <SelectItem value="empty">Sem stock</SelectItem>
           </SelectContent>
         </Select>
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
           <SelectTrigger className={fieldClass}>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-zinc-800 border-zinc-700">
-            <SelectItem value="all" className="text-white">Todas as categorias</SelectItem>
+          <SelectContent>
+            <SelectItem value="all">Todas as categorias</SelectItem>
             {sortedCategories.map((c) => (
-              <SelectItem key={c.id} value={c.id} className="text-white">
+              <SelectItem key={c.id} value={c.id}>
                 {c.name}
               </SelectItem>
             ))}
-            <SelectItem value="none" className="text-zinc-400">Sem categoria</SelectItem>
+            <SelectItem value="none" className="text-muted-foreground">Sem categoria</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 text-zinc-400">
+        <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> A carregar stock…
         </div>
       ) : visible.length === 0 ? (
-        <Card className="bg-zinc-800 border-zinc-700">
-          <CardContent className="p-8 text-center text-zinc-400">
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground">
             {items.length === 0
               ? "Ainda não há artigos. Carregue em \"Novo artigo\" para começar."
               : "Nenhum artigo corresponde à pesquisa."}
@@ -792,13 +791,13 @@ const ManageStock = () => {
       ) : (
         <div className="space-y-2">
           {visible.map((item) => (
-            <Card key={item.id} className="bg-zinc-800 border-zinc-700">
+            <Card key={item.id}>
               <CardContent className="p-3">
                 <div className="flex items-center gap-3">
                   <StockImage item={item} />
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-white truncate">{item.nome}</h3>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-400 mt-0.5">
+                    <h3 className="font-semibold text-foreground truncate">{item.nome}</h3>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-0.5">
                       {item.codigo && <span>Código: {item.codigo}</span>}
                       {item.localizacao && (
                         <span className="inline-flex items-center gap-1">
@@ -819,12 +818,12 @@ const ManageStock = () => {
                   <div className="text-center shrink-0 w-16">
                     <p
                       className={`text-2xl font-bold ${
-                        item.quantidade <= 0 ? "text-red-400" : isLow(item) ? "text-amber-400" : "text-white"
+                        item.quantidade <= 0 ? "text-red-400" : isLow(item) ? "text-amber-400" : "text-foreground"
                       }`}
                     >
                       {item.quantidade}
                     </p>
-                    <p className="text-[11px] text-zinc-500">em stock</p>
+                    <p className="text-[11px] text-muted-foreground">em stock</p>
                   </div>
 
                   <div className="flex items-center gap-1 shrink-0">
@@ -847,15 +846,15 @@ const ManageStock = () => {
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-9 w-9 text-white hover:bg-zinc-700">
+                        <Button variant="ghost" size="icon" className="h-9 w-9">
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-zinc-800 border-zinc-700">
-                        <DropdownMenuItem onClick={() => setHistoryItem(item)} className="text-white hover:bg-zinc-700 cursor-pointer">
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setHistoryItem(item)} className="cursor-pointer">
                           <History className="h-4 w-4 mr-2" /> Histórico
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => openMove(item, "acerto")} className="text-white hover:bg-zinc-700 cursor-pointer">
+                        <DropdownMenuItem onClick={() => openMove(item, "acerto")} className="cursor-pointer">
                           <ClipboardCheck className="h-4 w-4 mr-2" /> Acerto de inventário
                         </DropdownMenuItem>
                         <DropdownMenuItem
@@ -863,11 +862,11 @@ const ManageStock = () => {
                             setEditItem(item);
                             setFormOpen(true);
                           }}
-                          className="text-white hover:bg-zinc-700 cursor-pointer"
+                          className="cursor-pointer"
                         >
                           <Pencil className="h-4 w-4 mr-2" /> Editar
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(item)} className="text-red-400 hover:bg-zinc-700 cursor-pointer">
+                        <DropdownMenuItem onClick={() => handleDelete(item)} className="text-red-400 cursor-pointer">
                           <Trash2 className="h-4 w-4 mr-2" /> Apagar
                         </DropdownMenuItem>
                       </DropdownMenuContent>

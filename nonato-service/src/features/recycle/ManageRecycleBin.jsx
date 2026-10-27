@@ -47,6 +47,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+import { PageHeader } from "../../components/app";
 
 const toJsDate = (timestamp) =>
   timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -366,52 +367,46 @@ const ManageRecycleBin = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6 pb-24">
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center">
-          <Trash2 className="h-5 w-5 text-red-500" />
-        </div>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">Reciclagem</h1>
-          <p className="text-sm text-zinc-400">
-            Clientes, ordens e relatórios excluídos, organizados por cliente — restaure ou elimine definitivamente
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Reciclagem"
+        description="Clientes, ordens e relatórios excluídos, organizados por cliente — restaure ou elimine definitivamente"
+        icon={Trash2}
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="pt-6">
           <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Pesquisar por cliente ou item..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-zinc-700 border-zinc-600 text-white placeholder:text-zinc-400"
+              className="pl-10 bg-muted"
             />
           </div>
         </CardContent>
       </Card>
 
       {groupedByClient.length === 0 ? (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="p-8 sm:p-12 text-center">
-            <Trash2 className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2 text-white">A reciclagem está vazia</p>
-            <p className="text-sm text-zinc-400">
+            <Trash2 className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
+            <p className="text-lg font-medium mb-2 text-foreground">A reciclagem está vazia</p>
+            <p className="text-sm text-muted-foreground">
               Clientes, ordens de serviço, inspeções e relatórios excluídos aparecem aqui
             </p>
           </CardContent>
@@ -419,12 +414,12 @@ const ManageRecycleBin = () => {
       ) : (
         <div className="space-y-4">
           {groupedByClient.map((group) => (
-            <Card key={group.clientId || "sem-cliente"} className="bg-zinc-800 border-zinc-700">
+            <Card key={group.clientId || "sem-cliente"}>
               <CardContent className="p-4 space-y-3">
-                <div className="flex items-center gap-2 pb-2 border-b border-zinc-700">
-                  <User className="h-4 w-4 text-zinc-400" />
-                  <span className="text-white font-medium">{group.clientName}</span>
-                  <Badge variant="outline" className="ml-auto text-zinc-400 border-zinc-600">
+                <div className="flex items-center gap-2 pb-2 border-b border-border">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-foreground font-medium">{group.clientName}</span>
+                  <Badge variant="outline" className="ml-auto text-muted-foreground border-border">
                     {group.items.length} item(ns)
                   </Badge>
                 </div>
@@ -432,7 +427,7 @@ const ManageRecycleBin = () => {
                 {group.items.map((item) => (
                   <div
                     key={`${item.collectionName}-${item.id}`}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-zinc-700/30 rounded-lg border border-zinc-600"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-muted/30 rounded-lg border border-border"
                   >
                     <div
                       className="flex items-center gap-2 min-w-0 cursor-pointer"
@@ -448,8 +443,8 @@ const ManageRecycleBin = () => {
                         <ClipboardCheck className="h-4 w-4 text-blue-400 shrink-0" />
                       )}
                       <div className="min-w-0">
-                        <p className="text-white text-sm truncate">{item.label}</p>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-foreground text-sm truncate">{item.label}</p>
+                        <p className="text-xs text-muted-foreground">
                           Excluído em {formatDate(item.eliminadoEm)}
                         </p>
                       </div>
@@ -460,7 +455,7 @@ const ManageRecycleBin = () => {
                         variant="outline"
                         onClick={() => handleRestore(item)}
                         disabled={restoringId === item.id}
-                        className="border-green-600 text-green-400 hover:bg-green-600/10 bg-transparent"
+                        className="border-primary text-green-400 hover:bg-green-600/10"
                       >
                         {restoringId === item.id ? (
                           <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
@@ -473,9 +468,9 @@ const ManageRecycleBin = () => {
                         size="sm"
                         variant="outline"
                         onClick={() => setPermDeleteTarget(item)}
-                        className="border-red-600 text-red-400 hover:bg-red-600/10 bg-transparent"
+                        className="border-red-600 text-red-400 hover:bg-red-600/10"
                       >
-                        <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                        <XCircle className="h-3.5 w-3.5" />
                         Eliminar
                       </Button>
                     </div>
@@ -494,7 +489,7 @@ const ManageRecycleBin = () => {
             variant="outline"
             onClick={loadMore}
             disabled={isLoadingMore}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+            className="gap-2"
           >
             {isLoadingMore ? (
               <>
@@ -512,10 +507,10 @@ const ManageRecycleBin = () => {
       )}
 
       <Dialog open={!!permDeleteTarget} onOpenChange={(open) => !open && setPermDeleteTarget(null)}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Eliminar definitivamente</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Eliminar definitivamente</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem a certeza que deseja eliminar definitivamente &ldquo;{permDeleteTarget?.label}
               &rdquo;? Esta ação não pode ser desfeita.
             </DialogDescription>
@@ -524,7 +519,7 @@ const ManageRecycleBin = () => {
             <Button
               variant="outline"
               onClick={() => setPermDeleteTarget(null)}
-              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700 bg-zinc-800"
+              className="text-foreground/90"
             >
               Cancelar
             </Button>

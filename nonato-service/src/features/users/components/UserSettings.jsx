@@ -7,7 +7,6 @@ import {
 } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowLeft,
   Loader2,
   Save,
   AlertTriangle,
@@ -29,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PageHeader } from "../../../components/app";
 
 const UserSettings = () => {
   const navigate = useNavigate();
@@ -97,55 +97,44 @@ const UserSettings = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Configurações</h1>
-          <p className="text-sm text-zinc-400">
-            Gerencie suas configurações de segurança
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Configurações"
+        description="Gerencie suas configurações de segurança"
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Password Change Card */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-lg text-white">Alterar Senha</CardTitle>
+          <CardTitle className="text-lg">Alterar Senha</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handlePasswordChange} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Senha Atual
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type={showCurrentPassword ? "text" : "password"}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="pl-10 pr-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                  className="pl-10 pr-10"
                   placeholder="Digite sua senha atual"
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-0 top-0 h-full px-3 text-zinc-400 hover:text-white"
+                  className="absolute right-0 top-0 h-full px-3 text-muted-foreground"
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                 >
                   {showCurrentPassword ? (
@@ -158,23 +147,23 @@ const UserSettings = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Nova Senha
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type={showNewPassword ? "text" : "password"}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="pl-10 pr-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                  className="pl-10 pr-10"
                   placeholder="Digite sua nova senha"
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-0 top-0 h-full px-3 text-zinc-400 hover:text-white"
+                  className="absolute right-0 top-0 h-full px-3 text-muted-foreground"
                   onClick={() => setShowNewPassword(!showNewPassword)}
                 >
                   {showNewPassword ? (
@@ -187,23 +176,23 @@ const UserSettings = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Confirmar Nova Senha
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pl-10 pr-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                  className="pl-10 pr-10"
                   placeholder="Confirme sua nova senha"
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-0 top-0 h-full px-3 text-zinc-400 hover:text-white"
+                  className="absolute right-0 top-0 h-full px-3 text-muted-foreground"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   {showConfirmPassword ? (
@@ -218,7 +207,7 @@ const UserSettings = () => {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-green-600 hover:bg-green-700"
+              className="w-full"
             >
               {isSubmitting ? (
                 <>
@@ -238,22 +227,22 @@ const UserSettings = () => {
 
       {/* ReAuthentication Dialog */}
       <Dialog open={reAuthDialogOpen} onOpenChange={setReAuthDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-foreground">
               Confirmar Identidade
             </DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription className="text-muted-foreground">
               Por favor, insira sua senha atual para continuar.
             </DialogDescription>
           </DialogHeader>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="password"
               value={reAuthPassword}
               onChange={(e) => setReAuthPassword(e.target.value)}
-              className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+              className="pl-10"
               placeholder="Sua senha atual"
             />
           </div>
@@ -261,13 +250,13 @@ const UserSettings = () => {
             <Button
               variant="outline"
               onClick={() => setReAuthDialogOpen(false)}
-              className="border-zinc-700 text-white bg-zinc-800 hover:bg-zinc-700"
+             
             >
               Cancelar
             </Button>
             <Button
               onClick={handlePasswordChange}
-              className="bg-green-600 hover:bg-green-700"
+             
               disabled={isSubmitting}
             >
               Confirmar

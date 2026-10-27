@@ -72,8 +72,8 @@ export const ClientCombobox = ({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            "w-full justify-between bg-zinc-900 border-zinc-700 text-white font-normal hover:bg-zinc-900 hover:text-white",
-            !selectedClient && "text-zinc-500",
+            "w-full justify-between bg-muted/50 border-border text-foreground font-normal hover:bg-white/5 hover:text-foreground",
+            !selectedClient && "text-muted-foreground",
             className
           )}
         >
@@ -82,7 +82,7 @@ export const ClientCombobox = ({
               <>
                 <Avatar className="h-5 w-5 shrink-0">
                   <AvatarImage src={selectedClient.profilePic} alt={selectedClient.name} />
-                  <AvatarFallback className="bg-zinc-700 text-zinc-300 text-[10px]">
+                  <AvatarFallback className="bg-muted text-foreground/90 text-[10px]">
                     {getInitials(selectedClient.name)}
                   </AvatarFallback>
                 </Avatar>
@@ -90,7 +90,7 @@ export const ClientCombobox = ({
               </>
             ) : (
               <>
-                <User className="h-4 w-4 shrink-0 text-zinc-500" />
+                <User className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <span className="truncate">
                   {isNoneSelected ? noneLabel : placeholder}
                 </span>
@@ -102,17 +102,17 @@ export const ClientCombobox = ({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-[--radix-popover-trigger-width] p-0 bg-zinc-800 border-zinc-700 text-white"
+        className="w-[--radix-popover-trigger-width] p-0 text-foreground"
       >
-        <Command shouldFilter={false} className="bg-zinc-800">
+        <Command shouldFilter={false} className="bg-card">
           <CommandInput
             placeholder="Pesquisar cliente por nome ou telefone..."
             value={search}
             onValueChange={setSearch}
-            className="text-white placeholder:text-zinc-500"
+            className="text-foreground placeholder:text-muted-foreground"
           />
           <CommandList>
-            <CommandEmpty className="py-4 text-sm text-zinc-400">
+            <CommandEmpty className="py-4 text-sm text-muted-foreground">
               Nenhum cliente encontrado
             </CommandEmpty>
             <CommandGroup>
@@ -124,7 +124,7 @@ export const ClientCombobox = ({
                     setSearch("");
                     setOpen(false);
                   }}
-                  className="text-zinc-400 aria-selected:bg-zinc-700 aria-selected:text-white cursor-pointer"
+                  className="text-muted-foreground aria-selected:bg-accent aria-selected:text-foreground cursor-pointer"
                 >
                   <Ban className="h-4 w-4 shrink-0" />
                   <span className="flex-1">{noneLabel}</span>
@@ -145,18 +145,18 @@ export const ClientCombobox = ({
                     setSearch("");
                     setOpen(false);
                   }}
-                  className="text-white aria-selected:bg-zinc-700 aria-selected:text-white cursor-pointer"
+                  className="text-foreground aria-selected:bg-accent aria-selected:text-foreground cursor-pointer"
                 >
                   <Avatar className="h-6 w-6 shrink-0">
                     <AvatarImage src={client.profilePic} alt={client.name} />
-                    <AvatarFallback className="bg-zinc-700 text-zinc-300 text-[10px]">
+                    <AvatarFallback className="bg-muted text-foreground/90 text-[10px]">
                       {getInitials(client.name)}
                     </AvatarFallback>
                   </Avatar>
                   <span className="flex-1 min-w-0">
                     <span className="block truncate">{client.name}</span>
                     {client.phone && (
-                      <span className="block truncate text-xs text-zinc-400">
+                      <span className="block truncate text-xs text-muted-foreground">
                         {client.phone}
                       </span>
                     )}

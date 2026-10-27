@@ -25,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+import { PageHeader } from "../../components/app";
 
 const STATUS_META = {
   rascunho: { label: "Rascunho", className: "bg-yellow-500/20 text-yellow-400" },
@@ -85,55 +86,55 @@ const ManageOrdensPreparacao = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6 pb-24">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">Ordens de Preparação</h1>
-          <p className="text-sm text-zinc-400">
-            Formulários técnicos de preparação pré-instalação (Código SME_UP)
-          </p>
-        </div>
-        <Button
-          onClick={() => navigate("/app/add-ordem-preparacao")}
-          className="bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Ordem
-        </Button>
-      </div>
+      <PageHeader
+        title="Ordens de Preparação"
+        description="Formulários técnicos de preparação pré-instalação (Código SME_UP)"
+        actions={
+          <>
+            <Button
+            onClick={() => navigate("/app/add-ordem-preparacao")}
+           
+          >
+            <Plus className="w-4 h-4" />
+            Nova Ordem
+          </Button>
+          </>
+        }
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="pt-6">
           <div className="relative w-full sm:w-96">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Pesquisar por código SME_UP, cliente ou técnico..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-zinc-700 border-zinc-600 text-white placeholder:text-zinc-400"
+              className="pl-10 bg-muted"
             />
           </div>
         </CardContent>
       </Card>
 
       {filtered.length === 0 ? (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="p-8 sm:p-12 text-center">
-            <ClipboardList className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2 text-white">
+            <ClipboardList className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
+            <p className="text-lg font-medium mb-2 text-foreground">
               {searchTerm ? "Nenhuma ordem encontrada" : "Nenhuma ordem de preparação criada"}
             </p>
           </CardContent>
@@ -146,15 +147,15 @@ const ManageOrdensPreparacao = () => {
               <Card
                 key={order.id}
                 onClick={() => navigate(`/app/ordem-preparacao/${order.id}`)}
-                className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+                className="hover:bg-accent transition-colors cursor-pointer"
               >
                 <CardContent className="p-4 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-white font-medium truncate">
+                      <p className="text-foreground font-medium truncate">
                         SME_UP {order.codigoSmeUp}
                       </p>
-                      <p className="text-sm text-zinc-400 truncate">
+                      <p className="text-sm text-muted-foreground truncate">
                         {order.descricao || "Sem descrição"}
                       </p>
                     </div>
@@ -171,7 +172,7 @@ const ManageOrdensPreparacao = () => {
                     </Button>
                   </div>
                   <Badge className={meta.className}>{meta.label}</Badge>
-                  <div className="text-xs text-zinc-500 space-y-0.5 pt-1">
+                  <div className="text-xs text-muted-foreground space-y-0.5 pt-1">
                     {order.clientName && <p>Cliente: {order.clientName}</p>}
                     {order.tecnicoResponsavelNome && (
                       <p>Técnico: {order.tecnicoResponsavelNome}</p>
@@ -185,10 +186,10 @@ const ManageOrdensPreparacao = () => {
       )}
 
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar Exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar Exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem a certeza que deseja excluir a ordem de preparação &ldquo;SME_UP{" "}
               {deleteTarget?.codigoSmeUp}&rdquo;? Esta ação não pode ser desfeita.
             </DialogDescription>
@@ -197,7 +198,7 @@ const ManageOrdensPreparacao = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteTarget(null)}
-              className="border-zinc-600 text-zinc-300 hover:bg-zinc-700 bg-zinc-800"
+              className="text-foreground/90"
             >
               Cancelar
             </Button>
@@ -212,7 +213,7 @@ const ManageOrdensPreparacao = () => {
         <Button
           onClick={() => navigate("/app/add-ordem-preparacao")}
           size="icon"
-          className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
+          className="rounded-full shadow-lg"
         >
           <Plus className="h-5 w-5" />
         </Button>

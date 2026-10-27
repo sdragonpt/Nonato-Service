@@ -3,7 +3,6 @@ import { doc, setDoc, getDoc, getDocs, collection, increment } from "firebase/fi
 import { db } from "../../../firebase.jsx";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowLeft,
   Loader2,
   Plus,
   Trash2,
@@ -32,6 +31,7 @@ import {
 } from "@/components/ui/select.jsx";
 
 import ChecklistTypeSelector from "./ChecklistTypeSelector";
+import { PageHeader } from "../../../components/app";
 
 const AddChecklistType = () => {
   const navigate = useNavigate();
@@ -335,46 +335,31 @@ const AddChecklistType = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <ListChecks className="h-5 w-5 text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">Novo Checklist</h1>
-            <p className="text-sm text-zinc-400">
-              Adicione um novo tipo de checklist ao sistema
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Novo Checklist"
+        description="Adicione um novo tipo de checklist ao sistema"
+        icon={ListChecks}
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Checklist Name Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">
+            <CardTitle className="text-lg">
               Informações Básicas
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">
+              <label className="text-sm font-medium text-muted-foreground">
                 Nome do Checklist
               </label>
               <Input
@@ -384,7 +369,7 @@ const AddChecklistType = () => {
                 onChange={handleChange}
                 onBlur={() => handleBlur("type")}
                 placeholder="Ex: Checklist de Manutenção de Impressoras"
-                className="bg-zinc-900 border-zinc-700 text-white"
+               
               />
             </div>
           </CardContent>
@@ -398,16 +383,16 @@ const AddChecklistType = () => {
         />
 
         {/* Família / Grupo de Equipamento */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2">
               <Layers className="w-5 h-5" />
               Família / Grupo de Equipamento (opcional)
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Família</label>
+              <label className="text-sm font-medium text-muted-foreground">Família</label>
               <Select
                 value={formData.familyId || "none"}
                 onValueChange={(value) =>
@@ -418,18 +403,18 @@ const AddChecklistType = () => {
                   }))
                 }
               >
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger>
                   <SelectValue placeholder="Sem família" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  <SelectItem value="none" className="text-white hover:bg-zinc-700">
+                <SelectContent>
+                  <SelectItem value="none">
                     Sem família
                   </SelectItem>
                   {families.map((family) => (
                     <SelectItem
                       key={family.id}
                       value={family.id}
-                      className="text-white hover:bg-zinc-700"
+                     
                     >
                       {family.name}
                     </SelectItem>
@@ -440,7 +425,7 @@ const AddChecklistType = () => {
 
             {formData.familyId && groupsForFamily.length > 0 && (
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Grupo</label>
+                <label className="text-sm font-medium text-muted-foreground">Grupo</label>
                 <Select
                   value={formData.groupId || "none"}
                   onValueChange={(value) =>
@@ -450,18 +435,18 @@ const AddChecklistType = () => {
                     }))
                   }
                 >
-                  <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                  <SelectTrigger>
                     <SelectValue placeholder="Sem grupo" />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
-                    <SelectItem value="none" className="text-white hover:bg-zinc-700">
+                  <SelectContent>
+                    <SelectItem value="none">
                       Sem grupo
                     </SelectItem>
                     {groupsForFamily.map((group) => (
                       <SelectItem
                         key={group.id}
                         value={group.id}
-                        className="text-white hover:bg-zinc-700"
+                       
                       >
                         {group.name}
                       </SelectItem>
@@ -476,9 +461,9 @@ const AddChecklistType = () => {
         {/* Groups Section */}
         <div className="space-y-4">
           {formData.groups.map((group, groupIndex) => (
-            <Card key={groupIndex} className="bg-zinc-800 border-zinc-700">
+            <Card key={groupIndex}>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg text-white">
+                <CardTitle className="text-lg">
                   Grupo {groupIndex + 1}
                 </CardTitle>
                 {formData.groups.length > 1 && (
@@ -487,7 +472,7 @@ const AddChecklistType = () => {
                     variant="ghost"
                     size="icon"
                     onClick={() => removeGroup(groupIndex)}
-                    className="text-red-400 hover:text-red-300 hover:bg-zinc-700"
+                    className="text-red-400 hover:text-red-300"
                   >
                     <Trash2 className="w-5 h-5" />
                   </Button>
@@ -495,7 +480,7 @@ const AddChecklistType = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400">
+                  <label className="text-sm font-medium text-muted-foreground">
                     Nome do Grupo
                   </label>
                   <Input
@@ -506,13 +491,13 @@ const AddChecklistType = () => {
                     }
                     onBlur={() => handleGroupBlur(groupIndex)}
                     placeholder="Ex: Verificação Inicial"
-                    className="bg-zinc-900 border-zinc-700 text-white"
+                   
                   />
                 </div>
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-zinc-400">
+                    <label className="text-sm font-medium text-muted-foreground">
                       Características
                     </label>
                     <Button
@@ -520,9 +505,9 @@ const AddChecklistType = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => addCharacteristic(groupIndex)}
-                      className="border-zinc-700 text-white hover:text-white bg-zinc-600 hover:bg-zinc-700"
+                      className="bg-accent"
                     >
-                      <Plus className="w-4 h-4 mr-2" />
+                      <Plus className="w-4 h-4" />
                       Adicionar
                     </Button>
                   </div>
@@ -543,7 +528,7 @@ const AddChecklistType = () => {
                           handleCharacteristicBlur(groupIndex, charIndex)
                         }
                         placeholder={`Característica ${charIndex + 1}`}
-                        className="bg-zinc-900 border-zinc-700 text-white"
+                       
                       />
                       {group.characteristics.length > 1 && (
                         <Button
@@ -553,7 +538,7 @@ const AddChecklistType = () => {
                           onClick={() =>
                             removeCharacteristic(groupIndex, charIndex)
                           }
-                          className="text-red-400 hover:text-red-300 hover:bg-zinc-700"
+                          className="text-red-400 hover:text-red-300"
                         >
                           <Trash2 className="w-5 h-5" />
                         </Button>
@@ -569,9 +554,9 @@ const AddChecklistType = () => {
             type="button"
             variant="outline"
             onClick={addGroup}
-            className="w-full border-zinc-700 text-white hover:text-white bg-zinc-600 hover:bg-zinc-700"
+            className="w-full bg-accent"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4" />
             Adicionar Novo Grupo
           </Button>
         </div>
@@ -580,7 +565,7 @@ const AddChecklistType = () => {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-green-600 hover:bg-green-700"
+          className="w-full"
         >
           {isSubmitting ? (
             <>

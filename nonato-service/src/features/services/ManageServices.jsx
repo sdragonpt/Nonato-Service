@@ -54,6 +54,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+import { PageHeader } from "../../components/app";
 
 const ManageServices = () => {
   const [services, setServices] = useState([]);
@@ -204,7 +205,7 @@ const ManageServices = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -212,33 +213,31 @@ const ManageServices = () => {
   return (
     <div className="space-y-6 pb-32">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Gerenciar Serviços
-          </h1>
-          <p className="text-sm sm:text-base text-zinc-400">
-            Gerencie todos os seus serviços em um só lugar
-          </p>
-        </div>
-        <Button
-          onClick={() => navigate("/app/add-service")}
-          className="hidden sm:flex bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Serviço
-        </Button>
-      </div>
+      <PageHeader
+        title="Gerenciar Serviços"
+        description="Gerencie todos os seus serviços em um só lugar"
+        actions={
+          <>
+            <Button
+            onClick={() => navigate("/app/add-service")}
+            className="hidden sm:flex"
+          >
+            <Plus className="w-4 h-4" />
+            Novo Serviço
+          </Button>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">
+              <p className="text-sm font-medium text-muted-foreground">
                 Total de Serviços
               </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {services.length}
               </h3>
             </div>
@@ -246,11 +245,11 @@ const ManageServices = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Por Hora</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <p className="text-sm font-medium text-muted-foreground">Por Hora</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {services.filter((service) => service.type === "hour").length}
               </h3>
             </div>
@@ -258,11 +257,11 @@ const ManageServices = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardContent className="flex items-center justify-between p-4 sm:p-6">
             <div>
-              <p className="text-sm font-medium text-zinc-400">Valor Base</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+              <p className="text-sm font-medium text-muted-foreground">Valor Base</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                 {services.filter((service) => service.type === "base").length}
               </h3>
             </div>
@@ -272,35 +271,35 @@ const ManageServices = () => {
       </div>
 
       {/* Filters Card */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="space-y-4 p-4 sm:p-6">
           {/* Search */}
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar serviços..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+              className="pl-10 w-full"
             />
           </div>
 
           {/* Grupo */}
           <div className="flex flex-col sm:flex-row gap-2">
             <Select value={filterGroup} onValueChange={setFilterGroup}>
-              <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+              <SelectTrigger>
                 <SelectValue placeholder="Filtrar por grupo" />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700">
-                <SelectItem value="all" className="text-white hover:bg-zinc-700">
+              <SelectContent>
+                <SelectItem value="all">
                   Todos os grupos
                 </SelectItem>
                 {groups.map((g) => (
-                  <SelectItem key={g.id} value={g.id} className="text-white hover:bg-zinc-700">
+                  <SelectItem key={g.id} value={g.id}>
                     {g.nome}
                   </SelectItem>
                 ))}
-                <SelectItem value="none" className="text-zinc-400 hover:bg-zinc-700">
+                <SelectItem value="none" className="text-muted-foreground">
                   Sem grupo
                 </SelectItem>
               </SelectContent>
@@ -308,9 +307,9 @@ const ManageServices = () => {
             <Button
               variant="outline"
               onClick={() => setManageGroupsOpen(true)}
-              className="border-zinc-700 bg-zinc-900 text-white hover:bg-zinc-700 shrink-0"
+              className="shrink-0"
             >
-              <FolderCog className="w-4 h-4 mr-2" />
+              <FolderCog className="w-4 h-4" />
               Gerir grupos
             </Button>
           </div>
@@ -318,57 +317,57 @@ const ManageServices = () => {
           {/* Filters Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+              <SelectTrigger>
                 <SelectValue placeholder="Filtrar por tipo" />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700">
+              <SelectContent>
                 <SelectItem
                   value="all"
-                  className="text-white hover:bg-zinc-700"
+                 
                 >
                   Todos
                 </SelectItem>
                 <SelectItem
                   value="base"
-                  className="text-white hover:bg-zinc-700"
+                 
                 >
                   Valor Base
                 </SelectItem>
                 <SelectItem
                   value="hour"
-                  className="text-white hover:bg-zinc-700"
+                 
                 >
                   Por Hora
                 </SelectItem>
                 <SelectItem
                   value="day"
-                  className="text-white hover:bg-zinc-700"
+                 
                 >
                   Por Dia
                 </SelectItem>
-                <SelectItem value="km" className="text-white hover:bg-zinc-700">
+                <SelectItem value="km">
                   Por Km
                 </SelectItem>
-                <SelectItem value="un" className="text-white hover:bg-zinc-700">
+                <SelectItem value="un">
                   Despesa
                 </SelectItem>
               </SelectContent>
             </Select>
 
             <Select value={sortField} onValueChange={setSortField}>
-              <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+              <SelectTrigger>
                 <SelectValue placeholder="Ordenar por" />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700">
+              <SelectContent>
                 <SelectItem
                   value="name"
-                  className="text-white hover:bg-zinc-700"
+                 
                 >
                   Nome
                 </SelectItem>
                 <SelectItem
                   value="type"
-                  className="text-white hover:bg-zinc-700"
+                 
                 >
                   Tipo
                 </SelectItem>
@@ -383,12 +382,12 @@ const ManageServices = () => {
               onClick={() =>
                 setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
               }
-              className="w-full sm:w-auto gap-2 text-white border-zinc-700 hover:bg-zinc-700 bg-green-600"
+              className="w-full sm:w-auto gap-2 bg-primary"
             >
               <ArrowUpDown className="w-4 h-4" />
               <span>{sortOrder === "asc" ? "Crescente" : "Decrescente"}</span>
             </Button>
-            <span className="text-center sm:text-right text-sm text-zinc-400">
+            <span className="text-center sm:text-right text-sm text-muted-foreground">
               A mostrar {currentServices.length} de {filteredServices.length} serviço(s)
             </span>
           </div>
@@ -396,10 +395,10 @@ const ManageServices = () => {
           {error && (
             <Alert
               variant="destructive"
-              className="border-red-500 bg-red-500/10"
+             
             >
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-red-400">
+              <AlertDescription>
                 {error}
               </AlertDescription>
             </Alert>
@@ -415,9 +414,9 @@ const ManageServices = () => {
             const csvContent = convertToCSV(sortedServices);
             downloadCSV(csvContent, "servicos.csv");
           }}
-          className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
+          className="bg-accent"
         >
-          <Download className="w-4 h-4 mr-2" />
+          <Download className="w-4 h-4" />
           Exportar CSV
         </Button>
       </div>
@@ -431,25 +430,25 @@ const ManageServices = () => {
           return (
           <Fragment key={service.id}>
           {startsGroup && (
-            <h2 className="md:col-span-2 lg:col-span-3 flex items-center gap-2 pt-2 text-sm font-semibold uppercase tracking-wide text-zinc-400">
+            <h2 className="md:col-span-2 lg:col-span-3 flex items-center gap-2 pt-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               <Folder className="h-4 w-4" />
               {groupName || "Sem grupo"}
             </h2>
           )}
           <Card
-            className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-default"
+            className="hover:bg-accent transition-colors cursor-default"
           >
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-green-600 flex items-center justify-center">
-                  <Wrench className="w-5 h-5 text-white" />
+                <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
+                  <Wrench className="w-5 h-5 text-foreground" />
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-lg text-white truncate">
+                  <h3 className="font-semibold text-lg text-foreground truncate">
                     {service.name}
                   </h3>
-                  <p className="text-zinc-400 text-sm">
+                  <p className="text-muted-foreground text-sm">
                     {getTypeLabel(service.type)}
                   </p>
                 </div>
@@ -462,7 +461,7 @@ const ManageServices = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="rounded-full hover:bg-zinc-700 text-white"
+                      className="rounded-full"
                     >
                       <MoreVertical className="h-4 w-4" />
                     </Button>
@@ -470,19 +469,18 @@ const ManageServices = () => {
                   <DropdownMenuContent
                     align="end"
                     onClick={(e) => e.stopPropagation()}
-                    className="bg-zinc-800 border-zinc-700"
                   >
                     <DropdownMenuItem
                       onClick={() =>
                         navigate(`/app/edit-service/${service.id}`)
                       }
-                      className="text-white hover:bg-zinc-700 cursor-pointer"
+                      className="cursor-pointer"
                     >
                       <Edit2 className="w-4 h-4 mr-2" />
                       Editar
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
+                      className="text-red-400 focus:text-red-400 cursor-pointer"
                       onClick={(e) => confirmDelete(service, e)}
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
@@ -498,13 +496,13 @@ const ManageServices = () => {
         })}
 
         {filteredServices.length === 0 && (
-          <Card className="md:col-span-2 lg:col-span-3 bg-zinc-800 border-zinc-700">
+          <Card className="md:col-span-2 lg:col-span-3">
             <CardContent className="p-8 sm:p-12 text-center">
-              <Search className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
-              <p className="text-lg font-medium mb-2 text-white">
+              <Search className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
+              <p className="text-lg font-medium mb-2 text-foreground">
                 Nenhum serviço encontrado
               </p>
-              <p className="text-sm sm:text-base text-zinc-400">
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Tente ajustar seus filtros ou adicione um novo serviço
               </p>
             </CardContent>
@@ -518,7 +516,7 @@ const ManageServices = () => {
           <Button
             variant="outline"
             onClick={loadMoreVisible}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+            className="gap-2"
           >
             <ArrowDown className="h-4 w-4" />
             Carregar mais
@@ -528,12 +526,12 @@ const ManageServices = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem certeza que deseja excluir o serviço{" "}
-              <span className="font-semibold text-white">
+              <span className="font-semibold text-foreground">
                 {serviceToDelete?.name}
               </span>
               ? Esta ação não pode ser desfeita.
@@ -543,7 +541,7 @@ const ManageServices = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
@@ -574,14 +572,14 @@ const ManageServices = () => {
             downloadCSV(csvContent, "servicos.csv");
           }}
           size="icon"
-          className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
+          className="rounded-full shadow-lg bg-muted hover:bg-accent"
         >
           <Download className="h-5 w-5" />
         </Button>
         <Button
           onClick={() => navigate("/app/add-service")}
           size="icon"
-          className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
+          className="rounded-full shadow-lg"
         >
           <Plus className="h-5 w-5" />
         </Button>

@@ -14,7 +14,6 @@ import {
   Clock,
   FileText,
   Save,
-  ArrowLeft,
   Loader2,
   AlertTriangle,
   Timer,
@@ -58,14 +57,15 @@ import {
   minutesToTime,
   timeToMinutes,
 } from "../utils/agendaConflicts.js";
+import { PageHeader } from "../../../components/app";
 
 // ✅ Bloco reutilizável "label + ícone + campo" — mesmo padrão do
 // AddAgendamento.jsx/AddOrder.jsx.
 const FieldLabel = ({ label, icon: Icon, children }) => (
   <div className="space-y-1">
-    <label className="block text-sm font-medium text-zinc-400 mb-1">{label}</label>
+    <label className="block text-sm font-medium text-muted-foreground mb-1">{label}</label>
     <div className="relative">
-      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       {children}
     </div>
   </div>
@@ -248,7 +248,7 @@ const EditAgendamento = () => {
   if (isLoading || isSaving || isDateLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -256,40 +256,25 @@ const EditAgendamento = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <ClipboardEdit className="h-5 w-5 text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">Editar Agendamento</h1>
-            <p className="text-sm text-zinc-400">
-              Atualize as informações do agendamento
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Editar Agendamento"
+        description="Atualize as informações do agendamento"
+        icon={ClipboardEdit}
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Date and Time Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Data e Hora</CardTitle>
+            <CardTitle className="text-lg">Data e Hora</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -297,11 +282,11 @@ const EditAgendamento = () => {
                 <Input
                   type="date"
                   value={selectedDates[0]}
-                  className="pl-10 bg-zinc-900/50 border-zinc-700 text-zinc-400 cursor-not-allowed"
+                  className="pl-10 bg-background/50 text-muted-foreground cursor-not-allowed"
                   disabled
                 />
               </FieldLabel>
-              <p className="text-sm text-zinc-500 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 A data não pode ser alterada após o agendamento
               </p>
             </div>
@@ -312,7 +297,7 @@ const EditAgendamento = () => {
                 name="hora"
                 value={formData.hora}
                 onChange={handleChange}
-                className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                className="pl-10"
                 required
               />
             </FieldLabel>
@@ -320,15 +305,15 @@ const EditAgendamento = () => {
         </Card>
 
         {/* Client and Service Details Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">
+            <CardTitle className="text-lg">
               Detalhes do Agendamento
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1">
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
                 Cliente
               </label>
               <ClientCombobox
@@ -348,15 +333,15 @@ const EditAgendamento = () => {
                 }
                 disabled={!formData.clientId}
               >
-                <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger className="w-full pl-10">
                   <SelectValue placeholder="Selecione um equipamento" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectContent>
                   {filteredEquipments.map((equipment) => (
                     <SelectItem
                       key={equipment.id}
                       value={equipment.id}
-                      className="text-white hover:bg-zinc-700"
+                     
                     >
                       {equipment.brand} - {equipment.model}
                     </SelectItem>
@@ -372,7 +357,7 @@ const EditAgendamento = () => {
                 value={formData.tipoServico}
                 onChange={handleChange}
                 placeholder="Descreva o tipo de serviço"
-                className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                className="pl-10"
                 required
               />
             </FieldLabel>
@@ -388,18 +373,18 @@ const EditAgendamento = () => {
                     }))
                   }
                 >
-                  <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                  <SelectTrigger className="w-full pl-10">
                     <SelectValue placeholder="Por atribuir" />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
-                    <SelectItem value="none" className="text-white hover:bg-zinc-700">
+                  <SelectContent>
+                    <SelectItem value="none">
                       Por atribuir
                     </SelectItem>
                     {staffUsers.map((user) => (
                       <SelectItem
                         key={user.id}
                         value={user.id}
-                        className="text-white hover:bg-zinc-700"
+                       
                       >
                         {user.displayName || user.email}
                       </SelectItem>
@@ -417,11 +402,11 @@ const EditAgendamento = () => {
                     name="duracaoMinutos"
                     value={formData.duracaoMinutos}
                     onChange={handleChange}
-                    className="pl-10 bg-zinc-900 border-zinc-700 text-white"
+                    className="pl-10"
                   />
                 </FieldLabel>
                 {formData.hora && (
-                  <p className="text-xs text-zinc-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Termina às{" "}
                     {minutesToTime(
                       timeToMinutes(formData.hora) +
@@ -435,9 +420,9 @@ const EditAgendamento = () => {
         </Card>
 
         {/* Priority and Status Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">
+            <CardTitle className="text-lg">
               Prioridade e Status
             </CardTitle>
           </CardHeader>
@@ -449,25 +434,25 @@ const EditAgendamento = () => {
                   setFormData((prev) => ({ ...prev, prioridade: value }))
                 }
               >
-                <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger className="w-full pl-10">
                   <SelectValue placeholder="Selecione a prioridade" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectContent>
                   <SelectItem
                     value="baixa"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Baixa
                   </SelectItem>
                   <SelectItem
                     value="normal"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Normal
                   </SelectItem>
                   <SelectItem
                     value="alta"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Alta
                   </SelectItem>
@@ -482,25 +467,25 @@ const EditAgendamento = () => {
                   setFormData((prev) => ({ ...prev, status: value }))
                 }
               >
-                <SelectTrigger className="w-full pl-10 bg-zinc-900 border-zinc-700 text-white">
+                <SelectTrigger className="w-full pl-10">
                   <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
+                <SelectContent>
                   <SelectItem
                     value="agendado"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Agendado
                   </SelectItem>
                   <SelectItem
                     value="confirmado"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Confirmado
                   </SelectItem>
                   <SelectItem
                     value="cancelado"
-                    className="text-white hover:bg-zinc-700"
+                   
                   >
                     Cancelado
                   </SelectItem>
@@ -511,9 +496,9 @@ const EditAgendamento = () => {
         </Card>
 
         {/* Notes Card */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Observações</CardTitle>
+            <CardTitle className="text-lg">Observações</CardTitle>
           </CardHeader>
           <CardContent>
             <textarea
@@ -522,7 +507,7 @@ const EditAgendamento = () => {
               onChange={handleChange}
               rows="4"
               placeholder="Adicione observações importantes"
-              className="w-full p-3 bg-zinc-900 text-white rounded-lg border border-zinc-700 focus:ring-2 focus:ring-green-500 focus:outline-none resize-none placeholder:text-zinc-500"
+              className="w-full p-3 bg-muted/50 text-foreground rounded-lg border border-border focus:ring-2 focus:ring-ring focus:outline-none resize-none placeholder:text-muted-foreground"
             />
           </CardContent>
         </Card>
@@ -531,7 +516,7 @@ const EditAgendamento = () => {
         <Button
           type="submit"
           disabled={isSaving}
-          className="w-full bg-green-600 hover:bg-green-700"
+          className="w-full"
         >
           {isSaving ? (
             <>
@@ -552,13 +537,13 @@ const EditAgendamento = () => {
 
       {/* Conflito de Horário */}
       <Dialog open={conflictDialogOpen} onOpenChange={setConflictDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
+            <DialogTitle className="text-foreground flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-yellow-500" />
               Conflito de horário
             </DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription className="text-muted-foreground">
               {formData.tecnicoId
                 ? "Este técnico já tem "
                 : "Já existe "}
@@ -570,12 +555,12 @@ const EditAgendamento = () => {
             {conflicts.map((c) => (
               <div
                 key={c.id}
-                className="p-3 bg-zinc-700/50 rounded-lg border border-zinc-600 text-sm"
+                className="p-3 bg-muted/50 rounded-lg border border-border text-sm"
               >
-                <p className="text-white font-medium">
+                <p className="text-foreground font-medium">
                   {c.data} às {c.hora} ({c.duracaoMinutos || DEFAULT_DURATION_MINUTES} min)
                 </p>
-                <p className="text-zinc-400">{c.tipoServico || "Sem descrição"}</p>
+                <p className="text-muted-foreground">{c.tipoServico || "Sem descrição"}</p>
               </div>
             ))}
           </div>
@@ -583,7 +568,7 @@ const EditAgendamento = () => {
             <Button
               variant="outline"
               onClick={() => setConflictDialogOpen(false)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Alterar horário
             </Button>

@@ -99,7 +99,7 @@ const PendingRow = ({ appointment, clientName, equipmentName, position, busy, on
           onClick={() => onConfirm(appointment, false)}
           className="border border-red-500/40 bg-red-500/15 text-red-400 hover:bg-red-500/30"
         >
-          <X className="h-4 w-4 mr-1" />
+          <X className="h-4 w-4" />
           Não realizado
         </Button>
       </div>
@@ -215,7 +215,7 @@ const PendingWorkConfirmation = () => {
     <>
       <Card className="border-warning/40">
         <CardHeader className="pb-2">
-          <CardTitle className="text-foreground flex items-center text-base">
+          <CardTitle className="flex items-center text-base">
             <AlertCircle className="h-4 w-4 mr-2 text-amber-400" />
             Serviços por confirmar
             <Badge variant="outline" className="ml-auto border-amber-500/40 text-amber-300">

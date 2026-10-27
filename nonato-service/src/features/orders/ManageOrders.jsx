@@ -67,6 +67,7 @@ import {
   AvatarImage,
   AvatarFallback,
 } from "@/components/ui/avatar.jsx";
+import { PageHeader } from "../../components/app";
 
 const PAGE_SIZE = 10;
 const MAX_AUTO_LOADS = 15; // salvaguarda: nº máx. de lotes extra a carregar automaticamente ao pesquisar/filtrar
@@ -82,7 +83,7 @@ const OrderRow = ({ order, client, equipment, onDelete, onEdit, navigate }) => {
 
   return (
     <TableRow
-      className="hover:bg-zinc-700/50 border-zinc-700 cursor-pointer"
+      className="hover:bg-white/5 border-border cursor-pointer"
       onClick={(e) => {
         if (!e.defaultPrevented) navigate(`/app/order-detail/${order.id}`);
       }}
@@ -101,22 +102,22 @@ const OrderRow = ({ order, client, equipment, onDelete, onEdit, navigate }) => {
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0">
-            <p className="text-white font-medium truncate">
+            <p className="text-foreground font-medium truncate">
               {client?.name || order.clientName || "Cliente não encontrado"}
             </p>
-            <p className="text-xs text-zinc-500 font-mono">
+            <p className="text-xs text-muted-foreground font-mono">
               {order.orderNumber || `OS-${order.id}`}
             </p>
           </div>
         </div>
       </TableCell>
-      <TableCell className="text-zinc-300">
+      <TableCell className="text-foreground/90">
         <p>{order.serviceType || "N/A"}</p>
         {equipment?.brand && (
-          <p className="text-xs text-zinc-500">{equipment.brand}</p>
+          <p className="text-xs text-muted-foreground">{equipment.brand}</p>
         )}
       </TableCell>
-      <TableCell className="text-zinc-300 whitespace-nowrap">
+      <TableCell className="text-foreground/90 whitespace-nowrap">
         {order.date ? new Date(order.date).toLocaleDateString("pt-PT") : "N/A"}
       </TableCell>
       <TableCell>
@@ -147,25 +148,25 @@ const OrderRow = ({ order, client, equipment, onDelete, onEdit, navigate }) => {
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-full hover:bg-zinc-700 text-white"
+              className="rounded-full"
               onClick={(e) => e.preventDefault()}
             >
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-zinc-800 border-zinc-700">
+          <DropdownMenuContent align="end">
             <DropdownMenuItem
               onClick={(e) => {
                 e.preventDefault();
                 onEdit(order.id);
               }}
-              className="text-white hover:bg-zinc-700 cursor-pointer"
+              className="cursor-pointer"
             >
               <Edit2 className="w-4 h-4 mr-2" />
               Editar
             </DropdownMenuItem>
             <DropdownMenuItem
-              className="text-red-400 hover:bg-zinc-700 focus:text-red-400 cursor-pointer"
+              className="text-red-400 focus:text-red-400 cursor-pointer"
               onClick={(e) => {
                 e.preventDefault();
                 onDelete(order);
@@ -471,7 +472,7 @@ const ManageOrders = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -479,61 +480,59 @@ const ManageOrders = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Gerenciar Ordens de Serviço
-          </h1>
-          <p className="text-sm sm:text-base text-zinc-400">
-            Gerencie todas as suas ordens de serviço em um só lugar
-          </p>
-        </div>
-        <div className="hidden sm:flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => navigate("/app/recycle-bin")}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Reciclagem
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleExportCSV}
-            disabled={isExporting}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
-          >
-            {isExporting ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4 mr-2" />
-            )}
-            Exportar CSV
-          </Button>
-          <Button
-            onClick={() => navigate("/app/add-order")}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Nova Ordem
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Gerenciar Ordens de Serviço"
+        description="Gerencie todas as suas ordens de serviço em um só lugar"
+        actions={
+          <>
+            <div className="hidden sm:flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/app/recycle-bin")}
+             
+            >
+              <Trash2 className="w-4 h-4" />
+              Reciclagem
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleExportCSV}
+              disabled={isExporting}
+             
+            >
+              {isExporting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 mr-2" />
+              )}
+              Exportar CSV
+            </Button>
+            <Button
+              onClick={() => navigate("/app/add-order")}
+             
+            >
+              <Plus className="w-4 h-4" />
+              Nova Ordem
+            </Button>
+          </div>
+          </>
+        }
+      />
 
       {/* Stats Cards — clicáveis, funcionam como filtro de estado */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {STATUS_FILTERS.map(({ key, label, icon: StatIcon, iconClass }) => (
           <Card
             key={key}
-            className={`bg-zinc-800 border-zinc-700 cursor-pointer transition-colors ${
-              statusFilter === key ? "ring-1 ring-green-500" : "hover:bg-zinc-700"
+            className={` cursor-pointer transition-colors ${
+              statusFilter === key ? "ring-1 ring-ring" : "hover:bg-accent"
             }`}
             onClick={() => setStatusFilter(key)}
           >
             <CardContent className="flex items-center justify-between p-4 sm:p-6">
               <div>
-                <p className="text-sm font-medium text-zinc-400">{label}</p>
-                <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+                <p className="text-sm font-medium text-muted-foreground">{label}</p>
+                <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
                   {stats[key]}
                 </h3>
               </div>
@@ -544,15 +543,15 @@ const ManageOrders = () => {
       </div>
 
       {/* Filters Card */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="space-y-4 p-4">
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar por cliente, descrição ou número..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+              className="pl-10 w-full"
             />
           </div>
 
@@ -563,10 +562,10 @@ const ManageOrders = () => {
                   key={key}
                   variant="outline"
                   onClick={() => setStatusFilter(key)}
-                  className={`gap-2 border-zinc-700 ${
+                  className={`gap-2 border-border ${
                     statusFilter === key
-                      ? "bg-green-600 text-white hover:bg-green-700"
-                      : "text-white hover:bg-zinc-700 bg-zinc-600"
+                      ? "bg-primary text-foreground hover:bg-primary/90"
+                      : "text-foreground hover:bg-accent bg-accent"
                   }`}
                 >
                   <FilterIcon className="w-4 h-4" />
@@ -580,7 +579,7 @@ const ManageOrders = () => {
               onClick={() =>
                 setSortDirection((prev) => (prev === "desc" ? "asc" : "desc"))
               }
-              className="gap-2 border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
+              className="gap-2 bg-accent"
             >
               <ArrowUpDown className="w-4 h-4" />
               {sortDirection === "desc" ? "Mais recentes" : "Mais antigas"}
@@ -588,7 +587,7 @@ const ManageOrders = () => {
           </div>
 
           {hasMore && (
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted-foreground">
               A mostrar {serviceOrders.length} de {stats[statusFilter]}{" "}
               {statusFilter === "all"
                 ? "ordens"
@@ -598,9 +597,9 @@ const ManageOrders = () => {
           )}
 
           {error && (
-            <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+            <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-red-400">
+              <AlertDescription>
                 {error}
               </AlertDescription>
             </Alert>
@@ -609,21 +608,21 @@ const ManageOrders = () => {
       </Card>
 
       {/* Orders Table */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardContent className="p-0">
           {isTabLoading ? (
             <div className="flex justify-center items-center p-12">
-              <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : filteredOrders.length > 0 ? (
             <Table>
               <TableHeader>
-                <TableRow className="hover:bg-zinc-800 border-zinc-700">
-                  <TableHead className="text-zinc-400">Cliente</TableHead>
-                  <TableHead className="text-zinc-400">Serviço</TableHead>
-                  <TableHead className="text-zinc-400">Data</TableHead>
-                  <TableHead className="text-zinc-400">Estado</TableHead>
-                  <TableHead className="text-zinc-400 text-right">Ações</TableHead>
+                <TableRow className="hover:bg-white/5 border-border">
+                  <TableHead className="text-muted-foreground">Cliente</TableHead>
+                  <TableHead className="text-muted-foreground">Serviço</TableHead>
+                  <TableHead className="text-muted-foreground">Data</TableHead>
+                  <TableHead className="text-muted-foreground">Estado</TableHead>
+                  <TableHead className="text-muted-foreground text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -642,11 +641,11 @@ const ManageOrders = () => {
             </Table>
           ) : (
             <div className="p-8 sm:p-12 text-center">
-              <ClipboardList className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
-              <p className="text-lg font-medium mb-2 text-white">
+              <ClipboardList className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
+              <p className="text-lg font-medium mb-2 text-foreground">
                 Nenhuma ordem encontrada
               </p>
-              <p className="text-sm sm:text-base text-zinc-400">
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Tente ajustar a busca ou os filtros, ou adicione uma nova ordem
               </p>
             </div>
@@ -661,7 +660,7 @@ const ManageOrders = () => {
             variant="outline"
             onClick={loadMore}
             disabled={isLoadingMore || isTabLoading}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+            className="gap-2"
           >
             {isLoadingMore ? (
               <>
@@ -680,10 +679,10 @@ const ManageOrders = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-white">Confirmar exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogTitle className="text-foreground">Confirmar exclusão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Tem certeza que deseja excluir esta ordem? A ordem será movida
               para a Reciclagem e pode ser restaurada mais tarde.
             </DialogDescription>
@@ -692,7 +691,7 @@ const ManageOrders = () => {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="border-zinc-700 text-white hover:text-white hover:bg-zinc-700 bg-zinc-600"
+              className="bg-accent"
             >
               Cancelar
             </Button>
@@ -712,7 +711,7 @@ const ManageOrders = () => {
         <Button
           onClick={() => navigate("/app/add-order")}
           size="icon"
-          className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
+          className="rounded-full shadow-lg"
         >
           <Plus className="h-5 w-5" />
         </Button>

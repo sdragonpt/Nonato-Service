@@ -201,9 +201,9 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
   return (
     <div className="space-y-4">
       {/* Equipamento(s) */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base text-white flex items-center justify-between">
+          <CardTitle className="text-base flex items-center justify-between">
             <span className="flex items-center gap-2">
               <Wrench className="h-4 w-4" />
               {reportType === "especial" ? "Equipamentos" : "Equipamento"}
@@ -214,14 +214,14 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
                 size="sm"
                 variant="outline"
                 onClick={addEquipment}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+               
               >
-                <Plus className="h-3.5 w-3.5 mr-1" />
+                <Plus className="h-3.5 w-3.5" />
                 Adicionar
               </Button>
             )}
           </CardTitle>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-muted-foreground">
             {isolated
               ? "Serviço isolado — introduz os dados do equipamento manualmente."
               : "Só equipamentos registados neste cliente."}
@@ -229,7 +229,7 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
         </CardHeader>
         <CardContent className="space-y-3">
           {value.equipamentos.length === 0 ? (
-            <p className="text-sm text-zinc-500">Nenhum equipamento adicionado.</p>
+            <p className="text-sm text-muted-foreground">Nenhum equipamento adicionado.</p>
           ) : (
             value.equipamentos.map((eq) => (
               <div key={eq.id} className="flex items-start gap-2">
@@ -239,29 +239,29 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
                       placeholder="Marca"
                       value={eq.brand}
                       onChange={(e) => updateManualEquipment(eq.id, { brand: e.target.value })}
-                      className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                     
                     />
                     <Input
                       placeholder="Modelo"
                       value={eq.model}
                       onChange={(e) => updateManualEquipment(eq.id, { model: e.target.value })}
-                      className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                     
                     />
                     <Input
                       placeholder="Nº de Série"
                       value={eq.serialNumber}
                       onChange={(e) => updateManualEquipment(eq.id, { serialNumber: e.target.value })}
-                      className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                     
                     />
                   </div>
                 ) : (
                   <Select value={eq.equipmentId} onValueChange={(v) => setRegisteredEquipment(eq.id, v)}>
-                    <SelectTrigger className="flex-1 bg-zinc-900 border-zinc-700 text-white">
+                    <SelectTrigger className="flex-1">
                       <SelectValue placeholder="Escolhe o equipamento do cliente" />
                     </SelectTrigger>
-                    <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+                    <SelectContent>
                       {clientEquipments.length === 0 && (
-                        <div className="px-3 py-2 text-sm text-zinc-500">
+                        <div className="px-3 py-2 text-sm text-muted-foreground">
                           Este cliente não tem equipamentos registados
                         </div>
                       )}
@@ -289,36 +289,36 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
       </Card>
 
       {/* Dados do Serviço */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base text-white">Dados do Serviço</CardTitle>
+          <CardTitle className="text-base">Dados do Serviço</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="space-y-1">
-            <label className="text-xs text-zinc-400">Data</label>
+            <label className="text-xs text-muted-foreground">Data</label>
             <Input
               type="date"
               value={value.date}
               onChange={(e) => set({ date: e.target.value })}
-              className="bg-zinc-900 border-zinc-700 text-white"
+             
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-zinc-400">Tipo de Serviço</label>
+            <label className="text-xs text-muted-foreground">Tipo de Serviço</label>
             <Input
               placeholder="Ex: Manutenção preventiva"
               value={value.serviceType}
               onChange={(e) => set({ serviceType: e.target.value })}
-              className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+             
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-zinc-400">Prioridade</label>
+            <label className="text-xs text-muted-foreground">Prioridade</label>
             <Select value={value.priority} onValueChange={(v) => set({ priority: v })}>
-              <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+              <SelectContent>
                 <SelectItem value="low">Baixa</SelectItem>
                 <SelectItem value="normal">Normal</SelectItem>
                 <SelectItem value="high">Alta</SelectItem>
@@ -329,17 +329,17 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
       </Card>
 
       {/* Checklist */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base text-white">Checklist</CardTitle>
+          <CardTitle className="text-base">Checklist</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {Object.entries(CHECKLIST_LABELS).map(([key, label]) => (
-            <label key={key} className="flex items-center space-x-3 text-white cursor-pointer">
+            <label key={key} className="flex items-center space-x-3 text-foreground cursor-pointer">
               <Checkbox
                 checked={value.checklist[key]}
                 onCheckedChange={(checked) => setChecklist(key, checked)}
-                className="border-zinc-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-green-500"
               />
               <span className="text-sm">{label}</span>
             </label>
@@ -348,27 +348,27 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
       </Card>
 
       {/* Resultado */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base text-white">Resultado</CardTitle>
+          <CardTitle className="text-base">Resultado</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1">
-            <label className="text-xs text-zinc-400">Descrição do Resultado</label>
+            <label className="text-xs text-muted-foreground">Descrição do Resultado</label>
             <Textarea
               value={value.resultDescription}
               onChange={(e) => set({ resultDescription: e.target.value })}
               placeholder="O que foi feito, diagnóstico, etc."
-              className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+             
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-zinc-400">Pontos em Aberto</label>
+            <label className="text-xs text-muted-foreground">Pontos em Aberto</label>
             <Textarea
               value={value.pontosEmAberto}
               onChange={(e) => set({ pontosEmAberto: e.target.value })}
               placeholder="O que fica pendente para uma próxima visita..."
-              className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+             
             />
           </div>
         </CardContent>
@@ -376,9 +376,9 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
 
       {/* Peças */}
       {value.checklist.pecas && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base text-white flex items-center justify-between">
+            <CardTitle className="text-base flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <Package className="h-4 w-4" />
                 Peças Utilizadas
@@ -388,16 +388,16 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
                 size="sm"
                 variant="outline"
                 onClick={addPart}
-                className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+               
               >
-                <Plus className="h-3.5 w-3.5 mr-1" />
+                <Plus className="h-3.5 w-3.5" />
                 Adicionar
               </Button>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {value.partsQuoteItems.length === 0 ? (
-              <p className="text-sm text-zinc-500">Nenhuma peça adicionada.</p>
+              <p className="text-sm text-muted-foreground">Nenhuma peça adicionada.</p>
             ) : (
               value.partsQuoteItems.map((part) => (
                 <div key={part.id} className="flex items-center gap-2">
@@ -405,21 +405,21 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
                     placeholder="Nome da peça"
                     value={part.name}
                     onChange={(e) => updatePart(part.id, { name: e.target.value })}
-                    className="flex-1 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                    className="flex-1"
                   />
                   <Input
                     type="number"
                     min={1}
                     value={part.quantity}
                     onChange={(e) => updatePart(part.id, { quantity: parseInt(e.target.value, 10) || 1 })}
-                    className="w-20 bg-zinc-900 border-zinc-700 text-white"
+                    className="w-20"
                   />
                   <Input
                     type="number"
                     step="0.01"
                     value={part.price}
                     onChange={(e) => updatePart(part.id, { price: parseFloat(e.target.value) || 0 })}
-                    className="w-24 bg-zinc-900 border-zinc-700 text-white"
+                    className="w-24"
                   />
                   <Button
                     type="button"
@@ -438,9 +438,9 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
       )}
 
       {/* Dias de Trabalho */}
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base text-white flex items-center justify-between">
+          <CardTitle className="text-base flex items-center justify-between">
             <span className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
               Dias de Trabalho
@@ -450,21 +450,21 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
               size="sm"
               variant="outline"
               onClick={addWorkday}
-              className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
+             
             >
-              <Plus className="h-3.5 w-3.5 mr-1" />
+              <Plus className="h-3.5 w-3.5" />
               Adicionar Dia
             </Button>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {value.workdays.length === 0 ? (
-            <p className="text-sm text-zinc-500">Nenhum dia de trabalho adicionado.</p>
+            <p className="text-sm text-muted-foreground">Nenhum dia de trabalho adicionado.</p>
           ) : (
             value.workdays.map((workday) => (
-              <div key={workday.id} className="p-3 bg-zinc-900/50 rounded-lg border border-zinc-700 space-y-3">
+              <div key={workday.id} className="p-3 bg-background/50 rounded-lg border border-border space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm text-zinc-300">
+                  <div className="flex items-center gap-2 text-sm text-foreground/90">
                     <Calendar className="h-3.5 w-3.5" />
                     Dia de trabalho
                   </div>
@@ -481,70 +481,70 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <div className="space-y-1">
-                    <label className="text-[11px] text-zinc-500">Data</label>
+                    <label className="text-[11px] text-muted-foreground">Data</label>
                     <Input
                       type="date"
                       value={workday.workDate}
                       onChange={(e) => updateWorkday(workday.id, { workDate: e.target.value })}
-                      className="bg-zinc-800 border-zinc-700 text-white text-sm"
+                      className="text-sm"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[11px] text-zinc-500">Saída (ida)</label>
+                    <label className="text-[11px] text-muted-foreground">Saída (ida)</label>
                     <Input
                       type="time"
                       value={workday.departureTime}
                       onChange={(e) => updateWorkday(workday.id, { departureTime: e.target.value })}
-                      className="bg-zinc-800 border-zinc-700 text-white text-sm"
+                      className="text-sm"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[11px] text-zinc-500">Chegada (ida)</label>
+                    <label className="text-[11px] text-muted-foreground">Chegada (ida)</label>
                     <Input
                       type="time"
                       value={workday.arrivalTime}
                       onChange={(e) => updateWorkday(workday.id, { arrivalTime: e.target.value })}
-                      className="bg-zinc-800 border-zinc-700 text-white text-sm"
+                      className="text-sm"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[11px] text-zinc-500">Km (ida)</label>
+                    <label className="text-[11px] text-muted-foreground">Km (ida)</label>
                     <Input
                       type="number"
                       value={workday.kmDeparture}
                       onChange={(e) => updateWorkday(workday.id, { kmDeparture: e.target.value })}
-                      className="bg-zinc-800 border-zinc-700 text-white text-sm"
+                      className="text-sm"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[11px] text-zinc-500">Saída (retorno)</label>
+                    <label className="text-[11px] text-muted-foreground">Saída (retorno)</label>
                     <Input
                       type="time"
                       value={workday.returnDepartureTime}
                       onChange={(e) => updateWorkday(workday.id, { returnDepartureTime: e.target.value })}
-                      className="bg-zinc-800 border-zinc-700 text-white text-sm"
+                      className="text-sm"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[11px] text-zinc-500">Chegada (retorno)</label>
+                    <label className="text-[11px] text-muted-foreground">Chegada (retorno)</label>
                     <Input
                       type="time"
                       value={workday.returnArrivalTime}
                       onChange={(e) => updateWorkday(workday.id, { returnArrivalTime: e.target.value })}
-                      className="bg-zinc-800 border-zinc-700 text-white text-sm"
+                      className="text-sm"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[11px] text-zinc-500">Km (retorno)</label>
+                    <label className="text-[11px] text-muted-foreground">Km (retorno)</label>
                     <Input
                       type="number"
                       value={workday.kmReturn}
                       onChange={(e) => updateWorkday(workday.id, { kmReturn: e.target.value })}
-                      className="bg-zinc-800 border-zinc-700 text-white text-sm"
+                      className="text-sm"
                     />
                   </div>
                   <div className="space-y-1 flex flex-col justify-end">
-                    <label className="text-[11px] text-zinc-500 flex items-center gap-2">
+                    <label className="text-[11px] text-muted-foreground flex items-center gap-2">
                       <Switch
                         checked={workday.pause}
                         onCheckedChange={(checked) => updateWorkday(workday.id, { pause: checked })}
@@ -556,7 +556,7 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
                         placeholder="HH:MM"
                         value={workday.pauseHours}
                         onChange={(e) => updateWorkday(workday.id, { pauseHours: e.target.value })}
-                        className="bg-zinc-800 border-zinc-700 text-white text-sm"
+                        className="text-sm"
                       />
                     )}
                   </div>
@@ -566,14 +566,14 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
                   value={workday.description}
                   onChange={(e) => updateWorkday(workday.id, { description: e.target.value })}
                   placeholder="Descrição do trabalho deste dia..."
-                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 text-sm"
+                  className="text-sm"
                 />
 
                 {/* Horas por máquina — escolhidas de entre os equipamentos já
                     adicionados em cima, nunca texto livre. */}
-                <div className="space-y-2 pt-1 border-t border-zinc-700">
+                <div className="space-y-2 pt-1 border-t border-border">
                   <div className="flex items-center justify-between pt-2">
-                    <span className="text-xs text-zinc-400 flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1.5">
                       <Clock className="h-3.5 w-3.5" />
                       Horas por Máquina
                     </span>
@@ -585,12 +585,12 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
                       disabled={value.equipamentos.length === 0}
                       className="text-green-400 hover:text-green-300 hover:bg-green-400/10 h-7 text-xs disabled:opacity-40"
                     >
-                      <Plus className="h-3 w-3 mr-1" />
+                      <Plus className="h-3 w-3" />
                       Máquina
                     </Button>
                   </div>
                   {value.equipamentos.length === 0 && (
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-muted-foreground">
                       Adiciona equipamento(s) na secção acima para poder registar horas por máquina.
                     </p>
                   )}
@@ -600,10 +600,10 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
                         value={entry.equipoId}
                         onValueChange={(v) => selectMachineEquipment(workday.id, entry.id, v)}
                       >
-                        <SelectTrigger className="flex-1 bg-zinc-800 border-zinc-700 text-white text-sm">
+                        <SelectTrigger className="flex-1 text-sm">
                           <SelectValue placeholder="Escolhe a máquina" />
                         </SelectTrigger>
-                        <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+                        <SelectContent>
                           {value.equipamentos.map((eq) => (
                             <SelectItem key={eq.id} value={eq.id}>
                               {eq.brand || eq.model
@@ -617,13 +617,13 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
                         type="time"
                         value={entry.startHour}
                         onChange={(e) => updateMachineEntry(workday.id, entry.id, { startHour: e.target.value })}
-                        className="w-28 bg-zinc-800 border-zinc-700 text-white text-sm"
+                        className="w-28 text-sm"
                       />
                       <Input
                         type="time"
                         value={entry.endHour}
                         onChange={(e) => updateMachineEntry(workday.id, entry.id, { endHour: e.target.value })}
-                        className="w-28 bg-zinc-800 border-zinc-700 text-white text-sm"
+                        className="w-28 text-sm"
                       />
                       <Button
                         type="button"

@@ -109,7 +109,7 @@ const NotificationsDropdown = () => {
             notifications.map((notification) => (
               <DropdownMenuItem
                 key={notification.id}
-                className={`px-4 py-3 focus:bg-zinc-700/50 cursor-pointer ${
+                className={`px-4 py-3 focus:bg-white/5 cursor-pointer ${
                   !notification.read ? "bg-white/5" : ""
                 }`}
                 onSelect={() => handleNotificationClick(notification)}

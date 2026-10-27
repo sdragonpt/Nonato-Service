@@ -23,6 +23,7 @@ import { Loader2, Upload, Contact, CheckCircle2, AlertTriangle } from "lucide-re
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Button } from "@/components/ui/button.jsx";
+import { PageHeader } from "../../components/app";
 
 /** Reserva `count` IDs seguidos no contador de clientes. Devolve o primeiro. */
 async function reserveClientIds(count) {
@@ -157,22 +158,16 @@ const ImportContacts = () => {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-green-500/10 rounded-lg">
-          <Contact className="h-6 w-6 text-green-400" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-white">Importar contactos</h1>
-          <p className="text-zinc-400">
-            Cria clientes a partir dos contactos do telemóvel, Google, Outlook ou Excel.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Importar contactos"
+        description="Cria clientes a partir dos contactos do telemóvel, Google, Outlook ou Excel."
+        icon={Contact}
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
@@ -185,25 +180,25 @@ const ImportContacts = () => {
         </Alert>
       )}
 
-      <Card className="bg-zinc-800 border-zinc-700">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-white text-lg">1. Escolher o ficheiro</CardTitle>
+          <CardTitle className="text-lg">1. Escolher o ficheiro</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 text-sm text-zinc-300">
-          <ul className="list-disc pl-5 space-y-1 text-zinc-400">
+        <CardContent className="space-y-4 text-sm text-foreground/90">
+          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
             <li>
-              <span className="text-zinc-200">Android:</span> Contactos → Gerir contactos →
+              <span className="text-foreground/90">Android:</span> Contactos → Gerir contactos →
               Exportar para ficheiro (.vcf).
             </li>
             <li>
-              <span className="text-zinc-200">iPhone:</span> em icloud.com/contacts, selecionar
+              <span className="text-foreground/90">iPhone:</span> em icloud.com/contacts, selecionar
               todos → Exportar vCard (.vcf).
             </li>
             <li>
-              <span className="text-zinc-200">Google Contactos:</span> Exportar → Google CSV.
+              <span className="text-foreground/90">Google Contactos:</span> Exportar → Google CSV.
             </li>
             <li>
-              <span className="text-zinc-200">Excel:</span> uma linha por contacto, com colunas
+              <span className="text-foreground/90">Excel:</span> uma linha por contacto, com colunas
               Nome, Telefone, Empresa, Morada, Código Postal, NIF (as que tiver) → Guardar como
               CSV.
             </li>
@@ -216,7 +211,7 @@ const ImportContacts = () => {
               onChange={handleFile}
               disabled={loading || importing}
             />
-            <span className="inline-flex items-center rounded-md bg-green-600 hover:bg-green-700 px-4 py-2 text-sm font-medium text-white cursor-pointer">
+            <span className="inline-flex items-center rounded-md bg-primary hover:bg-primary/90 px-4 py-2 text-sm font-medium text-foreground cursor-pointer">
               {loading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
@@ -225,17 +220,17 @@ const ImportContacts = () => {
               {fileName ? "Escolher outro ficheiro" : "Escolher ficheiro .vcf ou .csv"}
             </span>
           </label>
-          {fileName && <p className="text-zinc-400">{fileName}</p>}
+          {fileName && <p className="text-muted-foreground">{fileName}</p>}
         </CardContent>
       </Card>
 
       {rows.length > 0 && (
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-white text-lg">2. Rever e importar</CardTitle>
+            <CardTitle className="text-lg">2. Rever e importar</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-zinc-300">
+            <p className="text-sm text-foreground/90">
               {rows.length} contactos no ficheiro
               {duplicateCount > 0 &&
                 ` — ${duplicateCount} já existem como clientes ou estão repetidos (desmarcados)`}
@@ -246,7 +241,7 @@ const ImportContacts = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setAll(true)}
-                className="border-zinc-600 text-white bg-zinc-900 hover:bg-zinc-700"
+               
               >
                 Marcar todos
               </Button>
@@ -254,15 +249,15 @@ const ImportContacts = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setAll(false)}
-                className="border-zinc-600 text-white bg-zinc-900 hover:bg-zinc-700"
+               
               >
                 Desmarcar todos
               </Button>
             </div>
 
-            <div className="max-h-[28rem] overflow-auto rounded-md border border-zinc-700">
+            <div className="max-h-[28rem] overflow-auto rounded-md border border-border">
               <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-zinc-900 text-zinc-400">
+                <thead className="sticky top-0 bg-muted/50 text-muted-foreground">
                   <tr>
                     <th className="p-2 w-8" />
                     <th className="p-2 text-left">Nome</th>
@@ -277,8 +272,8 @@ const ImportContacts = () => {
                     <tr
                       key={i}
                       onClick={() => toggle(i)}
-                      className={`border-t border-zinc-700 cursor-pointer hover:bg-zinc-700/50 ${
-                        r.selected ? "text-white" : "text-zinc-500"
+                      className={`border-t border-border cursor-pointer hover:bg-white/5 ${
+                        r.selected ? "text-foreground" : "text-muted-foreground"
                       }`}
                     >
                       <td className="p-2">
@@ -312,7 +307,7 @@ const ImportContacts = () => {
             <Button
               onClick={runImport}
               disabled={importing || selectedCount === 0}
-              className="bg-green-600 hover:bg-green-700 text-white"
+             
             >
               {importing ? (
                 <>

@@ -10,7 +10,6 @@ import { useEquipments } from "../../../context/EquipmentsContext.jsx";
 import { useUsers } from "../../../context/UsersContext.jsx";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowLeft,
   Loader2,
   Save,
   CheckCircle2,
@@ -35,6 +34,7 @@ import {
 import { ClientCombobox } from "@/components/shared/ClientCombobox.jsx";
 
 import { isStaffRole } from "../../../config/roles.js";
+import { PageHeader } from "../../../components/app";
 
 const MATERIAL_TRABALHADO_OPTIONS = ["Aglomerado", "MDF", "Plástico", "Fenólico", "Alumínio"];
 const TIPOLOGIA_FOLHEADO_OPTIONS = ["Ausente", "Brilhante", "Fosco", "Texturizado", "Corian"];
@@ -106,7 +106,7 @@ const emptyForm = {
 const CheckboxGroup = ({ options, selected, onToggle }) => (
   <div className="flex flex-wrap gap-x-6 gap-y-2">
     {options.map((opt) => (
-      <label key={opt} className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+      <label key={opt} className="flex items-center gap-2 text-sm text-foreground/90 cursor-pointer">
         <Checkbox checked={selected.includes(opt)} onCheckedChange={() => onToggle(opt)} />
         {opt}
       </label>
@@ -124,8 +124,8 @@ const SingleSelectGroup = ({ options, value, onChange }) => (
         onClick={() => onChange(value === opt ? "" : opt)}
         className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
           value === opt
-            ? "bg-green-600 border-green-600 text-white"
-            : "bg-zinc-900 border-zinc-700 text-zinc-300 hover:bg-zinc-700"
+            ? "bg-primary border-primary text-foreground"
+            : "bg-muted/50 border-border text-foreground/90 hover:bg-accent"
         }`}
       >
         {opt}
@@ -252,53 +252,38 @@ const AddOrdemPreparacao = () => {
 
   return (
     <div className="space-y-6 pb-24">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <ClipboardList className="h-5 w-5 text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">Nova Ordem de Preparação</h1>
-            <p className="text-sm text-zinc-400">
-              Formulário técnico de preparação pré-instalação
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full border-zinc-700 text-white hover:bg-green-700 bg-green-600 shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4 text-white" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Nova Ordem de Preparação"
+        description="Formulário técnico de preparação pré-instalação"
+        icon={ClipboardList}
+        back
+      />
 
       {error && (
-        <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-red-400">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Dados Gerais */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-white">Dados Gerais</CardTitle>
+            <CardTitle className="text-lg">Dados Gerais</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Código SME_UP (ID ou Nº Série)</label>
+              <label className="text-sm font-medium text-muted-foreground">Código SME_UP (ID ou Nº Série)</label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   name="codigoSmeUp"
                   value={formData.codigoSmeUp}
                   onChange={handleChange}
                   onBlur={() => handleBlur("codigoSmeUp")}
                   placeholder="Ex: 1042 ou nº de série do equipamento"
-                  className={`pl-10 pr-10 bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 ${
+                  className={`pl-10 pr-10 bg-muted/50 border-border text-foreground ${
                     touched.codigoSmeUp && !formData.codigoSmeUp ? "border-red-500" : ""
                   }`}
                 />
@@ -318,37 +303,37 @@ const AddOrdemPreparacao = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Descrição</label>
+                <label className="text-sm font-medium text-muted-foreground">Descrição</label>
                 <Input
                   name="descricao"
                   value={formData.descricao}
                   onChange={handleChange}
-                  className="bg-zinc-900 border-zinc-700 text-white"
+                 
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Modelo</label>
+                <label className="text-sm font-medium text-muted-foreground">Modelo</label>
                 <Input
                   name="modelo"
                   value={formData.modelo}
                   onChange={handleChange}
-                  className="bg-zinc-900 border-zinc-700 text-white"
+                 
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Marca</label>
+                <label className="text-sm font-medium text-muted-foreground">Marca</label>
                 <Input
                   name="marca"
                   value={formData.marca}
                   onChange={handleChange}
-                  className="bg-zinc-900 border-zinc-700 text-white"
+                 
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Cliente</label>
+                <label className="text-sm font-medium text-muted-foreground">Cliente</label>
                 <ClientCombobox
                   clients={clients}
                   value={formData.clientId || "none"}
@@ -358,15 +343,15 @@ const AddOrdemPreparacao = () => {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Técnico Responsável</label>
+                <label className="text-sm font-medium text-muted-foreground">Técnico Responsável</label>
                 <Select
                   value={formData.tecnicoResponsavelId || "none"}
                   onValueChange={(v) => handleSelectChange("tecnicoResponsavelId", v)}
                 >
-                  <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                  <SelectTrigger>
                     <SelectValue placeholder="Selecione o técnico" />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700 text-white">
+                  <SelectContent>
                     <SelectItem value="none">Sem técnico</SelectItem>
                     {staffUsers.map((u) => (
                       <SelectItem key={u.id} value={u.id}>
@@ -380,35 +365,35 @@ const AddOrdemPreparacao = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Modalidade de Venda</label>
+                <label className="text-sm font-medium text-muted-foreground">Modalidade de Venda</label>
                 <Input
                   name="modalidadeVenda"
                   value={formData.modalidadeVenda}
                   onChange={handleChange}
-                  className="bg-zinc-900 border-zinc-700 text-white"
+                 
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">País</label>
+                <label className="text-sm font-medium text-muted-foreground">País</label>
                 <Input
                   name="pais"
                   value={formData.pais}
                   onChange={handleChange}
-                  className="bg-zinc-900 border-zinc-700 text-white"
+                 
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Instalação</label>
+                <label className="text-sm font-medium text-muted-foreground">Instalação</label>
                 <Input
                   name="instalacao"
                   value={formData.instalacao}
                   onChange={handleChange}
-                  className="bg-zinc-900 border-zinc-700 text-white"
+                 
                 />
               </div>
             </div>
 
-            <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-foreground/90 cursor-pointer">
               <Checkbox
                 checked={formData.testRun}
                 onCheckedChange={(v) => setFormData((p) => ({ ...p, testRun: !!v }))}
@@ -419,9 +404,9 @@ const AddOrdemPreparacao = () => {
         </Card>
 
         {/* 1. Material Trabalhado */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-base text-white">Material Trabalhado</CardTitle>
+            <CardTitle className="text-base">Material Trabalhado</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <CheckboxGroup
@@ -434,15 +419,15 @@ const AddOrdemPreparacao = () => {
               value={formData.materialTrabalhadoOutro}
               onChange={handleChange}
               placeholder="Outro (especifique)"
-              className="bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 max-w-sm"
+              className="max-w-sm"
             />
           </CardContent>
         </Card>
 
         {/* 2. Tipologia Folheado */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-base text-white">Tipologia Folheado</CardTitle>
+            <CardTitle className="text-base">Tipologia Folheado</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <SingleSelectGroup
@@ -455,15 +440,15 @@ const AddOrdemPreparacao = () => {
               value={formData.tipologiaFolheadoOutro}
               onChange={handleChange}
               placeholder="Outro (especifique)"
-              className="bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 max-w-sm"
+              className="max-w-sm"
             />
           </CardContent>
         </Card>
 
         {/* 3. Cor */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-base text-white">Cor</CardTitle>
+            <CardTitle className="text-base">Cor</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <SingleSelectGroup
@@ -476,53 +461,53 @@ const AddOrdemPreparacao = () => {
               value={formData.corOutro}
               onChange={handleChange}
               placeholder="Outro (especifique)"
-              className="bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 max-w-sm"
+              className="max-w-sm"
             />
           </CardContent>
         </Card>
 
         {/* 4. Dimensões */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-base text-white">Dimensões</CardTitle>
+            <CardTitle className="text-base">Dimensões</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Máx (X/Y/Z)</label>
+              <label className="text-sm font-medium text-muted-foreground">Máx (X/Y/Z)</label>
               <Input
                 name="dimensoesMax"
                 value={formData.dimensoesMax}
                 onChange={handleChange}
                 placeholder="Ex: 2800/1300/60"
-                className="bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+               
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Mín (X/Y/Z)</label>
+              <label className="text-sm font-medium text-muted-foreground">Mín (X/Y/Z)</label>
               <Input
                 name="dimensoesMin"
                 value={formData.dimensoesMin}
                 onChange={handleChange}
                 placeholder="Ex: 200/100/8"
-                className="bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+               
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Outro</label>
+              <label className="text-sm font-medium text-muted-foreground">Outro</label>
               <Input
                 name="dimensoesOutro"
                 value={formData.dimensoesOutro}
                 onChange={handleChange}
-                className="bg-zinc-900 border-zinc-700 text-white"
+               
               />
             </div>
           </CardContent>
         </Card>
 
         {/* 5. Tipologia de Borda */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-base text-white">Tipologia de Borda</CardTitle>
+            <CardTitle className="text-base">Tipologia de Borda</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <CheckboxGroup
@@ -535,15 +520,15 @@ const AddOrdemPreparacao = () => {
               value={formData.tipologiaBordaOutro}
               onChange={handleChange}
               placeholder="Outro (especifique)"
-              className="bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 max-w-sm"
+              className="max-w-sm"
             />
           </CardContent>
         </Card>
 
         {/* 6. Espessura Borda */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-base text-white">Espessura Borda</CardTitle>
+            <CardTitle className="text-base">Espessura Borda</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <CheckboxGroup
@@ -556,15 +541,15 @@ const AddOrdemPreparacao = () => {
               value={formData.espessuraBordaOutro}
               onChange={handleChange}
               placeholder="Outro (especifique)"
-              className="bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 max-w-sm"
+              className="max-w-sm"
             />
           </CardContent>
         </Card>
 
         {/* 7. Tipo de Cola */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-base text-white">Tipo de Cola</CardTitle>
+            <CardTitle className="text-base">Tipo de Cola</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <CheckboxGroup
@@ -577,15 +562,15 @@ const AddOrdemPreparacao = () => {
               value={formData.tipoColaOutro}
               onChange={handleChange}
               placeholder="Outro (especifique)"
-              className="bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 max-w-sm"
+              className="max-w-sm"
             />
           </CardContent>
         </Card>
 
         {/* 9. Grades de Proteção */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-base text-white">Grades de Proteção</CardTitle>
+            <CardTitle className="text-base">Grades de Proteção</CardTitle>
           </CardHeader>
           <CardContent>
             <CheckboxGroup
@@ -597,13 +582,13 @@ const AddOrdemPreparacao = () => {
         </Card>
 
         {/* 10. Ferramentas */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-base text-white">Ferramentas</CardTitle>
+            <CardTitle className="text-base">Ferramentas</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-x-6 gap-y-2">
-              <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-foreground/90 cursor-pointer">
                 <Checkbox
                   checked={formData.ferramentasFornecidoCliente}
                   onCheckedChange={(v) =>
@@ -612,7 +597,7 @@ const AddOrdemPreparacao = () => {
                 />
                 Fornecido pelo Cliente
               </label>
-              <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-foreground/90 cursor-pointer">
                 <Checkbox
                   checked={formData.ferramentasAntesTestRun}
                   onCheckedChange={(v) =>
@@ -621,7 +606,7 @@ const AddOrdemPreparacao = () => {
                 />
                 Antes do Test Run?
               </label>
-              <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-foreground/90 cursor-pointer">
                 <Checkbox
                   checked={formData.ferramentasCargoFerwood}
                   onCheckedChange={(v) =>
@@ -630,7 +615,7 @@ const AddOrdemPreparacao = () => {
                 />
                 A cargo do Fabricante
               </label>
-              <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-foreground/90 cursor-pointer">
                 <Checkbox
                   checked={formData.tapeteEvacuacao}
                   onCheckedChange={(v) => setFormData((p) => ({ ...p, tapeteEvacuacao: !!v }))}
@@ -640,21 +625,21 @@ const AddOrdemPreparacao = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Quais?</label>
+                <label className="text-sm font-medium text-muted-foreground">Quais?</label>
                 <Input
                   name="ferramentasQuais"
                   value={formData.ferramentasQuais}
                   onChange={handleChange}
-                  className="bg-zinc-900 border-zinc-700 text-white"
+                 
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Ventosas (qtd)</label>
+                <label className="text-sm font-medium text-muted-foreground">Ventosas (qtd)</label>
                 <Input
                   name="ventosas"
                   value={formData.ventosas}
                   onChange={handleChange}
-                  className="bg-zinc-900 border-zinc-700 text-white"
+                 
                 />
               </div>
             </div>
@@ -662,13 +647,13 @@ const AddOrdemPreparacao = () => {
         </Card>
 
         {/* 11. Material Test Run */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-base text-white">Material Test Run</CardTitle>
+            <CardTitle className="text-base">Material Test Run</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-x-6 gap-y-2">
-              <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-foreground/90 cursor-pointer">
                 <Checkbox
                   checked={formData.materialTestRunFornecidoCliente}
                   onCheckedChange={(v) =>
@@ -677,7 +662,7 @@ const AddOrdemPreparacao = () => {
                 />
                 Fornecido pelo Cliente
               </label>
-              <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-foreground/90 cursor-pointer">
                 <Checkbox
                   checked={formData.materialTestRunArmazemFW}
                   onCheckedChange={(v) =>
@@ -688,57 +673,57 @@ const AddOrdemPreparacao = () => {
               </label>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Quais e Qtd?</label>
+              <label className="text-sm font-medium text-muted-foreground">Quais e Qtd?</label>
               <Input
                 name="materialTestRunQuaisQtd"
                 value={formData.materialTestRunQuaisQtd}
                 onChange={handleChange}
-                className="bg-zinc-900 border-zinc-700 text-white"
+               
               />
             </div>
           </CardContent>
         </Card>
 
         {/* 12. Língua e Documentação */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-base text-white">Língua e Documentação</CardTitle>
+            <CardTitle className="text-base">Língua e Documentação</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Língua Destino</label>
+              <label className="text-sm font-medium text-muted-foreground">Língua Destino</label>
               <Input
                 name="linguaDestino"
                 value={formData.linguaDestino}
                 onChange={handleChange}
-                className="bg-zinc-900 border-zinc-700 text-white"
+               
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Manuais</label>
+              <label className="text-sm font-medium text-muted-foreground">Manuais</label>
               <Input
                 name="manuais"
                 value={formData.manuais}
                 onChange={handleChange}
-                className="bg-zinc-900 border-zinc-700 text-white"
+               
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Adesivos</label>
+              <label className="text-sm font-medium text-muted-foreground">Adesivos</label>
               <Input
                 name="adesivos"
                 value={formData.adesivos}
                 onChange={handleChange}
-                className="bg-zinc-900 border-zinc-700 text-white"
+               
               />
             </div>
           </CardContent>
         </Card>
 
         {/* Notas e Impressões */}
-        <Card className="bg-zinc-800 border-zinc-700">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-base text-white">Notas de Produção</CardTitle>
+            <CardTitle className="text-base">Notas de Produção</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <Textarea
@@ -746,16 +731,16 @@ const AddOrdemPreparacao = () => {
               value={formData.notasProducao}
               onChange={handleChange}
               placeholder="Notas de produção..."
-              className="bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 min-h-[80px]"
+              className="min-h-[80px]"
             />
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Impressões</label>
+              <label className="text-sm font-medium text-muted-foreground">Impressões</label>
               <Textarea
                 name="impressoes"
                 value={formData.impressoes}
                 onChange={handleChange}
                 placeholder="Informações sobre impressões/etiquetas/marcações..."
-                className="bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500 min-h-[80px]"
+                className="min-h-[80px]"
               />
             </div>
           </CardContent>
@@ -764,7 +749,7 @@ const AddOrdemPreparacao = () => {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-green-600 hover:bg-green-700"
+          className="w-full"
         >
           {isSubmitting ? (
             <>
