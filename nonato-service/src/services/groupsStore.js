@@ -1,36 +1,50 @@
 // src/services/groupsStore.js
-// Listas de grupos usadas para organizar cadastros (grupos de serviços,
-// grupos de clientes). Cada lista é UM documento — gruposCadastro/<tipo> —
-// com um mapa `itens: { <id>: { nome, precos? } }`, por isso carregar os
-// grupos custa 1 leitura (mesmo raciocínio de services/categoriesStore.js).
+// Grupos (ex.: HOMAG). Há UM tipo de grupo na app: os de "Serviços e
+// Valores", guardados em UM documento — gruposCadastro/servicos — com um mapa
+// `itens: { <id>: { nome, precos } }`, por isso carregar os grupos custa
+// 1 leitura (mesmo raciocínio de services/categoriesStore.js).
 //
-// Grupos de serviços = tabelas de preços: `precos: { <serviceId>: valor }`
-// diz que serviços/despesas fazem parte do grupo e quanto custam nele
-// (valor null = está no grupo mas ainda sem valor). O mesmo serviço pode
-// estar em vários grupos com valores diferentes — o catálogo de nomes
-// ("servicos") é partilhado, os valores são de cada grupo.
+// Cada grupo é uma tabela de preços: `precos: { <serviceId>: valor }` diz que
+// serviços/despesas fazem parte do grupo e quanto custam nele (valor null =
+// está no grupo mas ainda sem valor). O mesmo serviço pode estar em vários
+// grupos com valores diferentes — o catálogo de nomes ("servicos") é
+// partilhado, os valores são de cada grupo.
 //
-// Os clientes guardam `grupoIds` (vários grupos de clientes). O antigo
-// `grupoId` dos serviços (um só grupo) é migrado para `precos` — ver
-// migrateLegacyServiceGroups. Apagar um grupo não mexe nos serviços/clientes.
+// Os clientes guardam `grupoIds` com o grupo a que pertencem (um, escolhido
+// em Novo/Editar Cliente) — é por ele que os orçamentos sabem que valores usar.
+//
+// Migrações (correm sozinhas, uma vez):
+// - o antigo `grupoId` dos serviços (um só grupo) passa para `precos`
+//   (migrateLegacyServiceGroups);
+// - os antigos grupos de clientes (gruposCadastro/clientes) passam a grupos
+//   de serviços com o mesmo nome (migrateClientGroupsToServiceGroups).
 
 import { useEffect, useState } from "react";
-import { collection, doc, onSnapshot, setDoc, deleteField, writeBatch } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  serverTimestamp,
+  setDoc,
+  deleteField,
+  where,
+  writeBatch,
+} from "firebase/firestore";
 import { db } from "../firebase.jsx";
 import { comparePtPt } from "../utils/sortHelpers.js";
 
 export const GROUP_KINDS = {
   SERVICOS: "servicos",
+  /** Só para a migração dos grupos de clientes antigos. */
   CLIENTES: "clientes",
 };
 
 const groupsDoc = (kind) => doc(db, "gruposCadastro", kind);
 
-/**
- * Grupos de um tipo, em tempo real, ordenados por nome:
- * [{ id, nome, precos, tabelaPrecosId }] — `tabelaPrecosId` só nos grupos de
- * clientes: o grupo de serviços cujos valores os orçamentos usam por defeito.
- */
+/** Grupos de um tipo, em tempo real, ordenados por nome: [{ id, nome, precos }]. */
 export function useGroups(kind) {
   const [state, setState] = useState({ groups: [], byId: new Map(), loading: true });
 
@@ -40,12 +54,7 @@ export function useGroups(kind) {
       (snap) => {
         const itens = (snap.exists() && snap.data().itens) || {};
         const groups = Object.entries(itens)
-          .map(([id, g]) => ({
-            id,
-            nome: g.nome || "",
-            precos: g.precos || {},
-            tabelaPrecosId: g.tabelaPrecosId || null,
-          }))
+          .map(([id, g]) => ({ id, nome: g.nome || "", precos: g.precos || {} }))
           .sort((a, b) => comparePtPt(a.nome, b.nome));
         setState({ groups, byId: new Map(groups.map((g) => [g.id, g])), loading: false });
       },
@@ -77,27 +86,10 @@ export async function deleteGroup(kind, id) {
   await setDoc(groupsDoc(kind), { itens: { [id]: deleteField() } }, { merge: true });
 }
 
-/** Liga um grupo de clientes a uma tabela de preços (null = sem tabela). */
-export async function setClientGroupPriceTable(clientGroupId, priceGroupId) {
-  await setDoc(
-    groupsDoc(GROUP_KINDS.CLIENTES),
-    { itens: { [clientGroupId]: { tabelaPrecosId: priceGroupId || deleteField() } } },
-    { merge: true }
-  );
-}
-
-/**
- * Tabela de preços de um cliente, pelos grupos em que está.
- * Devolve { tableId, viaGroup, conflict } — conflict = os grupos do cliente
- * apontam para tabelas diferentes (fica a do primeiro, por ordem alfabética).
- */
-export function priceTableForClient(clientGroupIds, clientGroups, priceTablesById) {
-  const linked = clientGroups.filter(
-    (g) => (clientGroupIds || []).includes(g.id) && g.tabelaPrecosId && priceTablesById.has(g.tabelaPrecosId)
-  );
-  if (!linked.length) return { tableId: null, viaGroup: null, conflict: false };
-  const distinct = new Set(linked.map((g) => g.tabelaPrecosId));
-  return { tableId: linked[0].tabelaPrecosId, viaGroup: linked[0], conflict: distinct.size > 1 };
+/** Grupo (tabela de preços) de um cliente: o primeiro dos seus grupoIds que ainda existe. */
+export function clientPriceGroup(clientGroupIds, groupsById) {
+  const id = (clientGroupIds || []).find((gid) => groupsById.has(gid));
+  return id ? groupsById.get(id) : null;
 }
 
 /** Põe um serviço num grupo com um valor (null = sem valor ainda). */
@@ -141,4 +133,66 @@ export async function migrateLegacyServiceGroups(services, groupsById) {
   }
   await batch.commit();
   return legacy.length;
+}
+
+const normName = (s) => (s || "").trim().toLowerCase();
+
+/**
+ * Migração única: os grupos de clientes antigos (gruposCadastro/clientes)
+ * passam a grupos de Serviços e Valores — junta-se ao grupo com o mesmo nome
+ * ou cria-se um novo — e os clientes ficam a apontar para o grupo novo.
+ * No fim marca gruposCadastro/clientes como migrado para não repetir.
+ * Devolve { clientes: { <clientId>: grupoIds } } para atualizar a cache.
+ */
+export async function migrateClientGroupsToServiceGroups() {
+  const clientesRef = groupsDoc(GROUP_KINDS.CLIENTES);
+  const snap = await getDoc(clientesRef);
+  if (!snap.exists() || snap.data().migradoParaServicosEm) return { clientes: {} };
+  const oldGroups = snap.data().itens || {};
+  const oldIds = Object.keys(oldGroups);
+
+  const svcSnap = await getDoc(groupsDoc(GROUP_KINDS.SERVICOS));
+  const svcItens = (svcSnap.exists() && svcSnap.data().itens) || {};
+  const byName = new Map(Object.entries(svcItens).map(([id, g]) => [normName(g.nome), id]));
+
+  const map = {};
+  const newGroups = {};
+  for (const [oid, g] of Object.entries(oldGroups)) {
+    const key = normName(g.nome);
+    if (!key) continue;
+    let nid = byName.get(key);
+    if (!nid) {
+      nid = doc(collection(db, "gruposCadastro")).id;
+      newGroups[nid] = { nome: g.nome.trim() };
+      byName.set(key, nid);
+    }
+    map[oid] = nid;
+  }
+
+  // Clientes que estão em algum grupo antigo (array-contains-any aceita 30 de cada vez)
+  const changed = {};
+  for (let i = 0; i < oldIds.length; i += 30) {
+    const chunk = oldIds.slice(i, i + 30);
+    const qs = await getDocs(query(collection(db, "clientes"), where("grupoIds", "array-contains-any", chunk)));
+    qs.forEach((d) => {
+      const ids = d.data().grupoIds || [];
+      changed[d.id] = [...new Set(ids.map((x) => map[x] || x).filter((x) => !oldGroups[x] || map[x]))];
+    });
+  }
+
+  const entries = Object.entries(changed);
+  for (let i = 0; i < Math.max(entries.length, 1); i += 400) {
+    const batch = writeBatch(db);
+    if (i === 0 && Object.keys(newGroups).length) {
+      batch.set(groupsDoc(GROUP_KINDS.SERVICOS), { itens: newGroups }, { merge: true });
+    }
+    for (const [id, grupoIds] of entries.slice(i, i + 400)) {
+      batch.update(doc(db, "clientes", id), { grupoIds });
+    }
+    if (i + 400 >= entries.length) {
+      batch.set(clientesRef, { migradoParaServicosEm: serverTimestamp() }, { merge: true });
+    }
+    await batch.commit();
+  }
+  return { clientes: changed };
 }

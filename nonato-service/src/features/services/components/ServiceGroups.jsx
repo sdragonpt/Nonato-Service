@@ -266,7 +266,7 @@ const ServiceGroups = ({ services, groups, loading }) => {
   const handleDeleteGroup = async (g) => {
     const ok = await confirm({
       title: `Apagar o grupo "${g.nome}"?`,
-      description: "Os serviços continuam no catálogo e nos outros grupos; só se perdem os valores deste grupo.",
+      description: "Os serviços continuam no catálogo e nos outros grupos; perdem-se os valores deste grupo e os clientes que estavam nele ficam sem grupo.",
       confirmLabel: "Apagar grupo",
       destructive: true,
     });

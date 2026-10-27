@@ -6,8 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useClients } from "../../../context/ClientsContext.jsx";
 import { searchIncludes } from "../../../utils/normalizeSearch.js";
 import { compressImage } from "../../../utils/imageCompression.js";
-import { MultiGroupField } from "../../../components/shared/GroupFields.jsx";
-import { GROUP_KINDS } from "../../../services/groupsStore.js";
+import { ClientGroupField } from "../../../components/shared/GroupFields.jsx";
 import {
   Camera,
   Loader2,
@@ -347,11 +346,9 @@ const AddClient = () => {
             />
           </div>
 
-          <MultiGroupField
-            kind={GROUP_KINDS.CLIENTES}
+          <ClientGroupField
             value={formData.grupoIds}
             onChange={(grupoIds) => setFormData((prev) => ({ ...prev, grupoIds }))}
-            dialogTitle="Grupos de clientes"
           />
         </FormSection>
 

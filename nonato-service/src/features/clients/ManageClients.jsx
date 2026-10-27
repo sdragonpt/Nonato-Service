@@ -9,8 +9,11 @@ import { useOrcamentos } from "../../context/OrcamentosContext.jsx";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { getCached } from "../../utils/sessionCache.js";
 import { getInitials } from "../../utils/getInitials.js";
-import { useGroups, GROUP_KINDS } from "../../services/groupsStore.js";
-import ManageGroupsDialog from "../../components/shared/ManageGroupsDialog.jsx";
+import {
+  useGroups,
+  GROUP_KINDS,
+  migrateClientGroupsToServiceGroups,
+} from "../../services/groupsStore.js";
 import {
   FolderCog,
   Plus,
@@ -322,8 +325,8 @@ const ManageClients = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [groupFilter, setGroupFilter] = useState("all"); // "all" | "none" | id do grupo
-  const [manageGroupsOpen, setManageGroupsOpen] = useState(false);
-  const { groups, byId: groupsById } = useGroups(GROUP_KINDS.CLIENTES);
+  // Os grupos dos clientes são os de Serviços e Valores (tabelas de preços).
+  const { groups, byId: groupsById } = useGroups(GROUP_KINDS.SERVICOS);
   const [sortField, setSortField] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
   // Scroll infinito: em vez de páginas numeradas, mostra-se um número
@@ -340,7 +343,22 @@ const ManageClients = () => {
   // Usar o hook de status financeiro
   const { financialStatuses, isLoading: isLoadingFinancial } = useClientFinancialStatus(clients);
 
-  const { ensureClients, removeClientFromCache } = useClients();
+  const { ensureClients, removeClientFromCache, updateClientInCache } = useClients();
+
+  // Uma vez: grupos de clientes antigos → grupos de Serviços e Valores.
+  useEffect(() => {
+    migrateClientGroupsToServiceGroups()
+      .then(({ clientes }) => {
+        const ids = Object.keys(clientes);
+        if (!ids.length) return;
+        ids.forEach((id) => updateClientInCache(id, { grupoIds: clientes[id] }));
+        setClients((prev) =>
+          prev.map((c) => (clientes[c.id] ? { ...c, grupoIds: clientes[c.id] } : c))
+        );
+      })
+      .catch((err) => console.error("Erro ao migrar grupos de clientes:", err));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const confirm = useConfirm();
   const { ensureEquipments } = useEquipments();
   // Guarda a lista "crua" (com contagem de equipamentos já calculada, mas
@@ -583,9 +601,9 @@ const ManageClients = () => {
         icon={Users}
         actions={
           <>
-            <Button variant="outline" onClick={() => setManageGroupsOpen(true)}>
+            <Button variant="outline" onClick={() => navigate("/app/manage-services")}>
               <FolderCog className="h-4 w-4" />
-              Grupos
+              Grupos e valores
             </Button>
             <Button variant="outline" onClick={exportToCSV} className="hidden sm:inline-flex">
               <Download className="h-4 w-4" />
@@ -732,13 +750,6 @@ const ManageClients = () => {
 
       {hasMoreVisible && <LoadMoreButton onClick={loadMoreVisible} />}
 
-      <ManageGroupsDialog
-        open={manageGroupsOpen}
-        onOpenChange={setManageGroupsOpen}
-        kind={GROUP_KINDS.CLIENTES}
-        title="Grupos de clientes"
-        description="Ex: Marcenarias, Revendedores, HOMAG. Um cliente pode estar em vários grupos. Escolha a tabela de preços de cada grupo para os orçamentos desses clientes virem já com os valores certos."
-      />
 
       <Fab
         actions={[
