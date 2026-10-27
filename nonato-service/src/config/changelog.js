@@ -17,6 +17,18 @@
 
 export const CHANGELOG = [
   {
+    n: 22,
+    versao: "1.12.1",
+    data: "2026-10-27",
+    titulo: "Pesquisas, confirmações e ecrãs vazios iguais em toda a app",
+    itens: [
+      { tipo: "melhoria", texto: "As caixas de pesquisa das listas são todas iguais e têm um botão × para limpar." },
+      { tipo: "melhoria", texto: "Apagar no Stock, retirar acessos em Utilizadores e as importações pedem confirmação na janela da app, em vez da caixa simples do browser." },
+      { tipo: "melhoria", texto: "Os ecrãs de “a carregar” e de “nada encontrado” têm o mesmo aspeto em todas as páginas." },
+      { tipo: "melhoria", texto: "Protocolo, Ordem de Preparação e Equipamento do Armazém usam o cabeçalho novo, com o estado ao lado do título e a foto do equipamento." },
+    ],
+  },
+  {
     n: 21,
     versao: "1.12.0",
     data: "2026-10-27",
