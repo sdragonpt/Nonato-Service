@@ -22,11 +22,11 @@ const CommunicationBubble = () => {
       type="button"
       onClick={() => navigate(HUB_PATH)}
       aria-label="Abrir Hub de Comunicação"
-      className="fixed bottom-6 left-6 md:left-[300px] z-40 h-12 w-12 rounded-full bg-green-600 hover:bg-green-700 shadow-lg shadow-green-900/30 flex items-center justify-center transition-transform hover:scale-105"
+      className="fixed bottom-[calc(1.25rem+var(--safe-bottom))] left-4 md:left-[304px] z-40 h-12 w-12 rounded-full bg-primary hover:bg-primary/90 shadow-glow flex items-center justify-center transition-transform hover:scale-105"
     >
-      <MessageCircle className="h-5 w-5 text-white" />
+      <MessageCircle className="h-5 w-5 text-foreground" />
       {unreadCount > 0 && (
-        <span className="absolute -top-1 -right-1 h-5 min-w-5 px-1 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center border-2 border-zinc-900">
+        <span className="absolute -top-1 -right-1 h-5 min-w-5 px-1 rounded-full bg-red-500 text-foreground text-[11px] font-bold flex items-center justify-center border-2 border-background">
           {unreadCount > 9 ? "9+" : unreadCount}
         </span>
       )}

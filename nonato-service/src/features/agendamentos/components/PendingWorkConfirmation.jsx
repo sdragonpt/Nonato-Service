@@ -59,10 +59,10 @@ const PendingRow = ({ appointment, clientName, equipmentName, position, busy, on
     <li className="py-3 space-y-2">
       {/* O nome nunca empurra os botões: corta com "…" (nome completo ao passar o rato). */}
       <div className="min-w-0">
-        <p className="text-white font-medium truncate" title={clientName}>
+        <p className="text-foreground font-medium truncate" title={clientName}>
           {clientName}
         </p>
-        <p className="text-sm text-zinc-400 break-words">
+        <p className="text-sm text-muted-foreground break-words">
           {formatWhen(appointment)}
           {otherYear && (
             <span className="ml-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-semibold text-amber-300">
@@ -73,9 +73,9 @@ const PendingRow = ({ appointment, clientName, equipmentName, position, busy, on
           {appointment.tecnicoNome && ` · ${appointment.tecnicoNome}`}
         </p>
         {(position || equipmentName || appointment.observacoes) && (
-          <p className="text-xs text-zinc-500 break-words">
+          <p className="text-xs text-muted-foreground break-words">
             {position && (
-              <span className="mr-1 rounded bg-zinc-700 px-1.5 py-0.5 font-semibold text-zinc-200">
+              <span className="mr-1 rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
                 {position.index} de {position.total}
               </span>
             )}
@@ -196,7 +196,7 @@ const PendingWorkConfirmation = () => {
     (a.clientId && getClientById(a.clientId)?.name) || a.newClientName || "Cliente";
 
   const list = (
-    <ul className="min-w-0 divide-y divide-zinc-700">
+    <ul className="min-w-0 divide-y divide-border">
       {pending.map((a) => (
         <PendingRow
           key={a.id}
@@ -213,16 +213,16 @@ const PendingWorkConfirmation = () => {
 
   return (
     <>
-      <Card className="bg-zinc-800 border-amber-500/40">
+      <Card className="border-warning/40">
         <CardHeader className="pb-2">
-          <CardTitle className="text-white flex items-center text-base">
+          <CardTitle className="text-foreground flex items-center text-base">
             <AlertCircle className="h-4 w-4 mr-2 text-amber-400" />
             Serviços por confirmar
             <Badge variant="outline" className="ml-auto border-amber-500/40 text-amber-300">
               {pending.length}
             </Badge>
           </CardTitle>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-muted-foreground">
             Estes agendamentos são de dias que já passaram. O serviço foi mesmo realizado?
           </p>
         </CardHeader>
@@ -233,13 +233,13 @@ const PendingWorkConfirmation = () => {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={handleDialogChange}>
-        <DialogContent className="bg-zinc-800 border-zinc-700 max-w-xl max-h-[85vh] overflow-y-auto overflow-x-hidden">
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
+            <DialogTitle className="text-foreground flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-amber-400" />
               O serviço foi realizado?
             </DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription className="text-muted-foreground">
               {pending.length === 1
                 ? "Há 1 agendamento de um dia que já passou."
                 : `Há ${pending.length} agendamentos de dias que já passaram.`}{" "}
@@ -252,7 +252,7 @@ const PendingWorkConfirmation = () => {
             <Button
               variant="outline"
               onClick={() => handleDialogChange(false)}
-              className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
+              
             >
               Decidir depois
             </Button>

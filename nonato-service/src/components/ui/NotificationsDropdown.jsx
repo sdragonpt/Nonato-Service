@@ -32,7 +32,7 @@ const getNotificationIcon = (type) => {
     case "system_update":
       return <Sparkles className="h-4 w-4 text-green-500" />;
     default:
-      return <Bell className="h-4 w-4 text-zinc-400" />;
+      return <Bell className="h-4 w-4 text-muted-foreground" />;
   }
 };
 
@@ -82,7 +82,7 @@ const NotificationsDropdown = () => {
         <Button
           variant="ghost"
           size="icon"
-          className="relative text-zinc-400 hover:text-white hover:bg-zinc-700/50"
+          className="relative text-muted-foreground hover:text-foreground hover:bg-white/5"
         >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
@@ -94,12 +94,12 @@ const NotificationsDropdown = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-80 bg-zinc-800 border-zinc-700"
+        className="w-80"
       >
-        <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-700">
-          <span className="text-sm font-medium text-white">Notificações</span>
+        <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+          <span className="text-sm font-medium text-foreground">Notificações</span>
           {unreadCount > 0 && (
-            <Badge variant="secondary" className="bg-zinc-700 text-zinc-400">
+            <Badge variant="secondary" className="bg-muted text-muted-foreground">
               {unreadCount} nova{unreadCount > 1 ? "s" : ""}
             </Badge>
           )}
@@ -110,20 +110,20 @@ const NotificationsDropdown = () => {
               <DropdownMenuItem
                 key={notification.id}
                 className={`px-4 py-3 focus:bg-zinc-700/50 cursor-pointer ${
-                  !notification.read ? "bg-zinc-700/20" : ""
+                  !notification.read ? "bg-white/5" : ""
                 }`}
                 onSelect={() => handleNotificationClick(notification)}
               >
                 <div className="flex items-start gap-3 w-full">
                   {getNotificationIcon(notification.type)}
                   <div className="flex-1">
-                    <p className="text-sm text-white font-medium">
+                    <p className="text-sm text-foreground font-medium">
                       {notification.title}
                     </p>
-                    <p className="text-sm text-zinc-400">
+                    <p className="text-sm text-muted-foreground">
                       {notification.message}
                     </p>
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-muted-foreground">
                       {formatDistanceToNow(notification.createdAt.toDate(), {
                         addSuffix: true,
                         locale: ptBR,
@@ -133,7 +133,7 @@ const NotificationsDropdown = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 text-zinc-400 hover:text-red-400 hover:bg-red-500/20"
+                    className="h-6 w-6 text-muted-foreground hover:text-red-400 hover:bg-red-500/20"
                     onClick={(e) => handleDelete(e, notification.id)}
                   >
                     <X className="h-4 w-4" />
@@ -143,15 +143,15 @@ const NotificationsDropdown = () => {
             ))
           ) : (
             <div className="px-4 py-8 text-center">
-              <Bell className="h-8 w-8 text-zinc-600 mx-auto mb-2" />
-              <p className="text-sm text-zinc-400">Nenhuma notificação</p>
+              <Bell className="h-8 w-8 text-muted-foreground/70 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">Nenhuma notificação</p>
             </div>
           )}
         </div>
-        <div className="p-2 border-t border-zinc-700 flex justify-between">
+        <div className="p-2 border-t border-border flex justify-between">
           <Button
             variant="ghost"
-            className="text-zinc-400 hover:text-white hover:bg-zinc-700/50"
+            className="text-muted-foreground hover:text-foreground hover:bg-white/5"
             onClick={() => navigate("/app/notifications")}
           >
             Ver todas
@@ -159,7 +159,7 @@ const NotificationsDropdown = () => {
           {unreadCount > 0 && (
             <Button
               variant="ghost"
-              className="text-zinc-400 hover:text-white hover:bg-zinc-700/50"
+              className="text-muted-foreground hover:text-foreground hover:bg-white/5"
               onClick={markAllAsRead}
             >
               <Check className="h-4 w-4 mr-2" />

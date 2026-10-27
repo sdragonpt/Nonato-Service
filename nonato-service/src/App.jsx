@@ -28,14 +28,13 @@ import {
   LogOut,
   Menu,
   X,
-  ChevronDown,
   Settings,
   User,
   UserCog,
-  Building2,
-  Bell,
   Search,
   Home,
+  ChevronRight,
+  ChevronsUpDown,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -71,7 +70,8 @@ import TabsBar from "./components/layout/TabsBar.jsx";
 import VersionBadge from "./components/layout/VersionBadge.jsx";
 import { useAuth } from "./hooks/useAuth";
 import { initOldBrowserSupport } from "./utils/oldBrowserUtils.js";
-import { NAVIGATION_ITEMS } from "./config/navigationItems.jsx";
+import { NAVIGATION_ITEMS, ICON_MAP, getTabMetaForPath } from "./config/navigationItems.jsx";
+import { ConfirmProvider } from "./components/app";
 import CommunicationBubble from "./features/communication/components/CommunicationBubble.jsx";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -442,7 +442,7 @@ const RoleRoute = React.memo(({ children, allowedRoles }) => {
   // ✅ AGUARDAR LOADING TERMINAR
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900" />
+      <div className="min-h-screen bg-background" />
     );
   }
 
@@ -479,52 +479,43 @@ const UserNav = React.memo(() => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="relative h-10 w-10 rounded-full hover:bg-zinc-700/50 transition-all"
+        <button
+          type="button"
+          className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-white/5"
         >
-          <Avatar className="h-10 w-10 ring-2 ring-green-500/20 hover:ring-green-500/50 transition-all">
-            <AvatarImage
-              src={user?.photoURL || ""}
-              alt={user?.displayName || ""}
-            />
-            <AvatarFallback className="bg-gradient-to-br from-green-500 to-emerald-600 text-white font-semibold">
+          <Avatar className="h-9 w-9 ring-1 ring-white/10">
+            <AvatarImage src={user?.photoURL || ""} alt={user?.displayName || ""} />
+            <AvatarFallback className="bg-primary/20 font-semibold text-primary">
               {user?.displayName?.[0] || "U"}
             </AvatarFallback>
           </Avatar>
-        </Button>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{user?.displayName || "Utilizador"}</p>
+            <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+          </div>
+          <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+        </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        className="w-56 bg-zinc-800/95 border-zinc-700/50 backdrop-blur-xl"
-        align="end"
-      >
+      <DropdownMenuContent className="w-60" align="start" side="top">
         <div className="px-2 py-2">
-          <p className="text-sm font-medium text-white">
-            {user?.displayName || "Usuário"}
-          </p>
-          <p className="text-xs text-zinc-400">{user?.email}</p>
+          <p className="text-sm font-medium">{user?.displayName || "Utilizador"}</p>
+          <p className="text-xs text-muted-foreground">{user?.email}</p>
         </div>
-        <DropdownMenuSeparator className="bg-zinc-700/50" />
-        <DropdownMenuItem
-          className="text-white hover:bg-zinc-700/50 cursor-pointer"
-          onClick={handleNavigateProfile}
-        >
-          <User className="mr-2 h-4 w-4" />
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="cursor-pointer" onClick={handleNavigateProfile}>
+          <User className="h-4 w-4" />
           <span>Perfil</span>
         </DropdownMenuItem>
-        <DropdownMenuItem
-          className="text-white hover:bg-zinc-700/50 cursor-pointer"
-          onClick={handleNavigateSettings}
-        >
-          <Settings className="mr-2 h-4 w-4" />
+        <DropdownMenuItem className="cursor-pointer" onClick={handleNavigateSettings}>
+          <Settings className="h-4 w-4" />
           <span>Configurações</span>
         </DropdownMenuItem>
-        <DropdownMenuSeparator className="bg-zinc-700/50" />
+        <DropdownMenuSeparator />
         <DropdownMenuItem
-          className="text-red-400 hover:bg-red-600/20 focus:text-red-400 cursor-pointer"
+          className="cursor-pointer text-red-400 focus:bg-destructive/15 focus:text-red-400"
           onClick={handleSignOut}
         >
-          <LogOut className="mr-2 h-4 w-4" />
+          <LogOut className="h-4 w-4" />
           <span>Sair</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -535,7 +526,8 @@ const UserNav = React.memo(() => {
 UserNav.displayName = "UserNav";
 
 /**
- * Shell principal do dashboard com sidebar e navegação - SEM LOADERS
+ * Shell principal do backoffice: barra lateral e topo em vidro (flutuantes no
+ * desktop), conteúdo centrado com largura máxima, áreas seguras do telemóvel.
  */
 const DashboardShell = React.memo(({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -588,8 +580,16 @@ const DashboardShell = React.memo(({ children }) => {
     setActiveSection(section);
   }, [location.pathname, getSectionForPath]);
 
+  // Título da página no topo (em vez do pedaço cru do endereço)
+  const pageMeta = getTabMetaForPath(location.pathname);
+  const PageIcon = ICON_MAP[pageMeta.iconKey] || Home;
+  const pageSection = getSectionForPath(location.pathname);
+
+  const query = searchQuery.trim().toLowerCase();
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 overflow-x-hidden">
+    <ConfirmProvider>
+    <div className="min-h-screen overflow-x-hidden">
       {/* Overlay para mobile */}
       <AnimatePresence>
         {isSidebarOpen && (
@@ -597,263 +597,224 @@ const DashboardShell = React.memo(({ children }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-30 md:hidden backdrop-blur-sm"
+            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden"
             onClick={() => setIsSidebarOpen(false)}
           />
         )}
       </AnimatePresence>
 
-      {/* Sidebar - SEMPRE VISÍVEL NO DESKTOP */}
-      <motion.aside
-        className={`fixed top-0 left-0 z-40 h-screen w-[280px] bg-gradient-to-b from-zinc-900/95 to-zinc-800/95 border-r border-zinc-700/50 backdrop-blur-xl transform transition-transform duration-300 overflow-hidden ${
+      {/* Barra lateral — flutuante, em vidro */}
+      <aside
+        className={`fixed left-0 top-0 z-40 h-[100dvh] w-[288px] p-3 pt-[calc(0.75rem+var(--safe-top))] pb-[calc(0.75rem+var(--safe-bottom))] transition-transform duration-300 ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         } md:translate-x-0`}
       >
-        <div className="h-full px-4 py-4 flex flex-col overflow-x-hidden">
-          {/* Header da sidebar - MELHORADO */}
-          <div className="flex items-center justify-between mb-8 h-16">
-            <motion.div
+        <div className="glass flex h-full flex-col overflow-hidden rounded-2xl">
+          {/* Marca */}
+          <div className="flex items-center justify-between px-4 pb-3 pt-4">
+            <button
+              type="button"
               onClick={handleNavigateHome}
-              className="flex items-center gap-3 cursor-pointer group"
-              whileHover={{ opacity: 0.8 }}
-              whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-3 rounded-xl text-left transition-opacity hover:opacity-90"
             >
-              <div className="relative">
-                <Building2 className="h-8 w-8 text-green-500 group-hover:text-emerald-400 transition-colors" />
-                <div className="absolute inset-0 bg-green-500/20 rounded-full blur-xl group-hover:bg-green-500/30 transition-all" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-white group-hover:text-green-100 transition-colors">
-                  Nonato Service
-                </h1>
-                <p className="text-xs text-zinc-400">Sistema de Gestão</p>
-              </div>
-            </motion.div>
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-black/40 ring-1 ring-white/10">
+                <img src="/nonato.png" alt="" className="h-7 w-7 object-contain" />
+              </span>
+              <span>
+                <span className="block text-[15px] font-semibold leading-tight tracking-tight">Nonato Service</span>
+                <span className="block text-xs text-muted-foreground">Sistema de Gestão</span>
+              </span>
+            </button>
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden hover:bg-zinc-700/50"
+              className="h-9 w-9 md:hidden"
               onClick={() => setIsSidebarOpen(false)}
+              aria-label="Fechar menu"
             >
-              <X className="h-6 w-6 text-zinc-400" />
+              <X className="h-5 w-5" />
             </Button>
           </div>
 
-          {/* Barra de pesquisa */}
-          <div className="mb-6">
+          {/* Pesquisa no menu */}
+          <div className="px-3 pb-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Buscar seções..."
+                placeholder="Procurar no menu…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-zinc-800/50 border-zinc-700/50 text-white placeholder:text-zinc-500 focus:border-green-500/50 focus:ring-green-500/20"
+                className="h-9 border-white/10 bg-white/5 pl-9"
               />
             </div>
           </div>
 
-          {/* Navegação - SEMPRE VISÍVEL */}
-          <div className="flex-1 space-y-2 overflow-y-auto overflow-x-hidden">
-            {NAVIGATION_ITEMS.map((section, idx) => {
-              // Filtrar por pesquisa
-              const matchesSearch =
-                searchQuery === "" ||
-                section.title
-                  .toLowerCase()
-                  .includes(searchQuery.toLowerCase()) ||
-                section.items.some((item) =>
-                  item.label.toLowerCase().includes(searchQuery.toLowerCase())
+          {/* Navegação */}
+          <nav className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-2 pb-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+            {NAVIGATION_ITEMS.map((section) => {
+              const visibleItems = section.items.filter((item) => {
+                // Filtrar itens restritos a certos papéis
+                if (item.adminOnly && user?.role !== "admin") return false;
+                if (item.roles && !item.roles.includes(user?.role)) return false;
+                // Filtrar por pesquisa
+                return (
+                  query === "" ||
+                  item.label.toLowerCase().includes(query) ||
+                  section.title.toLowerCase().includes(query)
                 );
+              });
+              if (visibleItems.length === 0) return null;
 
-              if (!matchesSearch) return null;
+              // Com pesquisa, todas as secções com resultados ficam abertas.
+              const isOpen = query !== "" || activeSection === section.title;
+              const hasActive = visibleItems.some((item) => isActiveLink(item.path));
 
               return (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="space-y-1"
-                >
-                  <motion.button
-                    onClick={() =>
-                      setActiveSection(
-                        activeSection === section.title ? "" : section.title
-                      )
-                    }
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all text-left ${
-                      activeSection === section.title
-                        ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-500/20"
-                        : "text-zinc-300 hover:bg-zinc-800/50 hover:text-white"
+                <div key={section.title}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSection(activeSection === section.title ? "" : section.title)}
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors ${
+                      isOpen || hasActive
+                        ? "text-foreground"
+                        : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                     }`}
-                    whileHover={{ opacity: 0.9 }}
-                    whileTap={{ scale: 0.98 }}
                   >
-                    <div className="flex items-center gap-3">
-                      <section.icon className="w-5 h-5" />
-                      <span className="font-medium">{section.title}</span>
-                    </div>
-                    <motion.div
-                      animate={{
-                        rotate: activeSection === section.title ? 180 : 0,
-                      }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <ChevronDown className="w-4 h-4" />
-                    </motion.div>
-                  </motion.button>
+                    <span className="flex items-center gap-3">
+                      <section.icon className={`h-4 w-4 ${hasActive ? "text-primary" : ""}`} />
+                      {section.title}
+                    </span>
+                    <ChevronRight
+                      className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`}
+                    />
+                  </button>
 
-                  <AnimatePresence>
-                    {activeSection === section.title && (
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="space-y-1 pl-2 overflow-hidden"
+                        transition={{ duration: 0.18 }}
+                        className="overflow-hidden"
                       >
-                        {section.items
-                          .filter((item) => {
-                            // Filtrar itens restritos a certos papéis
-                            if (item.adminOnly && user?.role !== "admin")
-                              return false;
-                            if (item.roles && !item.roles.includes(user?.role))
-                              return false;
-                            // Filtrar por pesquisa
-                            return (
-                              searchQuery === "" ||
-                              item.label
-                                .toLowerCase()
-                                .includes(searchQuery.toLowerCase())
-                            );
-                          })
-                          .map((item, itemIdx) => {
+                        <div className="ml-5 space-y-0.5 border-l border-white/10 py-1 pl-2">
+                          {visibleItems.map((item) => {
                             if (item.external) {
                               return (
-                                <motion.a
-                                  key={itemIdx}
+                                <a
+                                  key={item.path}
                                   href={item.path}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex items-center gap-3 px-4 py-2.5 text-sm rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-all group"
-                                  whileHover={{ opacity: 0.8 }}
-                                  initial={{ opacity: 0, x: -10 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ delay: itemIdx * 0.05 }}
+                                  className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
                                 >
-                                  <item.icon className="w-4 h-4 group-hover:text-green-400 transition-colors" />
-                                  {item.label}
-                                </motion.a>
+                                  <item.icon className="h-4 w-4 shrink-0" />
+                                  <span className="truncate">{item.label}</span>
+                                </a>
                               );
                             }
 
+                            const active = isActiveLink(item.path);
                             return (
-                              <motion.div
-                                key={itemIdx}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: itemIdx * 0.05 }}
+                              <Link
+                                key={item.path}
+                                to={item.path}
+                                className={`relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] transition-colors ${
+                                  active
+                                    ? "bg-primary/15 font-medium text-foreground"
+                                    : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                                }`}
                               >
-                                <Link
-                                  to={item.path}
-                                  className={`flex items-center gap-3 px-4 py-2.5 text-sm rounded-lg transition-all group ${
-                                    isActiveLink(item.path)
-                                      ? "bg-green-600/20 text-green-400 border border-green-500/30"
-                                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
-                                  }`}
-                                >
-                                  <item.icon
-                                    className={`w-4 h-4 transition-colors ${
-                                      isActiveLink(item.path)
-                                        ? "text-green-400"
-                                        : "group-hover:text-green-400"
-                                    }`}
-                                  />
-                                  {item.label}
-                                  {item.adminOnly && (
-                                    <Badge className="ml-auto bg-red-500/20 text-red-400 text-xs border-red-500/30">
-                                      Admin
-                                    </Badge>
-                                  )}
-                                  {item.roles && (
-                                    <Badge className="ml-auto bg-amber-500/20 text-amber-400 text-xs border-amber-500/30">
-                                      Gestão
-                                    </Badge>
-                                  )}
-                                </Link>
-                              </motion.div>
+                                {active && (
+                                  <span className="absolute -left-[9px] top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary" />
+                                )}
+                                <item.icon className={`h-4 w-4 shrink-0 ${active ? "text-primary" : ""}`} />
+                                <span className="truncate">{item.label}</span>
+                                {item.adminOnly && (
+                                  <Badge variant="danger" className="ml-auto px-1.5 py-0 text-[10px]">
+                                    Admin
+                                  </Badge>
+                                )}
+                                {item.roles && (
+                                  <Badge variant="warning" className="ml-auto px-1.5 py-0 text-[10px]">
+                                    Gestão
+                                  </Badge>
+                                )}
+                              </Link>
                             );
                           })}
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
-                </motion.div>
+                </div>
               );
             })}
-          </div>
+          </nav>
 
-          {/* Footer da sidebar - MELHORADO */}
-          <motion.div
-            className="mt-auto pt-4 border-t border-zinc-700/50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
+          {/* Rodapé: versão + utilizador */}
+          <div className="border-t border-white/5 p-2">
             {/* Versão da app + novidades + aviso de nova versão */}
             <VersionBadge user={user} />
             <UserNav />
-          </motion.div>
+          </div>
         </div>
-      </motion.aside>
+      </aside>
 
       {/* Conteúdo principal */}
-      <main className="transition-[margin] duration-300 md:ml-[280px] overflow-x-hidden">
-        {/* Header - DESIGN MODERNO */}
-        <motion.header
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="sticky top-0 z-30 bg-zinc-800/80 backdrop-blur-xl border-b border-zinc-700/50"
-        >
-          <div className="flex h-16 items-center gap-4 px-6">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden hover:bg-zinc-700/50 transition-all"
-              onClick={toggleSidebar}
-            >
-              <Menu className="h-6 w-6 text-zinc-400" />
-            </Button>
+      <main className="min-w-0 transition-[margin] duration-300 md:ml-[288px]">
+        {/* Topo — flutuante, em vidro, com as abas por baixo do título */}
+        <header className="sticky top-0 z-30 px-3 pt-[calc(0.75rem+var(--safe-top))] md:pl-0">
+          <div className="glass overflow-hidden rounded-2xl">
+            <div className="flex h-14 items-center gap-3 px-3 sm:px-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 md:hidden"
+                onClick={toggleSidebar}
+                aria-label="Abrir menu"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
 
-            {/* Breadcrumb melhorado */}
-            <div className="flex items-center gap-2 text-sm text-zinc-400">
-              <Home className="h-4 w-4" />
-              <span>/</span>
-              <span className="text-white font-medium">
-                {location.pathname.split("/").pop() || "dashboard"}
-              </span>
+              <div className="flex min-w-0 items-center gap-2.5">
+                <span className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary sm:flex">
+                  <PageIcon className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  {pageSection && (
+                    <p className="hidden truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground sm:block">
+                      {pageSection}
+                    </p>
+                  )}
+                  <p className="truncate text-sm font-semibold leading-tight">{pageMeta.label}</p>
+                </div>
+              </div>
+
+              <div className="ml-auto flex items-center gap-1">
+                {user?.role === "admin" && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                    onClick={handleNavigateUsers}
+                    title="Gerir utilizadores"
+                  >
+                    <UserCog className="h-5 w-5" />
+                  </Button>
+                )}
+                <NotificationsDropdown />
+              </div>
             </div>
 
-            <div className="ml-auto flex items-center gap-3">
-              {user?.role === "admin" && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-zinc-400 hover:text-white hover:bg-zinc-700/50 transition-all"
-                  onClick={handleNavigateUsers}
-                >
-                  <UserCog className="h-5 w-5" />
-                </Button>
-              )}
-              <NotificationsDropdown />
-            </div>
+            {/* Barra de Abas — mantém várias páginas abertas ao mesmo tempo */}
+            <TabsBar />
           </div>
-        </motion.header>
+        </header>
 
-        {/* Barra de Abas — mantém várias páginas abertas ao mesmo tempo */}
-        <TabsBar />
-
-        {/* Conteúdo das páginas - CARREGAMENTO INSTANTÂNEO */}
-        <div className="p-6 lg:p-8">
+        {/* Conteúdo das páginas */}
+        <div className="page-container px-3 pb-[calc(2rem+var(--safe-bottom))] pt-5 sm:px-5 md:pl-0 md:pr-3 lg:pr-5">
           <ErrorBoundary>
             <React.Suspense fallback={<div className="min-h-[20vh]" />}>
               {children}
@@ -865,6 +826,7 @@ const DashboardShell = React.memo(({ children }) => {
       {/* ✅ Atalho global para o Hub de Comunicação */}
       <CommunicationBubble />
     </div>
+    </ConfirmProvider>
   );
 });
 
@@ -912,7 +874,7 @@ const App = () => {
         <OrcamentosProvider>
           <Router>
             <React.Suspense
-              fallback={<div className="min-h-screen bg-zinc-900" />}
+              fallback={<div className="min-h-screen bg-background" />}
             >
               <Routes>
                 {/* Redirecionamentos */}

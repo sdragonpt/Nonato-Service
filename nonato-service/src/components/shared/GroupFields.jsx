@@ -24,7 +24,7 @@ const ManageButton = ({ onClick }) => (
     type="button"
     variant="outline"
     onClick={onClick}
-    className="border-zinc-700 bg-zinc-900 text-white hover:bg-zinc-700 shrink-0"
+    className="shrink-0"
   >
     <FolderCog className="h-4 w-4 mr-2" />
     Gerir grupos
@@ -37,18 +37,18 @@ export const SingleGroupField = ({ kind, value, onChange, label = "Grupo", dialo
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-zinc-400">{label}</label>
+      <label className="text-sm font-medium text-muted-foreground">{label}</label>
       <div className="flex gap-2">
         <Select value={value || NONE} onValueChange={(v) => onChange(v === NONE ? "" : v)}>
-          <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+          <SelectTrigger>
             <SelectValue placeholder="Sem grupo" />
           </SelectTrigger>
-          <SelectContent className="bg-zinc-800 border-zinc-700">
-            <SelectItem value={NONE} className="text-zinc-400 hover:bg-zinc-700">
+          <SelectContent>
+            <SelectItem value={NONE} className="text-muted-foreground">
               Sem grupo
             </SelectItem>
             {groups.map((g) => (
-              <SelectItem key={g.id} value={g.id} className="text-white hover:bg-zinc-700">
+              <SelectItem key={g.id} value={g.id}>
                 {g.nome}
               </SelectItem>
             ))}
@@ -81,11 +81,11 @@ export const MultiGroupField = ({ kind, value = [], onChange, label = "Grupos", 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <label className="text-sm font-medium text-zinc-400">{label}</label>
+        <label className="text-sm font-medium text-muted-foreground">{label}</label>
         <ManageButton onClick={() => setManageOpen(true)} />
       </div>
       {groups.length === 0 ? (
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-muted-foreground">
           Ainda não há grupos. Carregue em &quot;Gerir grupos&quot; para criar.
         </p>
       ) : (
@@ -100,8 +100,8 @@ export const MultiGroupField = ({ kind, value = [], onChange, label = "Grupos", 
                 aria-pressed={on}
                 className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm transition-colors ${
                   on
-                    ? "border-green-500 bg-green-500/15 text-green-300"
-                    : "border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-700"
+                    ? "border-primary/60 bg-primary/15 text-primary"
+                    : "border-border bg-muted/50 text-foreground/90 hover:bg-accent"
                 }`}
               >
                 {on && <Check className="h-3 w-3" />}

@@ -13,7 +13,6 @@ import { useGroups, GROUP_KINDS } from "../../services/groupsStore.js";
 import ManageGroupsDialog from "../../components/shared/ManageGroupsDialog.jsx";
 import {
   FolderCog,
-  Search,
   Plus,
   Loader2,
   MoreVertical,
@@ -29,14 +28,26 @@ import {
   CreditCard,
   MapPin,
   ArrowUpDown,
-  ArrowDown,
-  Edit2
+  Edit2,
+  Phone,
 } from "lucide-react";
 
 // UI Components
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  PageHeader,
+  StatCard,
+  StatGrid,
+  FilterBar,
+  SearchInput,
+  EmptyState,
+  PageLoader,
+  LoadMoreButton,
+  Fab,
+  useConfirm,
+} from "../../components/app";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -51,14 +62,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 // Financial utils
 import { 
@@ -159,29 +162,29 @@ const calculateClientFinancialStatus = (clientServices) => {
 
   // Determinar status geral do cliente
   let clientStatus = 'good';
-  let statusColor = 'border-zinc-700';
+  let statusColor = '';
   let statusBadge = null;
 
   if (hasOverdueServices) {
     clientStatus = 'overdue';
-    statusColor = 'border-red-500 bg-red-500/10';
+    statusColor = 'border-red-500/40';
     statusBadge = {
       text: 'Devedor',
-      color: 'bg-red-500/20 text-red-400',
+      tone: 'danger',
       icon: AlertTriangle
     };
   } else if (hasPendingServices) {
     clientStatus = 'pending';
-    statusColor = 'border-yellow-500 bg-yellow-500/5';
+    statusColor = 'border-warning/40';
     statusBadge = {
       text: 'Pendente',
-      color: 'bg-yellow-500/20 text-yellow-400',
+      tone: 'warning',
       icon: Clock
     };
   } else if (totalAmount > 0) {
     statusBadge = {
       text: 'Em Dia',
-      color: 'bg-green-500/20 text-green-400',
+      tone: 'success',
       icon: CheckCircle
     };
   }
@@ -206,121 +209,105 @@ const ClientCard = ({ client, onEdit, onDelete, onView, financialStatus, groupNa
     e.stopPropagation();
     onDelete(client.id);
   };
-  
+  const StatusIcon = financialStatus?.statusBadge?.icon;
+
   return (
-    <Card 
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onView(client.id)}
-      className={`bg-zinc-800 hover:bg-zinc-700 transition-colors cursor-pointer ${
-        financialStatus?.statusColor || 'border-zinc-700'
+      onKeyDown={(e) => e.key === "Enter" && onView(client.id)}
+      className={`surface group flex cursor-pointer flex-col p-4 shadow-elev transition-colors hover:border-white/15 hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${
+        financialStatus?.statusColor || ""
       }`}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <Avatar className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
-              <AvatarImage src={client.profilePic} alt={client.name} />
-              <AvatarFallback className="bg-zinc-700 text-zinc-300">
-                {getInitials(client.name)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <h3 className="font-medium text-white truncate" title={client.name}>
-                {client.name}
-              </h3>
-              <p className="text-sm text-zinc-400 truncate" title={client.phone}>
-                {client.phone || "Sem telefone"}
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex flex-col items-end gap-2 flex-shrink-0">
-            {/* Badge de Status Financeiro */}
-            {financialStatus?.statusBadge && (
-              <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                financialStatus.statusBadge.color
-              }`}>
-                <financialStatus.statusBadge.icon className="h-3 w-3" />
-                {financialStatus.statusBadge.text}
-              </div>
-            )}
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger 
-                asChild
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent 
-                align="end" 
-                className="bg-zinc-800 border-zinc-700"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <DropdownMenuItem onClick={() => onView(client.id)}>
-                  <Eye className="mr-2 h-4 w-4" />
-                  Ver Detalhes
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onEdit(client.id)}>
-                  <Edit2 className="mr-2 h-4 w-4" />
-                  Editar
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={confirmDelete}
-                  className="text-red-400"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Excluir
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+      <div className="flex items-start gap-3">
+        <Avatar className="h-11 w-11 shrink-0 ring-1 ring-white/10">
+          <AvatarImage src={client.profilePic} alt={client.name} />
+          <AvatarFallback className="bg-muted text-sm font-semibold">
+            {getInitials(client.name)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate font-medium" title={client.name}>
+            {client.name}
+          </h3>
+          <p className="flex items-center gap-1.5 truncate text-sm text-muted-foreground" title={client.phone}>
+            <Phone className="h-3.5 w-3.5 shrink-0" />
+            {client.phone || "Sem telefone"}
+          </p>
         </div>
 
-        {groupNames?.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {groupNames.map((nome) => (
-              <span
-                key={nome}
-                className="rounded-full border border-zinc-600 bg-zinc-900 px-2 py-0.5 text-xs text-zinc-300"
-              >
-                {nome}
-              </span>
-            ))}
-          </div>
-        )}
+        <div className="flex shrink-0 items-center gap-1">
+          {financialStatus?.statusBadge && (
+            <Badge variant={financialStatus.statusBadge.tone}>
+              {StatusIcon && <StatusIcon className="mr-1 h-3 w-3" />}
+              {financialStatus.statusBadge.text}
+            </Badge>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" aria-label="Ações">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem onClick={() => onView(client.id)}>
+                <Eye className="h-4 w-4" />
+                Ver Detalhes
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onEdit(client.id)}>
+                <Edit2 className="h-4 w-4" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={confirmDelete} className="text-red-400 focus:text-red-400">
+                <Trash2 className="h-4 w-4" />
+                Excluir
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
 
-        {/* Endereço (uma linha só — NIF e detalhe financeiro ficam na ficha do cliente) */}
-        {client.address && (
-          <p className="text-zinc-400 text-xs sm:text-sm truncate flex items-center gap-2 mb-3">
-            <MapPin className="w-4 h-4 shrink-0" />
-            {client.address}
-          </p>
-        )}
+      {groupNames?.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {groupNames.map((nome) => (
+            <Badge key={nome} variant="muted" className="font-medium">
+              {nome}
+            </Badge>
+          ))}
+        </div>
+      )}
 
-        {/* Resumo financeiro — uma linha, o detalhe fica na ficha do cliente */}
-        {financialStatus && financialStatus.servicesCount > 0 && (
-          <div className="flex items-center justify-between pt-3 border-t border-zinc-700 text-sm">
-            <span className="flex items-center gap-1.5 text-zinc-400">
-              <CreditCard className="h-3.5 w-3.5" />
-              {financialStatus.servicesCount} serviço(s)
-            </span>
-            <span
-              className={`font-medium ${
-                financialStatus.status === "overdue"
-                  ? "text-red-400"
-                  : financialStatus.status === "pending"
-                  ? "text-yellow-400"
-                  : "text-white"
-              }`}
-            >
-              {formatPrice(financialStatus.totalAmount)}
-            </span>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      {/* Endereço (uma linha só — NIF e detalhe financeiro ficam na ficha do cliente) */}
+      {client.address && (
+        <p className="mt-3 flex items-center gap-2 truncate text-sm text-muted-foreground">
+          <MapPin className="h-4 w-4 shrink-0" />
+          <span className="truncate">{client.address}</span>
+        </p>
+      )}
+
+      {/* Resumo financeiro — uma linha, o detalhe fica na ficha do cliente */}
+      {financialStatus && financialStatus.servicesCount > 0 && (
+        <div className="mt-auto flex items-center justify-between border-t pt-3 text-sm [&:not(:first-child)]:mt-3">
+          <span className="flex items-center gap-1.5 text-muted-foreground">
+            <CreditCard className="h-3.5 w-3.5" />
+            {financialStatus.servicesCount} serviço(s)
+          </span>
+          <span
+            className={`font-semibold tabular-nums ${
+              financialStatus.status === "overdue"
+                ? "text-red-400"
+                : financialStatus.status === "pending"
+                ? "text-warning"
+                : ""
+            }`}
+          >
+            {formatPrice(financialStatus.totalAmount)}
+          </span>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -337,8 +324,6 @@ const ManageClients = () => {
   const [groupFilter, setGroupFilter] = useState("all"); // "all" | "none" | id do grupo
   const [manageGroupsOpen, setManageGroupsOpen] = useState(false);
   const { groups, byId: groupsById } = useGroups(GROUP_KINDS.CLIENTES);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [clientToDelete, setClientToDelete] = useState(null);
   const [sortField, setSortField] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
   // Scroll infinito: em vez de páginas numeradas, mostra-se um número
@@ -356,6 +341,7 @@ const ManageClients = () => {
   const { financialStatuses, isLoading: isLoadingFinancial } = useClientFinancialStatus(clients);
 
   const { ensureClients, removeClientFromCache } = useClients();
+  const confirm = useConfirm();
   const { ensureEquipments } = useEquipments();
   // Guarda a lista "crua" (com contagem de equipamentos já calculada, mas
   // sem ordenação aplicada) para podermos reordenar em memória quando o
@@ -448,14 +434,17 @@ const ManageClients = () => {
     navigate(`/app/client/${clientId}`);
   };
 
-  const handleDelete = (clientId) => {
-    const client = clients.find((c) => c.id === clientId);
-    setClientToDelete(client);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = async () => {
+  const handleDelete = async (clientId) => {
+    const clientToDelete = clients.find((c) => c.id === clientId);
     if (!clientToDelete) return;
+
+    const ok = await confirm({
+      title: "Excluir cliente?",
+      description: `"${clientToDelete.name}" vai para a Reciclagem e pode ser restaurado mais tarde, se for preciso.`,
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
+    if (!ok) return;
 
     try {
       // ✅ Exclusão suave — igual ao resto da app (ordens, inspeções,
@@ -471,8 +460,6 @@ const ManageClients = () => {
       // Mantém o cache partilhado (ClientsContext) em sincronia, para que
       // outras páginas não continuem a mostrar este cliente já excluído
       removeClientFromCache(clientToDelete.id);
-      setDeleteDialogOpen(false);
-      setClientToDelete(null);
     } catch (err) {
       console.error("Error deleting client:", err);
       setError("Erro ao excluir cliente. Por favor, tente novamente.");
@@ -582,273 +569,168 @@ const ManageClients = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
+  const hasFilters = Boolean(searchTerm) || statusFilter !== "all" || groupFilter !== "all";
+  const toggleStatusFilter = (value) => setStatusFilter((prev) => (prev === value ? "all" : value));
+
   return (
-    <div className="space-y-6 pb-24">{/* Espaço para FAB mobile */}
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
-            Gerenciar Clientes
-          </h1>
-          <p className="text-sm sm:text-base text-zinc-400">
-            Gerencie todos os seus clientes em um só lugar
-          </p>
-        </div>
-        <Button
-          onClick={() => navigate("/app/add-client")}
-          className="hidden sm:flex bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Cliente
-        </Button>
-      </div>
+    <div className="space-y-6 pb-24 sm:pb-0">
+      <PageHeader
+        title="Clientes"
+        description="Todos os clientes, o seu estado financeiro e equipamentos"
+        icon={Users}
+        actions={
+          <>
+            <Button variant="outline" onClick={() => setManageGroupsOpen(true)}>
+              <FolderCog className="h-4 w-4" />
+              Grupos
+            </Button>
+            <Button variant="outline" onClick={exportToCSV} className="hidden sm:inline-flex">
+              <Download className="h-4 w-4" />
+              Exportar
+            </Button>
+            <Button onClick={() => navigate("/app/add-client")} className="hidden sm:inline-flex">
+              <Plus className="h-4 w-4" />
+              Novo Cliente
+            </Button>
+          </>
+        }
+      />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-zinc-800 border-zinc-700">
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-zinc-400">Total de Clientes</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
-                {stats.total}
-              </h3>
-            </div>
-            <Users className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
-          </CardContent>
-        </Card>
+      <StatGrid cols={4}>
+        <StatCard label="Total de clientes" value={stats.total} icon={Users} tone="info" />
+        <StatCard label="Com equipamentos" value={stats.withEquipments} icon={Building2} tone="default" />
+        <StatCard
+          label="Com pendências"
+          value={stats.withPending}
+          hint={formatPrice(stats.totalPendingAmount)}
+          icon={Clock}
+          tone="warning"
+          loading={isLoadingFinancial}
+          active={statusFilter === "pending"}
+          onClick={() => toggleStatusFilter("pending")}
+        />
+        <StatCard
+          label="Devedores"
+          value={stats.withOverdue}
+          hint={formatPrice(stats.totalOverdueAmount)}
+          icon={AlertTriangle}
+          tone="danger"
+          loading={isLoadingFinancial}
+          active={statusFilter === "overdue"}
+          onClick={() => toggleStatusFilter("overdue")}
+        />
+      </StatGrid>
 
-        <Card className="bg-zinc-800 border-zinc-700">
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-zinc-400">Com Equipamentos</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
-                {stats.withEquipments}
-              </h3>
-            </div>
-            <Building2 className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
-          </CardContent>
-        </Card>
-
-        <Card className="bg-zinc-800 border-zinc-700">
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-zinc-400">Clientes com Pendências</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-yellow-500 mt-1 sm:mt-2">
-                {stats.withPending}
-              </h3>
-              <p className="text-xs text-zinc-500 mt-1">
-                {formatPrice(stats.totalPendingAmount)}
-              </p>
-            </div>
-            <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500" />
-          </CardContent>
-        </Card>
-
-        <Card className="bg-zinc-800 border-zinc-700">
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-zinc-400">Clientes Devedores</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-red-500 mt-1 sm:mt-2">
-                {stats.withOverdue}
-              </h3>
-              <p className="text-xs text-zinc-500 mt-1">
-                {formatPrice(stats.totalOverdueAmount)}
-              </p>
-            </div>
-            <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-red-500" />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters and Search */}
-      <Card className="bg-zinc-800 border-zinc-700">
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-              <div className="relative w-full sm:w-80">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
-                <Input
-                  placeholder="Pesquisar por nome, telefone, NIF ou endereço..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-zinc-700 border-zinc-600 text-white placeholder:text-zinc-400"
-                />
-              </div>
-              
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-48 bg-zinc-700 border-zinc-600 text-white">
-                  <SelectValue placeholder="Filtrar por status" />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  <SelectItem value="all">Todos os clientes</SelectItem>
-                  <SelectItem value="good">Em dia</SelectItem>
-                  <SelectItem value="pending">Com pendências</SelectItem>
-                  <SelectItem value="overdue">Devedores</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={groupFilter} onValueChange={setGroupFilter}>
-                <SelectTrigger className="w-full sm:w-48 bg-zinc-700 border-zinc-600 text-white">
-                  <SelectValue placeholder="Filtrar por grupo" />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  <SelectItem value="all">Todos os grupos</SelectItem>
-                  {groups.map((g) => (
-                    <SelectItem key={g.id} value={g.id}>
-                      {g.nome}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="none">Sem grupo</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={sortField} onValueChange={setSortField}>
-                <SelectTrigger className="w-full sm:w-32 bg-zinc-700 border-zinc-600 text-white">
-                  <SelectValue placeholder="Ordenar" />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  <SelectItem value="name">Nome</SelectItem>
-                  <SelectItem value="createdAt">Data</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex gap-2 w-full sm:w-auto">
-              <Button
-                variant="outline"
-                onClick={() => setManageGroupsOpen(true)}
-                className="flex-1 sm:flex-none bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-700"
-              >
-                <FolderCog className="w-4 h-4 mr-2" />
-                Grupos
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={() => setSortOrder(prev => prev === "asc" ? "desc" : "asc")}
-                className="flex-1 sm:flex-none bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-700"
-              >
-                <ArrowUpDown className="w-4 h-4 mr-2" />
-                {sortOrder === "asc" ? "A-Z" : "Z-A"}
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={exportToCSV}
-                className="flex-1 sm:flex-none bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-700"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Exportar
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center mt-4 pt-4 border-t border-zinc-700">
-            <span className="text-sm text-zinc-400">
+      <FilterBar
+        footer={
+          <>
+            <span>
               A mostrar {currentClients.length} de {filteredClients.length} cliente(s)
             </span>
             {isLoadingFinancial && (
-              <div className="flex items-center gap-2 text-sm text-zinc-400">
+              <span className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Calculando dados financeiros...
-              </div>
+                A calcular dados financeiros…
+              </span>
             )}
-          </div>
+          </>
+        }
+      >
+        <SearchInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Pesquisar por nome, telefone, NIF ou morada…"
+        />
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:ml-auto">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="sm:w-44">
+              <SelectValue placeholder="Situação" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as situações</SelectItem>
+              <SelectItem value="good">Em dia</SelectItem>
+              <SelectItem value="pending">Com pendências</SelectItem>
+              <SelectItem value="overdue">Devedores</SelectItem>
+            </SelectContent>
+          </Select>
 
-          {error && (
-            <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-              <p className="text-red-400 text-sm">{error}</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          <Select value={groupFilter} onValueChange={setGroupFilter}>
+            <SelectTrigger className="sm:w-44">
+              <SelectValue placeholder="Grupo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os grupos</SelectItem>
+              {groups.map((g) => (
+                <SelectItem key={g.id} value={g.id}>
+                  {g.nome}
+                </SelectItem>
+              ))}
+              <SelectItem value="none">Sem grupo</SelectItem>
+            </SelectContent>
+          </Select>
 
-      {/* Clients Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {currentClients.map((client) => (
-          <ClientCard
-            key={client.id}
-            client={client}
-            financialStatus={financialStatuses[client.id]}
-            groupNames={groupNamesOf(client)}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onView={handleView}
-          />
-        ))}
-      </div>
+          <Select value={sortField} onValueChange={setSortField}>
+            <SelectTrigger className="sm:w-36">
+              <SelectValue placeholder="Ordenar" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name">Nome</SelectItem>
+              <SelectItem value="createdAt">Data</SelectItem>
+            </SelectContent>
+          </Select>
 
-      {filteredClients.length === 0 && !isLoading && (
-        <div className="text-center py-12">
-          <UserPlus className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">
-            {searchTerm || statusFilter !== "all"
-              ? "Nenhum cliente encontrado"
-              : "Nenhum cliente cadastrado"}
-          </h3>
-          <p className="text-zinc-400 mb-4">
-            {searchTerm || statusFilter !== "all"
-              ? "Tente ajustar os filtros de pesquisa"
-              : "Comece adicionando o seu primeiro cliente"}
-          </p>
-          {!searchTerm && statusFilter === "all" && (
-            <Button
-              onClick={() => navigate("/app/add-client")}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Adicionar Cliente
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* Carregar mais */}
-      {hasMoreVisible && (
-        <div className="flex justify-center">
           <Button
             variant="outline"
-            onClick={loadMoreVisible}
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 gap-2"
+            onClick={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
+            title="Inverter ordem"
           >
-            <ArrowDown className="h-4 w-4" />
-            Carregar mais
+            <ArrowUpDown className="h-4 w-4" />
+            {sortOrder === "asc" ? "A-Z" : "Z-A"}
           </Button>
+        </div>
+      </FilterBar>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {filteredClients.length === 0 ? (
+        <EmptyState
+          icon={UserPlus}
+          title={hasFilters ? "Nenhum cliente encontrado" : "Ainda não há clientes"}
+          description={hasFilters ? "Tente ajustar a pesquisa ou os filtros." : "Comece por adicionar o primeiro cliente."}
+          action={
+            !hasFilters && (
+              <Button onClick={() => navigate("/app/add-client")}>
+                <Plus className="h-4 w-4" />
+                Adicionar Cliente
+              </Button>
+            )
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
+          {currentClients.map((client) => (
+            <ClientCard
+              key={client.id}
+              client={client}
+              financialStatus={financialStatuses[client.id]}
+              groupNames={groupNamesOf(client)}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onView={handleView}
+            />
+          ))}
         </div>
       )}
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-zinc-800 border-zinc-700">
-          <DialogHeader>
-            <DialogTitle className="text-white">Confirmar Exclusão</DialogTitle>
-            <DialogDescription className="text-zinc-400">
-              Tem certeza que deseja excluir o cliente &ldquo;{clientToDelete?.name}
-              &rdquo;? O cliente vai para a Reciclagem e pode ser restaurado
-              mais tarde, se for preciso.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
-              className="bg-zinc-900 border-zinc-600 text-zinc-300 hover:bg-zinc-700"
-            >
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={confirmDelete}>
-              Excluir
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {hasMoreVisible && <LoadMoreButton onClick={loadMoreVisible} />}
 
       <ManageGroupsDialog
         open={manageGroupsOpen}
@@ -858,23 +740,12 @@ const ManageClients = () => {
         description="Ex: Marcenarias, Revendedores, Contrato de manutenção. Um cliente pode estar em vários grupos."
       />
 
-      {/* FAB Menu for Mobile */}
-      <div className="fixed bottom-6 right-6 flex flex-col gap-2 sm:hidden">
-        <Button
-          onClick={exportToCSV}
-          size="icon"
-          className="rounded-full shadow-lg bg-zinc-700 hover:bg-zinc-600"
-        >
-          <Download className="h-5 w-5" />
-        </Button>
-        <Button
-          onClick={() => navigate("/app/add-client")}
-          size="icon"
-          className="rounded-full shadow-lg bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="h-5 w-5" />
-        </Button>
-      </div>
+      <Fab
+        actions={[
+          { icon: Download, label: "Exportar", onClick: exportToCSV },
+          { icon: Plus, label: "Novo Cliente", onClick: () => navigate("/app/add-client") },
+        ]}
+      />
     </div>
   );
 };

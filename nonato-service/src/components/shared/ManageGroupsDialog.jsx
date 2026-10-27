@@ -19,8 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
-
-const fieldClass = "bg-zinc-900 border-zinc-700 text-white";
+import { useConfirm } from "../app";
 
 const ManageGroupsDialog = ({ open, onOpenChange, kind, title, description }) => {
   const { groups, loading } = useGroups(kind);
@@ -29,6 +28,7 @@ const ManageGroupsDialog = ({ open, onOpenChange, kind, title, description }) =>
   const [editName, setEditName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const confirm = useConfirm();
 
   const nameTaken = (name, exceptId) =>
     groups.some(
@@ -78,18 +78,24 @@ const ManageGroupsDialog = ({ open, onOpenChange, kind, title, description }) =>
     });
   };
 
-  const handleDelete = (group) => {
-    if (!window.confirm(`Apagar o grupo "${group.nome}"? Quem estava nesse grupo fica sem ele.`)) return;
+  const handleDelete = async (group) => {
+    const ok = await confirm({
+      title: `Apagar o grupo "${group.nome}"?`,
+      description: "Quem estava nesse grupo fica sem ele.",
+      confirmLabel: "Apagar",
+      destructive: true,
+    });
+    if (!ok) return;
     run(() => deleteGroup(kind, group.id));
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-800 border-zinc-700 text-white max-w-md max-h-[85vh] overflow-y-auto">
+      <DialogContent className="text-foreground max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && (
-            <DialogDescription className="text-zinc-400">{description}</DialogDescription>
+            <DialogDescription className="text-muted-foreground">{description}</DialogDescription>
           )}
         </DialogHeader>
 
@@ -98,12 +104,12 @@ const ManageGroupsDialog = ({ open, onOpenChange, kind, title, description }) =>
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="Nome do grupo novo"
-            className={fieldClass}
+
           />
           <Button
             type="submit"
             disabled={busy || !newName.trim()}
-            className="bg-green-600 hover:bg-green-700 text-white shrink-0"
+            className="shrink-0"
           >
             <Plus className="h-4 w-4 mr-1" /> Criar
           </Button>
@@ -112,13 +118,13 @@ const ManageGroupsDialog = ({ open, onOpenChange, kind, title, description }) =>
         {error && <p className="text-sm text-red-400">{error}</p>}
 
         {loading ? (
-          <div className="flex items-center gap-2 text-zinc-400">
+          <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> A carregar…
           </div>
         ) : groups.length === 0 ? (
-          <p className="text-sm text-zinc-400">Ainda não há grupos.</p>
+          <p className="text-sm text-muted-foreground">Ainda não há grupos.</p>
         ) : (
-          <ul className="divide-y divide-zinc-700 rounded-md border border-zinc-700">
+          <ul className="divide-y divide-border rounded-md border border-border">
             {groups.map((g) => (
               <li key={g.id} className="flex items-center gap-2 px-3 py-2">
                 {editingId === g.id ? (
@@ -133,13 +139,13 @@ const ManageGroupsDialog = ({ open, onOpenChange, kind, title, description }) =>
                         }
                         if (e.key === "Escape") setEditingId(null);
                       }}
-                      className={`${fieldClass} h-8`}
+                      className="h-8"
                       autoFocus
                     />
-                    <Button size="icon" variant="ghost" disabled={busy} onClick={() => handleRename(g.id)} className="h-8 w-8 text-green-400 hover:bg-zinc-700" aria-label="Guardar">
+                    <Button size="icon" variant="ghost" disabled={busy} onClick={() => handleRename(g.id)} className="h-8 w-8 text-primary hover:bg-accent" aria-label="Guardar">
                       <Check className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => setEditingId(null)} className="h-8 w-8 text-zinc-400 hover:bg-zinc-700" aria-label="Cancelar">
+                    <Button size="icon" variant="ghost" onClick={() => setEditingId(null)} className="h-8 w-8 text-muted-foreground hover:bg-accent" aria-label="Cancelar">
                       <X className="h-4 w-4" />
                     </Button>
                   </>
@@ -154,7 +160,7 @@ const ManageGroupsDialog = ({ open, onOpenChange, kind, title, description }) =>
                         setEditName(g.nome);
                         setError(null);
                       }}
-                      className="h-8 w-8 text-zinc-300 hover:bg-zinc-700"
+                      className="h-8 w-8 text-foreground/90 hover:bg-accent"
                       aria-label={`Renomear ${g.nome}`}
                     >
                       <Pencil className="h-4 w-4" />
@@ -164,7 +170,7 @@ const ManageGroupsDialog = ({ open, onOpenChange, kind, title, description }) =>
                       variant="ghost"
                       disabled={busy}
                       onClick={() => handleDelete(g)}
-                      className="h-8 w-8 text-red-400 hover:bg-zinc-700"
+                      className="h-8 w-8 text-red-400 hover:bg-accent"
                       aria-label={`Apagar ${g.nome}`}
                     >
                       <Trash2 className="h-4 w-4" />

@@ -63,16 +63,16 @@ const EntryList = ({ entries }) => (
   <div className="space-y-5">
     {groupByDay(entries).map((group) => (
       <section key={group.data}>
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {formatDay(group.data)}
           {group.entries.length > 1 && ` · ${group.entries.length} atualizações`}
         </h3>
         <div className="space-y-3">
           {group.entries.map((entry) => (
-            <article key={entry.n} className="rounded-lg border border-zinc-700 bg-zinc-900 p-3">
+            <article key={entry.n} className="rounded-lg border border-border bg-muted/50 p-3">
               <header className="flex items-baseline justify-between gap-2">
-                <h4 className="font-semibold text-white">{entry.titulo}</h4>
-                <span className="shrink-0 text-xs text-zinc-500">
+                <h4 className="font-semibold text-foreground">{entry.titulo}</h4>
+                <span className="shrink-0 text-xs text-muted-foreground">
                   v{entry.versao}
                   {entry.interna && " · interna"}
                 </span>
@@ -81,7 +81,7 @@ const EntryList = ({ entries }) => (
                 {entry.itens.map((item, i) => {
                   const meta = TIPO_META[item.tipo] || TIPO_META.melhoria;
                   return (
-                    <li key={i} className="flex items-start gap-2 text-sm text-zinc-300">
+                    <li key={i} className="flex items-start gap-2 text-sm text-foreground/90">
                       <span
                         className={`mt-0.5 shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${meta.className}`}
                       >
@@ -210,20 +210,20 @@ const VersionBadge = ({ user }) => {
           type="button"
           onClick={() => setMode("todas")}
           title="Ver o que há de novo"
-          className="flex w-full items-center justify-between rounded-md px-1 py-1 text-left hover:bg-zinc-800/60"
+          className="flex w-full items-center justify-between rounded-md px-1 py-1 text-left hover:bg-white/5"
         >
           <span className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-green-500" />
-            <span className="text-xs font-medium text-zinc-400">Versão {LATEST.versao}</span>
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-xs font-medium text-muted-foreground">Versão {LATEST.versao}</span>
           </span>
-          <span className="text-[10px] text-zinc-500">O que há de novo</span>
+          <span className="text-[10px] text-muted-foreground">O que há de novo</span>
         </button>
 
         {updateAvailable && (
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="flex w-full items-center justify-center gap-2 rounded-md border border-green-500/40 bg-green-500/15 px-2 py-1.5 text-xs font-semibold text-green-300 hover:bg-green-500/25"
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-primary/40 bg-primary/15 px-2 py-1.5 text-xs font-semibold text-green-300 hover:bg-primary/25"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Nova versão disponível — Atualizar
@@ -232,13 +232,13 @@ const VersionBadge = ({ user }) => {
       </div>
 
       <Dialog open={mode !== null} onOpenChange={handleOpenChange}>
-        <DialogContent className="bg-zinc-800 border-zinc-700 max-w-xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-green-400" />
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
               {showingNews ? "Novidades desde a sua última visita" : "O que há de novo"}
             </DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription className="text-muted-foreground">
               {showingNews
                 ? unseen.length === 1
                   ? "Há 1 atualização nova."
@@ -250,12 +250,12 @@ const VersionBadge = ({ user }) => {
           <EntryList entries={showingNews ? unseen : CHANGELOG} />
 
           {!showingNews && BUILD_INFO.time && (
-            <p className="border-t border-zinc-700 pt-3 text-xs text-zinc-500">
+            <p className="border-t border-border pt-3 text-xs text-muted-foreground">
               Publicado em {buildTimeLabel()}
               {BUILD_INFO.commit && (
                 <>
                   {" "}
-                  · commit <span className="font-mono text-zinc-400">{BUILD_INFO.commit}</span>
+                  · commit <span className="font-mono text-muted-foreground">{BUILD_INFO.commit}</span>
                   {BUILD_INFO.commitTitle && ` “${BUILD_INFO.commitTitle}”`}
                   {BUILD_INFO.dirty && " + alterações ainda sem commit"}
                 </>
@@ -266,7 +266,7 @@ const VersionBadge = ({ user }) => {
           <DialogFooter>
             <Button
               onClick={() => handleOpenChange(false)}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className="bg-primary hover:bg-primary/90 text-foreground"
             >
               {showingNews ? "Entendido" : "Fechar"}
             </Button>

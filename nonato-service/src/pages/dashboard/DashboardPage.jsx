@@ -2,24 +2,27 @@ import { useState, useEffect, useCallback } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useNavigate } from "react-router-dom";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import {
   Calendar,
-  Loader2,
   UserCog,
   Clock,
   CheckCircle2,
   ArrowRight,
   Plus,
   RefreshCw,
+  LayoutDashboard,
+  CalendarX,
+  Users,
 } from "lucide-react";
+import {
+  PageHeader,
+  StatCard,
+  StatGrid,
+  PageLoader,
+  StatusBadge,
+} from "../../components/app";
 import { useClients } from "../../context/ClientsContext.jsx";
 import { useUsers } from "../../context/UsersContext.jsx";
 import { isStaffRole, getRoleLabel, getRoleBadgeStyle } from "../../config/roles.js";
@@ -37,14 +40,17 @@ const todayStr = () => toDateKey();
 // Cache curta em sessionStorage: evita repetir as mesmas 2 leituras sempre
 // que se salta entre páginas e se volta ao Dashboard pouco depois. TTL
 // curto porque "Estado da Equipa" depende da hora atual.
-const CACHE_KEY = "dashboard_cache_v2";
+const CACHE_KEY = "dashboard_cache_v3";
 const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutos
 
 const TECH_STATUS_META = {
-  livre: { label: "Livre", className: "bg-green-500/20 text-green-400 border-green-500/30" },
-  em_servico: { label: "Em Serviço", className: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
-  proximo: { label: "A seguir", className: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+  livre: { label: "Livre", tone: "success", icon: CheckCircle2 },
+  em_servico: { label: "Em serviço", tone: "warning", icon: Clock },
+  proximo: { label: "A seguir", tone: "info", icon: Calendar },
 };
+
+const todayLabel = () =>
+  new Date().toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long" });
 
 const DashboardPage = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -87,14 +93,22 @@ const DashboardPage = () => {
           ensureUsers(),
         ]);
 
-        const todaysAppointments = appointmentsSnap.docs
-          .map((d) => ({ id: d.id, ...d.data() }))
-          .filter((a) => a.status !== "cancelado");
-
         const clientsMap = {};
         allClients.forEach((c) => {
           clientsMap[c.id] = c;
         });
+
+        const todaysAppointments = appointmentsSnap.docs
+          .map((d) => {
+            const data = { id: d.id, ...d.data() };
+            // Nome do cliente já resolvido (antes os clientes registados
+            // apareciam todos como "Cliente").
+            return {
+              ...data,
+              clientName: clientsMap[data.clientId]?.name || data.newClientName || "Cliente",
+            };
+          })
+          .filter((a) => a.status !== "cancelado");
 
         const staff = allUsers.filter((u) => isStaffRole(u.role));
 
@@ -174,147 +188,145 @@ const DashboardPage = () => {
   }, [fetchDashboardData]);
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   const sortedAppointments = appointments
     .slice()
     .sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
 
+  const inService = techBoard.filter((t) => t.status === "em_servico").length;
+  const free = techBoard.filter((t) => t.status === "livre").length;
+
   return (
     <div className="space-y-6">
-      {/* HEADER */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <p className="text-zinc-400">Aqui está o que está a acontecer hoje.</p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={handleManualRefresh}
-            disabled={isLoading}
-            title="Atualizar dados agora"
-            className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-900"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-          </Button>
-          <Button
-            onClick={() => navigate("/app/add-agendamento")}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            Agendar
-          </Button>
-          <Button
-            onClick={() => navigate("/app/add-order")}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Nova Ordem
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        description={<span className="capitalize">{todayLabel()}</span>}
+        icon={LayoutDashboard}
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleManualRefresh}
+              disabled={isLoading}
+              title="Atualizar dados agora"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            </Button>
+            <Button variant="soft" onClick={() => navigate("/app/add-agendamento")}>
+              <Calendar className="h-4 w-4" />
+              Agendar
+            </Button>
+            <Button onClick={() => navigate("/app/add-order")}>
+              <Plus className="h-4 w-4" />
+              Nova Ordem
+            </Button>
+          </>
+        }
+      />
 
-      {/* Trabalhos por confirmar (cartão + pop-up) */}
+      <StatGrid cols={4}>
+        <StatCard label="Agendamentos hoje" value={appointments.length} icon={Calendar} tone="info" />
+        <StatCard label="Em serviço agora" value={inService} icon={Clock} tone="warning" />
+        <StatCard label="Técnicos livres" value={free} icon={CheckCircle2} tone="success" />
+        <StatCard label="Equipa" value={techBoard.length} icon={Users} tone="muted" />
+      </StatGrid>
+
+      {/* Serviços por confirmar (cartão + pop-up) */}
       <PendingWorkConfirmation />
 
-      {/* AGENDAMENTOS DE HOJE */}
-      <Card className="bg-zinc-800 border-zinc-700">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-white flex items-center text-base">
-            <Calendar className="h-4 w-4 mr-2 text-blue-400" />
-            Agendamentos de Hoje
-            <Badge variant="outline" className="ml-auto border-zinc-600 text-zinc-300">
-              {appointments.length}
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {sortedAppointments.length === 0 ? (
-            <p className="text-sm text-zinc-500">Sem agendamentos para hoje.</p>
-          ) : (
-            <div className="space-y-2">
-              {sortedAppointments.map((appt) => (
-                <div
-                  key={appt.id}
-                  onClick={() => navigate("/app/manage-agenda")}
-                  className="flex items-center justify-between text-sm bg-zinc-900/50 rounded-lg px-3 py-2 cursor-pointer hover:bg-zinc-900"
-                >
-                  <span className="text-zinc-300 truncate">
-                    {appt.newClientName || "Cliente"}
-                  </span>
-                  <span className="text-zinc-500 font-mono shrink-0 ml-2">
-                    {appt.hora || "--:--"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
+        {/* AGENDAMENTOS DE HOJE */}
+        <section className="glass rounded-2xl p-4 sm:p-5 xl:col-span-3">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-base font-semibold">
+              <Calendar className="h-4 w-4 text-info" />
+              Agendamentos de hoje
+            </h2>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/app/manage-agenda")} className="text-muted-foreground">
+              Abrir agenda <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
 
-      {/* ESTADO DA EQUIPA */}
-      <Card className="bg-zinc-800 border-zinc-700">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-white flex items-center text-base">
-            <UserCog className="h-4 w-4 mr-2 text-green-400" />
-            Estado da Equipa
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {techBoard.length === 0 ? (
-            <p className="text-sm text-zinc-500">
-              Nenhum membro de equipa configurado ainda.
-            </p>
+          {sortedAppointments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-xl bg-white/[0.03] py-10 text-center">
+              <CalendarX className="mb-3 h-8 w-8 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Sem agendamentos para hoje.</p>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <ul className="space-y-2">
+              {sortedAppointments.map((appt) => (
+                <li key={appt.id}>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/app/manage-agenda")}
+                    className="flex w-full items-center gap-3 rounded-xl bg-white/[0.03] px-3 py-2.5 text-left transition-colors hover:bg-white/[0.07]"
+                  >
+                    <span className="w-14 shrink-0 rounded-lg bg-black/30 py-1 text-center font-mono text-sm tabular-nums">
+                      {appt.hora || "--:--"}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">{appt.clientName || appt.newClientName || "Cliente"}</span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {[appt.tipoServico, appt.tecnicoNome].filter(Boolean).join(" · ") || "Sem descrição"}
+                      </span>
+                    </span>
+                    <StatusBadge domain="agenda" status={appt.status} className="hidden shrink-0 sm:inline-flex" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* ESTADO DA EQUIPA */}
+        <section className="surface p-4 shadow-elev sm:p-5 xl:col-span-2">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-base font-semibold">
+              <UserCog className="h-4 w-4 text-primary" />
+              Estado da equipa
+            </h2>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/app/technician-status")} className="text-muted-foreground">
+              Quadro <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {techBoard.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum membro de equipa configurado ainda.</p>
+          ) : (
+            <ul className="divide-y divide-border">
               {techBoard.map(({ user, status, statusDetail, todayCount }) => {
                 const meta = TECH_STATUS_META[status];
+                const StatusIcon = meta.icon;
                 return (
-                  <div
-                    key={user.id}
-                    className="bg-zinc-900/50 rounded-lg p-3 flex flex-col gap-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-white font-medium truncate">
-                        {user.displayName || "Sem nome"}
-                      </span>
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] shrink-0 ${getRoleBadgeStyle(user.role)}`}
-                      >
-                        {getRoleLabel(user.role)}
-                      </Badge>
-                    </div>
-                    <Badge className={`${meta.className} border w-full justify-center py-1 text-xs`}>
-                      {status === "em_servico" && <Clock className="h-3 w-3 mr-1" />}
-                      {status === "livre" && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                      {status === "proximo" && <Calendar className="h-3 w-3 mr-1" />}
-                      {meta.label}
-                      {statusDetail ? ` · ${statusDetail.hora}` : ""}
-                    </Badge>
-                    <span className="text-[11px] text-zinc-500 text-center">
-                      {todayCount} agendamento(s) hoje
+                  <li key={user.id} className="flex items-center gap-3 py-2.5">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
+                      {(user.displayName || "?")[0]}
                     </span>
-                  </div>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-2">
+                        <span className="truncate text-sm font-medium">{user.displayName || "Sem nome"}</span>
+                        <Badge variant="outline" className={`shrink-0 px-1.5 py-0 text-[10px] ${getRoleBadgeStyle(user.role)}`}>
+                          {getRoleLabel(user.role)}
+                        </Badge>
+                      </span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {statusDetail ? `${statusDetail.clientName} · ${statusDetail.hora}` : `${todayCount} agendamento(s) hoje`}
+                      </span>
+                    </span>
+                    <Badge variant={meta.tone} className="shrink-0">
+                      <StatusIcon className="mr-1 h-3 w-3" />
+                      {meta.label}
+                    </Badge>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           )}
-          <Button
-            variant="link"
-            onClick={() => navigate("/app/technician-status")}
-            className="text-green-400 hover:text-green-300 px-0 mt-2"
-          >
-            Ver quadro completo <ArrowRight className="h-4 w-4 ml-1" />
-          </Button>
-        </CardContent>
-      </Card>
+        </section>
+      </div>
     </div>
   );
 };

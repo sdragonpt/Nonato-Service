@@ -128,7 +128,7 @@ const PartCard = React.memo(({ part, viewMode, onAssign, onView }) => {
       {part.subcategoryName ? ` / ${part.subcategoryName}` : ""}
     </Badge>
   ) : (
-    <Badge className="bg-zinc-700 text-zinc-400 hover:bg-zinc-700">
+    <Badge className="bg-muted text-muted-foreground hover:bg-accent">
       Sem categoria
     </Badge>
   );
@@ -139,15 +139,15 @@ const PartCard = React.memo(({ part, viewMode, onAssign, onView }) => {
         <Button
           variant="ghost"
           size="icon"
-          className="rounded-full hover:bg-zinc-700 text-white"
+          className="rounded-full hover:bg-accent text-foreground"
         >
           <MoreVertical className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="bg-zinc-800 border-zinc-700">
+      <DropdownMenuContent align="end" className="">
         <DropdownMenuItem
           onClick={handleAssign}
-          className="text-white hover:bg-zinc-700 cursor-pointer"
+          className="text-foreground hover:bg-accent cursor-pointer"
         >
           <Tag className="w-4 h-4 mr-2" />
           Atribuir Categoria
@@ -160,16 +160,16 @@ const PartCard = React.memo(({ part, viewMode, onAssign, onView }) => {
     return (
       <Card
         onClick={handleView}
-        className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+        className="hover:bg-accent transition-colors cursor-pointer"
       >
         <CardContent className="p-3">
           <div className="flex items-center gap-3">
             <ZoomablePartImage part={part} sizeClassName="h-16 w-16" />
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-base text-white truncate">
+              <h3 className="font-semibold text-base text-foreground truncate">
                 {part.name}
               </h3>
-              <p className="text-zinc-400 text-xs truncate">
+              <p className="text-muted-foreground text-xs truncate">
                 Código: {part.code}
               </p>
             </div>
@@ -186,14 +186,14 @@ const PartCard = React.memo(({ part, viewMode, onAssign, onView }) => {
   return (
     <Card
       onClick={handleView}
-      className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+      className="hover:bg-accent transition-colors cursor-pointer"
     >
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
           <ZoomablePartImage part={part} sizeClassName="h-20 w-20 sm:h-24 sm:w-24" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-base sm:text-lg text-white truncate">
+              <h3 className="font-semibold text-base sm:text-lg text-foreground truncate">
                 {part.name}
               </h3>
               <Badge className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20">
@@ -213,11 +213,11 @@ PartCard.displayName = "PartCard";
 
 // ✅ STATS CARD
 const StatsCard = React.memo(({ title, value, icon: Icon, color, loading }) => (
-  <Card className="bg-zinc-800 border-zinc-700">
+  <Card className="">
     <CardContent className="flex items-center justify-between p-4 sm:p-6">
       <div>
-        <p className="text-sm font-medium text-zinc-400">{title}</p>
-        <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 sm:mt-2">
+        <p className="text-sm font-medium text-muted-foreground">{title}</p>
+        <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
           {loading ? (
             <Loader2 className="h-5 w-5 animate-spin inline" />
           ) : (
@@ -531,7 +531,7 @@ const ManagePartsLibrary = () => {
   if (categoriesLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -553,10 +553,10 @@ const ManagePartsLibrary = () => {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">
             Biblioteca de Peças
           </h1>
-          <p className="text-sm sm:text-base text-zinc-400">
+          <p className="text-sm sm:text-base text-muted-foreground">
             Catálogo HOMAG — atribua categorias às peças
           </p>
         </div>
@@ -564,7 +564,7 @@ const ManagePartsLibrary = () => {
           <Button
             onClick={() => navigate("/app/parts-classification-rules")}
             variant="outline"
-            className="bg-zinc-700 hover:bg-zinc-600 text-white border-zinc-600"
+            className="bg-muted hover:bg-accent text-foreground border-border"
           >
             <Wand2 className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Regras de </span>Classificação
@@ -572,7 +572,7 @@ const ManagePartsLibrary = () => {
           <Button
             onClick={() => navigate("/app/manage-categories")}
             variant="outline"
-            className="bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
+            className="bg-purple-600 hover:bg-purple-700 text-foreground border-purple-600"
           >
             <Tag className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Gerenciar </span>Categorias
@@ -580,7 +580,7 @@ const ManagePartsLibrary = () => {
           <Button
             onClick={handleRefresh}
             variant="outline"
-            className="bg-zinc-700 hover:bg-zinc-600 text-white border-zinc-600"
+            className="bg-muted hover:bg-accent text-foreground border-border"
           >
             <RefreshCw className="w-4 h-4" />
           </Button>
@@ -623,7 +623,7 @@ const ManagePartsLibrary = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="bg-zinc-800 border-zinc-700">
+        <TabsList className="">
           <TabsTrigger
             value="all"
             className="data-[state=active]:bg-green-600 data-[state=active]:text-white"
@@ -639,20 +639,20 @@ const ManagePartsLibrary = () => {
         </TabsList>
 
         {/* All Parts Tab */}
-        <TabsContent value="all">
-          <Card className="bg-zinc-800 border-zinc-700">
+        <TabsContent value="all" className="space-y-4">
+          <Card className="">
             <CardContent className="space-y-4 p-4 sm:p-6">
               <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por nome ou código..."
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10 pr-10 w-full bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                  className="pl-10 pr-10 w-full bg-muted/50 border-border text-foreground [&::placeholder]:text-muted-foreground"
                 />
                 {searchTerm !== debouncedSearchTerm && (
                   <div className="absolute right-10 top-1/2 -translate-y-1/2">
-                    <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   </div>
                 )}
                 {searchTerm && (
@@ -662,7 +662,7 @@ const ManagePartsLibrary = () => {
                     onClick={handleClearSearch}
                     className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-zinc-700"
                   >
-                    <X className="h-4 w-4 text-zinc-400" />
+                    <X className="h-4 w-4 text-muted-foreground" />
                   </Button>
                 )}
               </div>
@@ -686,7 +686,7 @@ const ManagePartsLibrary = () => {
                           ? value === "without"
                             ? "border-amber-500 bg-amber-500/15 text-amber-300"
                             : "border-green-500 bg-green-500/15 text-green-300"
-                          : "border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-700"
+                          : "border-border bg-muted/50 text-foreground/90 hover:bg-accent"
                       }`}
                     >
                       <span className="block text-sm sm:text-base font-semibold">{label}</span>
@@ -704,11 +704,11 @@ const ManagePartsLibrary = () => {
                   onValueChange={setFilterCategory}
                   disabled={filterClassified === "without"}
                 >
-                  <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                  <SelectTrigger className="bg-muted/50 border-border text-foreground">
                     <SelectValue placeholder="Filtrar por categoria" />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
-                    <SelectItem value="all" className="text-white hover:bg-zinc-700">
+                  <SelectContent className="">
+                    <SelectItem value="all" className="text-foreground hover:bg-accent">
                       Todas as Categorias
                     </SelectItem>
                     {sortedCategories.length > 0 ? (
@@ -716,7 +716,7 @@ const ManagePartsLibrary = () => {
                         <SelectItem
                           key={category.id}
                           value={category.id}
-                          className="text-white hover:bg-zinc-700"
+                          className="text-foreground hover:bg-accent"
                         >
                           {category.name}
                         </SelectItem>
@@ -725,7 +725,7 @@ const ManagePartsLibrary = () => {
                       <SelectItem
                         value="no-categories"
                         disabled
-                        className="text-zinc-500 hover:bg-zinc-700"
+                        className="text-muted-foreground hover:bg-accent"
                       >
                         Nenhuma categoria encontrada
                       </SelectItem>
@@ -734,14 +734,14 @@ const ManagePartsLibrary = () => {
                 </Select>
 
                 <Select value={sortField} onValueChange={setSortField}>
-                  <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                  <SelectTrigger className="bg-muted/50 border-border text-foreground">
                     <SelectValue placeholder="Ordenar por" />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
-                    <SelectItem value="name" className="text-white hover:bg-zinc-700">
+                  <SelectContent className="">
+                    <SelectItem value="name" className="text-foreground hover:bg-accent">
                       Nome
                     </SelectItem>
-                    <SelectItem value="code" className="text-white hover:bg-zinc-700">
+                    <SelectItem value="code" className="text-foreground hover:bg-accent">
                       Código
                     </SelectItem>
                   </SelectContent>
@@ -759,7 +759,7 @@ const ManagePartsLibrary = () => {
                     <Button
                       size="sm"
                       onClick={() => navigate("/app/manage-categories")}
-                      className="bg-purple-600 hover:bg-purple-700 text-white h-7 px-3"
+                      className="bg-purple-600 hover:bg-purple-700 text-foreground h-7 px-3"
                     >
                       <Tag className="h-3 w-3 mr-1" />
                       Criar Categoria
@@ -775,7 +775,7 @@ const ManagePartsLibrary = () => {
                     onClick={() =>
                       setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
                     }
-                    className="gap-2 text-white border-zinc-700 hover:bg-zinc-700 bg-green-600"
+                    className="gap-2 text-foreground border-border hover:bg-accent bg-green-600"
                   >
                     {sortOrder === "asc" ? "Crescente" : "Decrescente"}
                   </Button>
@@ -784,7 +784,7 @@ const ManagePartsLibrary = () => {
                     variant="outline"
                     onClick={() => setViewMode("grid")}
                     className={`gap-2 text-white border-zinc-700 hover:bg-zinc-700 ${
-                      viewMode === "grid" ? "bg-zinc-700" : "bg-transparent"
+                      viewMode === "grid" ? "bg-muted" : "bg-transparent"
                     }`}
                   >
                     <Grid className="w-4 h-4" />
@@ -794,7 +794,7 @@ const ManagePartsLibrary = () => {
                     variant="outline"
                     onClick={() => setViewMode("list")}
                     className={`gap-2 text-white border-zinc-700 hover:bg-zinc-700 ${
-                      viewMode === "list" ? "bg-zinc-700" : "bg-transparent"
+                      viewMode === "list" ? "bg-muted" : "bg-transparent"
                     }`}
                   >
                     <List className="w-4 h-4" />
@@ -804,7 +804,7 @@ const ManagePartsLibrary = () => {
                     <Button
                       variant="outline"
                       onClick={handleClearAllFilters}
-                      className="gap-2 text-white bg-amber-600 border-amber-600 hover:bg-amber-600/20"
+                      className="gap-2 text-foreground bg-amber-600 border-amber-600 hover:bg-amber-600/20"
                     >
                       <X className="w-4 h-4" />
                       Limpar Filtros
@@ -812,7 +812,7 @@ const ManagePartsLibrary = () => {
                   )}
                 </div>
 
-                <span className="text-sm text-zinc-400 self-center">
+                <span className="text-sm text-muted-foreground self-center">
                   {filteredParts.length.toLocaleString("pt-PT")} peça(s) encontrada(s)
                 </span>
               </div>
@@ -829,10 +829,10 @@ const ManagePartsLibrary = () => {
           </Card>
 
           {catalogLoading && filteredParts.length === 0 && (
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card className="">
               <CardContent className="p-8 text-center">
-                <Loader2 className="w-8 h-8 animate-spin text-white mx-auto mb-4" />
-                <p className="text-white">Carregando peças...</p>
+                <Loader2 className="w-8 h-8 animate-spin text-foreground mx-auto mb-4" />
+                <p className="text-foreground">Carregando peças...</p>
               </CardContent>
             </Card>
           )}
@@ -872,11 +872,11 @@ const ManagePartsLibrary = () => {
                     size="icon"
                     disabled={allTabPage === 1}
                     onClick={() => setAllTabPage((p) => Math.max(1, p - 1))}
-                    className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-40"
+                    className="border-border text-foreground hover:bg-accent bg-card disabled:opacity-40"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <span className="text-sm text-zinc-400">
+                  <span className="text-sm text-muted-foreground">
                     Página {allTabPage} de {allTabTotalPages}
                   </span>
                   <Button
@@ -886,7 +886,7 @@ const ManagePartsLibrary = () => {
                     onClick={() =>
                       setAllTabPage((p) => Math.min(allTabTotalPages, p + 1))
                     }
-                    className="border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-800 disabled:opacity-40"
+                    className="border-border text-foreground hover:bg-accent bg-card disabled:opacity-40"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -896,13 +896,13 @@ const ManagePartsLibrary = () => {
           )}
 
           {filteredParts.length === 0 && !catalogLoading && (
-            <Card className="bg-zinc-800 border-zinc-700">
+            <Card className="">
               <CardContent className="p-8 sm:p-12 text-center">
-                <Search className="w-10 h-10 sm:w-12 sm:h-12 text-zinc-600 mx-auto mb-4" />
-                <p className="text-lg font-medium mb-2 text-white">
+                <Search className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
+                <p className="text-lg font-medium mb-2 text-foreground">
                   Nenhuma peça encontrada
                 </p>
-                <p className="text-sm sm:text-base text-zinc-400 mb-4">
+                <p className="text-sm sm:text-base text-muted-foreground mb-4">
                   Tente ajustar os critérios de busca
                 </p>
                 {hasActiveFilters && (
@@ -928,12 +928,12 @@ const ManagePartsLibrary = () => {
                   variant="outline"
                   size="sm"
                   onClick={handleBackToCategories}
-                  className="h-8 border-zinc-700 text-white hover:bg-zinc-700 bg-zinc-600"
+                  className="h-8 border-border text-foreground hover:bg-accent bg-zinc-600"
                 >
                   <ArrowLeft className="h-3 w-3 mr-1" />
                   Voltar
                 </Button>
-                <span className="text-zinc-400">
+                <span className="text-muted-foreground">
                   {selectedSubcategory
                     ? `${selectedCategory.name} > ${selectedSubcategory.name}`
                     : selectedCategory
@@ -944,7 +944,7 @@ const ManagePartsLibrary = () => {
             )}
 
             <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder={
                   selectedCategory && !selectedSubcategory
@@ -955,7 +955,7 @@ const ManagePartsLibrary = () => {
                 }
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full bg-zinc-900 border-zinc-700 text-white [&::placeholder]:text-zinc-500"
+                className="pl-10 w-full bg-muted/50 border-border text-foreground [&::placeholder]:text-muted-foreground"
               />
             </div>
 
@@ -970,19 +970,19 @@ const ManagePartsLibrary = () => {
                     <Card
                       key={category.id}
                       onClick={() => handleCategoryClick(category)}
-                      className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+                      className="hover:bg-accent transition-colors cursor-pointer"
                     >
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <Tag className="h-5 w-5 text-blue-500" />
-                            <h3 className="font-semibold text-base text-white">
+                            <h3 className="font-semibold text-base text-foreground">
                               {category.name}
                             </h3>
                           </div>
-                          <ChevronRight className="h-4 w-4 text-zinc-400" />
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
                         </div>
-                        <p className="text-zinc-400 text-sm mt-2">
+                        <p className="text-muted-foreground text-sm mt-2">
                           {getSubcategories(category.id).length} subcategorias
                           {" • "}
                           {partsInCategory(category.id).length} peça(s)
@@ -1005,19 +1005,19 @@ const ManagePartsLibrary = () => {
                       <Card
                         key={subcategory.id}
                         onClick={() => handleSubcategoryClick(subcategory)}
-                        className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+                        className="hover:bg-accent transition-colors cursor-pointer"
                       >
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <Package className="h-5 w-5 text-purple-500" />
-                              <h3 className="font-semibold text-base text-white">
+                              <h3 className="font-semibold text-base text-foreground">
                                 {subcategory.name}
                               </h3>
                             </div>
-                            <ChevronRight className="h-4 w-4 text-zinc-400" />
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           </div>
-                          <p className="text-zinc-400 text-sm mt-2">
+                          <p className="text-muted-foreground text-sm mt-2">
                             {partsInSubcategory(subcategory.id).length} peça(s)
                           </p>
                         </CardContent>
@@ -1025,13 +1025,13 @@ const ManagePartsLibrary = () => {
                     ))}
 
                   {getSubcategories(selectedCategory.id).length === 0 && (
-                    <Card className="md:col-span-2 lg:col-span-3 bg-zinc-800 border-zinc-700">
+                    <Card className="md:col-span-2 lg:col-span-3">
                       <CardContent className="p-8 text-center">
-                        <Package className="w-10 h-10 text-zinc-600 mx-auto mb-4" />
-                        <p className="text-lg font-medium mb-2 text-white">
+                        <Package className="w-10 h-10 text-muted-foreground/70 mx-auto mb-4" />
+                        <p className="text-lg font-medium mb-2 text-foreground">
                           Nenhuma subcategoria encontrada
                         </p>
-                        <p className="text-sm text-zinc-400">
+                        <p className="text-sm text-muted-foreground">
                           Esta categoria ainda não tem subcategorias
                         </p>
                         <Button
@@ -1053,7 +1053,7 @@ const ManagePartsLibrary = () => {
                 {/* Peças classificadas nesta categoria mas sem subcategoria */}
                 {currentCategoryParts.length > 0 && (
                   <div className="space-y-3">
-                    <h3 className="text-base font-semibold text-white">
+                    <h3 className="text-base font-semibold text-foreground">
                       Peças sem subcategoria em {selectedCategory.name}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1076,14 +1076,14 @@ const ManagePartsLibrary = () => {
             {selectedSubcategory && (
               <>
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-white">
+                  <h3 className="text-lg font-semibold text-foreground">
                     Peças em {selectedSubcategory.name}
                   </h3>
                   <Button
                     onClick={handleRefresh}
                     variant="outline"
                     size="sm"
-                    className="gap-2 text-white border-zinc-700 hover:bg-zinc-700 bg-zinc-600"
+                    className="gap-2 text-foreground border-border hover:bg-accent bg-zinc-600"
                   >
                     <RefreshCw className="w-4 h-4" />
                     Atualizar
@@ -1103,19 +1103,19 @@ const ManagePartsLibrary = () => {
                     ))}
                   </div>
                 ) : (
-                  <Card className="bg-zinc-800 border-zinc-700">
+                  <Card className="">
                     <CardContent className="p-6 text-center">
-                      <Package className="w-10 h-10 text-zinc-600 mx-auto mb-4" />
-                      <p className="text-lg font-medium mb-2 text-white">
+                      <Package className="w-10 h-10 text-muted-foreground/70 mx-auto mb-4" />
+                      <p className="text-lg font-medium mb-2 text-foreground">
                         Nenhuma peça encontrada
                       </p>
-                      <p className="text-zinc-400 text-sm">
+                      <p className="text-muted-foreground text-sm">
                         Esta subcategoria ainda não tem peças atribuídas. Vá a
                         &ldquo;Todas as Peças&rdquo; para atribuir categorias.
                       </p>
                       <Button
                         onClick={() => handleTabChange("all")}
-                        className="mt-4 bg-green-600 hover:bg-green-700"
+                        className="mt-4 bg-primary hover:bg-primary/90"
                       >
                         Ver Todas as Peças
                       </Button>
@@ -1128,7 +1128,7 @@ const ManagePartsLibrary = () => {
             <div className="flex flex-wrap gap-2 mt-4">
               <Button
                 onClick={() => navigate("/app/add-category")}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-primary hover:bg-primary/90"
               >
                 <Tag className="w-4 h-4 mr-2" />
                 Nova Categoria
