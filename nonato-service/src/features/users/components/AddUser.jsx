@@ -162,11 +162,11 @@ const AddUser = ({ onClose }) => {
       <DialogHeader className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-              <UserPlus className="h-5 w-5 text-green-400" />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-inset ring-primary/20">
+              <UserPlus className="h-5 w-5" />
             </div>
             <div>
-              <DialogTitle className="text-xl sm:text-2xl font-bold text-foreground text-left">
+              <DialogTitle className="text-left text-xl font-semibold tracking-tight">
                 Novo Usuário
               </DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground text-left">
@@ -176,12 +176,13 @@ const AddUser = ({ onClose }) => {
           </div>
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="icon"
             onClick={onClose}
-            className="h-10 w-10 rounded-full shrink-0"
+            className="shrink-0 rounded-full"
+            aria-label="Voltar"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-5 w-5" />
           </Button>
         </div>
       </DialogHeader>

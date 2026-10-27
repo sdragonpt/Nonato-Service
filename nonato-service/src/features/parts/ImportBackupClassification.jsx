@@ -54,7 +54,7 @@ import {
 } from "@/components/ui/card.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Button } from "@/components/ui/button.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, useConfirm } from "../../components/app";
 
 const normName = (s) =>
   String(s || "")
@@ -233,6 +233,7 @@ function buildPlan(backup, existingDocs, catalogCodes, assignments, overwrite) {
 }
 
 const ImportBackupClassification = () => {
+  const confirm = useConfirm();
   const [backup, setBackup] = useState(null);
   const [fileName, setFileName] = useState("");
   const [overwrite, setOverwrite] = useState(false);
@@ -320,10 +321,14 @@ const ImportBackupClassification = () => {
     if (!plan) return;
     if (
       plan.toDelete &&
-      !window.confirm(
-        `Vão ser apagadas ${plan.toDelete.categorias} categorias/subcategorias e ` +
-          `${plan.toDelete.atribuicoes} classificações de peças. Não é possível desfazer. Continuar?`
-      )
+      !(await confirm({
+        title: "Substituir a classificação atual?",
+        description:
+          `Vão ser apagadas ${plan.toDelete.categorias} categorias/subcategorias e ` +
+          `${plan.toDelete.atribuicoes} classificações de peças. Não é possível desfazer.`,
+        confirmLabel: "Apagar e importar",
+        destructive: true,
+      }))
     ) {
       return;
     }

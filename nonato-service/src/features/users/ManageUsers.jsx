@@ -42,9 +42,10 @@ import {
 import AddUser from "./components/AddUser.jsx";
 import EditUser from "./components/EditUser.jsx";
 import { getRoleLabel, getRoleBadgeStyle, isStaffRole } from "../../config/roles.js";
-import { PageHeader, StatCard } from "../../components/app";
+import { PageHeader, StatCard, useConfirm } from "../../components/app";
 
 const ManageUsers = () => {
+  const confirm = useConfirm();
   // ✅ Tempo real (onSnapshot) via UsersContext partilhado — a lista
   // atualiza-se sozinha, sem precisar de um botão "Atualizar" manual.
   const { users, error: usersError, ensureUsers } = useUsers();
@@ -93,7 +94,13 @@ const ManageUsers = () => {
   }, [authorizedEmails, invites, users]);
 
   const cancelInvite = async (email) => {
-    if (!window.confirm(`Retirar o acesso a ${email}?`)) return;
+    const ok = await confirm({
+      title: `Retirar o acesso a ${email}?`,
+      description: "Esta pessoa deixa de conseguir entrar na app.",
+      confirmLabel: "Retirar acesso",
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await revokeAuthorizedEmail(email);
     } catch (err) {

@@ -23,7 +23,7 @@ import { Loader2, Upload, Contact, CheckCircle2, AlertTriangle } from "lucide-re
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Button } from "@/components/ui/button.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, useConfirm } from "../../components/app";
 
 /** Reserva `count` IDs seguidos no contador de clientes. Devolve o primeiro. */
 async function reserveClientIds(count) {
@@ -37,6 +37,7 @@ async function reserveClientIds(count) {
 }
 
 const ImportContacts = () => {
+  const confirm = useConfirm();
   const { ensureClients } = useClients();
   const [fileName, setFileName] = useState("");
   const [rows, setRows] = useState([]); // { ...cliente, duplicateOf, selected }
@@ -110,7 +111,12 @@ const ImportContacts = () => {
   const runImport = async () => {
     const toImport = rows.filter((r) => r.selected);
     if (toImport.length === 0) return;
-    if (!window.confirm(`Criar ${toImport.length} clientes novos?`)) return;
+    const ok = await confirm({
+      title: `Criar ${toImport.length} clientes novos?`,
+      description: "Os contactos escolhidos passam a clientes na app.",
+      confirmLabel: "Importar",
+    });
+    if (!ok) return;
 
     try {
       setImporting(true);

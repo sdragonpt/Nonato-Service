@@ -65,7 +65,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, useConfirm } from "../../components/app";
 
 const fieldClass = "bg-muted/50 border-border text-foreground";
 
@@ -594,6 +594,7 @@ const HistoryDialog = ({ open, onOpenChange, item }) => {
 // ─── Página ────────────────────────────────────────────────────────────
 
 const ManageStock = () => {
+  const confirm = useConfirm();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -674,7 +675,13 @@ const ManageStock = () => {
   const openMove = (item, mode) => setMoveState({ open: true, item, mode });
 
   const handleDelete = async (item) => {
-    if (!window.confirm(`Apagar "${item.nome}" do stock? O histórico de movimentos fica guardado.`)) return;
+    const ok = await confirm({
+      title: `Apagar "${item.nome}" do stock?`,
+      description: "O histórico de movimentos fica guardado.",
+      confirmLabel: "Apagar",
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await deleteStockItem(item);
     } catch (err) {

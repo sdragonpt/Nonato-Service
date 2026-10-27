@@ -27,25 +27,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, InputField } from "../../components/app";
 
-// ✅ Mesmo bloco reutilizável do AddClient.jsx/EditClient.jsx — mantém todos
-// os formulários "Add"/"Edit" visualmente e estruturalmente consistentes.
-const FieldRow = ({ label, icon: Icon, error, className = "", ...inputProps }) => (
-  <div className="space-y-1.5">
-    <label className="text-sm font-medium text-muted-foreground">{label}</label>
-    <div className="relative">
-      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-      <Input
-        {...inputProps}
-        className={`pl-10 bg-muted/50 border-border text-foreground ${className} ${
-          error ? "border-red-500" : ""
-        }`}
-      />
-    </div>
-    {error && <p className="text-xs text-red-400">{error}</p>}
-  </div>
-);
 
 const AddEquipment = () => {
   const navigate = useNavigate();
@@ -247,7 +230,7 @@ const AddEquipment = () => {
               </p>
             </div>
 
-            <FieldRow
+            <InputField
               label="Tipo"
               icon={Printer}
               type="text"
@@ -260,7 +243,7 @@ const AddEquipment = () => {
             />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FieldRow
+              <InputField
                 label="Marca"
                 icon={Tag}
                 type="text"
@@ -269,7 +252,7 @@ const AddEquipment = () => {
                 onChange={handleChange}
                 placeholder="Ex: HP, Epson..."
               />
-              <FieldRow
+              <InputField
                 label="Modelo"
                 icon={Package}
                 type="text"
@@ -280,7 +263,7 @@ const AddEquipment = () => {
               />
             </div>
 
-            <FieldRow
+            <InputField
               label="Número de Série"
               icon={Barcode}
               type="text"
@@ -288,7 +271,7 @@ const AddEquipment = () => {
               value={formData.serialNumber}
               onChange={handleChange}
               placeholder="Ex: XYZ123456"
-              className="uppercase"
+              inputClassName="uppercase"
             />
           </CardContent>
         </Card>

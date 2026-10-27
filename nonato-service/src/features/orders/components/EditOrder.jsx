@@ -60,22 +60,12 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs.jsx";
-import { PageHeader } from "../../../components/app";
+import { PageHeader, Field } from "../../../components/app";
 
 const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
 const emptyEquipmentEntry = () => ({ id: genId(), equipmentId: "", brand: "", model: "", serialNumber: "" });
 
-// ✅ Bloco reutilizável "label + ícone + campo" — mesmo padrão do AddOrder.jsx/AddClient.jsx.
-const FieldLabel = ({ label, icon: Icon, children }) => (
-  <div className="space-y-2">
-    <label className="text-sm font-medium text-muted-foreground">{label}</label>
-    <div className="relative">
-      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-      {children}
-    </div>
-  </div>
-);
 
 const EditOrder = () => {
   const { orderId } = useParams();
@@ -681,7 +671,7 @@ const EditOrder = () => {
               {/* ✅ ABA CLIENTE REGISTRADO */}
               <TabsContent value="registered" className="space-y-4">
                 {/* Date Field */}
-                <FieldLabel label="Data" icon={Calendar}>
+                <Field label="Data" icon={Calendar}>
                   <input
                     type="date"
                     name="date"
@@ -690,7 +680,7 @@ const EditOrder = () => {
                     className="w-full pl-10 p-3 bg-muted/50 border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     required
                   />
-                </FieldLabel>
+                </Field>
 
                 {/* Client Selection — pesquisável, com foto e por ordem alfabética */}
                 <div className="space-y-2">
@@ -806,7 +796,7 @@ const EditOrder = () => {
                 </div>
 
                 {/* Data */}
-                <FieldLabel label="Data" icon={Calendar}>
+                <Field label="Data" icon={Calendar}>
                   <input
                     type="date"
                     name="date"
@@ -815,7 +805,7 @@ const EditOrder = () => {
                     className="w-full pl-10 p-3 bg-muted/50 border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   />
-                </FieldLabel>
+                </Field>
 
                 {/* ✅ DADOS DO CLIENTE NÃO REGISTRADO */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -961,7 +951,7 @@ const EditOrder = () => {
             {/* ✅ CAMPOS COMUNS (FORA DAS ABAS) */}
             <div className="mt-6 space-y-4">
               {/* Service Type */}
-              <FieldLabel label="Tipo de Serviço" icon={Settings}>
+              <Field label="Tipo de Serviço" icon={Settings}>
                 <Input
                   type="text"
                   name="serviceType"
@@ -972,10 +962,10 @@ const EditOrder = () => {
                   className="pl-10"
                   required
                 />
-              </FieldLabel>
+              </Field>
 
               {/* Priority Selection */}
-              <FieldLabel label="Prioridade" icon={AlertCircle}>
+              <Field label="Prioridade" icon={AlertCircle}>
                 <Select
                   value={formData.priority}
                   onValueChange={(value) =>
@@ -1003,10 +993,10 @@ const EditOrder = () => {
                     </SelectItem>
                   </SelectContent>
                 </Select>
-              </FieldLabel>
+              </Field>
 
               {/* Status Selection */}
-              <FieldLabel label="Status" icon={Clock}>
+              <Field label="Status" icon={Clock}>
                 <Select
                   value={formData.status}
                   onValueChange={(value) =>
@@ -1034,7 +1024,7 @@ const EditOrder = () => {
                     </SelectItem>
                   </SelectContent>
                 </Select>
-              </FieldLabel>
+              </Field>
             </div>
           </CardContent>
         </Card>

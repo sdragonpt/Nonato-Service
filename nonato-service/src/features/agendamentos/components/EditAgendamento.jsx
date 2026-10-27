@@ -57,19 +57,8 @@ import {
   minutesToTime,
   timeToMinutes,
 } from "../utils/agendaConflicts.js";
-import { PageHeader } from "../../../components/app";
+import { PageHeader, Field } from "../../../components/app";
 
-// ✅ Bloco reutilizável "label + ícone + campo" — mesmo padrão do
-// AddAgendamento.jsx/AddOrder.jsx.
-const FieldLabel = ({ label, icon: Icon, children }) => (
-  <div className="space-y-1">
-    <label className="block text-sm font-medium text-muted-foreground mb-1">{label}</label>
-    <div className="relative">
-      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-      {children}
-    </div>
-  </div>
-);
 
 const EditAgendamento = () => {
   const { agendamentoId } = useParams();
@@ -278,20 +267,20 @@ const EditAgendamento = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <FieldLabel label="Data" icon={Calendar}>
+              <Field label="Data" icon={Calendar}>
                 <Input
                   type="date"
                   value={selectedDates[0]}
                   className="pl-10 bg-background/50 text-muted-foreground cursor-not-allowed"
                   disabled
                 />
-              </FieldLabel>
+              </Field>
               <p className="text-sm text-muted-foreground mt-1">
                 A data não pode ser alterada após o agendamento
               </p>
             </div>
 
-            <FieldLabel label="Hora" icon={Clock}>
+            <Field label="Hora" icon={Clock}>
               <Input
                 type="time"
                 name="hora"
@@ -300,7 +289,7 @@ const EditAgendamento = () => {
                 className="pl-10"
                 required
               />
-            </FieldLabel>
+            </Field>
           </CardContent>
         </Card>
 
@@ -325,7 +314,7 @@ const EditAgendamento = () => {
               />
             </div>
 
-            <FieldLabel label="Equipamento" icon={Printer}>
+            <Field label="Equipamento" icon={Printer}>
               <Select
                 value={formData.equipmentId}
                 onValueChange={(value) =>
@@ -347,9 +336,9 @@ const EditAgendamento = () => {
                   ))}
                 </SelectContent>
               </Select>
-            </FieldLabel>
+            </Field>
 
-            <FieldLabel label="Tipo de Serviço" icon={FileText}>
+            <Field label="Tipo de Serviço" icon={FileText}>
               <Input
                 type="text"
                 name="tipoServico"
@@ -359,10 +348,10 @@ const EditAgendamento = () => {
                 className="pl-10"
                 required
               />
-            </FieldLabel>
+            </Field>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FieldLabel label="Técnico Responsável" icon={UserCog}>
+              <Field label="Técnico Responsável" icon={UserCog}>
                 <Select
                   value={formData.tecnicoId || "none"}
                   onValueChange={(value) =>
@@ -389,10 +378,10 @@ const EditAgendamento = () => {
                     ))}
                   </SelectContent>
                 </Select>
-              </FieldLabel>
+              </Field>
 
               <div>
-                <FieldLabel label="Duração (minutos)" icon={Timer}>
+                <Field label="Duração (minutos)" icon={Timer}>
                   <Input
                     type="number"
                     min="15"
@@ -402,7 +391,7 @@ const EditAgendamento = () => {
                     onChange={handleChange}
                     className="pl-10"
                   />
-                </FieldLabel>
+                </Field>
                 {formData.hora && (
                   <p className="text-xs text-muted-foreground mt-1">
                     Termina às{" "}
@@ -425,7 +414,7 @@ const EditAgendamento = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <FieldLabel label="Prioridade" icon={AlertCircle}>
+            <Field label="Prioridade" icon={AlertCircle}>
               <Select
                 value={formData.prioridade}
                 onValueChange={(value) =>
@@ -453,9 +442,9 @@ const EditAgendamento = () => {
                   </SelectItem>
                 </SelectContent>
               </Select>
-            </FieldLabel>
+            </Field>
 
-            <FieldLabel label="Status" icon={Clock}>
+            <Field label="Status" icon={Clock}>
               <Select
                 value={formData.status}
                 onValueChange={(value) =>
@@ -483,7 +472,7 @@ const EditAgendamento = () => {
                   </SelectItem>
                 </SelectContent>
               </Select>
-            </FieldLabel>
+            </Field>
           </CardContent>
         </Card>
 
