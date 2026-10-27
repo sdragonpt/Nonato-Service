@@ -29,6 +29,7 @@ import {
   GraduationCap,
   Wrench,
   Code,
+  CheckSquare,
 } from "lucide-react";
 
 // UI Components
@@ -344,6 +345,7 @@ const ManageChecklist = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <PageHeader
+        icon={CheckSquare}
         title="Gerenciar Checklist"
         description="Gerencie todos os seus tipos de checklist em um só lugar"
         actions={
@@ -352,14 +354,12 @@ const ManageChecklist = () => {
             <Button
               variant="outline"
               onClick={() => navigate("/app/checklist-families")}
-             
             >
               <Layers className="w-4 h-4" />
               Famílias / Grupos
             </Button>
             <Button
               onClick={() => navigate("/app/add-checklist-type")}
-             
             >
               <Plus className="w-4 h-4" />
               Novo Tipo
@@ -442,7 +442,6 @@ const ManageChecklist = () => {
           {error && (
             <Alert
               variant="destructive"
-             
             >
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>

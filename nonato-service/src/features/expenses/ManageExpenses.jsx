@@ -17,6 +17,7 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  FileSpreadsheet,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card.jsx";
@@ -122,13 +123,13 @@ const ManageExpenses = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <PageHeader
+        icon={FileSpreadsheet}
         title="Comprovantes de Despesas"
         description="Registo de despesas (cliente ou pessoais) para efeitos de IRS"
         actions={
           <>
             <Button
             onClick={() => navigate("/app/add-expense")}
-           
           >
             <Plus className="w-4 h-4" />
             Nova Despesa

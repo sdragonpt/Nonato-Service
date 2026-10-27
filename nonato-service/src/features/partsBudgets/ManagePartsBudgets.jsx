@@ -409,6 +409,7 @@ const ManagePartsBudgets = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <PageHeader
+        icon={Calculator}
         title="Orçamento de Peças"
         description="Gerencie os orçamentos de peças da loja online e criados diretamente"
         actions={

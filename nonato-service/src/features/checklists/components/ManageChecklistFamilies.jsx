@@ -22,6 +22,7 @@ import {
   Layers,
   ChevronRight,
   X,
+  FolderOpen,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card.jsx";
@@ -164,6 +165,7 @@ const ManageChecklistFamilies = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <PageHeader
+        icon={FolderOpen}
         title="Famílias e Grupos de Equipamento"
         description="Organize os checklists por família (ex: Fresadoras) e grupo (ex: modelo específico)"
         back="/app/manage-checklist"
@@ -278,7 +280,6 @@ const ManageChecklistFamilies = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => openAddGroup(family)}
-                       
                       >
                         <Plus className="w-4 h-4" />
                         Novo Grupo
@@ -313,7 +314,6 @@ const ManageChecklistFamilies = () => {
             value={nameInput}
             onChange={(e) => setNameInput(e.target.value)}
             placeholder="Nome"
-           
           />
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
@@ -326,7 +326,6 @@ const ManageChecklistFamilies = () => {
             <Button
               onClick={handleSave}
               disabled={saving}
-             
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Guardar"}
             </Button>

@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   FileEdit,
   ArrowDown,
+  ClipboardCheck,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card.jsx";
@@ -167,13 +168,13 @@ const ManageProtocols = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <PageHeader
+        icon={ClipboardCheck}
         title="Protocolos de Serviço"
         description="Registos antes/depois por cliente e equipamento, com peças trocadas"
         actions={
           <>
             <Button
             onClick={() => navigate("/app/add-protocol")}
-           
           >
             <Plus className="w-4 h-4" />
             Novo Protocolo

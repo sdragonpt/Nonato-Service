@@ -235,7 +235,6 @@ const EditSupplier = () => {
                   name="localidade"
                   value={formData.localidade}
                   onChange={handleChange}
-                 
                 />
               </div>
               <div className="space-y-2">
@@ -245,7 +244,6 @@ const EditSupplier = () => {
                   name="codigoPostal"
                   value={formData.codigoPostal}
                   onChange={handleChange}
-                 
                 />
               </div>
               <div className="space-y-2">
@@ -255,7 +253,6 @@ const EditSupplier = () => {
                   name="pais"
                   value={formData.pais}
                   onChange={handleChange}
-                 
                 />
               </div>
             </div>

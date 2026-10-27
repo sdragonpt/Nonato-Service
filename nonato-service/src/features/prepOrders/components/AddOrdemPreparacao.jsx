@@ -308,7 +308,6 @@ const AddOrdemPreparacao = () => {
                   name="descricao"
                   value={formData.descricao}
                   onChange={handleChange}
-                 
                 />
               </div>
               <div className="space-y-2">
@@ -317,7 +316,6 @@ const AddOrdemPreparacao = () => {
                   name="modelo"
                   value={formData.modelo}
                   onChange={handleChange}
-                 
                 />
               </div>
               <div className="space-y-2">
@@ -326,7 +324,6 @@ const AddOrdemPreparacao = () => {
                   name="marca"
                   value={formData.marca}
                   onChange={handleChange}
-                 
                 />
               </div>
             </div>
@@ -370,7 +367,6 @@ const AddOrdemPreparacao = () => {
                   name="modalidadeVenda"
                   value={formData.modalidadeVenda}
                   onChange={handleChange}
-                 
                 />
               </div>
               <div className="space-y-2">
@@ -379,7 +375,6 @@ const AddOrdemPreparacao = () => {
                   name="pais"
                   value={formData.pais}
                   onChange={handleChange}
-                 
                 />
               </div>
               <div className="space-y-2">
@@ -388,7 +383,6 @@ const AddOrdemPreparacao = () => {
                   name="instalacao"
                   value={formData.instalacao}
                   onChange={handleChange}
-                 
                 />
               </div>
             </div>
@@ -479,7 +473,6 @@ const AddOrdemPreparacao = () => {
                 value={formData.dimensoesMax}
                 onChange={handleChange}
                 placeholder="Ex: 2800/1300/60"
-               
               />
             </div>
             <div className="space-y-2">
@@ -489,7 +482,6 @@ const AddOrdemPreparacao = () => {
                 value={formData.dimensoesMin}
                 onChange={handleChange}
                 placeholder="Ex: 200/100/8"
-               
               />
             </div>
             <div className="space-y-2">
@@ -498,7 +490,6 @@ const AddOrdemPreparacao = () => {
                 name="dimensoesOutro"
                 value={formData.dimensoesOutro}
                 onChange={handleChange}
-               
               />
             </div>
           </CardContent>
@@ -630,7 +621,6 @@ const AddOrdemPreparacao = () => {
                   name="ferramentasQuais"
                   value={formData.ferramentasQuais}
                   onChange={handleChange}
-                 
                 />
               </div>
               <div className="space-y-2">
@@ -639,7 +629,6 @@ const AddOrdemPreparacao = () => {
                   name="ventosas"
                   value={formData.ventosas}
                   onChange={handleChange}
-                 
                 />
               </div>
             </div>
@@ -678,7 +667,6 @@ const AddOrdemPreparacao = () => {
                 name="materialTestRunQuaisQtd"
                 value={formData.materialTestRunQuaisQtd}
                 onChange={handleChange}
-               
               />
             </div>
           </CardContent>
@@ -696,7 +684,6 @@ const AddOrdemPreparacao = () => {
                 name="linguaDestino"
                 value={formData.linguaDestino}
                 onChange={handleChange}
-               
               />
             </div>
             <div className="space-y-2">
@@ -705,7 +692,6 @@ const AddOrdemPreparacao = () => {
                 name="manuais"
                 value={formData.manuais}
                 onChange={handleChange}
-               
               />
             </div>
             <div className="space-y-2">
@@ -714,7 +700,6 @@ const AddOrdemPreparacao = () => {
                 name="adesivos"
                 value={formData.adesivos}
                 onChange={handleChange}
-               
               />
             </div>
           </CardContent>

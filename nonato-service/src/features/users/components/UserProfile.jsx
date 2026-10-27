@@ -203,6 +203,7 @@ const UserProfile = () => {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
+        icon={User}
         title="Perfil do Usuário"
         description="Gerencie suas informações pessoais"
         back

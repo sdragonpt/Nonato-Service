@@ -234,15 +234,16 @@ const OrdemPreparacaoDetail = () => {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
             onClick={() => navigate("/app/ordens-preparacao")}
-           
+            className="shrink-0 rounded-full"
+            aria-label="Voltar"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">
+            <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">
               SME_UP {order.codigoSmeUp}
             </h1>
             <Badge className={meta.className}>{meta.label}</Badge>
@@ -252,7 +253,6 @@ const OrdemPreparacaoDetail = () => {
           <Button
             variant="outline"
             onClick={handlePrint}
-           
           >
             <Printer className="w-4 h-4" />
             Imprimir
@@ -294,7 +294,6 @@ const OrdemPreparacaoDetail = () => {
             <Button
               size="sm"
               onClick={() => navigate("/app/formularios-tecnicos")}
-             
             >
               Ver Formulários
             </Button>

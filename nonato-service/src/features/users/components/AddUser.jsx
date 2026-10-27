@@ -288,7 +288,6 @@ const AddUser = ({ onClose }) => {
                 <SelectItem
                   key={option.value}
                   value={option.value}
-                 
                 >
                   {option.label}
                 </SelectItem>

@@ -63,7 +63,6 @@ const RequestAccessModal = ({
           {formErrors.submit && (
             <Alert
               variant="destructive"
-             
             >
               <AlertDescription>
                 {formErrors.submit}

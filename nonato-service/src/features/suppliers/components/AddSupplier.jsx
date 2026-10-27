@@ -193,7 +193,6 @@ const AddSupplier = () => {
                   value={formData.localidade}
                   onChange={handleChange}
                   placeholder="Ex: Porto"
-                 
                 />
               </div>
               <div className="space-y-2">
@@ -204,7 +203,6 @@ const AddSupplier = () => {
                   value={formData.codigoPostal}
                   onChange={handleChange}
                   placeholder="Ex: 4000-123"
-                 
                 />
               </div>
               <div className="space-y-2">
@@ -215,7 +213,6 @@ const AddSupplier = () => {
                   value={formData.pais}
                   onChange={handleChange}
                   placeholder="Ex: Portugal"
-                 
                 />
               </div>
             </div>

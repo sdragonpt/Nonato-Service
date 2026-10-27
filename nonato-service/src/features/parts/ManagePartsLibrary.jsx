@@ -553,6 +553,7 @@ const ManagePartsLibrary = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <PageHeader
+        icon={Book}
         title="Biblioteca de Peças"
         description="Catálogo HOMAG — atribua categorias às peças"
         actions={
@@ -715,7 +716,6 @@ const ManagePartsLibrary = () => {
                         <SelectItem
                           key={category.id}
                           value={category.id}
-                         
                         >
                           {category.name}
                         </SelectItem>
@@ -1127,7 +1127,6 @@ const ManagePartsLibrary = () => {
             <div className="flex flex-wrap gap-2 mt-4">
               <Button
                 onClick={() => navigate("/app/add-category")}
-               
               >
                 <Tag className="w-4 h-4" />
                 Nova Categoria

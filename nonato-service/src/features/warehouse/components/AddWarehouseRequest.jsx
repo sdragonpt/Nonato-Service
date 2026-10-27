@@ -249,7 +249,6 @@ const AddWarehouseRequest = () => {
                         <SelectItem
                           key={order.id}
                           value={order.id}
-                         
                         >
                           OS {order.id} — {order.status || "Aberto"}
                         </SelectItem>
@@ -354,7 +353,6 @@ const AddWarehouseRequest = () => {
               onChange={(e) => setObservacoes(e.target.value)}
               placeholder="Notas para quem vai separar as peças..."
               rows={3}
-             
             />
           </CardContent>
         </Card>

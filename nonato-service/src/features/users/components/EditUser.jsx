@@ -60,7 +60,7 @@ const EditUser = ({ user, onClose, onUpdated }) => {
   };
 
   return (
-    <div className="space-y-6 p-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
@@ -132,7 +132,6 @@ const EditUser = ({ user, onClose, onUpdated }) => {
                 <SelectItem
                   key={option.value}
                   value={option.value}
-                 
                 >
                   {option.label}
                 </SelectItem>

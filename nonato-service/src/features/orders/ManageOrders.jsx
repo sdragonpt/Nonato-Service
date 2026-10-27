@@ -481,6 +481,7 @@ const ManageOrders = () => {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
+        icon={ClipboardList}
         title="Gerenciar Ordens de Serviço"
         description="Gerencie todas as suas ordens de serviço em um só lugar"
         actions={
@@ -489,7 +490,6 @@ const ManageOrders = () => {
             <Button
               variant="outline"
               onClick={() => navigate("/app/recycle-bin")}
-             
             >
               <Trash2 className="w-4 h-4" />
               Reciclagem
@@ -498,7 +498,6 @@ const ManageOrders = () => {
               variant="outline"
               onClick={handleExportCSV}
               disabled={isExporting}
-             
             >
               {isExporting ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -509,7 +508,6 @@ const ManageOrders = () => {
             </Button>
             <Button
               onClick={() => navigate("/app/add-order")}
-             
             >
               <Plus className="w-4 h-4" />
               Nova Ordem

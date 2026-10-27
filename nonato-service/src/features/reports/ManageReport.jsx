@@ -31,6 +31,7 @@ import {
   RotateCcw,
   FilePlus,
   Plus,
+  BarChart,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.jsx";
@@ -344,6 +345,7 @@ const ManageReport = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <PageHeader
+        icon={BarChart}
         title="Criar Relatório"
         description="Gera e guarda relatórios normais e especiais (horas por equipamento)"
         actions={
@@ -568,19 +570,16 @@ const ManageReport = () => {
                       placeholder="Nome"
                       value={isolatedClient.name}
                       onChange={(e) => setIsolatedClient((prev) => ({ ...prev, name: e.target.value }))}
-                     
                     />
                     <Input
                       placeholder="Telefone"
                       value={isolatedClient.phone}
                       onChange={(e) => setIsolatedClient((prev) => ({ ...prev, phone: e.target.value }))}
-                     
                     />
                     <Input
                       placeholder="Morada"
                       value={isolatedClient.address}
                       onChange={(e) => setIsolatedClient((prev) => ({ ...prev, address: e.target.value }))}
-                     
                     />
                   </CardContent>
                 </Card>
@@ -626,7 +625,6 @@ const ManageReport = () => {
               <Button
                 variant="outline"
                 onClick={() => downloadFileFromUrl(saved.url, saved.fileName || "relatorio.pdf")}
-               
               >
                 <Download className="w-4 h-4" />
                 Descarregar novamente

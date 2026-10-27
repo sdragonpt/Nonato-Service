@@ -740,7 +740,6 @@ const EditOrder = () => {
                                 <SelectItem
                                   key={equipment.id}
                                   value={equipment.id}
-                                 
                                 >
                                   {`${equipment.brand} - ${equipment.model}`}
                                 </SelectItem>
@@ -847,7 +846,6 @@ const EditOrder = () => {
                         handleUnregisteredClientChange("email", e.target.value)
                       }
                       placeholder="email@exemplo.com"
-                     
                     />
                   </div>
 
@@ -862,7 +860,6 @@ const EditOrder = () => {
                         handleUnregisteredClientChange("phone", e.target.value)
                       }
                       placeholder="(XX) XXXXX-XXXX"
-                     
                     />
                   </div>
 
@@ -880,7 +877,6 @@ const EditOrder = () => {
                         )
                       }
                       placeholder="Nome da empresa"
-                     
                     />
                   </div>
                 </div>
@@ -916,7 +912,6 @@ const EditOrder = () => {
                             value={entry.brand}
                             onChange={(e) => updateEquipmentEntry(entry.id, { brand: e.target.value })}
                             placeholder="Ex: HP, Canon, Epson..."
-                           
                             required={idx === 0}
                           />
                         </div>
@@ -930,7 +925,6 @@ const EditOrder = () => {
                             value={entry.model}
                             onChange={(e) => updateEquipmentEntry(entry.id, { model: e.target.value })}
                             placeholder="Ex: LaserJet 1020, MG3610..."
-                           
                             required={idx === 0}
                           />
                         </div>
@@ -944,7 +938,6 @@ const EditOrder = () => {
                             value={entry.serialNumber}
                             onChange={(e) => updateEquipmentEntry(entry.id, { serialNumber: e.target.value })}
                             placeholder="Número de série do equipamento"
-                           
                           />
                         </div>
                       </div>
@@ -995,19 +988,16 @@ const EditOrder = () => {
                   <SelectContent>
                     <SelectItem
                       value="low"
-                     
                     >
                       Baixa
                     </SelectItem>
                     <SelectItem
                       value="normal"
-                     
                     >
                       Normal
                     </SelectItem>
                     <SelectItem
                       value="high"
-                     
                     >
                       Alta
                     </SelectItem>
@@ -1029,19 +1019,16 @@ const EditOrder = () => {
                   <SelectContent>
                     <SelectItem
                       value="Aberto"
-                     
                     >
                       Aberto
                     </SelectItem>
                     <SelectItem
                       value="Em Andamento"
-                     
                     >
                       Em Andamento
                     </SelectItem>
                     <SelectItem
                       value="Fechado"
-                     
                     >
                       Fechado
                     </SelectItem>
@@ -1291,7 +1278,6 @@ const EditOrder = () => {
                             onChange={(e) =>
                               updatePartPrice(item.id, e.target.value)
                             }
-                           
                             placeholder="0.00"
                           />
                         </div>
@@ -1342,7 +1328,6 @@ const EditOrder = () => {
                             }))
                           }
                           placeholder="Ex: Correios, Transportadora..."
-                         
                         />
                       </div>
 
@@ -1362,7 +1347,6 @@ const EditOrder = () => {
                             }))
                           }
                           placeholder="0.00"
-                         
                         />
                       </div>
 
@@ -1381,7 +1365,6 @@ const EditOrder = () => {
                               vatRate: e.target.value,
                             }))
                           }
-                         
                         />
                       </div>
 

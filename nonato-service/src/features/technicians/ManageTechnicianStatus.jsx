@@ -174,7 +174,6 @@ const ManageTechnicianStatus = () => {
             <Button
               variant="outline"
               onClick={() => navigate("/app/technician-skills")}
-             
             >
               <GraduationCap className="h-4 w-4" />
               Competências
@@ -182,7 +181,6 @@ const ManageTechnicianStatus = () => {
             <Button
               variant="outline"
               onClick={() => navigate("/app/manage-agenda")}
-             
             >
               <Calendar className="h-4 w-4" />
               Ver Agenda

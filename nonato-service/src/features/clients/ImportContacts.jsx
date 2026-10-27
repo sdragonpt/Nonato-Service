@@ -157,7 +157,7 @@ const ImportContacts = () => {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <PageHeader
         title="Importar contactos"
         description="Cria clientes a partir dos contactos do telemóvel, Google, Outlook ou Excel."
@@ -241,7 +241,6 @@ const ImportContacts = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setAll(true)}
-               
               >
                 Marcar todos
               </Button>
@@ -249,7 +248,6 @@ const ImportContacts = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setAll(false)}
-               
               >
                 Desmarcar todos
               </Button>
@@ -307,7 +305,6 @@ const ImportContacts = () => {
             <Button
               onClick={runImport}
               disabled={importing || selectedCount === 0}
-             
             >
               {importing ? (
                 <>

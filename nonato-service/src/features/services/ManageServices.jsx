@@ -214,6 +214,7 @@ const ManageServices = () => {
     <div className="space-y-6 pb-32">
       {/* Header */}
       <PageHeader
+        icon={Wrench}
         title="Gerenciar Serviços"
         description="Gerencie todos os seus serviços em um só lugar"
         actions={
@@ -323,25 +324,21 @@ const ManageServices = () => {
               <SelectContent>
                 <SelectItem
                   value="all"
-                 
                 >
                   Todos
                 </SelectItem>
                 <SelectItem
                   value="base"
-                 
                 >
                   Valor Base
                 </SelectItem>
                 <SelectItem
                   value="hour"
-                 
                 >
                   Por Hora
                 </SelectItem>
                 <SelectItem
                   value="day"
-                 
                 >
                   Por Dia
                 </SelectItem>
@@ -361,13 +358,11 @@ const ManageServices = () => {
               <SelectContent>
                 <SelectItem
                   value="name"
-                 
                 >
                   Nome
                 </SelectItem>
                 <SelectItem
                   value="type"
-                 
                 >
                   Tipo
                 </SelectItem>
@@ -395,7 +390,6 @@ const ManageServices = () => {
           {error && (
             <Alert
               variant="destructive"
-             
             >
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>

@@ -342,6 +342,7 @@ const ManageDocuments = () => {
 
       {/* Header */}
       <PageHeader
+        icon={FolderOpen}
         title={view === "home"    ? "Bíblia"               :
                view === "family"  ? selectedFamily?.name   :
                selectedMachine?.name}

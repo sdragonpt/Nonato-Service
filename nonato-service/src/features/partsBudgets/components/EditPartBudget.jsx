@@ -464,7 +464,7 @@ const EditPartBudget = () => {
           <TabsTrigger value="general">Geral</TabsTrigger>
           <TabsTrigger value="client">Cliente</TabsTrigger>
           <TabsTrigger value="parts">Peças</TabsTrigger>
-          <TabsTrigger value="pricing">✅ Preços</TabsTrigger>
+          <TabsTrigger value="pricing">Preços</TabsTrigger>
         </TabsList>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -569,7 +569,6 @@ const EditPartBudget = () => {
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
-                   
                     rows={3}
                   />
                 </div>
@@ -953,7 +952,6 @@ const EditPartBudget = () => {
                           name="profitMargin"
                           value={formData.profitMargin}
                           onChange={handleChange}
-                         
                         />
                       </div>
                       <div className="space-y-2">
@@ -984,7 +982,6 @@ const EditPartBudget = () => {
                       value={formData.shippingPrice}
                       onChange={handleChange}
                       placeholder="0.00"
-                     
                     />
                   </div>
 
@@ -999,7 +996,6 @@ const EditPartBudget = () => {
                       name="vatRate"
                       value={formData.vatRate}
                       onChange={handleChange}
-                     
                     />
                   </div>
 

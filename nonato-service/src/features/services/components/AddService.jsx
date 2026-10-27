@@ -160,31 +160,26 @@ const AddService = () => {
                 <SelectContent>
                   <SelectItem
                     value="base"
-                   
                   >
                     Valor Base
                   </SelectItem>
                   <SelectItem
                     value="un"
-                   
                   >
                     Despesa
                   </SelectItem>
                   <SelectItem
                     value="hour"
-                   
                   >
                     Por Hora
                   </SelectItem>
                   <SelectItem
                     value="day"
-                   
                   >
                     Por Dia
                   </SelectItem>
                   <SelectItem
                     value="km"
-                   
                   >
                     Por Km
                   </SelectItem>

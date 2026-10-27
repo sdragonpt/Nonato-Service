@@ -73,7 +73,6 @@ const IVASelector = ({ value, onChange }) => {
               <SelectItem
                 key={rate}
                 value={rate.toString()}
-               
               >
                 {rate}%
               </SelectItem>

@@ -214,7 +214,6 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
                 size="sm"
                 variant="outline"
                 onClick={addEquipment}
-               
               >
                 <Plus className="h-3.5 w-3.5" />
                 Adicionar
@@ -239,19 +238,16 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
                       placeholder="Marca"
                       value={eq.brand}
                       onChange={(e) => updateManualEquipment(eq.id, { brand: e.target.value })}
-                     
                     />
                     <Input
                       placeholder="Modelo"
                       value={eq.model}
                       onChange={(e) => updateManualEquipment(eq.id, { model: e.target.value })}
-                     
                     />
                     <Input
                       placeholder="Nº de Série"
                       value={eq.serialNumber}
                       onChange={(e) => updateManualEquipment(eq.id, { serialNumber: e.target.value })}
-                     
                     />
                   </div>
                 ) : (
@@ -300,7 +296,6 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
               type="date"
               value={value.date}
               onChange={(e) => set({ date: e.target.value })}
-             
             />
           </div>
           <div className="space-y-1">
@@ -309,7 +304,6 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
               placeholder="Ex: Manutenção preventiva"
               value={value.serviceType}
               onChange={(e) => set({ serviceType: e.target.value })}
-             
             />
           </div>
           <div className="space-y-1">
@@ -359,7 +353,6 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
               value={value.resultDescription}
               onChange={(e) => set({ resultDescription: e.target.value })}
               placeholder="O que foi feito, diagnóstico, etc."
-             
             />
           </div>
           <div className="space-y-1">
@@ -368,7 +361,6 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
               value={value.pontosEmAberto}
               onChange={(e) => set({ pontosEmAberto: e.target.value })}
               placeholder="O que fica pendente para uma próxima visita..."
-             
             />
           </div>
         </CardContent>
@@ -388,7 +380,6 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
                 size="sm"
                 variant="outline"
                 onClick={addPart}
-               
               >
                 <Plus className="h-3.5 w-3.5" />
                 Adicionar
@@ -450,7 +441,6 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
               size="sm"
               variant="outline"
               onClick={addWorkday}
-             
             >
               <Plus className="h-3.5 w-3.5" />
               Adicionar Dia

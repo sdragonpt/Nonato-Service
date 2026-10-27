@@ -130,7 +130,6 @@ const ServiceInput = ({
                 <SelectItem
                   key={service.id}
                   value={service.id}
-                 
                 >
                   <div className="flex items-center gap-2">
                     <Package className="w-4 h-4" />

@@ -500,6 +500,7 @@ const ManageCategories = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <PageHeader
+        icon={Tag}
         title="Gerenciar Categorias"
         description="Gerencie categorias e subcategorias para a Biblioteca de Peças"
         actions={
@@ -515,7 +516,6 @@ const ManageCategories = () => {
             </Button>
             <Button
               onClick={() => navigate("/app/add-category")}
-             
             >
               <Plus className="w-4 h-4" />
               Nova Categoria
@@ -557,7 +557,6 @@ const ManageCategories = () => {
           {error && (
             <Alert
               variant="destructive"
-             
             >
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
@@ -709,7 +708,6 @@ const ManageCategories = () => {
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 placeholder="Nome da categoria"
-               
               />
             </div>
           </div>
@@ -723,7 +721,6 @@ const ManageCategories = () => {
             </Button>
             <Button
               onClick={handleEdit}
-             
               disabled={isSubmitting || !editName.trim()}
             >
               {isSubmitting ? (

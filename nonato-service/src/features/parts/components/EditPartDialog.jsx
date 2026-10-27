@@ -155,7 +155,6 @@ const EditPartDialog = ({ open, onOpenChange, part, onSaved }) => {
             <Input
               value={nome}
               onChange={(e) => setNome(e.target.value)}
-             
             />
             {part?.editada && original.nome !== nome.trim() && (
               <p className="text-xs text-muted-foreground">
@@ -171,7 +170,6 @@ const EditPartDialog = ({ open, onOpenChange, part, onSaved }) => {
               onChange={(e) => setDescricao(e.target.value)}
               rows={3}
               placeholder="Notas, medidas, equivalências…"
-             
             />
           </div>
 
@@ -263,7 +261,6 @@ const EditPartDialog = ({ open, onOpenChange, part, onSaved }) => {
           <Button
             onClick={handleSave}
             disabled={busy}
-           
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Guardar alterações"}
           </Button>

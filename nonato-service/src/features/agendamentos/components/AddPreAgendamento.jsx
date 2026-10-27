@@ -219,8 +219,8 @@ const AddPreAgendamento = () => {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
-        title={<><Zap className="h-6 w-6 mr-2 text-yellow-400" />
-            Pré-Agendamento Rápido</>}
+        title="Pré-Agendamento Rápido"
+        icon={Zap}
         description="Capture rapidamente os dados essenciais para agendar depois"
         back
       />
@@ -318,7 +318,6 @@ const AddPreAgendamento = () => {
                           <SelectItem
                             key={equipment.id}
                             value={equipment.id}
-                           
                           >
                             <div className="flex flex-col">
                               <span>
@@ -349,7 +348,6 @@ const AddPreAgendamento = () => {
                       onChange={handleChange}
                       onBlur={() => handleBlur("newClientName")}
                       placeholder="Nome completo"
-                     
                       required={clientType === "new"}
                     />
                     {touched.newClientName && !isNewClientNameValid && (
@@ -367,7 +365,6 @@ const AddPreAgendamento = () => {
                       onChange={handleChange}
                       onBlur={() => handleBlur("newClientPhone")}
                       placeholder="(XX) XXXXX-XXXX"
-                     
                       required={clientType === "new"}
                     />
                     {touched.newClientPhone && !isNewClientPhoneValid && (
@@ -484,19 +481,16 @@ const AddPreAgendamento = () => {
                 <SelectContent>
                   <SelectItem
                     value="baixa"
-                   
                   >
                     Baixa
                   </SelectItem>
                   <SelectItem
                     value="normal"
-                   
                   >
                     Normal
                   </SelectItem>
                   <SelectItem
                     value="alta"
-                   
                   >
                     Alta
                   </SelectItem>
@@ -551,7 +545,7 @@ const AddPreAgendamento = () => {
 
         <div className="text-center">
           <p className="text-sm text-muted-foreground">
-            ⚡ Modo rápido: depois defina data e hora na agenda
+            Modo rápido: depois defina data e hora na agenda
           </p>
         </div>
       </form>

@@ -634,7 +634,6 @@ const AddOrder = () => {
                               <SelectItem
                                 key={equipment.id}
                                 value={equipment.id}
-                               
                               >
                                 {`${equipment.brand} - ${equipment.model}`}
                               </SelectItem>
@@ -714,7 +713,6 @@ const AddOrder = () => {
                         handleUnregisteredClientChange("email", e.target.value)
                       }
                       placeholder="email@exemplo.com"
-                     
                     />
                   </div>
 
@@ -729,7 +727,6 @@ const AddOrder = () => {
                         handleUnregisteredClientChange("phone", e.target.value)
                       }
                       placeholder="(XX) XXXXX-XXXX"
-                     
                     />
                   </div>
 
@@ -747,7 +744,6 @@ const AddOrder = () => {
                         )
                       }
                       placeholder="Nome da empresa"
-                     
                     />
                   </div>
                 </div>
@@ -783,7 +779,6 @@ const AddOrder = () => {
                             value={entry.brand}
                             onChange={(e) => updateEquipmentEntry(entry.id, { brand: e.target.value })}
                             placeholder="Ex: HP, Canon, Epson..."
-                           
                             required={idx === 0}
                           />
                         </div>
@@ -797,7 +792,6 @@ const AddOrder = () => {
                             value={entry.model}
                             onChange={(e) => updateEquipmentEntry(entry.id, { model: e.target.value })}
                             placeholder="Ex: LaserJet 1020, MG3610..."
-                           
                             required={idx === 0}
                           />
                         </div>
@@ -811,7 +805,6 @@ const AddOrder = () => {
                             value={entry.serialNumber}
                             onChange={(e) => updateEquipmentEntry(entry.id, { serialNumber: e.target.value })}
                             placeholder="Número de série do equipamento"
-                           
                           />
                         </div>
                       </div>
@@ -862,19 +855,16 @@ const AddOrder = () => {
                   <SelectContent>
                     <SelectItem
                       value="low"
-                     
                     >
                       Baixa
                     </SelectItem>
                     <SelectItem
                       value="normal"
-                     
                     >
                       Normal
                     </SelectItem>
                     <SelectItem
                       value="high"
-                     
                     >
                       Alta
                     </SelectItem>
@@ -1136,7 +1126,6 @@ const AddOrder = () => {
                             onChange={(e) =>
                               updatePartPrice(item.id, e.target.value)
                             }
-                           
                             placeholder="0.00"
                           />
                         </div>
@@ -1187,7 +1176,6 @@ const AddOrder = () => {
                             }))
                           }
                           placeholder="Ex: Correios, Transportadora..."
-                         
                         />
                       </div>
 
@@ -1207,7 +1195,6 @@ const AddOrder = () => {
                             }))
                           }
                           placeholder="0.00"
-                         
                         />
                       </div>
 
@@ -1226,7 +1213,6 @@ const AddOrder = () => {
                               vatRate: e.target.value,
                             }))
                           }
-                         
                         />
                       </div>
 

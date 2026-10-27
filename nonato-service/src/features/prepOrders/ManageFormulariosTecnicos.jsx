@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { collection, updateDoc, doc, query, orderBy } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { fetchPage } from "../../utils/firestorePage.js";
-import { Search, Loader2, FileCheck2, AlertTriangle, CheckCircle2, ArrowDown } from "lucide-react";
+import { Search, Loader2, FileCheck2, AlertTriangle, CheckCircle2, ArrowDown, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 
 import { Card, CardContent } from "@/components/ui/card.jsx";
@@ -158,6 +158,7 @@ const ManageFormulariosTecnicos = () => {
   return (
     <div className="space-y-6 pb-24">
       <PageHeader
+        icon={CheckSquare}
         title="Formulários e Checklist para Técnicos"
         description="Fila de formulários gerados a partir de ordens de preparação e checklists"
         actions={

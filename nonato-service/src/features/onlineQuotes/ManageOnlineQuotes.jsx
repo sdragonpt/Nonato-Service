@@ -35,6 +35,7 @@ import {
   ShoppingCart,
   Tag,
   Trash2,
+  Store,
 } from "lucide-react";
 
 // UI Components
@@ -401,6 +402,7 @@ const ManageOnlineQuotes = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <PageHeader
+        icon={Store}
         title="Orçamentos Online"
         description="Gerencie os pedidos de orçamento recebidos pela loja online"
       />
@@ -477,31 +479,26 @@ const ManageOnlineQuotes = () => {
               <SelectContent>
                 <SelectItem
                   value="all"
-                 
                 >
                   Todos os Status
                 </SelectItem>
                 <SelectItem
                   value="pending"
-                 
                 >
                   Pendente
                 </SelectItem>
                 <SelectItem
                   value="approved"
-                 
                 >
                   Aprovado
                 </SelectItem>
                 <SelectItem
                   value="rejected"
-                 
                 >
                   Rejeitado
                 </SelectItem>
                 <SelectItem
                   value="converted"
-                 
                 >
                   Convertido
                 </SelectItem>
@@ -526,7 +523,6 @@ const ManageOnlineQuotes = () => {
           {error && (
             <Alert
               variant="destructive"
-             
             >
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
@@ -755,7 +751,6 @@ const ManageOnlineQuotes = () => {
                               ([status, { label }]) => (
                                 <DropdownMenuItem
                                   key={status}
-                                 
                                   onClick={() =>
                                     updateQuoteStatus(quote.id, status)
                                   }
@@ -944,7 +939,6 @@ const ManageOnlineQuotes = () => {
                         updateQuoteStatus(selectedQuote.id, "approved");
                         setShowDetailModal(false);
                       }}
-                     
                       disabled={isUpdating}
                     >
                       Aprovar
@@ -1009,7 +1003,6 @@ const ManageOnlineQuotes = () => {
             </Button>
             <Button
               onClick={handleSubmitNote}
-             
               disabled={!currentNote.trim() || isUpdating}
             >
               Salvar Nota
@@ -1038,7 +1031,6 @@ const ManageOnlineQuotes = () => {
                 setDeleteDialogOpen(false);
                 setQuoteToDelete(null);
               }}
-             
             >
               Cancelar
             </Button>

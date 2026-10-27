@@ -114,7 +114,6 @@ const BlockSection = ({ title, accent, blocks, onChange, protocolId }) => {
               size="sm"
               variant="outline"
               onClick={addTextBlock}
-             
             >
               <Type className="w-4 h-4" />
               Texto
@@ -132,7 +131,6 @@ const BlockSection = ({ title, accent, blocks, onChange, protocolId }) => {
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
               disabled={!!uploadingId}
-             
             >
               {uploadingId ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -313,7 +311,6 @@ const EditProtocol = () => {
             <Button
               variant="outline"
               onClick={() => navigate(`/app/protocol/${protocolId}`)}
-             
             >
               <Eye className="w-4 h-4" />
               Pré-visualizar
@@ -321,7 +318,6 @@ const EditProtocol = () => {
             <Button
               onClick={handleSave}
               disabled={saving}
-             
             >
               {saving ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -358,7 +354,6 @@ const EditProtocol = () => {
             <Input
               value={protocol.title || ""}
               onChange={(e) => updateField("title", e.target.value)}
-             
             />
           </div>
           <div className="space-y-2">
@@ -416,7 +411,6 @@ const EditProtocol = () => {
               type="button"
               size="sm"
               onClick={addPeca}
-             
             >
               <Plus className="w-4 h-4" />
               Adicionar Peça

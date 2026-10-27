@@ -10,7 +10,6 @@ import {
   deleteObject,
 } from "firebase/storage";
 import {
-  ArrowLeft,
   Loader2,
   AlertTriangle,
   User,
@@ -23,6 +22,7 @@ import {
   Trash2,
   UserPlus,
   GraduationCap,
+  ClipboardCheck,
 } from "lucide-react";
 
 // UI Components
@@ -43,6 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
+import { PageHeader } from "../../../components/app";
 
 const InspectionDetail = () => {
   const { inspectionId: id } = useParams();
@@ -506,29 +507,20 @@ const InspectionDetail = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Detalhes da Inspeção
-          </h1>
-          <p className="text-xs text-muted-foreground font-mono">
-            {inspection?.inspectionNumber || `INSP-${inspection?.id || ""}`}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {inspection?.type === "training" ? "Treinamento" : "Inspeção"} de{" "}
-            {client?.name}
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-10 w-10 rounded-full hover:bg-primary/90 bg-primary"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-      </div>
+      <PageHeader
+        title="Detalhes da Inspeção"
+        description={
+          <>
+            <span className="font-mono text-xs">
+              {inspection?.inspectionNumber || `INSP-${inspection?.id || ""}`}
+            </span>
+            {" · "}
+            {inspection?.type === "training" ? "Treinamento" : "Inspeção"} de {client?.name}
+          </>
+        }
+        icon={ClipboardCheck}
+        back
+      />
 
       {error && (
         <Alert variant="destructive">
@@ -602,7 +594,6 @@ const InspectionDetail = () => {
               </div>
               <Button
                 onClick={addTrainingParticipant}
-               
               >
                 <UserPlus className="w-4 h-4" />
                 Adicionar

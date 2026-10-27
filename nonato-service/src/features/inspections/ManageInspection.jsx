@@ -438,6 +438,7 @@ const ManageInspection = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <PageHeader
+        icon={ClipboardCheck}
         title="Gerenciar Inspeções"
         description="Gerencie todas as suas inspeções em um só lugar"
         actions={
@@ -446,14 +447,12 @@ const ManageInspection = () => {
             <Button
               variant="outline"
               onClick={() => navigate("/app/recycle-bin")}
-             
             >
               <Trash2 className="w-4 h-4" />
               Reciclagem
             </Button>
             <Button
               onClick={() => navigate("/app/add-inspection")}
-             
             >
               <Plus className="w-4 h-4" />
               Nova Inspeção
@@ -536,7 +535,6 @@ const ManageInspection = () => {
           {error && (
             <Alert
               variant="destructive"
-             
             >
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>

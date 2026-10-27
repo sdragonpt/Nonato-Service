@@ -252,7 +252,6 @@ const PendingWorkConfirmation = () => {
             <Button
               variant="outline"
               onClick={() => handleDialogChange(false)}
-              
             >
               Decidir depois
             </Button>

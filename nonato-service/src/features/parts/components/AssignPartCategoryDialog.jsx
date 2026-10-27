@@ -190,7 +190,6 @@ const AssignPartCategoryDialog = ({ open, onOpenChange, part, onSaved }) => {
           <Button
             onClick={handleSave}
             disabled={saving}
-           
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Guardar"}
           </Button>

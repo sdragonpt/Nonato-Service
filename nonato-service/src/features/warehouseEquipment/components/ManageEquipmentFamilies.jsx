@@ -23,6 +23,7 @@ import {
   Layers,
   ChevronRight,
   X,
+  FolderOpen,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card.jsx";
@@ -165,6 +166,7 @@ const ManageEquipmentFamilies = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <PageHeader
+        icon={FolderOpen}
         title="Famílias e Grupos de Equipamentos"
         description="Organize o inventário do armazém por família (ex: Ferramentas Elétricas) e grupo"
         back="/app/warehouse-equipment"
@@ -279,7 +281,6 @@ const ManageEquipmentFamilies = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => openAddGroup(family)}
-                       
                       >
                         <Plus className="w-4 h-4" />
                         Novo Grupo
@@ -314,7 +315,6 @@ const ManageEquipmentFamilies = () => {
             value={nameInput}
             onChange={(e) => setNameInput(e.target.value)}
             placeholder="Nome"
-           
           />
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
@@ -327,7 +327,6 @@ const ManageEquipmentFamilies = () => {
             <Button
               onClick={handleSave}
               disabled={saving}
-             
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Guardar"}
             </Button>

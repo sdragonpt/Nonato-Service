@@ -245,6 +245,7 @@ const ManageSuppliers = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <PageHeader
+        icon={Truck}
         title="Fornecedores"
         description="Gerencie os fornecedores da Nonato Service"
         actions={
@@ -374,7 +375,6 @@ const ManageSuppliers = () => {
           {!searchTerm && (
             <Button
               onClick={() => navigate("/app/add-supplier")}
-             
             >
               <Plus className="w-4 h-4" />
               Adicionar Fornecedor

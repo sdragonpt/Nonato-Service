@@ -529,7 +529,6 @@ const ClientAttachments = ({ clientId }) => {
             <Button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-             
             >
               {uploading ? (
                 <>
@@ -1241,7 +1240,6 @@ const ClientDetail = () => {
                   onClick={() =>
                     navigate(`/app/add-equipment?clientId=${clientId}`)
                   }
-                 
                 >
                   <Plus className="w-4 h-4" />
                   Adicionar Equipamento

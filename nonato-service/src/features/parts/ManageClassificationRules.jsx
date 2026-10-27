@@ -270,6 +270,7 @@ const ManageClassificationRules = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <PageHeader
+        icon={Wand2}
         title="Regras de Classificação Automática"
         description="Classifique peças automaticamente por palavra-chave no nome ou descrição"
         back="/app/parts-library"
@@ -429,7 +430,6 @@ const ManageClassificationRules = () => {
                   setForm((prev) => ({ ...prev, palavrasText: e.target.value }))
                 }
                 placeholder="ex: rolamento, correia, motor"
-               
               />
             </div>
 
@@ -452,7 +452,6 @@ const ManageClassificationRules = () => {
                       <SelectItem
                         key={cat.id}
                         value={cat.id}
-                       
                       >
                         {cat.name}
                       </SelectItem>
@@ -486,7 +485,6 @@ const ManageClassificationRules = () => {
                         <SelectItem
                           key={sub.id}
                           value={sub.id}
-                         
                         >
                           {sub.name}
                         </SelectItem>
@@ -508,7 +506,6 @@ const ManageClassificationRules = () => {
             <Button
               onClick={handleSaveRule}
               disabled={saving}
-             
             >
               {saving ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

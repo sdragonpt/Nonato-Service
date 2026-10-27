@@ -279,7 +279,6 @@ const EditDisassembledPart = () => {
                     value={formData.origemEquipamento}
                     onChange={handleChange}
                     placeholder="Ex: CNC Modelo X, Nº série 12345"
-                   
                   />
                 </div>
               </CardContent>

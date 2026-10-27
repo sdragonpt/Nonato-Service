@@ -167,6 +167,7 @@ const ManageUsers = () => {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
+        icon={Users}
         title="Gerenciar Usuários"
         description="Gerencie todas as contas de usuário em um só lugar"
         actions={

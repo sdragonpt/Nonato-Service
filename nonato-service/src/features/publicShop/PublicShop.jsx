@@ -685,7 +685,6 @@ const PublicShop = ({
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsFiltersOpen(true)}
-               
               >
                 <Filter className="h-5 w-5" />
               </Button>
@@ -1068,7 +1067,6 @@ const PublicShop = ({
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                     
                     >
                       <span className="mr-1">
                         {sortBy === "name" ? "Nome" : "Código"}
@@ -1343,7 +1341,6 @@ const PublicShop = ({
               <Button
                 onClick={loadMoreParts}
                 disabled={isLoadingParts}
-               
               >
                 {isLoadingParts ? (
                   <>
@@ -1363,7 +1360,7 @@ const PublicShop = ({
           {!hasMore && displayParts.length > 0 && !debouncedSearchTerm && (
             <div className="text-center mt-8">
               <p className="text-muted-foreground">
-                ✅ Todas as peças foram carregadas ({displayParts.length} total)
+                Todas as peças foram carregadas ({displayParts.length} total)
               </p>
             </div>
           )}

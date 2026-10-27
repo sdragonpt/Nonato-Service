@@ -173,7 +173,8 @@ const ManageDebtors = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <PageHeader
-        title="Clientes Devedores &amp; Controlo de IVA"
+        icon={Euro}
+        title="Clientes Devedores & Controlo de IVA"
         description="Vista agregada por cliente e por período, a partir de Orçamentos e Fechamentos"
         back="/app/manage-finances"
       />
@@ -249,7 +250,6 @@ const ManageDebtors = () => {
                           <Button
                             size="sm"
                             onClick={() => window.open(whatsappLink, "_blank")}
-                           
                           >
                             <MessageCircle className="w-4 h-4" />
                             Cobrar
@@ -282,7 +282,6 @@ const ManageDebtors = () => {
               <Button
                 variant="outline"
                 onClick={exportVatCsv}
-               
               >
                 <Download className="w-4 h-4" />
                 Exportar CSV

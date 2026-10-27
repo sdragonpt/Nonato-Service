@@ -794,6 +794,7 @@ const ManageAgenda = () => {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
+        icon={Calendar}
         title="Gerenciar Agenda"
         description="Gerencie todos os seus agendamentos em um só lugar"
         actions={
@@ -1004,31 +1005,26 @@ const ManageAgenda = () => {
               <SelectContent>
                 <SelectItem
                   value="all"
-                 
                 >
                   Todos os status
                 </SelectItem>
                 <SelectItem
                   value="agendado"
-                 
                 >
                   Agendado
                 </SelectItem>
                 <SelectItem
                   value="confirmado"
-                 
                 >
                   Confirmado
                 </SelectItem>
                 <SelectItem
                   value="terminado"
-                 
                 >
                   Terminado
                 </SelectItem>
                 <SelectItem
                   value="cancelado"
-                 
                 >
                   Cancelado
                 </SelectItem>
@@ -1077,7 +1073,6 @@ const ManageAgenda = () => {
           {error && (
             <Alert
               variant="destructive"
-             
             >
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
@@ -1483,7 +1478,6 @@ const ManageAgenda = () => {
             <Button
               onClick={handleConvertPreAgendamento}
               disabled={!convertFormData.date || !convertFormData.time}
-             
             >
               <Calendar className="w-4 h-4" />
               Agendar
@@ -1537,7 +1531,6 @@ const ManageAgenda = () => {
                       size="sm"
                       disabled={!link}
                       onClick={() => window.open(link, "_blank")}
-                     
                     >
                       <MessageCircle className="w-4 h-4" />
                       Enviar

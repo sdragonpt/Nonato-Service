@@ -409,7 +409,6 @@ const AddAgendamento = () => {
                     <SelectItem
                       key={equipment.id}
                       value={equipment.id}
-                     
                     >
                       {equipment.brand} - {equipment.model}
                     </SelectItem>
@@ -452,7 +451,6 @@ const AddAgendamento = () => {
                       <SelectItem
                         key={user.id}
                         value={user.id}
-                       
                       >
                         {user.displayName || user.email}
                       </SelectItem>
@@ -508,19 +506,16 @@ const AddAgendamento = () => {
                 <SelectContent>
                   <SelectItem
                     value="baixa"
-                   
                   >
                     Baixa
                   </SelectItem>
                   <SelectItem
                     value="normal"
-                   
                   >
                     Normal
                   </SelectItem>
                   <SelectItem
                     value="alta"
-                   
                   >
                     Alta
                   </SelectItem>
@@ -541,19 +536,16 @@ const AddAgendamento = () => {
                 <SelectContent>
                   <SelectItem
                     value="agendado"
-                   
                   >
                     Agendado
                   </SelectItem>
                   <SelectItem
                     value="confirmado"
-                   
                   >
                     Confirmado
                   </SelectItem>
                   <SelectItem
                     value="cancelado"
-                   
                   >
                     Cancelado
                   </SelectItem>

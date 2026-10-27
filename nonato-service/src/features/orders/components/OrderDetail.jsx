@@ -38,6 +38,11 @@ import {
   Package,
   Receipt,
   Cpu,
+  Mail,
+  Phone,
+  Building2,
+  Tag,
+  ClipboardList,
 } from "lucide-react";
 
 // UI Components
@@ -473,6 +478,7 @@ const OrderDetail = () => {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
+        icon={ClipboardList}
         title={<>Ordem de Serviço {order.orderNumber || `#${orderId}`}</>}
         description="Visualize e gerencie os detalhes da ordem de serviço"
         back
@@ -631,18 +637,18 @@ const OrderDetail = () => {
                         {order.unregisteredClient?.name || "N/A"}
                       </p>
                       {order.unregisteredClient?.email && (
-                        <p className="text-sm text-muted-foreground">
-                          📧 {order.unregisteredClient.email}
+                        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Mail className="h-3.5 w-3.5 shrink-0" /> {order.unregisteredClient.email}
                         </p>
                       )}
                       {order.unregisteredClient?.phone && (
-                        <p className="text-sm text-muted-foreground">
-                          📞 {order.unregisteredClient.phone}
+                        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Phone className="h-3.5 w-3.5 shrink-0" /> {order.unregisteredClient.phone}
                         </p>
                       )}
                       {order.unregisteredClient?.company && (
-                        <p className="text-sm text-muted-foreground">
-                          🏢 {order.unregisteredClient.company}
+                        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Building2 className="h-3.5 w-3.5 shrink-0" /> {order.unregisteredClient.company}
                         </p>
                       )}
                     </div>
@@ -652,18 +658,18 @@ const OrderDetail = () => {
                         {order.clientInfo?.name || client?.name || "N/A"}
                       </p>
                       {(order.clientInfo?.email || client?.email) && (
-                        <p className="text-sm text-muted-foreground">
-                          📧 {order.clientInfo?.email || client?.email}
+                        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Mail className="h-3.5 w-3.5 shrink-0" /> {order.clientInfo?.email || client?.email}
                         </p>
                       )}
                       {(order.clientInfo?.phone || client?.phone) && (
-                        <p className="text-sm text-muted-foreground">
-                          📞 {order.clientInfo?.phone || client?.phone}
+                        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Phone className="h-3.5 w-3.5 shrink-0" /> {order.clientInfo?.phone || client?.phone}
                         </p>
                       )}
                       {(order.clientInfo?.company || client?.company) && (
-                        <p className="text-sm text-muted-foreground">
-                          🏢 {order.clientInfo?.company || client?.company}
+                        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Building2 className="h-3.5 w-3.5 shrink-0" /> {order.clientInfo?.company || client?.company}
                         </p>
                       )}
                     </div>
@@ -721,8 +727,8 @@ const OrderDetail = () => {
                         {order.manualEquipment.model}
                       </p>
                       {order.manualEquipment.serialNumber && (
-                        <p className="text-sm text-muted-foreground">
-                          🏷️ Nº Série: {order.manualEquipment.serialNumber}
+                        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Tag className="h-3.5 w-3.5 shrink-0" /> Nº Série: {order.manualEquipment.serialNumber}
                         </p>
                       )}
                     </div>
@@ -735,13 +741,13 @@ const OrderDetail = () => {
                           : "N/A"}
                       </p>
                       {equipment?.serialNumber && (
-                        <p className="text-sm text-muted-foreground">
-                          🏷️ Nº Série: {equipment.serialNumber}
+                        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Tag className="h-3.5 w-3.5 shrink-0" /> Nº Série: {equipment.serialNumber}
                         </p>
                       )}
                       {equipment?.installationDate && (
-                        <p className="text-sm text-muted-foreground">
-                          📅 Instalação:{" "}
+                        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Calendar className="h-3.5 w-3.5 shrink-0" /> Instalação:{" "}
                           {new Date(
                             equipment.installationDate
                           ).toLocaleDateString()}
@@ -959,7 +965,6 @@ const OrderDetail = () => {
           <CardTitle className="text-lg">Dias de Trabalho</CardTitle>
           <Button
             onClick={() => navigate(`/app/order/${orderId}/add-workday`)}
-           
           >
             <Plus className="w-4 h-4" />
             Novo Dia

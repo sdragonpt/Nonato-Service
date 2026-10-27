@@ -278,6 +278,7 @@ const ManageWarehouseEquipment = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <PageHeader
+        icon={Wrench}
         title="Equipamentos do Armazém"
         description="Inventário de equipamento industrial próprio da Nonato Service"
         actions={
@@ -286,14 +287,12 @@ const ManageWarehouseEquipment = () => {
             <Button
               variant="outline"
               onClick={() => navigate("/app/equipment-families")}
-             
             >
               <Layers className="w-4 h-4" />
               Famílias / Grupos
             </Button>
             <Button
               onClick={() => navigate("/app/add-warehouse-equipment")}
-             
             >
               <Plus className="w-4 h-4" />
               Novo Equipamento
@@ -444,7 +443,6 @@ const ManageWarehouseEquipment = () => {
           {!searchTerm && estadoFilter === "all" && (
             <Button
               onClick={() => navigate("/app/add-warehouse-equipment")}
-             
             >
               <Plus className="w-4 h-4" />
               Adicionar Equipamento

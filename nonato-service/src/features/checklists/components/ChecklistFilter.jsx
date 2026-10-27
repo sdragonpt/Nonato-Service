@@ -35,7 +35,6 @@ const ChecklistFilter = ({ value, onValueChange }) => {
               <SelectItem
                 key={category.value}
                 value={category.value}
-               
               >
                 {category.label}
               </SelectItem>

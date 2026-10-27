@@ -433,7 +433,6 @@ const AddBudget = () => {
                     <SelectItem
                       key={order.id}
                       value={order.id}
-                     
                     >
                       Ordem #{order.id} -{" "}
                       {new Date(order.date).toLocaleDateString()}

@@ -208,13 +208,13 @@ const ManageWarehouse = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <PageHeader
+        icon={Package}
         title="Almoxarifado / Armazém"
         description="Pedidos de separação de peças para clientes e ordens de serviço"
         actions={
           <>
             <Button
             onClick={() => navigate("/app/add-warehouse-request")}
-           
           >
             <Plus className="w-4 h-4" />
             Novo Pedido
@@ -369,7 +369,6 @@ const ManageWarehouse = () => {
                             size="sm"
                             onClick={() => advanceStatus(request)}
                             disabled={savingId === request.id}
-                           
                           >
                             {request.status === "separado" ? (
                               <>

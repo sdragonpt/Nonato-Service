@@ -328,7 +328,6 @@ const EquipmentDetail = () => {
           <div className="flex flex-wrap gap-2 mt-6">
             <Button
               onClick={() => navigate(`/app/edit-equipment/${equipmentId}`)}
-             
             >
               <Edit2 className="w-4 h-4" />
               Editar Equipamento
@@ -359,7 +358,6 @@ const EquipmentDetail = () => {
               onClick={() =>
                 navigate(`/app/add-order?clientId=${equipment.clientId}`)
               }
-             
             >
               <Plus className="h-4 w-4" />
               Nova Ordem

@@ -26,6 +26,7 @@ import {
   Mail,
   Phone,
   Building2,
+  Calculator,
 } from "lucide-react";
 
 // UI Components
@@ -284,6 +285,7 @@ const PartBudgetDetail = () => {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
+        icon={Calculator}
         title={<>Orçamento de Peças #{quoteId.substring(0, 8)}...</>}
         description="Visualize e gerencie os detalhes do orçamento de peças"
         back="/app/parts-budgets"

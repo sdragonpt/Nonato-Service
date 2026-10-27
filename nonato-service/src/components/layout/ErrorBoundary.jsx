@@ -68,7 +68,7 @@ class ErrorBoundary extends React.Component {
                 <AlertTriangle className="h-5 w-5 mt-0.5 text-red-400" />
                 <div className="flex-1">
                   <h3 className="font-medium text-red-400">
-                    ❌ Algo deu errado
+                    Algo deu errado
                   </h3>
 
                   <div className="mt-2 text-sm text-red-300">

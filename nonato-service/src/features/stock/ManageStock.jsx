@@ -684,7 +684,7 @@ const ManageStock = () => {
   };
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
+    <div className="space-y-6">
       <PageHeader
         title="Stock Interno de Peças"
         description="Peças que a Nonato Service tem em armazém."
@@ -696,7 +696,6 @@ const ManageStock = () => {
               setEditItem(null);
               setFormOpen(true);
             }}
-           
           >
             <Plus className="h-4 w-4" />
             Novo artigo

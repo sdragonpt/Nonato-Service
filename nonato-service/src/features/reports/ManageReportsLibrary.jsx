@@ -239,6 +239,7 @@ const ManageReportsLibrary = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <PageHeader
+        icon={FolderOpen}
         title="Biblioteca de Relatórios"
         description={selectedClientId === ISOLATED_KEY
               ? "Serviços Isolados — relatórios sem cliente associado"

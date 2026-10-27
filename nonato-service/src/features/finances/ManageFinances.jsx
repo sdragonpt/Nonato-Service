@@ -272,6 +272,7 @@ const ManageFinances = () => {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
+        icon={Euro}
         title="Gestão Financeira"
         description="Análise completa do desempenho financeiro com separação de vendas e lucros"
         actions={
@@ -322,7 +323,6 @@ const ManageFinances = () => {
               variant="outline"
               onClick={exportFinancialData}
               disabled={!metrics}
-             
             >
               <Download className="w-4 h-4" />
               Exportar
@@ -534,7 +534,7 @@ const ManageFinances = () => {
                 {partsBudgetsMetrics.totalProfit > 0 && (
                   <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg">
                     <p className="text-sm text-purple-400">
-                      ✨ Os orçamentos de peças geraram{" "}
+                      Os orçamentos de peças geraram{" "}
                       {formatPrice(partsBudgetsMetrics.totalProfit)} em lucro
                       líquido
                     </p>
@@ -581,7 +581,7 @@ const ManageFinances = () => {
 
                 <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                   <p className="text-sm text-blue-400">
-                    💼 Fechamentos representam serviços completos (valor cobrado
+                    Fechamentos representam serviços completos (valor cobrado
                     com IVA incluído)
                   </p>
                 </div>

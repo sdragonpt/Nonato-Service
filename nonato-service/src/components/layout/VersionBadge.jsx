@@ -266,7 +266,6 @@ const VersionBadge = ({ user }) => {
           <DialogFooter>
             <Button
               onClick={() => handleOpenChange(false)}
-             
             >
               {showingNews ? "Entendido" : "Fechar"}
             </Button>

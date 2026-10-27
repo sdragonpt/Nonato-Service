@@ -13,6 +13,7 @@ import {
   Lock,
   Eye,
   EyeOff,
+  Settings,
 } from "lucide-react";
 
 // UI Components
@@ -98,6 +99,7 @@ const UserSettings = () => {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
+        icon={Settings}
         title="Configurações"
         description="Gerencie suas configurações de segurança"
         back
@@ -250,13 +252,11 @@ const UserSettings = () => {
             <Button
               variant="outline"
               onClick={() => setReAuthDialogOpen(false)}
-             
             >
               Cancelar
             </Button>
             <Button
               onClick={handlePasswordChange}
-             
               disabled={isSubmitting}
             >
               Confirmar

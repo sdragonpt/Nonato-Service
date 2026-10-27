@@ -70,6 +70,7 @@ const PartDetail = () => {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
+        icon={Package}
         title="Detalhes da Peça"
         description="Catálogo HOMAG"
         back="/app/parts-library"
@@ -157,7 +158,6 @@ const PartDetail = () => {
           <div className="flex flex-wrap gap-2">
             <Button
               onClick={() => setEditDialogOpen(true)}
-             
             >
               <Pencil className="w-4 h-4" />
               Editar Peça

@@ -103,7 +103,6 @@ const OrderDiariasCard = ({ orderId, order, workdays, onChange }) => {
               onChange={(e) => setValor(e.target.value)}
               placeholder="Ex: 150"
               disabled={!cobrar}
-             
             />
           </div>
           <div className="space-y-1">
@@ -118,7 +117,6 @@ const OrderDiariasCard = ({ orderId, order, workdays, onChange }) => {
                 value={quantidade === "" ? String(stay.diarias || "") : quantidade}
                 onChange={(e) => setQuantidade(e.target.value)}
                 disabled={!cobrar}
-               
               />
               {quantidade !== "" && (
                 <Button

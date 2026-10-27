@@ -399,7 +399,6 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
                 value={endDate}
                 min={date}
                 onChange={(e) => setEndDate(e.target.value)}
-               
               />
               <label className="flex items-center gap-2 text-sm text-foreground/90 cursor-pointer">
                 <input
@@ -463,7 +462,6 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
                     <SelectItem
                       key={user.id}
                       value={user.id}
-                     
                     >
                       {user.displayName || user.email}
                     </SelectItem>
@@ -549,7 +547,6 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
                         <SelectItem
                           key={equipment.id}
                           value={equipment.id}
-                         
                         >
                           {equipment.brand} - {equipment.model}
                         </SelectItem>
@@ -626,7 +623,6 @@ const QuickAddAppointmentDialog = ({ open, onOpenChange, date, onCreated }) => {
               <Button
                 type="submit"
                 disabled={isSaving}
-               
               >
                 {isSaving ? (
                   <>

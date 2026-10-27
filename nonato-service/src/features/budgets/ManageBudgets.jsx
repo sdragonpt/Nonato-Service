@@ -578,6 +578,7 @@ const ManageBudgets = () => {
     <div className="space-y-6 pb-28">
       {/* Header */}
       <PageHeader
+        icon={FileText}
         title="Gerenciar Orçamentos"
         description="Fechamentos, orçamentos e despesas, tudo num só lugar"
         actions={
@@ -586,14 +587,12 @@ const ManageBudgets = () => {
             <Button
               onClick={() => navigate("/app/add-simple-budget")}
               variant="outline"
-             
             >
               <Plus className="w-4 h-4" />
               Orçamento / Despesa
             </Button>
             <Button
               onClick={() => navigate("/app/add-budget")}
-             
             >
               <Plus className="w-4 h-4" />
               Fechar Ordem
@@ -685,7 +684,6 @@ const ManageBudgets = () => {
           {error && (
             <Alert
               variant="destructive"
-             
             >
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>

@@ -201,7 +201,6 @@ const SupplierDetail = () => {
               variant="outline"
               size="icon"
               onClick={() => navigate("/app/manage-suppliers")}
-             
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -209,7 +208,6 @@ const SupplierDetail = () => {
               variant="outline"
               size="icon"
               onClick={() => navigate(`/app/edit-supplier/${supplierId}`)}
-             
             >
               <Edit2 className="h-4 w-4" />
             </Button>
@@ -263,7 +261,6 @@ const SupplierDetail = () => {
           <Button
             size="sm"
             onClick={() => setShowAddFatura((v) => !v)}
-           
           >
             <Plus className="h-4 w-4" />
             Nova Fatura
@@ -279,13 +276,11 @@ const SupplierDetail = () => {
                 placeholder="Nº Fatura"
                 value={faturaForm.numeroFatura}
                 onChange={(e) => setFaturaForm((p) => ({ ...p, numeroFatura: e.target.value }))}
-               
               />
               <Input
                 placeholder="Mês (AAAA-MM)"
                 value={faturaForm.mes}
                 onChange={(e) => setFaturaForm((p) => ({ ...p, mes: e.target.value }))}
-               
               />
               <Input
                 type="number"
@@ -293,7 +288,6 @@ const SupplierDetail = () => {
                 placeholder="Valor (€)"
                 value={faturaForm.valor}
                 onChange={(e) => setFaturaForm((p) => ({ ...p, valor: e.target.value }))}
-               
               />
               <Select
                 value={faturaForm.status}

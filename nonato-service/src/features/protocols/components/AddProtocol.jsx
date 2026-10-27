@@ -157,7 +157,6 @@ const AddProtocol = () => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Ex: Manutenção preventiva - Fresadora CNC"
-               
               />
             </div>
 
@@ -202,7 +201,6 @@ const AddProtocol = () => {
                         <SelectItem
                           key={eq.id}
                           value={eq.id}
-                         
                         >
                           {eq.brand} {eq.model}
                           {eq.serialNumber ? ` — ${eq.serialNumber}` : ""}

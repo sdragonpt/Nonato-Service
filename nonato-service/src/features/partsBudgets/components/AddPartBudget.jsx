@@ -377,7 +377,7 @@ const AddPartBudget = () => {
             {/* ✅ AVISO */}
             <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
               <p className="text-sm text-blue-400">
-                ℹ️ <strong>Informação:</strong> Este orçamento será enviado para
+                <strong>Informação:</strong> Este orçamento será enviado para
                 a empresa solicitar os valores das peças. O cliente será
                 adicionado posteriormente durante a edição.
               </p>

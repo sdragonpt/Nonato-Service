@@ -10,6 +10,7 @@ import {
   Trash2,
   ClipboardList,
   AlertTriangle,
+  ClipboardCheck,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card.jsx";
@@ -94,13 +95,13 @@ const ManageOrdensPreparacao = () => {
   return (
     <div className="space-y-6 pb-24">
       <PageHeader
+        icon={ClipboardCheck}
         title="Ordens de Preparação"
         description="Formulários técnicos de preparação pré-instalação (Código SME_UP)"
         actions={
           <>
             <Button
             onClick={() => navigate("/app/add-ordem-preparacao")}
-           
           >
             <Plus className="w-4 h-4" />
             Nova Ordem

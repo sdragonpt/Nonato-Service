@@ -175,15 +175,16 @@ const ProtocolDetail = () => {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3 min-w-0">
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
             onClick={() => navigate("/app/protocols")}
-            className="shrink-0"
+            className="shrink-0 rounded-full"
+            aria-label="Voltar"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
+            <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">
               {protocol.title || "Protocolo sem título"}
             </h1>
             <p className="text-xs text-muted-foreground font-mono">
@@ -204,7 +205,6 @@ const ProtocolDetail = () => {
           <Button
             variant="outline"
             onClick={() => navigate(`/app/edit-protocol/${protocolId}`)}
-           
           >
             <Edit2 className="w-4 h-4" />
             Editar
@@ -262,7 +262,6 @@ const ProtocolDetail = () => {
             <Button
               onClick={handleDownloadPdf}
               disabled={generatingPdf}
-             
             >
               {generatingPdf ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -275,7 +274,6 @@ const ProtocolDetail = () => {
               variant="outline"
               onClick={handleSendEmail}
               disabled={generatingPdf}
-             
             >
               <Mail className="w-4 h-4" />
               Enviar por Email
@@ -284,7 +282,6 @@ const ProtocolDetail = () => {
               variant="outline"
               onClick={handleSendWhatsApp}
               disabled={generatingPdf}
-             
             >
               <MessageCircle className="w-4 h-4" />
               Enviar por WhatsApp

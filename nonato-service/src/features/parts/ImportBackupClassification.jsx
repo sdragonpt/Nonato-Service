@@ -378,7 +378,7 @@ const ImportBackupClassification = () => {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <PageHeader
         title="Importar categorias do backup"
         description="Traz as categorias, subcategorias e a classificação das peças de um backup da app antiga."
@@ -531,7 +531,6 @@ const ImportBackupClassification = () => {
             <Button
               onClick={runImport}
               disabled={importing}
-             
             >
               {importing ? (
                 <>

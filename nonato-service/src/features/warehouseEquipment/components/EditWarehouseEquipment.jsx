@@ -347,7 +347,6 @@ const EditWarehouseEquipment = () => {
                   value={formData.marca}
                   onChange={handleChange}
                   placeholder="Ex: Bosch"
-                 
                 />
               </div>
               <div className="space-y-2">
@@ -358,7 +357,6 @@ const EditWarehouseEquipment = () => {
                   value={formData.modelo}
                   onChange={handleChange}
                   placeholder="Ex: GSB 21-2"
-                 
                 />
               </div>
             </div>

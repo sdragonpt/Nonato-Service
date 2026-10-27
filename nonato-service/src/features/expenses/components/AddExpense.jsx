@@ -179,7 +179,6 @@ const AddExpense = () => {
                 onChange={handleChange}
                 placeholder="Ex: Combustível para deslocação ao cliente X"
                 rows={2}
-               
               />
             </div>
 
@@ -194,7 +193,6 @@ const AddExpense = () => {
                   value={formData.amount}
                   onChange={handleChange}
                   placeholder="0.00"
-                 
                 />
               </div>
               <div className="space-y-2">
@@ -204,7 +202,6 @@ const AddExpense = () => {
                   name="date"
                   value={formData.date}
                   onChange={handleChange}
-                 
                 />
               </div>
             </div>

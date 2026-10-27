@@ -282,7 +282,7 @@ const PartsExportTool = () => {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       {/* Header */}
       <PageHeader
         title="Exportação CSV de Peças"
@@ -371,7 +371,6 @@ const PartsExportTool = () => {
         <Button
           onClick={exportPartsToCSV}
           disabled={isExporting || isAnalyzing}
-         
         >
           {isExporting ? (
             <>
@@ -426,7 +425,7 @@ const PartsExportTool = () => {
             {/* Estatísticas de Preços */}
             <div className="bg-card/30 p-4 rounded-lg">
               <h4 className="text-foreground font-semibold mb-3 flex items-center gap-2">
-                <span>📊</span> Análise de Preços
+                Análise de Preços
               </h4>
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
@@ -453,7 +452,7 @@ const PartsExportTool = () => {
             {/* Debug das Imagens */}
             <div className="bg-blue-900/20 p-4 rounded-lg border border-blue-500/30">
               <h4 className="text-blue-300 font-semibold mb-3 flex items-center gap-2">
-                <span>🔍</span> Debug de Imagens
+                Debug de Imagens
               </h4>
               <div className="space-y-3 text-sm">
                 <div className="grid grid-cols-2 gap-4">

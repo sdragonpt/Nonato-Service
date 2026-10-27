@@ -369,7 +369,6 @@ const AddChecklistType = () => {
                 onChange={handleChange}
                 onBlur={() => handleBlur("type")}
                 placeholder="Ex: Checklist de Manutenção de Impressoras"
-               
               />
             </div>
           </CardContent>
@@ -414,7 +413,6 @@ const AddChecklistType = () => {
                     <SelectItem
                       key={family.id}
                       value={family.id}
-                     
                     >
                       {family.name}
                     </SelectItem>
@@ -446,7 +444,6 @@ const AddChecklistType = () => {
                       <SelectItem
                         key={group.id}
                         value={group.id}
-                       
                       >
                         {group.name}
                       </SelectItem>
@@ -491,7 +488,6 @@ const AddChecklistType = () => {
                     }
                     onBlur={() => handleGroupBlur(groupIndex)}
                     placeholder="Ex: Verificação Inicial"
-                   
                   />
                 </div>
 
@@ -528,7 +524,6 @@ const AddChecklistType = () => {
                           handleCharacteristicBlur(groupIndex, charIndex)
                         }
                         placeholder={`Característica ${charIndex + 1}`}
-                       
                       />
                       {group.characteristics.length > 1 && (
                         <Button

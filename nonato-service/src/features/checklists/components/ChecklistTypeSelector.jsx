@@ -38,7 +38,6 @@ const ChecklistTypeSelector = ({ value, onValueChange, disabled = false }) => {
                   <SelectItem
                     key={category.value}
                     value={category.value}
-                   
                   >
                     {category.label}
                   </SelectItem>

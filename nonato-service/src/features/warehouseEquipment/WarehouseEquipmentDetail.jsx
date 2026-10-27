@@ -471,7 +471,6 @@ const WarehouseEquipmentDetail = () => {
         <Button
           variant="outline"
           onClick={() => navigate("/app/warehouse-equipment")}
-         
         >
           <ArrowLeft className="w-4 h-4" />
           Voltar
@@ -649,7 +648,6 @@ const WarehouseEquipmentDetail = () => {
                   value={histDescricao}
                   onChange={(e) => setHistDescricao(e.target.value)}
                   placeholder="Descreva o evento..."
-                 
                 />
               </div>
               <div className="space-y-2">
@@ -658,7 +656,6 @@ const WarehouseEquipmentDetail = () => {
                   value={histResponsavel}
                   onChange={(e) => setHistResponsavel(e.target.value)}
                   placeholder="Nome do responsável"
-                 
                 />
               </div>
               <div className="space-y-2">
@@ -667,7 +664,6 @@ const WarehouseEquipmentDetail = () => {
                   value={histObservacoes}
                   onChange={(e) => setHistObservacoes(e.target.value)}
                   placeholder="Observações adicionais..."
-                 
                 />
               </div>
               <Button
@@ -969,7 +965,6 @@ const WarehouseEquipmentDetail = () => {
                 value={itemNome}
                 onChange={(e) => setItemNome(e.target.value)}
                 placeholder="Por favor, digite o nome do item."
-               
               />
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground">Anexar Imagem (opcional)</label>
@@ -1013,7 +1008,6 @@ const WarehouseEquipmentDetail = () => {
               <Button
                 onClick={handlePrintLabels}
                 disabled={!equipmentCode}
-               
               >
                 <Printer className="w-4 h-4" />
                 Imprimir etiquetas

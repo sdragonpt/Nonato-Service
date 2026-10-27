@@ -355,7 +355,6 @@ const EditWorkday = () => {
                   value={formData.kmDeparture}
                   onChange={handleChange}
                   placeholder="0"
-                 
                 />
               </div>
               <div className="space-y-2">
@@ -368,7 +367,6 @@ const EditWorkday = () => {
                   value={formData.kmReturn}
                   onChange={handleChange}
                   placeholder="0"
-                 
                 />
               </div>
             </div>
@@ -407,7 +405,6 @@ const EditWorkday = () => {
                   onChange={handleChange}
                   placeholder="00:00"
                   pattern="^(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$"
-                 
                 />
               </div>
             </CardContent>

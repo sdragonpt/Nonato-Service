@@ -39,6 +39,7 @@ import {
   CheckCircle2,
   Clock8,
   ArrowDown,
+  Shield,
 } from "lucide-react";
 import QRCode from "react-qr-code";
 
@@ -461,13 +462,13 @@ const ManageShopAccess = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <PageHeader
+        icon={Shield}
         title="Acesso à Loja"
         description="Gerencie tokens de acesso para a loja online"
         actions={
           <>
             <Button
             onClick={() => setShowAddDialog(true)}
-           
           >
             <Plus className="w-4 h-4" />
             Novo Token
@@ -561,7 +562,6 @@ const ManageShopAccess = () => {
           {error && (
             <Alert
               variant="destructive"
-             
             >
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
@@ -1029,14 +1029,12 @@ const ManageShopAccess = () => {
             <Button
               variant="outline"
               onClick={() => setShowAddDialog(false)}
-             
             >
               Cancelar
             </Button>
             <Button
               onClick={handleAddToken}
               disabled={isSubmitting || !formData.name}
-             
             >
               {isSubmitting ? (
                 <>
@@ -1103,7 +1101,6 @@ const ManageShopAccess = () => {
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <Button
-                 
                   onClick={() => {
                     window.open(
                       `https://wa.me/?text=${encodeURIComponent(
@@ -1177,7 +1174,6 @@ const ManageShopAccess = () => {
             <Button
               variant="outline"
               onClick={() => setShowShareDialog(false)}
-             
             >
               Fechar
             </Button>
@@ -1260,7 +1256,6 @@ const ManageShopAccess = () => {
                 setShowApproveDialog(false);
                 setTokenToApprove(null);
               }}
-             
             >
               Cancelar
             </Button>
@@ -1354,7 +1349,6 @@ const ManageShopAccess = () => {
                 setTokenToReject(null);
                 setRejectionReason("");
               }}
-             
             >
               Cancelar
             </Button>
@@ -1397,7 +1391,6 @@ const ManageShopAccess = () => {
                 setShowDeleteDialog(false);
                 setTokenToDelete(null);
               }}
-             
             >
               Cancelar
             </Button>

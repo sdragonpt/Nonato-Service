@@ -199,6 +199,7 @@ const ManageDisassembledParts = () => {
   return (
     <div className="space-y-6 pb-24">
       <PageHeader
+        icon={PackageOpen}
         title="Peças Desmontadas"
         description="Peças retiradas de equipamentos, ainda reaproveitáveis, com localização em prateleira"
         actions={
