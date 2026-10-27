@@ -11,13 +11,14 @@ const TONES = {
   danger: "bg-destructive/15 text-red-400",
   info: "bg-info/15 text-info",
   muted: "bg-muted text-muted-foreground",
+  violet: "bg-violet-500/15 text-violet-400",
 };
 
 /**
  * @param {string} label
  * @param {React.ReactNode} value
  * @param {React.ComponentType} [icon]
- * @param {"default"|"success"|"warning"|"danger"|"info"|"muted"} [tone]
+ * @param {"default"|"success"|"warning"|"danger"|"info"|"muted"|"violet"} [tone]
  * @param {React.ReactNode} [hint]     linha pequena por baixo do valor
  * @param {boolean} [loading]
  * @param {boolean} [active]           realce quando o cartão funciona como filtro

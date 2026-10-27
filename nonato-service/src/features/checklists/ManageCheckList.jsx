@@ -54,7 +54,7 @@ import {
 
 import { CHECKLIST_CATEGORIES_MAP } from "./components/ChecklistCategories";
 import ChecklistFilter from "./components/ChecklistFilter";
-import { PageHeader } from "../../components/app";
+import { PageHeader, StatCard } from "../../components/app";
 
 const CATEGORY_ICONS = {
   maintenance: {
@@ -371,47 +371,25 @@ const ManageChecklist = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Total de Checklists
-              </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {stats.totalTypes}
-              </h3>
-            </div>
-            <ClipboardList className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Total de Checklists"
+          value={stats.totalTypes}
+          icon={ClipboardList}
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Total de Grupos
-              </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {stats.totalGroups}
-              </h3>
-            </div>
-            <FolderIcon className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Total de Grupos"
+          value={stats.totalGroups}
+          icon={FolderIcon}
+          tone="info"
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Total de Itens
-              </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {stats.totalItems}
-              </h3>
-            </div>
-            <ListChecksIcon className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Total de Itens"
+          value={stats.totalItems}
+          icon={ListChecksIcon}
+          tone="violet"
+        />
       </div>
 
       {/* Filters Card */}

@@ -54,7 +54,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, StatCard } from "../../components/app";
 
 const ManageServices = () => {
   const [services, setServices] = useState([]);
@@ -232,43 +232,25 @@ const ManageServices = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Total de Serviços
-              </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {services.length}
-              </h3>
-            </div>
-            <ClipboardList className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Total de Serviços"
+          value={services.length}
+          icon={ClipboardList}
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Por Hora</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {services.filter((service) => service.type === "hour").length}
-              </h3>
-            </div>
-            <Wrench className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Por Hora"
+          value={services.filter((service) => service.type === "hour").length}
+          icon={Wrench}
+          tone="info"
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Valor Base</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {services.filter((service) => service.type === "base").length}
-              </h3>
-            </div>
-            <Euro className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Valor Base"
+          value={services.filter((service) => service.type === "base").length}
+          icon={Euro}
+          tone="violet"
+        />
       </div>
 
       {/* Filters Card */}

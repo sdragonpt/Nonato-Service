@@ -42,7 +42,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, StatCard } from "../../components/app";
 
 // ✅ CATEGORY ITEM COMPONENT - Memoizado para evitar re-renders
 const CategoryItem = React.memo(
@@ -228,18 +228,11 @@ const CategoryItem = React.memo(
 CategoryItem.displayName = "CategoryItem";
 
 // ✅ STATS CARD COMPONENT - Memoizado
-const StatsCard = React.memo(({ title, value, icon: Icon, color }) => (
-  <Card>
-    <CardContent className="flex items-center justify-between p-4 sm:p-6">
-      <div>
-        <p className="text-sm font-medium text-muted-foreground">{title}</p>
-        <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-          {value}
-        </h3>
-      </div>
-      <Icon className={`h-6 w-6 sm:h-8 sm:w-8 ${color}`} />
-    </CardContent>
-  </Card>
+// Cartão de número — usa o StatCard partilhado (cor antiga → tom).
+const toneFromColor = (color = "") =>
+  /blue/.test(color) ? "info" : /purple|violet/.test(color) ? "violet" : /red/.test(color) ? "danger" : /yellow|amber|orange/.test(color) ? "warning" : "default";
+const StatsCard = React.memo(({ title, value, icon, color, loading }) => (
+  <StatCard label={title} value={value} icon={icon} tone={toneFromColor(color)} loading={loading} />
 ));
 
 StatsCard.displayName = "StatsCard";

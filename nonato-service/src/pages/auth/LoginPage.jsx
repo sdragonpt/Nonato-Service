@@ -147,9 +147,9 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-card to-background p-4 relative overflow-hidden select-none touch-manipulation">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden select-none touch-manipulation">
       {/* Efeitos de fundo animados */}
-      <div className="absolute inset-0 bg-muted/50 bg-[radial-gradient(#262626_1px,transparent_1px)] [background-size:16px_16px] opacity-25" />
+      <div className="absolute inset-0 bg-[radial-gradient(#ffffff14_1px,transparent_1px)] [background-size:16px_16px] opacity-25" />
 
       {/* Partículas flutuantes */}
       <div className="absolute inset-0 overflow-hidden">
@@ -254,7 +254,7 @@ const LoginPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
-          <Card className="bg-card/90 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+          <Card className="glass-strong relative overflow-hidden shadow-2xl">
             <CardHeader className="relative z-10">
               <CardTitle className="text-xl sm:text-2xl text-center flex items-center justify-center gap-2">
                 <LogIn className="w-5 sm:w-6 h-5 sm:h-6 text-green-500" />

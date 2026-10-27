@@ -74,7 +74,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, StatCard } from "../../components/app";
 
 const PAGE_SIZE = 10;
 const MAX_AUTO_LOADS = 15; // salvaguarda: nº máx. de lotes extra a carregar automaticamente ao pesquisar
@@ -409,53 +409,32 @@ const ManageOnlineQuotes = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Pendentes</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-yellow-500 mt-1 sm:mt-2">
-                {statusCounts.pending === null ? "…" : statusCounts.pending}
-              </h3>
-            </div>
-            <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Pendentes"
+          value={statusCounts.pending === null ? "…" : statusCounts.pending}
+          icon={Clock}
+          tone="warning"
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Aprovados</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-green-500 mt-1 sm:mt-2">
-                {statusCounts.approved === null ? "…" : statusCounts.approved}
-              </h3>
-            </div>
-            <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Aprovados"
+          value={statusCounts.approved === null ? "…" : statusCounts.approved}
+          icon={CheckCircle}
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Convertidos</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-blue-500 mt-1 sm:mt-2">
-                {statusCounts.converted === null ? "…" : statusCounts.converted}
-              </h3>
-            </div>
-            <ShoppingCart className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Convertidos"
+          value={statusCounts.converted === null ? "…" : statusCounts.converted}
+          icon={ShoppingCart}
+          tone="info"
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {statusCounts.total === null ? "…" : statusCounts.total}
-              </h3>
-            </div>
-            <Tag className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Total"
+          value={statusCounts.total === null ? "…" : statusCounts.total}
+          icon={Tag}
+          tone="muted"
+        />
       </div>
 
       {/* Filters */}

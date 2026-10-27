@@ -45,7 +45,7 @@ import {
   formatPrice,
   formatPercentage,
 } from "../../utils/financialUtils";
-import { PageHeader } from "../../components/app";
+import { PageHeader, StatCard } from "../../components/app";
 
 const ManageFinances = () => {
   const navigate = useNavigate();
@@ -380,20 +380,12 @@ const ManageFinances = () => {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="flex items-center justify-between p-4 sm:p-6">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Vendas (Base)
-                  </p>
-                  <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                    {formatPrice(metrics.totalSales)}
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-1">Sem margens</p>
-                </div>
-                <BarChart3 className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
-              </CardContent>
-            </Card>
+            <StatCard
+              label="Vendas (Base)"
+              value={formatPrice(metrics.totalSales)}
+              icon={BarChart3}
+              hint="Sem margens"
+            />
 
             <Card>
               <CardContent className="flex items-center justify-between p-4 sm:p-6">
@@ -427,70 +419,37 @@ const ManageFinances = () => {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="flex items-center justify-between p-4 sm:p-6">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Margem Média
-                  </p>
-                  <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                    {formatPercentage(metrics.profitMargin)}
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Ticket: {formatPrice(metrics.averageTicket)}
-                  </p>
-                </div>
-                <Calculator className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500" />
-              </CardContent>
-            </Card>
+            <StatCard
+              label="Margem Média"
+              value={formatPercentage(metrics.profitMargin)}
+              icon={Calculator}
+              tone="warning"
+              hint={<>Ticket: {formatPrice(metrics.averageTicket)}</>}
+            />
           </div>
 
           {/* Payment Status Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardContent className="flex items-center justify-between p-4 sm:p-6">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Valores Recebidos
-                  </p>
-                  <h3 className="text-xl sm:text-2xl font-bold text-green-500 mt-1 sm:mt-2">
-                    {formatPrice(metrics.paidAmount)}
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatPercentage(metrics.conversionRate)} conversão
-                  </p>
-                </div>
-                <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
-              </CardContent>
-            </Card>
+            <StatCard
+              label="Valores Recebidos"
+              value={formatPrice(metrics.paidAmount)}
+              icon={TrendingUp}
+              hint={<>{formatPercentage(metrics.conversionRate)} conversão</>}
+            />
 
-            <Card>
-              <CardContent className="flex items-center justify-between p-4 sm:p-6">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Valores Pendentes
-                  </p>
-                  <h3 className="text-xl sm:text-2xl font-bold text-yellow-500 mt-1 sm:mt-2">
-                    {formatPrice(metrics.pendingAmount)}
-                  </h3>
-                </div>
-                <Calendar className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500" />
-              </CardContent>
-            </Card>
+            <StatCard
+              label="Valores Pendentes"
+              value={formatPrice(metrics.pendingAmount)}
+              icon={Calendar}
+              tone="warning"
+            />
 
-            <Card>
-              <CardContent className="flex items-center justify-between p-4 sm:p-6">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Valores em Atraso
-                  </p>
-                  <h3 className="text-xl sm:text-2xl font-bold text-red-500 mt-1 sm:mt-2">
-                    {formatPrice(metrics.overdueAmount)}
-                  </h3>
-                </div>
-                <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-red-500" />
-              </CardContent>
-            </Card>
+            <StatCard
+              label="Valores em Atraso"
+              value={formatPrice(metrics.overdueAmount)}
+              icon={AlertTriangle}
+              tone="danger"
+            />
           </div>
 
           {/* Service Type Analysis */}

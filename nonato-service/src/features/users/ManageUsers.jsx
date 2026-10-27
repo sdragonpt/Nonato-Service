@@ -42,7 +42,7 @@ import {
 import AddUser from "./components/AddUser.jsx";
 import EditUser from "./components/EditUser.jsx";
 import { getRoleLabel, getRoleBadgeStyle, isStaffRole } from "../../config/roles.js";
-import { PageHeader } from "../../components/app";
+import { PageHeader, StatCard } from "../../components/app";
 
 const ManageUsers = () => {
   // ✅ Tempo real (onSnapshot) via UsersContext partilhado — a lista
@@ -185,43 +185,25 @@ const ManageUsers = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {stats.total}
-              </h3>
-            </div>
-            <Users className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Total"
+          value={stats.total}
+          icon={Users}
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Equipa Interna
-              </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {stats.staff}
-              </h3>
-            </div>
-            <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Equipa Interna"
+          value={stats.staff}
+          icon={Shield}
+          tone="violet"
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Clientes</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {stats.client}
-              </h3>
-            </div>
-            <Users className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Clientes"
+          value={stats.client}
+          icon={Users}
+          tone="info"
+        />
       </div>
 
       {/* Error Alert */}

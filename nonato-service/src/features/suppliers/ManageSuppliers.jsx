@@ -42,7 +42,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, StatCard } from "../../components/app";
 
 const SupplierCard = ({ supplier, onEdit, onDelete, onView }) => {
   const confirmDelete = (e) => {
@@ -263,41 +263,26 @@ const ManageSuppliers = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total de Fornecedores</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {suppliers.length}
-              </h3>
-            </div>
-            <Truck className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Total de Fornecedores"
+          value={suppliers.length}
+          icon={Truck}
+          tone="info"
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Com IBAN registado</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {suppliers.filter((s) => s.iban).length}
-              </h3>
-            </div>
-            <Building2 className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Com IBAN registado"
+          value={suppliers.filter((s) => s.iban).length}
+          icon={Building2}
+        />
 
-        <Card className="col-span-2 md:col-span-1">
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Resultados da Pesquisa</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {filteredSuppliers.length}
-              </h3>
-            </div>
-            <Search className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Resultados da Pesquisa"
+          value={filteredSuppliers.length}
+          icon={Search}
+          tone="muted"
+          className="col-span-2 md:col-span-1"
+        />
       </div>
 
       {/* Filters */}

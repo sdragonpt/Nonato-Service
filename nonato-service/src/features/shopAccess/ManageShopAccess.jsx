@@ -67,7 +67,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, StatCard } from "../../components/app";
 
 const generateToken = () => {
   // Gerar token de 8 caracteres alfanuméricos
@@ -479,69 +479,38 @@ const ManageShopAccess = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Total de Tokens
-              </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {accessTokens.length}
-              </h3>
-            </div>
-            <Store className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Total de Tokens"
+          value={accessTokens.length}
+          icon={Store}
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Pendentes</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-amber-500 mt-1 sm:mt-2">
-                {getPendingCount()}
-              </h3>
-            </div>
-            <Clock8 className="h-6 w-6 sm:h-8 sm:w-8 text-amber-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Pendentes"
+          value={getPendingCount()}
+          icon={Clock8}
+          tone="warning"
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Aprovados</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-emerald-500 mt-1 sm:mt-2">
-                {getApprovedCount()}
-              </h3>
-            </div>
-            <CheckCircle2 className="h-6 w-6 sm:h-8 sm:w-8 text-emerald-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Aprovados"
+          value={getApprovedCount()}
+          icon={CheckCircle2}
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Rejeitados</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-red-500 mt-1 sm:mt-2">
-                {getRejectedCount()}
-              </h3>
-            </div>
-            <XCircle className="h-6 w-6 sm:h-8 sm:w-8 text-red-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Rejeitados"
+          value={getRejectedCount()}
+          icon={XCircle}
+          tone="danger"
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Não Preenchidos
-              </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-muted-foreground mt-1 sm:mt-2">
-                {getUncompletedCount()}
-              </h3>
-            </div>
-            <User className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Não Preenchidos"
+          value={getUncompletedCount()}
+          icon={User}
+          tone="muted"
+        />
       </div>
 
       {/* Search and Tabs */}

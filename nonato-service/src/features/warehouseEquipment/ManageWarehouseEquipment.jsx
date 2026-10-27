@@ -43,7 +43,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, StatCard } from "../../components/app";
 
 export const ESTADO_META = {
   operacional: { label: "Operacional", className: "bg-green-500/20 text-green-400 border-green-500/30" },
@@ -304,53 +304,32 @@ const ManageWarehouseEquipment = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {items.length}
-              </h3>
-            </div>
-            <Wrench className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Total"
+          value={items.length}
+          icon={Wrench}
+          tone="warning"
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Operacionais</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {items.filter((i) => i.estado === "operacional").length}
-              </h3>
-            </div>
-            <Wrench className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Operacionais"
+          value={items.filter((i) => i.estado === "operacional").length}
+          icon={Wrench}
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Em Manutenção/Avariados</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {items.filter((i) => i.estado === "manutencao" || i.estado === "avariado").length}
-              </h3>
-            </div>
-            <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Em Manutenção/Avariados"
+          value={items.filter((i) => i.estado === "manutencao" || i.estado === "avariado").length}
+          icon={AlertTriangle}
+          tone="warning"
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Resultados</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {filteredItems.length}
-              </h3>
-            </div>
-            <Search className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Resultados"
+          value={filteredItems.length}
+          icon={Search}
+          tone="muted"
+        />
       </div>
 
       {/* Filters */}

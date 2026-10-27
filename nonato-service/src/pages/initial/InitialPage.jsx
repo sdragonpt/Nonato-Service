@@ -32,7 +32,7 @@ const FeatureCard = ({ icon: Icon, title, description, delay = 0 }) => (
     }}
     className="group"
   >
-    <Card className="bg-card/50 backdrop-blur-xl hover:border-green-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/10 relative overflow-hidden">
+    <Card className="glass hover:border-primary/50 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10 relative overflow-hidden">
       {/* Efeito de hover animado */}
       <div className="absolute inset-0 bg-gradient-to-br from-green-500/0 to-emerald-500/0 group-hover:from-green-500/5 group-hover:to-emerald-500/5 transition-all duration-300" />
 
@@ -119,9 +119,9 @@ const InitialPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-card to-background overflow-hidden relative select-none touch-manipulation">
+    <div className="min-h-screen overflow-hidden relative select-none touch-manipulation">
       {/* Background Pattern */}
-      <div className="absolute inset-0 bg-muted/50 bg-[radial-gradient(#262626_1px,transparent_1px)] [background-size:16px_16px] opacity-25" />
+      <div className="absolute inset-0 bg-[radial-gradient(#ffffff14_1px,transparent_1px)] [background-size:16px_16px] opacity-25" />
 
       {/* Efeito de gradiente animado */}
       <motion.div
@@ -175,7 +175,7 @@ const InitialPage = () => {
           onClick={() => navigate("/login")}
           variant="outline"
           size="sm"
-          className="bg-card/80 hover:bg-primary hover:border-green-500 backdrop-blur-sm text-xs sm:text-sm px-3 sm:px-4 py-2"
+          className="glass hover:bg-primary hover:border-primary text-xs sm:text-sm px-3 sm:px-4 py-2"
         >
           <LogIn className="w-3 sm:w-4 h-3 sm:h-4 sm:mr-2" />
           Login

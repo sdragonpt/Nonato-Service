@@ -54,7 +54,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, StatCard } from "../../components/app";
 
 export const ESTADO_META = {
   reutilizavel: { label: "Reutilizável", className: "bg-green-500/20 text-green-400 border-green-500/30" },
@@ -223,39 +223,24 @@ const ManageDisassembledParts = () => {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {totalCount}
-              </h3>
-            </div>
-            <PackageOpen className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Reutilizáveis</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {reutilizavelCount}
-              </h3>
-            </div>
-            <PackageOpen className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
-          </CardContent>
-        </Card>
-        <Card className="col-span-2 md:col-span-2">
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Resultados</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {filteredItems.length}
-              </h3>
-            </div>
-            <Search className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Total"
+          value={totalCount}
+          icon={PackageOpen}
+          tone="violet"
+        />
+        <StatCard
+          label="Reutilizáveis"
+          value={reutilizavelCount}
+          icon={PackageOpen}
+        />
+        <StatCard
+          label="Resultados"
+          value={filteredItems.length}
+          icon={Search}
+          tone="muted"
+          className="col-span-2 md:col-span-2"
+        />
       </div>
 
       <Card>

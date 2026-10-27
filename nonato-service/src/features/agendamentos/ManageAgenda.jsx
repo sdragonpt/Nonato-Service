@@ -93,7 +93,7 @@ import {
   getServiceOutcome,
   invalidatePendingServiceConfirmations,
 } from "./utils/workConfirmation.js";
-import { PageHeader } from "../../components/app";
+import { PageHeader, StatCard } from "../../components/app";
 
 // ✅ NOVO: Lembretes via WhatsApp
 const buildWhatsAppLink = (phone, message) => {
@@ -825,53 +825,31 @@ const ManageAgenda = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total do Mês</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {stats.total}
-              </h3>
-            </div>
-            <ClipboardList className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Total do Mês"
+          value={stats.total}
+          icon={ClipboardList}
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Hoje</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {stats.today}
-              </h3>
-            </div>
-            <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Hoje"
+          value={stats.today}
+          icon={Clock}
+          tone="info"
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Urgentes</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {stats.urgent}
-              </h3>
-            </div>
-            <AlertCircle className="h-6 w-6 sm:h-8 sm:w-8 text-red-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Urgentes"
+          value={stats.urgent}
+          icon={AlertCircle}
+          tone="danger"
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Concluídos</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {stats.completed}
-              </h3>
-            </div>
-            <CheckCircle2 className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Concluídos"
+          value={stats.completed}
+          icon={CheckCircle2}
+        />
 
         {/* ✅ CARD: Pré-Agendamentos - clicável para expandir/recolher a lista */}
         <Card

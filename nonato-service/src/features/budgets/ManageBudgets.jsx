@@ -56,7 +56,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { PageHeader } from "../../components/app";
+import { PageHeader, StatCard } from "../../components/app";
 
 // ✅ Metadados por tipo de documento — substitui a antiga divisão "Sem
 // Cadastro" / "Com Cadastro" (que era um detalhe técnico, não uma
@@ -605,33 +605,14 @@ const ManageBudgets = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {FILTERS.map(({ key, label, icon: StatIcon }) => (
-          <Card
+          <StatCard
+            label={label}
+            value={counts[key] === null ? "…" : counts[key]}
+            icon={StatIcon}
             key={key}
-            className={` cursor-pointer transition-colors ${
-              documentTypeFilter === key ? "ring-1 ring-ring" : "hover:bg-accent"
-            }`}
+            active={documentTypeFilter === key}
             onClick={() => setDocumentTypeFilter(key)}
-          >
-            <CardContent className="flex items-center justify-between p-4 sm:p-5">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">{label}</p>
-                <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1">
-                  {counts[key] === null ? "…" : counts[key]}
-                </h3>
-              </div>
-              <StatIcon
-                className={`h-6 w-6 sm:h-7 sm:w-7 ${
-                  key === "all"
-                    ? "text-green-500"
-                    : key === "closure"
-                    ? "text-purple-400"
-                    : key === "budget"
-                    ? "text-blue-400"
-                    : "text-amber-400"
-                }`}
-              />
-            </CardContent>
-          </Card>
+          />
         ))}
       </div>
 

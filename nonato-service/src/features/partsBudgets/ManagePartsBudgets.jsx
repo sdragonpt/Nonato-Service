@@ -71,7 +71,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, StatCard } from "../../components/app";
 
 const PAGE_SIZE = 10;
 const MAX_AUTO_LOADS = 15; // salvaguarda: nº máx. de lotes extra a carregar automaticamente ao pesquisar/filtrar
@@ -428,55 +428,34 @@ const ManagePartsBudgets = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Em Análise</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-yellow-500 mt-1 sm:mt-2">
-                {statusCounts.Aberto === null ? "…" : statusCounts.Aberto}
-              </h3>
-            </div>
-            <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Em Análise"
+          value={statusCounts.Aberto === null ? "…" : statusCounts.Aberto}
+          icon={Clock}
+          tone="warning"
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Em Andamento</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-blue-500 mt-1 sm:mt-2">
-                {statusCounts["Em Andamento"] === null
+        <StatCard
+          label="Em Andamento"
+          value={statusCounts["Em Andamento"] === null
                   ? "…"
                   : statusCounts["Em Andamento"]}
-              </h3>
-            </div>
-            <Calculator className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
-          </CardContent>
-        </Card>
+          icon={Calculator}
+          tone="info"
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Concluídos</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-green-500 mt-1 sm:mt-2">
-                {statusCounts.Fechado === null ? "…" : statusCounts.Fechado}
-              </h3>
-            </div>
-            <CheckCircle2 className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Concluídos"
+          value={statusCounts.Fechado === null ? "…" : statusCounts.Fechado}
+          icon={CheckCircle2}
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {statusCounts.total === null ? "…" : statusCounts.total}
-              </h3>
-            </div>
-            <Package className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Total"
+          value={statusCounts.total === null ? "…" : statusCounts.total}
+          icon={Package}
+          tone="muted"
+        />
       </div>
 
       {/* Filters */}

@@ -67,7 +67,7 @@ import {
   AvatarImage,
   AvatarFallback,
 } from "@/components/ui/avatar.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, StatCard } from "../../components/app";
 
 const PAGE_SIZE = 10;
 const MAX_AUTO_LOADS = 15; // salvaguarda: nº máx. de lotes extra a carregar automaticamente ao pesquisar/filtrar
@@ -520,23 +520,15 @@ const ManageOrders = () => {
       {/* Stats Cards — clicáveis, funcionam como filtro de estado */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {STATUS_FILTERS.map(({ key, label, icon: StatIcon, iconClass }) => (
-          <Card
+          <StatCard
+            label={label}
+            value={stats[key]}
+            icon={StatIcon}
             key={key}
-            className={` cursor-pointer transition-colors ${
-              statusFilter === key ? "ring-1 ring-ring" : "hover:bg-accent"
-            }`}
+            tone={/blue/.test(iconClass) ? "info" : /yellow|amber|orange/.test(iconClass) ? "warning" : /red/.test(iconClass) ? "danger" : "default"}
+            active={statusFilter === key}
             onClick={() => setStatusFilter(key)}
-          >
-            <CardContent className="flex items-center justify-between p-4 sm:p-6">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">{label}</p>
-                <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                  {stats[key]}
-                </h3>
-              </div>
-              <StatIcon className={`h-6 w-6 sm:h-8 sm:w-8 ${iconClass}`} />
-            </CardContent>
-          </Card>
+          />
         ))}
       </div>
 

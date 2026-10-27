@@ -631,7 +631,7 @@ const PublicShop = ({
   // Loading state
   if ((isLoadingParts && !displayParts.length) || categoriesLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-muted/50">
+      <div className="flex justify-center items-center min-h-screen">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-green-500 mx-auto mb-4" />
           <p className="text-foreground">Carregando peças...</p>
@@ -641,9 +641,9 @@ const PublicShop = ({
   }
 
   return (
-    <div className="min-h-screen bg-muted/50 text-foreground" ref={mainContentRef}>
+    <div className="min-h-screen text-foreground" ref={mainContentRef}>
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-card border-b border-border">
+      <header className="glass-strong sticky top-0 z-50 rounded-none border-x-0 border-t-0 pt-[var(--safe-top)]">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {(isMobile || isTablet) && (
@@ -922,7 +922,7 @@ const PublicShop = ({
 
       <div className="flex">
         {/* Sidebar with Categories (Desktop) */}
-        <aside className="hidden lg:block w-80 min-h-screen border-r border-border bg-card p-6">
+        <aside className="hidden lg:block w-80 min-h-screen border-r border-border bg-card/60 p-6">
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Categorias</h2>
 

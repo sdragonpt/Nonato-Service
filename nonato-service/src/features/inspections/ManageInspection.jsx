@@ -55,7 +55,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, StatCard } from "../../components/app";
 
 const PAGE_SIZE = 10;
 const MAX_AUTO_LOADS = 15; // salvaguarda: nº máx. de lotes extra a carregar automaticamente ao pesquisar
@@ -464,43 +464,25 @@ const ManageInspection = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Total Carregado
-              </p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {stats.total}
-              </h3>
-            </div>
-            <ChartBarIcon className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Total Carregado"
+          value={stats.total}
+          icon={ChartBarIcon}
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Inspeções</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {stats.inspections}
-              </h3>
-            </div>
-            <ClipboardCheck className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Inspeções"
+          value={stats.inspections}
+          icon={ClipboardCheck}
+          tone="info"
+        />
 
-        <Card>
-          <CardContent className="flex items-center justify-between p-4 sm:p-6">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Treinamentos</p>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-1 sm:mt-2">
-                {stats.trainings}
-              </h3>
-            </div>
-            <GraduationCap className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Treinamentos"
+          value={stats.trainings}
+          icon={GraduationCap}
+          tone="violet"
+        />
       </div>
 
       {/* Filters Card */}

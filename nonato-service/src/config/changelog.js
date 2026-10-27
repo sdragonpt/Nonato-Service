@@ -17,6 +17,20 @@
 
 export const CHANGELOG = [
   {
+    n: 20,
+    versao: "1.11.0",
+    data: "2026-10-27",
+    titulo: "Novo visual da app e confirmação de leitura no chat",
+    itens: [
+      { tipo: "novo", texto: "A app tem um visual novo em todas as páginas: tema escuro uniforme, barra lateral e topo em vidro, e os mesmos cabeçalhos, cartões de números e janelas em todo o lado." },
+      { tipo: "novo", texto: "No Hub de Comunicação já se vê o estado de cada mensagem enviada: ✓ enviada, ✓✓ entregue (chegou à app do colega) e ✓✓ azul quando foi vista, com a hora." },
+      { tipo: "melhoria", texto: "O topo mostra o nome da página em que está, e o menu lateral tem pesquisa." },
+      { tipo: "melhoria", texto: "O botão do chat ficou mais discreto e pulsa quando há mensagens por ler." },
+      { tipo: "melhoria", texto: "Novo e Editar Cliente mais arrumados, com aviso claro de cliente repetido; apagar pede confirmação numa janela própria." },
+      { tipo: "correcao", texto: "No Hub de Comunicação a caixa de escrever já não fica cortada em ecrãs mais baixos." },
+    ],
+  },
+  {
     n: 19,
     versao: "1.10.1",
     data: "2026-10-15",

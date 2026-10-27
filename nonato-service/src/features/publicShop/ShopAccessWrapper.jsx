@@ -475,7 +475,7 @@ const ShopAccessWrapper = ({ children }) => {
   // ✅ NOVO: Loading screen enquanto verifica autenticação e acesso
   if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen bg-muted/50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-green-500 mx-auto mb-4" />
           <p className="text-foreground">Verificando acesso...</p>
