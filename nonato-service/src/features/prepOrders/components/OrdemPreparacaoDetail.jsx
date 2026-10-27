@@ -4,13 +4,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc, addDoc, updateDoc, deleteDoc, collection } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import {
-  ArrowLeft,
   Loader2,
   AlertTriangle,
   Printer,
   FileCheck2,
   Trash2,
   CheckCircle2,
+  ClipboardCheck,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.jsx";
@@ -25,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+import { PageLoader, PageHeader } from "../../../components/app";
 
 const STATUS_META = {
   rascunho: { label: "Rascunho", className: "bg-yellow-500/20 text-yellow-400" },
@@ -212,9 +213,7 @@ const OrdemPreparacaoDetail = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -231,54 +230,26 @@ const OrdemPreparacaoDetail = () => {
 
   return (
     <div className="space-y-6 pb-24">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/app/ordens-preparacao")}
-            className="shrink-0 rounded-full"
-            aria-label="Voltar"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">
-              SME_UP {order.codigoSmeUp}
-            </h1>
-            <Badge className={meta.className}>{meta.label}</Badge>
-          </div>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button
-            variant="outline"
-            onClick={handlePrint}
-          >
-            <Printer className="w-4 h-4" />
-            Imprimir
-          </Button>
-          <Button
-            onClick={handleGerarFormulario}
-            disabled={generating}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {generating ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <FileCheck2 className="w-4 h-4 mr-2" />
-            )}
-            Gerar Formulário
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setDeleteOpen(true)}
-            className="border-red-600 text-red-400 hover:bg-red-600/10"
-          >
-            <Trash2 className="w-4 h-4" />
-            Apagar
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title={`SME_UP ${order.codigoSmeUp}`}
+        badge={<Badge className={meta.className}>{meta.label}</Badge>}
+        icon={ClipboardCheck}
+        back="/app/ordens-preparacao"
+        actions={
+          <>
+            <Button variant="outline" onClick={handlePrint}>
+              <Printer /> Imprimir
+            </Button>
+            <Button onClick={handleGerarFormulario} disabled={generating}>
+              {generating ? <Loader2 className="animate-spin" /> : <FileCheck2 />}
+              Gerar Formulário
+            </Button>
+            <Button variant="outline" onClick={() => setDeleteOpen(true)} className="border-red-500/40 text-red-400 hover:bg-red-500/10 hover:text-red-300">
+              <Trash2 /> Apagar
+            </Button>
+          </>
+        }
+      />
 
       {error && (
         <Alert variant="destructive">
@@ -287,9 +258,9 @@ const OrdemPreparacaoDetail = () => {
         </Alert>
       )}
       {generatedMsg && (
-        <Alert className="border-primary bg-green-600/10">
-          <CheckCircle2 className="h-4 w-4 text-green-500" />
-          <AlertDescription className="text-green-400 flex items-center justify-between gap-4">
+        <Alert variant="success">
+          <CheckCircle2 className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between gap-4">
             <span>{generatedMsg}</span>
             <Button
               size="sm"

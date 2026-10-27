@@ -42,7 +42,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
-import { PageHeader, StatCard } from "../../components/app";
+import { PageHeader, StatCard, SearchInput, PageLoader, EmptyState } from "../../components/app";
 
 // ✅ CATEGORY ITEM COMPONENT - Memoizado para evitar re-renders
 const CategoryItem = React.memo(
@@ -483,9 +483,7 @@ const ManageCategories = () => {
   // ✅ EARLY RETURN
   if (categoriesLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -537,15 +535,7 @@ const ManageCategories = () => {
       {/* Search and Controls */}
       <Card>
         <CardContent className="space-y-4 p-4 sm:p-6">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar categorias e subcategorias..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full"
-            />
-          </div>
+          <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar categorias e subcategorias..." className="lg:max-w-none w-full" />
 
           {error && (
             <Alert
@@ -604,19 +594,13 @@ const ManageCategories = () => {
             />
           ))
         ) : (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <Search className="w-12 h-12 text-muted-foreground/70 mx-auto mb-4" />
-              <p className="text-lg font-medium mb-2 text-foreground">
-                Nenhuma categoria encontrada
-              </p>
-              <p className="text-muted-foreground">
-                {searchTerm
+          <EmptyState
+            icon={Search}
+            title="Nenhuma categoria encontrada"
+            description={searchTerm
                   ? "Tente buscar com outros termos"
                   : "Comece criando sua primeira categoria"}
-              </p>
-            </CardContent>
-          </Card>
+          />
         )}
       </div>
 

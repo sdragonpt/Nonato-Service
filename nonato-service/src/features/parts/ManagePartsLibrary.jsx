@@ -55,7 +55,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs.jsx";
-import { PageHeader, StatCard } from "../../components/app";
+import { PageHeader, StatCard, SearchInput, PageLoader, EmptyState } from "../../components/app";
 
 const STORAGE_KEYS = {
   SEARCH_TERM: "parts_search",
@@ -520,9 +520,7 @@ const ManagePartsLibrary = () => {
 
   if (categoriesLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -931,21 +929,13 @@ const ManagePartsLibrary = () => {
               </div>
             )}
 
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder={
+            <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder={
                   selectedCategory && !selectedSubcategory
                     ? "Buscar subcategorias..."
                     : selectedSubcategory
                     ? "Buscar peças..."
                     : "Buscar categorias..."
-                }
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full [&::placeholder]:text-muted-foreground"
-              />
-            </div>
+                } className="lg:max-w-none w-full" />
 
             {/* Categorias principais */}
             {!selectedCategory && (
@@ -1013,16 +1003,11 @@ const ManagePartsLibrary = () => {
                     ))}
 
                   {getSubcategories(selectedCategory.id).length === 0 && (
-                    <Card className="md:col-span-2 lg:col-span-3">
-                      <CardContent className="p-8 text-center">
-                        <Package className="w-10 h-10 text-muted-foreground/70 mx-auto mb-4" />
-                        <p className="text-lg font-medium mb-2 text-foreground">
-                          Nenhuma subcategoria encontrada
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Esta categoria ainda não tem subcategorias
-                        </p>
-                        <Button
+                    <EmptyState
+                      icon={Package}
+                      title="Nenhuma subcategoria encontrada"
+                      description="Esta categoria ainda não tem subcategorias"
+                      action={<Button
                           onClick={() =>
                             navigate(
                               `/app/add-subcategory/${selectedCategory.id}`
@@ -1032,9 +1017,9 @@ const ManagePartsLibrary = () => {
                         >
                           <Tag className="w-4 h-4" />
                           Adicionar Subcategoria
-                        </Button>
-                      </CardContent>
-                    </Card>
+                        </Button>}
+                      className="md:col-span-2 lg:col-span-3"
+                    />
                   )}
                 </div>
 
@@ -1091,24 +1076,17 @@ const ManagePartsLibrary = () => {
                     ))}
                   </div>
                 ) : (
-                  <Card>
-                    <CardContent className="p-6 text-center">
-                      <Package className="w-10 h-10 text-muted-foreground/70 mx-auto mb-4" />
-                      <p className="text-lg font-medium mb-2 text-foreground">
-                        Nenhuma peça encontrada
-                      </p>
-                      <p className="text-muted-foreground text-sm">
-                        Esta subcategoria ainda não tem peças atribuídas. Vá a
-                        &ldquo;Todas as Peças&rdquo; para atribuir categorias.
-                      </p>
-                      <Button
+                  <EmptyState
+                    icon={Package}
+                    title="Nenhuma peça encontrada"
+                    description="Esta subcategoria ainda não tem peças atribuídas. Vá a “Todas as Peças” para atribuir categorias."
+                    action={<Button
                         onClick={() => handleTabChange("all")}
                         className="mt-4"
                       >
                         Ver Todas as Peças
-                      </Button>
-                    </CardContent>
-                  </Card>
+                      </Button>}
+                  />
                 )}
               </>
             )}

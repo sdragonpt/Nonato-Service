@@ -43,7 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
-import { PageHeader } from "../../../components/app";
+import { PageHeader, EmptyState } from "../../../components/app";
 
 const InspectionDetail = () => {
   const { inspectionId: id } = useParams();
@@ -912,17 +912,11 @@ const InspectionDetail = () => {
           ))}
         </div>
       ) : (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <CheckSquare className="w-12 h-12 text-muted-foreground/70 mx-auto mb-4" />
-            <p className="text-lg font-medium text-foreground">
-              Nenhum grupo selecionado
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Esta inspeção não possui grupos de características selecionados.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={CheckSquare}
+          title="Nenhum grupo selecionado"
+          description="Esta inspeção não possui grupos de características selecionados."
+        />
       )}
 
       {/* Save Button */}

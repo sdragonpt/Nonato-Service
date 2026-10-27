@@ -11,7 +11,6 @@ import { comparePtPt } from "../../utils/sortHelpers.js";
 import {
   Search,
   Plus,
-  Loader2,
   MoreVertical,
   Edit2,
   Trash2,
@@ -35,7 +34,6 @@ import {
 // UI Components
 import { Card, CardContent } from "@/components/ui/card.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
-import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import {
   DropdownMenu,
@@ -54,7 +52,7 @@ import {
 
 import { CHECKLIST_CATEGORIES_MAP } from "./components/ChecklistCategories";
 import ChecklistFilter from "./components/ChecklistFilter";
-import { PageHeader, StatCard } from "../../components/app";
+import { PageHeader, StatCard, SearchInput, PageLoader, EmptyState } from "../../components/app";
 
 const CATEGORY_ICONS = {
   maintenance: {
@@ -335,9 +333,7 @@ const ManageChecklist = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -396,15 +392,7 @@ const ManageChecklist = () => {
       <Card>
         <CardContent className="space-y-4 p-4 sm:p-6">
           {/* Search */}
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar tipos..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full"
-            />
-          </div>
+          <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar tipos..." className="lg:max-w-none w-full" />
 
           {/* Category Filter */}
           <div className="flex justify-between items-center">
@@ -447,17 +435,11 @@ const ManageChecklist = () => {
             />
           ))
         ) : (
-          <Card>
-            <CardContent className="p-8 sm:p-12 text-center">
-              <Search className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
-              <p className="text-lg font-medium mb-2 text-foreground">
-                Nenhum tipo encontrado
-              </p>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Tente ajustar sua busca ou adicione um novo tipo
-              </p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={Search}
+            title="Nenhum tipo encontrado"
+            description="Tente ajustar sua busca ou adicione um novo tipo"
+          />
         )}
       </div>
 

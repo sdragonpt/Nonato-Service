@@ -5,16 +5,14 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   HelpCircle,
-  Search,
   ChevronDown,
   ChevronRight,
   ExternalLink,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.jsx";
-import { Input } from "@/components/ui/input.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, SearchInput } from "../../components/app";
 
 // Conteúdo do manual, organizado pelas mesmas secções da barra lateral.
 // Cada módulo tem uma descrição curta (o quê) e, quando útil, notas de
@@ -269,15 +267,7 @@ const ManageManual = () => {
 
       <Card>
         <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Pesquisar um módulo (ex: peças, agenda, reciclagem...)"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-muted"
-            />
-          </div>
+          <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Pesquisar um módulo (ex: peças, agenda, reciclagem...)" className="lg:max-w-none" />
         </CardContent>
       </Card>
 

@@ -65,7 +65,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.jsx";
-import { PageHeader, useConfirm } from "../../components/app";
+import { PageHeader, useConfirm, SearchInput } from "../../components/app";
 
 const fieldClass = "bg-muted/50 border-border text-foreground";
 
@@ -265,15 +265,7 @@ const ItemFormDialog = ({ open, onOpenChange, item, existingCodes }) => {
               <label className="text-sm text-muted-foreground">
                 Procurar no catálogo HOMAG (preenche código, nome, imagem e categoria)
               </label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={catalogTerm}
-                  onChange={(e) => setCatalogTerm(e.target.value)}
-                  placeholder="Nome ou código da peça"
-                  className={`${fieldClass} pl-9`}
-                />
-              </div>
+              <SearchInput value={catalogTerm} onChange={setCatalogTerm} placeholder="Nome ou código da peça" className="lg:max-w-none" />
               {catalogResults.length > 0 && (
                 <ul className="rounded-md border border-border divide-y divide-border max-h-56 overflow-y-auto">
                   {catalogResults.map((p) => (

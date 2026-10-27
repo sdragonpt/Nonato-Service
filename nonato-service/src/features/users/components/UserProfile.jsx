@@ -31,7 +31,7 @@ import {
   AvatarImage,
 } from "@/components/ui/avatar.jsx";
 import { useNavigate } from "react-router-dom";
-import { PageHeader } from "../../../components/app";
+import { PageHeader, PageLoader } from "../../../components/app";
 
 const UserProfile = () => {
   const navigate = useNavigate();
@@ -193,9 +193,7 @@ const UserProfile = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 

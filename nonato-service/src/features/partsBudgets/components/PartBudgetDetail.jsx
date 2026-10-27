@@ -47,7 +47,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
-import { PageHeader } from "../../../components/app";
+import { PageHeader, PageLoader } from "../../../components/app";
 
 const PartBudgetDetail = () => {
   const { quoteId } = useParams();
@@ -244,9 +244,7 @@ const PartBudgetDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 

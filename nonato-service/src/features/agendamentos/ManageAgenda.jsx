@@ -16,9 +16,7 @@ import { db } from "../../firebase.jsx";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { useClients } from "../../context/ClientsContext.jsx";
 import {
-  Search,
   Plus,
-  Loader2,
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
@@ -93,7 +91,7 @@ import {
   getServiceOutcome,
   invalidatePendingServiceConfirmations,
 } from "./utils/workConfirmation.js";
-import { PageHeader, StatCard } from "../../components/app";
+import { PageHeader, StatCard, SearchInput, PageLoader, EmptyState } from "../../components/app";
 
 // ✅ NOVO: Lembretes via WhatsApp
 const buildWhatsAppLink = (phone, message) => {
@@ -784,9 +782,7 @@ const ManageAgenda = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -923,15 +919,7 @@ const ManageAgenda = () => {
       <Card>
         <CardContent className="space-y-4 p-4 sm:p-6">
           {/* Search */}
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por cliente ou horário..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full"
-            />
-          </div>
+          <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar por cliente ou horário..." className="lg:max-w-none w-full" />
 
           {/* Month Selector and Filters */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1333,17 +1321,11 @@ const ManageAgenda = () => {
         )}
 
         {filteredAppointments.length === 0 && (
-          <Card>
-            <CardContent className="p-8 sm:p-12 text-center">
-              <Calendar className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
-              <p className="text-lg font-medium mb-2 text-foreground">
-                Nenhum agendamento encontrado
-              </p>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Tente ajustar seus filtros ou adicione um novo agendamento
-              </p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={Calendar}
+            title="Nenhum agendamento encontrado"
+            description="Tente ajustar seus filtros ou adicione um novo agendamento"
+          />
         )}
       </div>
 

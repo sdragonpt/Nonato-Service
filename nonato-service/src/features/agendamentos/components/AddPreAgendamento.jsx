@@ -43,7 +43,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs.jsx";
-import { PageHeader } from "../../../components/app";
+import { PageHeader, PageLoader } from "../../../components/app";
 
 const AddPreAgendamento = () => {
   const navigate = useNavigate();
@@ -209,9 +209,7 @@ const AddPreAgendamento = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 

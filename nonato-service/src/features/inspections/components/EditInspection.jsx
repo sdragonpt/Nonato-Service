@@ -22,7 +22,6 @@ import {
   User,
   Package,
   CheckSquare,
-  Search,
   ListChecks,
   ClipboardCheck,
   GraduationCap,
@@ -36,9 +35,8 @@ import {
 // UI Components
 import { Card, CardContent } from "@/components/ui/card.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
-import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
-import { PageHeader } from "../../../components/app";
+import { PageHeader, SearchInput, PageLoader } from "../../../components/app";
 
 const EditInspection = () => {
   const { inspectionId: id } = useParams();
@@ -285,16 +283,7 @@ const EditInspection = () => {
       case 1:
         return (
           <div className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Buscar cliente..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full"
-              />
-            </div>
+            <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar cliente..." className="lg:max-w-none" />
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {filteredClients.map((client) => (
                 <div
@@ -777,9 +766,7 @@ const EditInspection = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 

@@ -26,10 +26,9 @@ import {
   CardTitle,
 } from "@/components/ui/card.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
-import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar.jsx";
-import { PageHeader, InputField } from "../../components/app";
+import { PageHeader, InputField, PageLoader } from "../../components/app";
 
 
 const EditEquipment = () => {
@@ -220,9 +219,7 @@ const EditEquipment = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 

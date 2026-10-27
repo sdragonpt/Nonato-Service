@@ -33,7 +33,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Textarea } from "@/components/ui/textarea.jsx";
-import { PageHeader } from "../../../components/app";
+import { PageHeader, PageLoader } from "../../../components/app";
 
 const AddSimpleBudget = () => {
   const navigate = useNavigate();
@@ -163,9 +163,7 @@ const AddSimpleBudget = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 

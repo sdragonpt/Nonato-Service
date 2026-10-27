@@ -60,7 +60,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs.jsx";
-import { PageHeader, Field } from "../../../components/app";
+import { PageHeader, Field, PageLoader } from "../../../components/app";
 
 const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -595,9 +595,7 @@ const EditOrder = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 

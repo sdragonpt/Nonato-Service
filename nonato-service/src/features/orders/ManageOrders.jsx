@@ -18,7 +18,6 @@ import { fetchPage } from "../../utils/firestorePage.js";
 
 // Lucide Icons
 import {
-  Search,
   Plus,
   Loader2,
   MoreVertical,
@@ -36,7 +35,6 @@ import {
 // UI Components
 import { Card, CardContent } from "@/components/ui/card.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
-import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import {
   Table,
@@ -67,7 +65,7 @@ import {
   AvatarImage,
   AvatarFallback,
 } from "@/components/ui/avatar.jsx";
-import { PageHeader, StatCard } from "../../components/app";
+import { PageHeader, StatCard, SearchInput, PageLoader } from "../../components/app";
 
 const PAGE_SIZE = 10;
 const MAX_AUTO_LOADS = 15; // salvaguarda: nº máx. de lotes extra a carregar automaticamente ao pesquisar/filtrar
@@ -471,9 +469,7 @@ const ManageOrders = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -535,15 +531,7 @@ const ManageOrders = () => {
       {/* Filters Card */}
       <Card>
         <CardContent className="space-y-4 p-4">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por cliente, descrição ou número..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full"
-            />
-          </div>
+          <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar por cliente, descrição ou número..." className="lg:max-w-none w-full" />
 
           <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
             <div className="flex flex-wrap gap-2">

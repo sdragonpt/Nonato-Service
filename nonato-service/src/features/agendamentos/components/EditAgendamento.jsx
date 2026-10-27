@@ -57,7 +57,7 @@ import {
   minutesToTime,
   timeToMinutes,
 } from "../utils/agendaConflicts.js";
-import { PageHeader, Field } from "../../../components/app";
+import { PageHeader, Field, PageLoader } from "../../../components/app";
 
 
 const EditAgendamento = () => {
@@ -236,9 +236,7 @@ const EditAgendamento = () => {
 
   if (isLoading || isSaving || isDateLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 

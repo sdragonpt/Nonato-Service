@@ -32,7 +32,7 @@ import {
 import { ClientCombobox } from "@/components/shared/ClientCombobox.jsx";
 
 import { ESTADO_META } from "../ManageDisassembledParts.jsx";
-import { PageHeader } from "../../../components/app";
+import { PageHeader, PageLoader } from "../../../components/app";
 
 const emptyForm = {
   nome: "",
@@ -154,9 +154,7 @@ const EditDisassembledPart = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 

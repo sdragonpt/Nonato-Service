@@ -8,7 +8,6 @@ import { useOrcamentos } from "../../context/OrcamentosContext.jsx";
 import { getCached } from "../../utils/sessionCache.js";
 import {
   Bell,
-  Loader2,
   AlertTriangle,
   Users,
   CalendarClock,
@@ -29,7 +28,7 @@ import {
   formatPrice,
 } from "../../utils/financialUtils";
 import { toDateKey } from "../../utils/formatDate.js";
-import { PageHeader } from "../../components/app";
+import { PageHeader, PageLoader, EmptyState } from "../../components/app";
 
 const todayStr = () => toDateKey();
 
@@ -170,9 +169,7 @@ const ManageAlerts = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -199,13 +196,11 @@ const ManageAlerts = () => {
       )}
 
       {totalAlerts === 0 && !error && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <CheckCircle2 className="h-10 w-10 text-green-500 mx-auto mb-3" />
-            <p className="text-foreground/90 font-medium">Tudo em dia!</p>
-            <p className="text-sm text-muted-foreground">Não há pendências no momento.</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={CheckCircle2}
+          title="Tudo em dia!"
+          description="Não há pendências no momento."
+        />
       )}
 
       {/* Clientes Devedores */}

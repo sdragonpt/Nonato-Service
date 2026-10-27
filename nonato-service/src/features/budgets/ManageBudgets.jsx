@@ -40,7 +40,6 @@ import {
 // UI Components
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -56,7 +55,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { PageHeader, StatCard } from "../../components/app";
+import { PageHeader, StatCard, SearchInput, PageLoader, EmptyState } from "../../components/app";
 
 // ✅ Metadados por tipo de documento — substitui a antiga divisão "Sem
 // Cadastro" / "Com Cadastro" (que era um detalhe técnico, não uma
@@ -568,9 +567,7 @@ const ManageBudgets = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -620,15 +617,7 @@ const ManageBudgets = () => {
       <Card>
         <CardContent className="space-y-4 p-3 sm:p-6">
           {/* Search */}
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por cliente ou número..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full"
-            />
-          </div>
+          <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar por cliente ou número..." className="lg:max-w-none w-full" />
 
           {/* Filter Buttons + Sort */}
           <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
@@ -701,17 +690,11 @@ const ManageBudgets = () => {
             />
           ))
         ) : (
-          <Card>
-            <CardContent className="p-8 sm:p-12 text-center">
-              <Search className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
-              <p className="text-lg font-medium mb-2 text-foreground">
-                Nenhum documento encontrado
-              </p>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Tente ajustar a busca ou os filtros, ou adicione um novo documento
-              </p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={Search}
+            title="Nenhum documento encontrado"
+            description="Tente ajustar a busca ou os filtros, ou adicione um novo documento"
+          />
         )}
       </div>
 

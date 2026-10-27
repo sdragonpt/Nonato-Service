@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/select.jsx";
 
 import { ESTADO_META } from "../ManageWarehouseEquipment.jsx";
-import { PageHeader } from "../../../components/app";
+import { PageHeader, PageLoader } from "../../../components/app";
 
 const emptyForm = {
   nome: "",
@@ -176,9 +176,7 @@ const EditWarehouseEquipment = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 

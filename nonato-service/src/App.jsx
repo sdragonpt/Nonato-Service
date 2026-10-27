@@ -31,7 +31,6 @@ import {
   Settings,
   User,
   UserCog,
-  Search,
   Home,
   ChevronRight,
   ChevronsUpDown,
@@ -51,7 +50,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🏗️ IMPORTS DE COMPONENTES ESSENCIAIS (NÃO LAZY)
@@ -71,7 +69,7 @@ import VersionBadge from "./components/layout/VersionBadge.jsx";
 import { useAuth } from "./hooks/useAuth";
 import { initOldBrowserSupport } from "./utils/oldBrowserUtils.js";
 import { NAVIGATION_ITEMS, ICON_MAP, getTabMetaForPath } from "./config/navigationItems.jsx";
-import { ConfirmProvider } from "./components/app";
+import { ConfirmProvider, SearchInput } from "./components/app";
 import CommunicationBubble from "./features/communication/components/CommunicationBubble.jsx";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -638,15 +636,7 @@ const DashboardShell = React.memo(({ children }) => {
 
           {/* Pesquisa no menu */}
           <div className="px-3 pb-3">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Procurar no menu…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 border-white/10 bg-white/5 pl-9"
-              />
-            </div>
+            <SearchInput value={searchQuery} onChange={setSearchQuery} placeholder="Procurar no menu…" className="lg:max-w-none" />
           </div>
 
           {/* Navegação */}

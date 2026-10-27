@@ -7,7 +7,6 @@ import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { fetchPage } from "../../utils/firestorePage.js";
 import { formatDate } from "../../utils/formatDate.js";
 import {
-  Search,
   Plus,
   Loader2,
   AlertTriangle,
@@ -23,7 +22,6 @@ import {
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card.jsx";
-import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
@@ -42,7 +40,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, SearchInput, PageLoader, EmptyState } from "../../components/app";
 
 const STATUS_LABELS = {
   rascunho: { label: "Rascunho", className: "bg-yellow-500/20 text-yellow-400" },
@@ -158,9 +156,7 @@ const ManageProtocols = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -193,15 +189,7 @@ const ManageProtocols = () => {
       {/* Filters */}
       <Card>
         <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por título, cliente ou equipamento..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+          <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar por título, cliente ou equipamento..." className="lg:max-w-none flex-1" />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="sm:w-56">
               <SelectValue placeholder="Filtrar por estado" />
@@ -223,17 +211,11 @@ const ManageProtocols = () => {
 
       {/* List */}
       {filtered.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 sm:p-12 text-center">
-            <ClipboardList className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2 text-foreground">
-              Nenhum protocolo encontrado
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Crie um protocolo de serviço para começar
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={ClipboardList}
+          title="Nenhum protocolo encontrado"
+          description="Crie um protocolo de serviço para começar"
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filtered.map((protocol) => {

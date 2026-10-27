@@ -5,7 +5,6 @@ import { doc, getDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../../firebase.jsx";
 import generateProtocolPDF from "./pdf/generateProtocolPDF.jsx";
 import {
-  ArrowLeft,
   Loader2,
   AlertTriangle,
   Edit2,
@@ -17,6 +16,7 @@ import {
   Printer,
   Wrench,
   CheckCircle2,
+  ClipboardCheck,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.jsx";
@@ -31,6 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
+import { PageLoader, PageHeader } from "../../../components/app";
 
 const ProtocolDetail = () => {
   const { protocolId } = useParams();
@@ -146,9 +147,7 @@ const ProtocolDetail = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -171,54 +170,27 @@ const ProtocolDetail = () => {
 
   return (
     <div className="space-y-6 pb-24">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3 min-w-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/app/protocols")}
-            className="shrink-0 rounded-full"
-            aria-label="Voltar"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="min-w-0">
-            <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">
-              {protocol.title || "Protocolo sem título"}
-            </h1>
-            <p className="text-xs text-muted-foreground font-mono">
-              {protocol.protocolNumber || `PROT-${protocolId}`}
-            </p>
-            <Badge
-              className={
-                protocol.status === "concluido"
-                  ? "bg-green-500/20 text-green-400"
-                  : "bg-yellow-500/20 text-yellow-400"
-              }
-            >
-              {protocol.status === "concluido" ? "Concluído" : "Rascunho"}
-            </Badge>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            onClick={() => navigate(`/app/edit-protocol/${protocolId}`)}
-          >
-            <Edit2 className="w-4 h-4" />
-            Editar
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={() => setDeleteDialogOpen(true)}
-            className="bg-red-600 hover:bg-red-700"
-          >
-            <Trash2 className="w-4 h-4" />
-            Excluir
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title={protocol.title || "Protocolo sem título"}
+        description={<span className="font-mono text-xs">{protocol.protocolNumber || `PROT-${protocolId}`}</span>}
+        badge={
+          <Badge variant={protocol.status === "concluido" ? "success" : "warning"}>
+            {protocol.status === "concluido" ? "Concluído" : "Rascunho"}
+          </Badge>
+        }
+        icon={ClipboardCheck}
+        back="/app/protocols"
+        actions={
+          <>
+            <Button variant="outline" onClick={() => navigate(`/app/edit-protocol/${protocolId}`)}>
+              <Edit2 /> Editar
+            </Button>
+            <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
+              <Trash2 /> Apagar
+            </Button>
+          </>
+        }
+      />
 
       {error && (
         <Alert variant="destructive">
@@ -227,9 +199,9 @@ const ProtocolDetail = () => {
         </Alert>
       )}
       {emailNotice && (
-        <Alert className="border-primary bg-green-600/10">
-          <CheckCircle2 className="h-4 w-4 text-green-500" />
-          <AlertDescription className="text-green-400">
+        <Alert variant="success">
+          <CheckCircle2 className="h-4 w-4" />
+          <AlertDescription>
             PDF descarregado. Anexe o ficheiro descarregado na janela que foi
             aberta para concluir o envio.
           </AlertDescription>

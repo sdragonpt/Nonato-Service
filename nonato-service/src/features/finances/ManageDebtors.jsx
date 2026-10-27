@@ -8,7 +8,6 @@ import { useOrcamentos } from "../../context/OrcamentosContext.jsx";
 import { getCached } from "../../utils/sessionCache.js";
 import {
   AlertTriangle,
-  Loader2,
   Users,
   Euro,
   Download,
@@ -28,7 +27,7 @@ import {
   getPaymentStatus,
   formatPrice,
 } from "../../utils/financialUtils";
-import { PageHeader } from "../../components/app";
+import { PageHeader, PageLoader, EmptyState } from "../../components/app";
 
 const buildWhatsAppLink = (phone, message) => {
   if (!phone) return null;
@@ -163,9 +162,7 @@ const ManageDebtors = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -214,12 +211,10 @@ const ManageDebtors = () => {
           </Card>
 
           {debtorsByClient.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <Users className="h-10 w-10 text-muted-foreground/70 mx-auto mb-3" />
-                <p className="text-muted-foreground">Nenhum cliente com valores em atraso</p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={Users}
+              title="Nenhum cliente com valores em atraso"
+            />
           ) : (
             <div className="space-y-2">
               {debtorsByClient.map((entry) => {
@@ -290,12 +285,10 @@ const ManageDebtors = () => {
           </Card>
 
           {vatByMonth.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <Calendar className="h-10 w-10 text-muted-foreground/70 mx-auto mb-3" />
-                <p className="text-muted-foreground">Sem dados de IVA disponíveis</p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={Calendar}
+              title="Sem dados de IVA disponíveis"
+            />
           ) : (
             <Card>
               <CardHeader>

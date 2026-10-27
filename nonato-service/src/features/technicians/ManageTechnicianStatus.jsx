@@ -7,7 +7,6 @@ import { useClients } from "../../context/ClientsContext.jsx";
 import { useUsers } from "../../context/UsersContext.jsx";
 import {
   UserCog,
-  Loader2,
   AlertTriangle,
   Calendar,
   Clock,
@@ -24,7 +23,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { isStaffRole, getRoleLabel, getRoleBadgeStyle } from "../../config/roles.js";
 import { timeToMinutes, DEFAULT_DURATION_MINUTES } from "../agendamentos/utils/agendaConflicts.js";
 import { toDateKey } from "../../utils/formatDate.js";
-import { PageHeader } from "../../components/app";
+import { PageHeader, PageLoader, EmptyState } from "../../components/app";
 
 const todayStr = () => toDateKey();
 
@@ -156,9 +155,7 @@ const ManageTechnicianStatus = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -198,14 +195,10 @@ const ManageTechnicianStatus = () => {
       )}
 
       {boardData.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <UserCog className="h-10 w-10 text-muted-foreground/70 mx-auto mb-3" />
-            <p className="text-muted-foreground">
-              Nenhum utilizador com papel de equipa interna (gestor/técnico) encontrado.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={UserCog}
+          title="Nenhum utilizador com papel de equipa interna (gestor/técnico) encontrado."
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {boardData.map(({ user, status, statusDetail, todayCount, futureCount }) => {

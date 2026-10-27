@@ -9,7 +9,6 @@ import { comparePtPt } from "../../utils/sortHelpers.js";
 import {
   Search,
   Plus,
-  Loader2,
   Trash2,
   Edit2,
   Eye,
@@ -25,7 +24,6 @@ import {
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card.jsx";
-import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import {
@@ -43,7 +41,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
-import { PageHeader, StatCard } from "../../components/app";
+import { PageHeader, StatCard, SearchInput, PageLoader } from "../../components/app";
 
 export const ESTADO_META = {
   operacional: { label: "Operacional", className: "bg-green-500/20 text-green-400 border-green-500/30" },
@@ -268,9 +266,7 @@ const ManageWarehouseEquipment = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -336,15 +332,7 @@ const ManageWarehouseEquipment = () => {
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="relative w-full sm:w-96">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Pesquisar por ID, nome, marca, modelo, nº série ou localização..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-muted"
-              />
-            </div>
+            <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Pesquisar por ID, nome, marca, modelo, nº série ou localização..." className="lg:max-w-none w-full sm:w-96" />
 
             <div className="flex gap-2 w-full sm:w-auto flex-wrap">
               <Select value={estadoFilter} onValueChange={setEstadoFilter}>

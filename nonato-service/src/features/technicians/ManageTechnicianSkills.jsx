@@ -21,7 +21,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 
 import { isStaffRole, getRoleLabel, getRoleBadgeStyle } from "../../config/roles.js";
-import { PageHeader } from "../../components/app";
+import { PageHeader, PageLoader, EmptyState } from "../../components/app";
 
 export const SKILL_AREAS = [
   { key: "mecanico", label: "Mecânico", icon: Wrench },
@@ -126,9 +126,7 @@ const ManageTechnicianSkills = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -156,14 +154,10 @@ const ManageTechnicianSkills = () => {
       </div>
 
       {staffUsers.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <GraduationCap className="h-10 w-10 text-muted-foreground/70 mx-auto mb-3" />
-            <p className="text-muted-foreground">
-              Nenhum utilizador com papel de equipa interna (gestor/técnico) encontrado.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={GraduationCap}
+          title="Nenhum utilizador com papel de equipa interna (gestor/técnico) encontrado."
+        />
       ) : (
         <Card>
           <CardHeader>

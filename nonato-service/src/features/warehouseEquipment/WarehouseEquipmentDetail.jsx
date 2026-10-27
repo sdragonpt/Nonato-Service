@@ -61,6 +61,7 @@ import {
 } from "@/components/ui/dialog.jsx";
 
 import { ESTADO_META } from "./ManageWarehouseEquipment.jsx";
+import { PageLoader, PageHeader } from "../../components/app";
 
 const TIPO_EVENTO_OPTIONS = [
   "Entrada no Armazém",
@@ -453,9 +454,7 @@ const WarehouseEquipmentDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -495,11 +494,11 @@ const WarehouseEquipmentDetail = () => {
       `}</style>
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <Button variant="ghost" size="icon" className="shrink-0 rounded-full" aria-label="Voltar" onClick={() => navigate("/app/warehouse-equipment")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+      <PageHeader
+        title={`${equipment.familyName ? `${equipment.familyName} — ` : ""}${equipment.nome || "Equipamento"}`}
+        description={[equipment.marca, equipment.modelo].filter(Boolean).join(" ")}
+        back="/app/warehouse-equipment"
+        leading={
           <div className="group relative shrink-0">
             <Avatar className="h-14 w-14 ring-2 ring-white/10 sm:h-16 sm:w-16">
               <AvatarImage src={equipment.fotoPerfilUrl} alt={equipment.nome} />
@@ -507,7 +506,7 @@ const WarehouseEquipmentDetail = () => {
                 <Wrench className="h-6 w-6" />
               </AvatarFallback>
             </Avatar>
-            <label className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
+            <label className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black/60 opacity-0 transition-opacity group-hover:opacity-100" title="Mudar foto">
               {uploadingPhoto ? (
                 <Loader2 className="h-5 w-5 animate-spin text-white" />
               ) : (
@@ -522,25 +521,13 @@ const WarehouseEquipmentDetail = () => {
               />
             </label>
           </div>
-          <div className="min-w-0">
-            <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">
-              {equipment.familyName ? `${equipment.familyName} — ` : ""}
-              {equipment.nome || "Equipamento"}
-            </h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              {equipment.marca} {equipment.modelo}
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          className="shrink-0"
-          onClick={() => navigate(`/app/edit-warehouse-equipment/${equipmentId}`)}
-        >
-          <Edit2 className="h-4 w-4" />
-          <span className="hidden sm:inline">Editar</span>
-        </Button>
-      </div>
+        }
+        actions={
+          <Button variant="outline" onClick={() => navigate(`/app/edit-warehouse-equipment/${equipmentId}`)}>
+            <Edit2 /> <span className="hidden sm:inline">Editar</span>
+          </Button>
+        }
+      />
 
       {error && (
         <Alert variant="destructive">

@@ -39,7 +39,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
-import { PageHeader } from "../../../components/app";
+import { PageHeader, PageLoader, EmptyState } from "../../../components/app";
 
 const COLLECTION = "familiasEquipamentos";
 
@@ -156,9 +156,7 @@ const ManageEquipmentFamilies = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -188,17 +186,11 @@ const ManageEquipmentFamilies = () => {
       )}
 
       {families.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 sm:p-12 text-center">
-            <Layers className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2 text-foreground">
-              Nenhuma família criada
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Crie famílias (ex: Ferramentas, Veículos, Máquinas) e depois grupos dentro delas
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Layers}
+          title="Nenhuma família criada"
+          description="Crie famílias (ex: Ferramentas, Veículos, Máquinas) e depois grupos dentro delas"
+        />
       ) : (
         <div className="space-y-3">
           {families.map((family) => {

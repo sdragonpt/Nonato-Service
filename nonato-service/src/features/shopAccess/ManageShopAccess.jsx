@@ -18,7 +18,6 @@ import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { useAuth } from "../../hooks/useAuth";
 import { formatDateTime } from "../../utils/formatDate.js";
 import {
-  Search,
   Plus,
   Loader2,
   Trash2,
@@ -67,7 +66,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs.jsx";
-import { PageHeader, StatCard } from "../../components/app";
+import { PageHeader, StatCard, SearchInput, PageLoader, EmptyState } from "../../components/app";
 
 const generateToken = () => {
   // Gerar token de 8 caracteres alfanuméricos
@@ -452,9 +451,7 @@ const ManageShopAccess = () => {
 
   if (loading || isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -517,15 +514,7 @@ const ManageShopAccess = () => {
       <Card>
         <CardContent className="space-y-4 p-4 sm:p-6">
           <div className="flex flex-wrap gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome, email, empresa ou token..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+            <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar por nome, email, empresa ou token..." className="lg:max-w-none flex-1" />
           </div>
 
           {error && (
@@ -582,19 +571,13 @@ const ManageShopAccess = () => {
 
       {/* Tokens List */}
       {currentTokens.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Store className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2 text-foreground">
-              Nenhum token de acesso encontrado
-            </p>
-            <p className="text-muted-foreground">
-              {searchTerm
+        <EmptyState
+          icon={Store}
+          title="Nenhum token de acesso encontrado"
+          description={searchTerm
                 ? "Tente ajustar os filtros ou buscar por outro termo."
                 : "Adicione um novo token para permitir acesso à loja online."}
-            </p>
-          </CardContent>
-        </Card>
+        />
       ) : (
         <div className="space-y-4">
           {currentTokens.map((token) => (

@@ -9,7 +9,6 @@ import { comparePtPt } from "../../utils/sortHelpers.js";
 import {
   Search,
   Plus,
-  Loader2,
   MoreVertical,
   Eye,
   Trash2,
@@ -25,7 +24,6 @@ import {
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card.jsx";
-import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar.jsx";
 import {
@@ -42,7 +40,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
-import { PageHeader, StatCard } from "../../components/app";
+import { PageHeader, StatCard, SearchInput, PageLoader } from "../../components/app";
 
 const SupplierCard = ({ supplier, onEdit, onDelete, onView }) => {
   const confirmDelete = (e) => {
@@ -235,9 +233,7 @@ const ManageSuppliers = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -289,15 +285,7 @@ const ManageSuppliers = () => {
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="relative w-full sm:w-96">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Pesquisar por nome, localidade, NIF, email ou telefone..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-muted"
-              />
-            </div>
+            <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Pesquisar por nome, localidade, NIF, email ou telefone..." className="lg:max-w-none w-full sm:w-96" />
 
             <div className="flex gap-2 w-full sm:w-auto">
               <Button

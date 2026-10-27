@@ -7,7 +7,6 @@ import { db, storage } from "../../firebase.jsx";
 import { formatDate } from "../../utils/formatDate.js";
 import {
   Plus,
-  Loader2,
   AlertTriangle,
   Receipt,
   Trash2,
@@ -41,7 +40,7 @@ import {
 } from "@/components/ui/dialog.jsx";
 
 import { formatPrice } from "../../utils/financialUtils";
-import { PageHeader } from "../../components/app";
+import { PageHeader, PageLoader, EmptyState } from "../../components/app";
 
 const months = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -113,9 +112,7 @@ const ManageExpenses = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -213,17 +210,11 @@ const ManageExpenses = () => {
 
       {/* Lista */}
       {filtered.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 sm:p-12 text-center">
-            <Receipt className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2 text-foreground">
-              Nenhuma despesa neste período
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Use o botão &ldquo;Nova Despesa&rdquo; para registar uma
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Receipt}
+          title="Nenhuma despesa neste período"
+          description="Use o botão “Nova Despesa” para registar uma"
+        />
       ) : (
         <div className="space-y-2">
           {filtered.map((expense) => (

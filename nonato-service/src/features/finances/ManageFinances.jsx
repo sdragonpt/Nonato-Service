@@ -12,7 +12,6 @@ import {
   BarChart3,
   Calendar,
   Download,
-  Loader2,
   AlertTriangle,
   Package,
   Wrench,
@@ -45,7 +44,7 @@ import {
   formatPrice,
   formatPercentage,
 } from "../../utils/financialUtils";
-import { PageHeader, StatCard } from "../../components/app";
+import { PageHeader, StatCard, PageLoader, EmptyState } from "../../components/app";
 
 const ManageFinances = () => {
   const navigate = useNavigate();
@@ -251,9 +250,7 @@ const ManageFinances = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -333,17 +330,11 @@ const ManageFinances = () => {
       />
 
       {!metrics ? (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <PieChart className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2 text-foreground">
-              Nenhum dado financeiro encontrado
-            </p>
-            <p className="text-muted-foreground">
-              Não há dados para o período selecionado
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={PieChart}
+          title="Nenhum dado financeiro encontrado"
+          description="Não há dados para o período selecionado"
+        />
       ) : (
         <>
           {/* Main Financial Metrics */}

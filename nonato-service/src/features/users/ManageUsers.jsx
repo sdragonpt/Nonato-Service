@@ -30,7 +30,6 @@ import { Badge } from "@/components/ui/badge.jsx";
 import {
   Trash2,
   Edit2,
-  Loader2,
   AlertTriangle,
   Users,
   UserPlus,
@@ -42,7 +41,7 @@ import {
 import AddUser from "./components/AddUser.jsx";
 import EditUser from "./components/EditUser.jsx";
 import { getRoleLabel, getRoleBadgeStyle, isStaffRole } from "../../config/roles.js";
-import { PageHeader, StatCard, useConfirm } from "../../components/app";
+import { PageHeader, StatCard, useConfirm, PageLoader } from "../../components/app";
 
 const ManageUsers = () => {
   const confirm = useConfirm();
@@ -164,9 +163,7 @@ const ManageUsers = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 

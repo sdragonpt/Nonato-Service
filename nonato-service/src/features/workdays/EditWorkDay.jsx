@@ -37,7 +37,7 @@ import MachineTimeBlocks, {
   totalBlocksDurationMinutes,
 } from "./components/MachineTimeBlocks.jsx";
 import { toDateKey } from "../../utils/formatDate.js";
-import { PageHeader } from "../../components/app";
+import { PageHeader, PageLoader } from "../../components/app";
 
 const EditWorkday = () => {
   const { workdayId } = useParams();
@@ -191,9 +191,7 @@ const EditWorkday = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 

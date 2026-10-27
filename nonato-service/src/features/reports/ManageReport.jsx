@@ -19,7 +19,6 @@ import ReportOrderForm, { emptyReportDraft } from "./components/ReportOrderForm.
 import {
   FileText,
   Cpu,
-  Search,
   Loader2,
   ArrowLeft,
   User,
@@ -39,7 +38,7 @@ import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, SearchInput } from "../../components/app";
 
 const toDateInputValue = (value) => {
   if (!value) return toDateKey();
@@ -422,15 +421,7 @@ const ManageReport = () => {
 
           <Card>
             <CardContent className="p-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Pesquisar cliente..."
-                  value={clientSearch}
-                  onChange={(e) => setClientSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              <SearchInput value={clientSearch} onChange={setClientSearch} placeholder="Pesquisar cliente..." className="lg:max-w-none" />
             </CardContent>
           </Card>
 

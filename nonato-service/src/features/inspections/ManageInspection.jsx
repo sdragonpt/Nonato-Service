@@ -39,7 +39,6 @@ import {
 // UI Components
 import { Card, CardContent } from "@/components/ui/card.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
-import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import {
   DropdownMenu,
@@ -55,7 +54,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
-import { PageHeader, StatCard } from "../../components/app";
+import { PageHeader, StatCard, SearchInput, PageLoader, EmptyState } from "../../components/app";
 
 const PAGE_SIZE = 10;
 const MAX_AUTO_LOADS = 15; // salvaguarda: nº máx. de lotes extra a carregar automaticamente ao pesquisar
@@ -428,9 +427,7 @@ const ManageInspection = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -504,15 +501,7 @@ const ManageInspection = () => {
             </div>
           )}
           {/* Search */}
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por cliente, equipamento ou tipo..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full"
-            />
-          </div>
+          <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar por cliente, equipamento ou tipo..." className="lg:max-w-none w-full" />
 
           {error && (
             <Alert
@@ -560,17 +549,11 @@ const ManageInspection = () => {
             />
           ))
         ) : (
-          <Card>
-            <CardContent className="p-8 sm:p-12 text-center">
-              <Search className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
-              <p className="text-lg font-medium mb-2 text-foreground">
-                Nenhuma inspeção encontrada
-              </p>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Tente ajustar sua busca ou adicione uma nova inspeção
-              </p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={Search}
+            title="Nenhuma inspeção encontrada"
+            description="Tente ajustar sua busca ou adicione uma nova inspeção"
+          />
         )}
       </div>
 

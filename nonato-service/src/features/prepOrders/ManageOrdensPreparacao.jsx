@@ -4,9 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { collection, getDocs, deleteDoc, doc, query, orderBy } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import {
-  Search,
   Plus,
-  Loader2,
   Trash2,
   ClipboardList,
   AlertTriangle,
@@ -14,7 +12,6 @@ import {
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card.jsx";
-import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
@@ -26,7 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, SearchInput, PageLoader, EmptyState } from "../../components/app";
 
 const STATUS_META = {
   rascunho: { label: "Rascunho", className: "bg-yellow-500/20 text-yellow-400" },
@@ -86,9 +83,7 @@ const ManageOrdensPreparacao = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -119,27 +114,15 @@ const ManageOrdensPreparacao = () => {
 
       <Card>
         <CardContent className="pt-6">
-          <div className="relative w-full sm:w-96">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Pesquisar por código SME_UP, cliente ou técnico..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-muted"
-            />
-          </div>
+          <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Pesquisar por código SME_UP, cliente ou técnico..." className="lg:max-w-none w-full sm:w-96" />
         </CardContent>
       </Card>
 
       {filtered.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 sm:p-12 text-center">
-            <ClipboardList className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2 text-foreground">
-              {searchTerm ? "Nenhuma ordem encontrada" : "Nenhuma ordem de preparação criada"}
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={ClipboardList}
+          title={searchTerm ? "Nenhuma ordem encontrada" : "Nenhuma ordem de preparação criada"}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((order) => {

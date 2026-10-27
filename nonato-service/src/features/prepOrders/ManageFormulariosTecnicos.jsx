@@ -6,11 +6,10 @@ import { useNavigate } from "react-router-dom";
 import { collection, updateDoc, doc, query, orderBy } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { fetchPage } from "../../utils/firestorePage.js";
-import { Search, Loader2, FileCheck2, AlertTriangle, CheckCircle2, ArrowDown, CheckSquare } from "lucide-react";
+import { Loader2, FileCheck2, AlertTriangle, CheckCircle2, ArrowDown, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 
 import { Card, CardContent } from "@/components/ui/card.jsx";
-import { Input } from "@/components/ui/input.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import {
@@ -20,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, SearchInput, PageLoader, EmptyState } from "../../components/app";
 
 const TIPO_META = {
   "ordem-preparacao": { label: "Ordem de Preparação", className: "bg-blue-500/20 text-blue-400" },
@@ -149,9 +148,7 @@ const ManageFormulariosTecnicos = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -180,15 +177,7 @@ const ManageFormulariosTecnicos = () => {
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Pesquisar por código, cliente ou técnico..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-muted"
-              />
-            </div>
+            <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Pesquisar por código, cliente ou técnico..." className="lg:max-w-none flex-1" />
             <Select value={tipoFilter} onValueChange={setTipoFilter}>
               <SelectTrigger className="w-full sm:w-56">
                 <SelectValue placeholder="Tipo" />
@@ -220,16 +209,11 @@ const ManageFormulariosTecnicos = () => {
       </Card>
 
       {filtered.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 sm:p-12 text-center">
-            <FileCheck2 className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2 text-foreground">Nenhum formulário encontrado</p>
-            <p className="text-sm text-muted-foreground">
-              Os formulários aparecem aqui depois de gerados a partir de uma Ordem de
-              Preparação.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={FileCheck2}
+          title="Nenhum formulário encontrado"
+          description="Os formulários aparecem aqui depois de gerados a partir de uma Ordem de Preparação."
+        />
       ) : (
         <div className="space-y-2">
           {filtered.map((item) => {

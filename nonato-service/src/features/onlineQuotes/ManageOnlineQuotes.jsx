@@ -44,7 +44,6 @@ import {
   CardContent,
   CardHeader,
 } from "@/components/ui/card.jsx";
-import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import {
@@ -74,7 +73,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible.jsx";
-import { PageHeader, StatCard } from "../../components/app";
+import { PageHeader, StatCard, SearchInput, PageLoader, EmptyState } from "../../components/app";
 
 const PAGE_SIZE = 10;
 const MAX_AUTO_LOADS = 15; // salvaguarda: nº máx. de lotes extra a carregar automaticamente ao pesquisar
@@ -441,15 +440,7 @@ const ManageOnlineQuotes = () => {
       <Card>
         <CardContent className="space-y-4 p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome, email ou empresa..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+            <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar por nome, email ou empresa..." className="lg:max-w-none flex-1" />
 
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger>
@@ -514,21 +505,13 @@ const ManageOnlineQuotes = () => {
 
       {/* Quotes List */}
       {isLoading ? (
-        <div className="flex justify-center items-center min-h-[50vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-green-500" />
-        </div>
+        <PageLoader />
       ) : filteredQuotes.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Search className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
-            <p className="text-lg font-medium mb-2 text-foreground">
-              Nenhum orçamento encontrado
-            </p>
-            <p className="text-muted-foreground">
-              Os orçamentos solicitados na loja online aparecerão aqui
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Search}
+          title="Nenhum orçamento encontrado"
+          description="Os orçamentos solicitados na loja online aparecerão aqui"
+        />
       ) : (
         <div className="space-y-4">
           {filteredQuotes.map((quote) => (

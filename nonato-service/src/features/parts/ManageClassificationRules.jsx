@@ -53,7 +53,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, PageLoader, EmptyState } from "../../components/app";
 
 const RULES_COLLECTION = "regrasClassificacaoPecas";
 
@@ -260,9 +260,7 @@ const ManageClassificationRules = () => {
 
   if (loading || categoriesLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -342,19 +340,15 @@ const ManageClassificationRules = () => {
 
       {/* Lista de regras */}
       {rules.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Wand2 className="h-10 w-10 text-muted-foreground/70 mx-auto mb-3" />
-            <p className="text-foreground font-medium">Nenhuma regra criada</p>
-            <p className="text-sm text-muted-foreground mb-4">
-              Crie regras para classificar peças automaticamente por palavra-chave
-            </p>
-            <Button onClick={openAddDialog}>
+        <EmptyState
+          icon={Wand2}
+          title="Nenhuma regra criada"
+          description="Crie regras para classificar peças automaticamente por palavra-chave"
+          action={<Button onClick={openAddDialog}>
               <Plus className="w-4 h-4" />
               Nova Regra
-            </Button>
-          </CardContent>
-        </Card>
+            </Button>}
+        />
       ) : (
         <div className="space-y-3">
           {rules.map((rule) => (

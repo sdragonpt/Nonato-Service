@@ -10,7 +10,6 @@ import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { downloadFileFromUrl } from "../../utils/reportStorage.js";
 import { getCached, invalidateCache } from "../../utils/sessionCache.js";
 import {
-  Search,
   Loader2,
   AlertTriangle,
   User,
@@ -25,11 +24,10 @@ import {
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card.jsx";
-import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
-import { PageHeader } from "../../components/app";
+import { PageHeader, SearchInput, PageLoader, EmptyState } from "../../components/app";
 
 const formatDate = (timestamp) => {
   if (!timestamp) return "N/A";
@@ -229,9 +227,7 @@ const ManageReportsLibrary = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -260,31 +256,16 @@ const ManageReportsLibrary = () => {
           {/* Busca de clientes */}
           <Card>
             <CardContent className="p-4 sm:p-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar cliente..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Buscar cliente..." className="lg:max-w-none" />
             </CardContent>
           </Card>
 
           {filteredClients.length === 0 && isolatedReports.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 sm:p-12 text-center">
-                <FolderOpen className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/70 mx-auto mb-4" />
-                <p className="text-lg font-medium mb-2 text-foreground">
-                  Nenhum arquivo encontrado
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Os clientes aparecem aqui assim que tiverem relatórios ou
-                  fechamentos registados
-                </p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={FolderOpen}
+              title="Nenhum arquivo encontrado"
+              description="Os clientes aparecem aqui assim que tiverem relatórios ou fechamentos registados"
+            />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {isolatedReports.length > 0 && (

@@ -18,7 +18,6 @@ import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { fetchPage } from "../../utils/firestorePage.js";
 import { getInitials } from "../../utils/getInitials.js";
 import {
-  Search,
   Plus,
   Loader2,
   MoreVertical,
@@ -42,7 +41,6 @@ import {
   CardContent,
 } from "@/components/ui/card.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
-import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import {
@@ -71,7 +69,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
-import { PageHeader, StatCard } from "../../components/app";
+import { PageHeader, StatCard, SearchInput, PageLoader } from "../../components/app";
 
 const PAGE_SIZE = 10;
 const MAX_AUTO_LOADS = 15; // salvaguarda: nº máx. de lotes extra a carregar automaticamente ao pesquisar/filtrar
@@ -399,9 +397,7 @@ const ManagePartsBudgets = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -463,15 +459,7 @@ const ManagePartsBudgets = () => {
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-              <div className="relative w-full sm:w-80">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Pesquisar orçamentos..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-muted"
-                />
-              </div>
+              <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Pesquisar orçamentos..." className="lg:max-w-none w-full sm:w-80" />
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full sm:w-48 bg-muted hover:bg-accent hover:border-muted-foreground/40">
