@@ -17,6 +17,19 @@
 
 export const CHANGELOG = [
   {
+    n: 25,
+    versao: "1.15.0",
+    data: "2026-11-02",
+    titulo: "Relatório Especial com vários clientes e equipamentos",
+    itens: [
+      { tipo: "novo", texto: "O Relatório Especial deixa de estar preso a um cliente: escolhe-se o cliente principal e adicionam-se equipamentos de qualquer cliente registado ou do Armazém (equipamentos da própria empresa)." },
+      { tipo: "novo", texto: "Cada dia de trabalho fica ligado a um equipamento/cliente, com ida, início e fim do trabalho, retorno, km, pausa e descrição. Dois equipamentos no mesmo dia = dois registos com a mesma data." },
+      { tipo: "novo", texto: "PDF novo com tabela de horas, totais (trabalho, viagem de ida e retorno, km, diárias), uma secção por cliente/equipamento e o \"Total de tudo\"." },
+      { tipo: "novo", texto: "Antes de gerar escolhe-se o que sai na impressão: só horas, horas + clientes e equipamentos, clientes e equipamentos separados ou tudo num só." },
+      { tipo: "melhoria", texto: "Botão \"Copiar para o dia seguinte\" e totais em tempo real enquanto se preenchem os dias." },
+    ],
+  },
+  {
     n: 24,
     versao: "1.14.0",
     data: "2026-11-02",

@@ -3,19 +3,22 @@
 // ordem existente OU relatório isolado (sem ordem) → preencher/editar
 // dados (formulário completo, tipo ordem de serviço) → gerar e guardar.
 //
-// Relatório Normal e Relatório Especial usam o mesmo formulário e o mesmo
-// fluxo — a única diferença é o gerador de PDF usado no fim (o especial
-// acrescenta a secção de horas agrupadas por máquina).
+// Relatório Normal e Relatório Especial usam o mesmo fluxo. O especial junta
+// num só relatório trabalho em vários clientes/equipamentos (e equipamentos
+// do Armazém), com um equipamento por dia, e escolhe-se o que sai no PDF
+// (só horas, horas + equipamentos, equipamentos separados ou tudo).
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../firebase.jsx";
 import { useClients } from "../../context/ClientsContext.jsx";
 import { useEquipments } from "../../context/EquipmentsContext.jsx";
+import { useAuth } from "../../hooks/useAuth";
+import { PRINT_MODES } from "./pdf/specialReportData.js";
 import { searchIncludes } from "../../utils/normalizeSearch.js";
 import { generateAndSaveReport } from "./reportActions.js";
 import { downloadFileFromUrl } from "../../utils/reportStorage.js";
 import { formatDate, toDateKey } from "../../utils/formatDate.js";
-import ReportOrderForm, { emptyReportDraft } from "./components/ReportOrderForm.jsx";
+import ReportOrderForm, { emptyReportDraft, emptyEquipmentEntry } from "./components/ReportOrderForm.jsx";
 import {
   FileText,
   Cpu,
@@ -71,6 +74,7 @@ const StepHeader = ({ title, subtitle, onBack }) => (
 const ManageReport = () => {
   const { ensureClients } = useClients();
   const { ensureEquipments } = useEquipments();
+  const { user } = useAuth();
 
   // step: "landing" | "clientes" | "ordens" | "formulario" | "sucesso"
   const [step, setStep] = useState("landing");
@@ -86,6 +90,10 @@ const ManageReport = () => {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [clientEquipments, setClientEquipments] = useState([]);
+  // Relatório especial: equipamentos de todos os clientes + Armazém
+  const [allEquipments, setAllEquipments] = useState([]);
+  const [warehouseEquipments, setWarehouseEquipments] = useState([]);
+  const [printMode, setPrintMode] = useState("tudo");
 
   const [draft, setDraft] = useState(emptyReportDraft());
   const [isolatedClient, setIsolatedClient] = useState({ name: "", phone: "", address: "" });
@@ -114,8 +122,25 @@ const ManageReport = () => {
     return clients.filter((c) => searchIncludes(c.name, clientSearch));
   }, [clients, clientSearch]);
 
+  // Equipamentos de todos os clientes e do Armazém (só para o especial; 1x por visita).
+  const loadSpecialSources = useCallback(async () => {
+    if (allEquipments.length || warehouseEquipments.length) return;
+    try {
+      const [all, wh] = await Promise.all([
+        ensureEquipments(),
+        getDocs(collection(db, "equipamentosArmazem")),
+      ]);
+      setAllEquipments(all);
+      setWarehouseEquipments(wh.docs.map((d) => ({ id: d.id, ...d.data() })));
+    } catch (err) {
+      console.error("Erro ao carregar equipamentos para o relatório especial:", err);
+    }
+  }, [allEquipments.length, warehouseEquipments.length, ensureEquipments]);
+
   const startFlow = (type) => {
     setReportType(type);
+    setPrintMode("tudo");
+    if (type === "especial") loadSpecialSources();
     setGenError(null);
     setSaved(null);
     setIsolatedFlow(false);
@@ -164,7 +189,7 @@ const ManageReport = () => {
     }
   }, [ensureEquipments]);
 
-  const buildDraftFromOrder = useCallback(async (order) => {
+  const buildDraftFromOrder = useCallback(async (order, client) => {
     const workdaysSnap = await getDocs(
       query(collection(db, "workdays"), where("orderId", "==", order.id))
     );
@@ -188,21 +213,36 @@ const ManageReport = () => {
           startHour: entry.startHour || "",
           endHour: entry.endHour || "",
         })),
+        // Especial: horário do dia = do primeiro ao último bloco de máquina
+        // (ou o início/fim do próprio dia, se existir).
+        startHour:
+          data.startHour ||
+          (data.machineEntries || []).map((e) => e.startHour).filter(Boolean).sort()[0] ||
+          "",
+        endHour:
+          data.endHour ||
+          (data.machineEntries || []).map((e) => e.endHour).filter(Boolean).sort().slice(-1)[0] ||
+          "",
+        equipoId: "",
       };
     });
 
     const hasManual = !!order.manualEquipment?.model;
     const equipamentos = order.equipmentId || hasManual
       ? [
-          {
-            id: genId(),
+          emptyEquipmentEntry({
+            source: "cliente",
+            clientId: client?.id || "",
+            clientName: client?.name || "",
             equipmentId: hasManual ? "" : order.equipmentId || "",
             brand: hasManual ? order.manualEquipment?.brand || "" : "",
             model: hasManual ? order.manualEquipment?.model || "" : "",
             serialNumber: hasManual ? order.manualEquipment?.serialNumber || "" : "",
-          },
+          }),
         ]
       : [];
+    // Todos os dias da ordem ficam no equipamento da ordem (muda-se depois no formulário).
+    if (equipamentos[0]) workdays.forEach((w) => (w.equipoId = equipamentos[0].id));
 
     return {
       equipamentos,
@@ -232,7 +272,7 @@ const ManageReport = () => {
       setLoadingForm(true);
       setStep("formulario");
       try {
-        const nextDraft = await buildDraftFromOrder(order);
+        const nextDraft = await buildDraftFromOrder(order, selectedClient);
         setDraft(nextDraft);
       } catch (err) {
         console.error("Erro ao preparar dados da ordem:", err);
@@ -242,7 +282,7 @@ const ManageReport = () => {
         setLoadingForm(false);
       }
     },
-    [buildDraftFromOrder]
+    [buildDraftFromOrder, selectedClient]
   );
 
   const handleIsolatedReport = () => {
@@ -274,6 +314,14 @@ const ManageReport = () => {
         };
       });
       const primaryEquipment = resolvedEquipments[0] || { brand: "", model: "", serialNumber: "" };
+
+      // Especial: lista completa (cliente de cada equipamento / Armazém), com
+      // o mesmo id local que os dias usam em equipoId.
+      const specialEquipments = draft.equipamentos.map((eq) => ({
+        ...eq,
+        source: isolatedFlow ? "cliente" : eq.source || "cliente",
+        clientName: isolatedFlow ? isolatedClient.name || "" : eq.clientName || selectedClient?.name || "",
+      }));
 
       const clientData = isolatedFlow
         ? {
@@ -312,6 +360,9 @@ const ManageReport = () => {
         equipmentData: primaryEquipment,
         equipmentId: primaryEquipment.equipmentId || null,
         workdays,
+        equipments: specialEquipments,
+        printMode,
+        technician: user?.displayName || user?.email || "",
       });
 
       setSaved(result);
@@ -322,7 +373,7 @@ const ManageReport = () => {
     } finally {
       setGenerating(false);
     }
-  }, [selectedClient, selectedOrder, draft, clientEquipments, reportType, isolatedFlow, isolatedClient]);
+  }, [selectedClient, selectedOrder, draft, clientEquipments, reportType, isolatedFlow, isolatedClient, printMode, user]);
 
   const resetFlow = useCallback(() => {
     setStep("landing");
@@ -386,7 +437,7 @@ const ManageReport = () => {
               <Cpu className="w-10 h-10 text-orange-400 mx-auto" />
               <p className="text-foreground font-medium">Novo Relatório Especial</p>
               <p className="text-sm text-muted-foreground">
-                Igual ao normal, mais horas agrupadas por equipamento/máquina
+                Vários clientes e equipamentos (e Armazém) no mesmo relatório, com totais por cliente
               </p>
             </CardContent>
           </Card>
@@ -581,7 +632,38 @@ const ManageReport = () => {
                 onChange={setDraft}
                 isolated={isolatedFlow}
                 reportType={reportType}
+                mainClient={selectedClient}
+                allClients={clients}
+                allEquipments={allEquipments}
+                warehouseEquipments={warehouseEquipments}
               />
+              {reportType === "especial" && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">O que sai na impressão</CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      É sempre o mesmo relatório; muda só o que entra no PDF.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    {PRINT_MODES.map(([key, label]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setPrintMode(key)}
+                        aria-pressed={printMode === key}
+                        className={`rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
+                          printMode === key
+                            ? "border-primary bg-primary/15 text-foreground"
+                            : "border-border text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
               <Button
                 onClick={handleGenerate}
                 disabled={generating}

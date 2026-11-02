@@ -11,7 +11,7 @@
 // e possivelmente editada só para este relatório) como terem sido
 // preenchidos de raiz para um relatório isolado.
 import generateServiceOrderPDF from "../orders/components/pdf/generateServiceOrderPDF.jsx";
-import generateMachineHoursReportPDF from "../orders/components/pdf/generateMachineHoursReportPDF.jsx";
+import generateSpecialReportPDF from "./pdf/generateSpecialReportPDF.js";
 import { saveGeneratedReport, deliverPdfToDevice } from "../../utils/reportStorage.js";
 
 /**
@@ -25,6 +25,9 @@ import { saveGeneratedReport, deliverPdfToDevice } from "../../utils/reportStora
  * @param {Object} params.clientData - { name, phone, address } já resolvidos p/ o PDF
  * @param {Object} params.equipmentData - { brand, model, serialNumber } já resolvidos p/ o PDF
  * @param {Array} params.workdays - dias de trabalho (workDate como Date ou "YYYY-MM-DD")
+ * @param {Array} [params.equipments] - só especial: equipamentos (de vários clientes / Armazém)
+ * @param {string} [params.printMode] - só especial: horas | horas_equip | separados | tudo
+ * @param {string} [params.technician] - só especial: nome do técnico
  */
 export async function generateAndSaveReport({
   tipo,
@@ -36,6 +39,9 @@ export async function generateAndSaveReport({
   equipmentData,
   equipmentId,
   workdays,
+  equipments = [],
+  printMode = "tudo",
+  technician = "",
 }) {
   const label = orderNumber || orderId || `AVULSO-${Date.now()}`;
   const fileName =
@@ -64,19 +70,24 @@ export async function generateAndSaveReport({
     partsQuoteItems: order.partsQuoteItems || [],
   };
 
-  const generator = tipo === "especial" ? generateMachineHoursReportPDF : generateServiceOrderPDF;
-
-  const pdfResult = await generator(
-    label,
-    formattedData,
-    clientData,
-    equipmentData,
-    workdays || [],
-    fileName
-  );
+  const pdfResult =
+    tipo === "especial"
+      ? await generateSpecialReportPDF({
+          label,
+          clientData,
+          technician,
+          order,
+          equipments,
+          workdays: workdays || [],
+          printMode,
+        })
+      : await generateServiceOrderPDF(label, formattedData, clientData, equipmentData, workdays || [], fileName);
 
   const clientName = clientData?.name || client?.name || "Cliente não registado";
-  const equipmentLabel = `${equipmentData?.brand || ""} ${equipmentData?.model || ""}`.trim();
+  const equipmentLabel =
+    tipo === "especial" && equipments.length
+      ? equipments.map((e) => `${e.brand || ""} ${e.model || ""}`.trim()).filter(Boolean).join(" · ")
+      : `${equipmentData?.brand || ""} ${equipmentData?.model || ""}`.trim();
 
   const saved = await saveGeneratedReport({
     tipo,

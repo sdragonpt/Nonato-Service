@@ -12,9 +12,11 @@
 // - Serviço isolado (sem cliente) → só equipamento MANUAL (não há
 //   equipamentos registados para escolher).
 // - Relatório normal → no máximo 1 equipamento.
-// - Relatório especial → vários equipamentos; a secção "Horas por Máquina"
-//   escolhe sempre a partir da lista de equipamentos já adicionados aqui em
-//   cima (nunca texto livre).
+// - Relatório especial → vários equipamentos, de QUALQUER cliente registado
+//   ou do Armazém (equipamentos da própria empresa). Cada dia de trabalho
+//   fica ligado a um desses equipamentos e tem o seu horário de trabalho
+//   (início/fim). Para dois equipamentos no mesmo dia, adiciona-se outro dia
+//   com a mesma data. Contas em ../pdf/specialReportData.js.
 //
 // Componente controlado: o estado vive no componente-pai (ManageReport.jsx),
 // que passa `value` + `onChange`.
@@ -25,6 +27,9 @@ import {
   Package,
   Calendar,
   Clock,
+  Copy,
+  Warehouse,
+  Users,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.jsx";
@@ -41,6 +46,7 @@ import {
   SelectValue,
 } from "@/components/ui/select.jsx";
 import { toDateKey } from "../../../utils/formatDate.js";
+import { buildSpecialReport, fmtMinutes } from "../pdf/specialReportData.js";
 
 const CHECKLIST_LABELS = {
   concluido: "Serviço Concluído",
@@ -53,12 +59,18 @@ const CHECKLIST_LABELS = {
 
 const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-export const emptyEquipmentEntry = () => ({
+export const emptyEquipmentEntry = (patch = {}) => ({
   id: genId(),
+  // Relatório especial: "cliente" (equipamento de um cliente registado) ou
+  // "armazem" (equipamento da própria empresa).
+  source: "cliente",
+  clientId: "",
+  clientName: "",
   equipmentId: "",
   brand: "",
   model: "",
   serialNumber: "",
+  ...patch,
 });
 
 export const emptyReportDraft = () => ({
@@ -93,7 +105,16 @@ const emptyWorkday = () => ({
   returnArrivalTime: "",
   description: "",
   machineEntries: [],
+  // Relatório especial: equipamento do dia e horário de trabalho
+  equipoId: "",
+  startHour: "",
+  endHour: "",
 });
+
+const addDays = (key, n) => {
+  const [y, m, d] = (key || toDateKey()).split("-").map(Number);
+  return toDateKey(new Date(y, m - 1, d + n));
+};
 
 const emptyMachineEntry = () => ({
   id: genId(),
@@ -104,7 +125,19 @@ const emptyMachineEntry = () => ({
   endHour: "",
 });
 
-const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = false, reportType = "normal" }) => {
+const ReportOrderForm = ({
+  clientEquipments = [],
+  value,
+  onChange,
+  isolated = false,
+  reportType = "normal",
+  // Só no relatório especial:
+  mainClient = null,
+  allClients = [],
+  allEquipments = [],
+  warehouseEquipments = [],
+}) => {
+  const special = reportType === "especial";
   const set = (patch) => onChange({ ...value, ...patch });
   const setChecklist = (key, checked) =>
     onChange({ ...value, checklist: { ...value.checklist, [key]: checked } });
@@ -113,14 +146,60 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
   const canAddEquipment =
     reportType === "especial" ? true : value.equipamentos.length === 0;
 
-  const addEquipment = () => set({ equipamentos: [...value.equipamentos, emptyEquipmentEntry()] });
+  const addEquipment = (source = "cliente") =>
+    set({
+      equipamentos: [
+        ...value.equipamentos,
+        emptyEquipmentEntry(
+          special && !isolated
+            ? source === "armazem"
+              ? { source: "armazem" }
+              : { source: "cliente", clientId: mainClient?.id || "", clientName: mainClient?.name || "" }
+            : {}
+        ),
+      ],
+    });
+  const patchEquipment = (entryId, patch) =>
+    set({ equipamentos: value.equipamentos.map((e) => (e.id === entryId ? { ...e, ...patch } : e)) });
+  const setEquipmentClient = (entryId, clientId) => {
+    const c = allClients.find((x) => x.id === clientId);
+    patchEquipment(entryId, { clientId, clientName: c?.name || "", equipmentId: "", brand: "", model: "", serialNumber: "" });
+  };
+  const setAnyClientEquipment = (entryId, equipmentId) => {
+    const eq = allEquipments.find((e) => e.id === equipmentId);
+    patchEquipment(entryId, {
+      equipmentId,
+      brand: eq?.brand || "",
+      model: eq?.model || "",
+      serialNumber: eq?.serialNumber || "",
+    });
+  };
+  const setWarehouseEquipment = (entryId, equipmentId) => {
+    const eq = warehouseEquipments.find((e) => e.id === equipmentId);
+    patchEquipment(entryId, {
+      source: "armazem",
+      clientId: "",
+      clientName: "",
+      equipmentId,
+      brand: eq?.marca || eq?.nome || "",
+      model: eq?.modelo || "",
+      serialNumber: eq?.numeroSerie || "",
+    });
+  };
+  const equipmentsOfClient = (clientId) => allEquipments.filter((e) => e.clientId === clientId);
+  const equipmentName = (eq) =>
+    [eq.brand, eq.model].filter(Boolean).join(" ").trim() ||
+    (eq.equipmentId ? "Equipamento" : "Equipamento por escolher");
+  const equipmentOption = (eq, i) =>
+    `#${i + 1} ${equipmentName(eq)}${eq.source === "armazem" ? " · Armazém" : eq.clientName ? ` · ${eq.clientName}` : ""}`;
   const removeEquipment = (id) => {
     const removedIds = new Set([id]);
     set({
       equipamentos: value.equipamentos.filter((e) => e.id !== id),
-      // Limpa também as referências a este equipamento nas horas por máquina.
+      // Limpa também as referências a este equipamento nos dias.
       workdays: value.workdays.map((w) => ({
         ...w,
+        equipoId: removedIds.has(w.equipoId) ? "" : w.equipoId,
         machineEntries: w.machineEntries.map((entry) =>
           removedIds.has(entry.equipoId)
             ? { ...entry, equipoId: "", equipmentId: null, equipmentLabel: "" }
@@ -163,7 +242,29 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
     set({ partsQuoteItems: value.partsQuoteItems.filter((p) => p.id !== id) });
 
   // ── Dias de Trabalho ─────────────────────────────────────────────────────
-  const addWorkday = () => set({ workdays: [...value.workdays, emptyWorkday()] });
+  const addWorkday = () => {
+    const last = value.workdays[value.workdays.length - 1];
+    // No especial, o dia novo continua no equipamento do último dia, no dia seguinte.
+    set({
+      workdays: [
+        ...value.workdays,
+        special && last
+          ? { ...emptyWorkday(), workDate: addDays(last.workDate, 1), equipoId: last.equipoId }
+          : emptyWorkday(),
+      ],
+    });
+  };
+  // Copia um dia (horários incluídos) para o dia seguinte — semanas iguais
+  // preenchem-se em poucos cliques.
+  const copyWorkdayToNext = (id) => {
+    const i = value.workdays.findIndex((w) => w.id === id);
+    const src = value.workdays[i];
+    const copy = { ...src, id: genId(), workDate: addDays(src.workDate, 1), description: "", machineEntries: [] };
+    const next = [...value.workdays];
+    next.splice(i + 1, 0, copy);
+    set({ workdays: next });
+  };
+  const specialSummary = special ? buildSpecialReport(value.equipamentos, value.workdays) : null;
   const updateWorkday = (id, patch) =>
     set({ workdays: value.workdays.map((w) => (w.id === id ? { ...w, ...patch } : w)) });
   const removeWorkday = (id) => set({ workdays: value.workdays.filter((w) => w.id !== id) });
@@ -208,21 +309,31 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
               <Wrench className="h-4 w-4" />
               {reportType === "especial" ? "Equipamentos" : "Equipamento"}
             </span>
-            {canAddEquipment && (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={addEquipment}
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Adicionar
-              </Button>
+            {special && !isolated ? (
+              <span className="flex flex-wrap gap-2">
+                <Button type="button" size="sm" variant="outline" onClick={() => addEquipment("cliente")}>
+                  <Users className="h-3.5 w-3.5" />
+                  De um cliente
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => addEquipment("armazem")}>
+                  <Warehouse className="h-3.5 w-3.5" />
+                  Do Armazém
+                </Button>
+              </span>
+            ) : (
+              canAddEquipment && (
+                <Button type="button" size="sm" variant="outline" onClick={() => addEquipment()}>
+                  <Plus className="h-3.5 w-3.5" />
+                  Adicionar
+                </Button>
+              )
             )}
           </CardTitle>
           <p className="text-xs text-muted-foreground">
             {isolated
               ? "Serviço isolado — introduz os dados do equipamento manualmente."
+              : special
+              ? "Equipamentos de qualquer cliente registado ou do Armazém (equipamentos da própria empresa). Cada dia de trabalho escolhe um destes."
               : "Só equipamentos registados neste cliente."}
           </p>
         </CardHeader>
@@ -230,9 +341,71 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
           {value.equipamentos.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum equipamento adicionado.</p>
           ) : (
-            value.equipamentos.map((eq) => (
+            value.equipamentos.map((eq, index) => (
               <div key={eq.id} className="flex items-start gap-2">
-                {isolated ? (
+                {special && !isolated && (
+                  <span className="mt-2.5 w-6 shrink-0 text-center text-xs font-semibold text-primary">#{index + 1}</span>
+                )}
+                {special && !isolated ? (
+                  eq.source === "armazem" ? (
+                    <div className="flex flex-1 flex-col gap-2 sm:flex-row">
+                      <div className="flex h-10 items-center gap-2 rounded-lg bg-muted/60 px-3 text-sm sm:w-56">
+                        <Warehouse className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        Armazém (própria empresa)
+                      </div>
+                      <Select value={eq.equipmentId} onValueChange={(v) => setWarehouseEquipment(eq.id, v)}>
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Escolhe o equipamento do Armazém" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {warehouseEquipments.length === 0 && (
+                            <div className="px-3 py-2 text-sm text-muted-foreground">Não há equipamentos no Armazém</div>
+                          )}
+                          {warehouseEquipments.map((w) => (
+                            <SelectItem key={w.id} value={w.id}>
+                              {[w.marca, w.modelo].filter(Boolean).join(" ") || w.nome}
+                              {w.numeroSerie ? ` — ${w.numeroSerie}` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="flex flex-1 flex-col gap-2 sm:flex-row">
+                      <Select value={eq.clientId} onValueChange={(v) => setEquipmentClient(eq.id, v)}>
+                        <SelectTrigger className="sm:w-56">
+                          <SelectValue placeholder="Cliente" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {allClients.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={eq.equipmentId}
+                        onValueChange={(v) => setAnyClientEquipment(eq.id, v)}
+                        disabled={!eq.clientId}
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder={eq.clientId ? "Escolhe o equipamento" : "Escolhe primeiro o cliente"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {equipmentsOfClient(eq.clientId).length === 0 && (
+                            <div className="px-3 py-2 text-sm text-muted-foreground">Este cliente não tem equipamentos registados</div>
+                          )}
+                          {equipmentsOfClient(eq.clientId).map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.brand} {c.model} {c.serialNumber ? `— ${c.serialNumber}` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )
+                ) : isolated ? (
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1">
                     <Input
                       placeholder="Marca"
@@ -448,6 +621,22 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {special && value.workdays.length > 0 && (
+            <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-3 text-sm sm:grid-cols-5">
+              {[
+                ["Trabalho", `${fmtMinutes(specialSummary.totals.trabalho)} h`],
+                ["Ida", `${fmtMinutes(specialSummary.totals.ida)} h`],
+                ["Retorno", `${fmtMinutes(specialSummary.totals.retorno)} h`],
+                ["Km", specialSummary.totals.km],
+                ["Diárias", specialSummary.totals.diarias],
+              ].map(([k, v]) => (
+                <div key={k}>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{k}</p>
+                  <p className="font-semibold tabular-nums">{v}</p>
+                </div>
+              ))}
+            </div>
+          )}
           {value.workdays.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum dia de trabalho adicionado.</p>
           ) : (
@@ -458,6 +647,19 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
                     <Calendar className="h-3.5 w-3.5" />
                     Dia de trabalho
                   </div>
+                  {special && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyWorkdayToNext(workday.id)}
+                      className="ml-auto mr-1 h-7 text-xs text-muted-foreground"
+                      title="Cria o dia seguinte com os mesmos horários e equipamento"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      Copiar para o dia seguinte
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     variant="ghost"
@@ -552,6 +754,48 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
                   </div>
                 </div>
 
+                {special && (
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_8rem_8rem]">
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-muted-foreground">Equipamento / cliente deste dia</label>
+                      <Select
+                        value={workday.equipoId || ""}
+                        onValueChange={(v) => updateWorkday(workday.id, { equipoId: v })}
+                        disabled={value.equipamentos.length === 0}
+                      >
+                        <SelectTrigger className="text-sm">
+                          <SelectValue placeholder={value.equipamentos.length ? "Escolhe o equipamento" : "Adiciona equipamentos em cima"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {value.equipamentos.map((eq, i) => (
+                            <SelectItem key={eq.id} value={eq.id}>
+                              {equipmentOption(eq, i)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-muted-foreground">Início do trabalho</label>
+                      <Input
+                        type="time"
+                        value={workday.startHour || ""}
+                        onChange={(e) => updateWorkday(workday.id, { startHour: e.target.value })}
+                        className="text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-muted-foreground">Fim do trabalho</label>
+                      <Input
+                        type="time"
+                        value={workday.endHour || ""}
+                        onChange={(e) => updateWorkday(workday.id, { endHour: e.target.value })}
+                        className="text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <Textarea
                   value={workday.description}
                   onChange={(e) => updateWorkday(workday.id, { description: e.target.value })}
@@ -560,7 +804,9 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
                 />
 
                 {/* Horas por máquina — escolhidas de entre os equipamentos já
-                    adicionados em cima, nunca texto livre. */}
+                    adicionados em cima, nunca texto livre. (No especial o
+                    próprio dia já tem equipamento + horário.) */}
+                {!special && (
                 <div className="space-y-2 pt-1 border-t border-border">
                   <div className="flex items-center justify-between pt-2">
                     <span className="text-xs text-muted-foreground flex items-center gap-1.5">
@@ -627,6 +873,7 @@ const ReportOrderForm = ({ clientEquipments = [], value, onChange, isolated = fa
                     </div>
                   ))}
                 </div>
+                )}
               </div>
             ))
           )}
