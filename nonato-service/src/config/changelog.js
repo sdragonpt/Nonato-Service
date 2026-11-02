@@ -17,6 +17,17 @@
 
 export const CHANGELOG = [
   {
+    n: 24,
+    versao: "1.14.0",
+    data: "2026-11-02",
+    titulo: "Solicitar fatura a partir do cliente",
+    itens: [
+      { tipo: "novo", texto: "Nos Detalhes do Cliente (e no menu ⋮ de cada cliente na lista) há o botão Solicitar fatura: escreve-se o valor e sai o PDF do pedido de fatura com os dados do cliente, o texto do pedido e a nota." },
+      { tipo: "novo", texto: "Pode acrescentar-se IVA (23% por defeito, a taxa muda-se) — o PDF mostra o valor sem IVA, o IVA e o total." },
+      { tipo: "melhoria", texto: "Os dados do cliente vêm preenchidos e podem ser acertados só para esse PDF (ex.: acrescentar o e-mail), sem mexer na ficha." },
+    ],
+  },
+  {
     n: 23,
     versao: "1.13.0",
     data: "2026-10-27",

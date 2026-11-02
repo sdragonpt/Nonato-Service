@@ -22,6 +22,7 @@ import {
 import { db, storage } from "../../../firebase";
 import { useClients } from "../../../context/ClientsContext.jsx";
 import { ClientGroupField } from "../../../components/shared/GroupFields.jsx";
+import SolicitarFaturaDialog from "./SolicitarFaturaDialog.jsx";
 import { useEquipments } from "../../../context/EquipmentsContext.jsx";
 import { useOrcamentos } from "../../../context/OrcamentosContext.jsx";
 import { downloadFileFromUrl } from "../../../utils/reportStorage.js";
@@ -52,6 +53,7 @@ import {
   UserCog,
   LayoutGrid,
   FolderOpen,
+  Receipt,
 } from "lucide-react";
 
 // UI Components
@@ -918,6 +920,7 @@ const ClientDetail = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [faturaOpen, setFaturaOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -1075,7 +1078,11 @@ const ClientDetail = () => {
               <p className="text-sm text-muted-foreground">{client.nif || "Sem NIF"}</p>
             </div>
 
-            <div className="flex gap-2 shrink-0">
+            <div className="flex flex-wrap gap-2 sm:shrink-0">
+              <Button onClick={() => setFaturaOpen(true)}>
+                <Receipt className="w-4 h-4" />
+                Solicitar fatura
+              </Button>
               <Button variant="outline" onClick={() => navigate(`/app/edit-client/${clientId}`)}>
                 <Edit2 className="w-4 h-4" />
                 Editar
@@ -1323,6 +1330,8 @@ const ClientDetail = () => {
       </Tabs>
 
       {/* Delete Confirmation Dialog */}
+      <SolicitarFaturaDialog open={faturaOpen} onOpenChange={setFaturaOpen} client={client} />
+
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>

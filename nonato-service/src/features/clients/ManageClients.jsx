@@ -33,6 +33,7 @@ import {
   ArrowUpDown,
   Edit2,
   Phone,
+  Receipt,
 } from "lucide-react";
 
 // UI Components
@@ -72,6 +73,7 @@ import {
   getPaymentStatus, 
   formatPrice
 } from "../../utils/financialUtils";
+import SolicitarFaturaDialog from "./components/SolicitarFaturaDialog.jsx";
 
 // ===================================
 // HOOK PARA STATUS FINANCEIRO DOS CLIENTES
@@ -207,7 +209,7 @@ const calculateClientFinancialStatus = (clientServices) => {
 // ===================================
 // COMPONENTE ClientCard OTIMIZADO
 // ===================================
-const ClientCard = ({ client, onEdit, onDelete, onView, financialStatus, groupNames }) => {
+const ClientCard = ({ client, onEdit, onDelete, onView, onInvoice, financialStatus, groupNames }) => {
   const confirmDelete = (e) => {
     e.stopPropagation();
     onDelete(client.id);
@@ -258,6 +260,10 @@ const ClientCard = ({ client, onEdit, onDelete, onView, financialStatus, groupNa
               <DropdownMenuItem onClick={() => onView(client.id)}>
                 <Eye className="h-4 w-4" />
                 Ver Detalhes
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onInvoice(client)}>
+                <Receipt className="h-4 w-4" />
+                Solicitar fatura
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onEdit(client.id)}>
                 <Edit2 className="h-4 w-4" />
@@ -324,6 +330,7 @@ const ManageClients = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [invoiceClient, setInvoiceClient] = useState(null); // cliente da janela "Solicitar fatura"
   const [groupFilter, setGroupFilter] = useState("all"); // "all" | "none" | id do grupo
   // Os grupos dos clientes são os de Serviços e Valores (tabelas de preços).
   const { groups, byId: groupsById } = useGroups(GROUP_KINDS.SERVICOS);
@@ -743,12 +750,19 @@ const ManageClients = () => {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onView={handleView}
+              onInvoice={setInvoiceClient}
             />
           ))}
         </div>
       )}
 
       {hasMoreVisible && <LoadMoreButton onClick={loadMoreVisible} />}
+
+      <SolicitarFaturaDialog
+        open={!!invoiceClient}
+        onOpenChange={(open) => !open && setInvoiceClient(null)}
+        client={invoiceClient}
+      />
 
 
       <Fab
