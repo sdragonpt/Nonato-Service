@@ -98,17 +98,19 @@ export async function generateSolicitacaoFaturaPDF({ client, data, texto, valor,
     lineRow(`IVA (${Number(taxaIva) || 0}%)`, formatEuro(iva));
     kit.y -= 4;
   }
-  const totalH = 28;
-  kit.rect(boxX, kit.y - totalH, boxW, totalH, kit.colors.dark);
-  kit.text(comIva ? "Total (IVA incluído)" : "Valor", boxX + 12, kit.y - 18, {
+  // Fundo verde-claro com texto escuro: o valor lê-se bem no ecrã e impresso.
+  const totalH = 30;
+  kit.rect(boxX, kit.y - totalH, boxW, totalH, kit.colors.accentSoft, kit.colors.accent, 0.75);
+  kit.rect(boxX, kit.y - totalH, 3, totalH, kit.colors.accent);
+  kit.text(comIva ? "Total (IVA incluído)" : "Valor", boxX + 14, kit.y - 19, {
     size: 9.5,
     useFont: kit.boldFont,
-    color: kit.colors.white,
+    color: kit.colors.ink,
   });
-  kit.text(formatEuro(total), boxX + boxW - 12, kit.y - 19, {
-    size: 12,
+  kit.text(formatEuro(total), boxX + boxW - 12, kit.y - 20, {
+    size: 13,
     useFont: kit.boldFont,
-    color: kit.colors.accent,
+    color: kit.colors.ink,
     align: "right",
   });
   kit.y -= totalH + 22;
