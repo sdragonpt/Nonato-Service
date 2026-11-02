@@ -81,17 +81,37 @@ export async function generateSolicitacaoFaturaPDF({ client, data, texto, valor,
     { cols: 1 }
   );
 
-  kit.sectionTitle("Valor a faturar");
+  // Valor: caixa discreta alinhada à direita (com IVA, duas linhas por cima
+  // do total), em vez de uma faixa a toda a largura.
   const { base, iva, total } = invoiceAmounts({ valor, comIva, taxaIva });
+  const boxW = 230;
+  const boxX = PDF_PAGE_WIDTH - PDF_MARGIN - boxW;
+  const lineRow = (label, value) => {
+    kit.text(label, boxX + 12, kit.y - 12, { size: 9, color: kit.colors.muted });
+    kit.text(value, boxX + boxW - 12, kit.y - 12, { size: 9, color: kit.colors.ink, align: "right" });
+    kit.hLine(boxX, boxX + boxW, kit.y - 18, 0.5, kit.colors.lineSoft);
+    kit.y -= 20;
+  };
+  kit.checkSpace(comIva ? 80 : 40);
   if (comIva) {
-    kit.statRow([
-      { label: "Valor (sem IVA)", value: formatEuro(base) },
-      { label: `IVA (${Number(taxaIva) || 0}%)`, value: formatEuro(iva) },
-    ]);
-    kit.statBand("Total a faturar", formatEuro(total), "IVA incluído");
-  } else {
-    kit.statBand("Valor a faturar", formatEuro(total));
+    lineRow("Valor sem IVA", formatEuro(base));
+    lineRow(`IVA (${Number(taxaIva) || 0}%)`, formatEuro(iva));
+    kit.y -= 4;
   }
+  const totalH = 28;
+  kit.rect(boxX, kit.y - totalH, boxW, totalH, kit.colors.dark);
+  kit.text(comIva ? "Total (IVA incluído)" : "Valor", boxX + 12, kit.y - 18, {
+    size: 9.5,
+    useFont: kit.boldFont,
+    color: kit.colors.white,
+  });
+  kit.text(formatEuro(total), boxX + boxW - 12, kit.y - 19, {
+    size: 12,
+    useFont: kit.boldFont,
+    color: kit.colors.accent,
+    align: "right",
+  });
+  kit.y -= totalH + 22;
 
   if (nota && nota.trim()) {
     kit.sectionTitle("Nota");
