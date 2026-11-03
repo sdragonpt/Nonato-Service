@@ -17,6 +17,18 @@
 
 export const CHANGELOG = [
   {
+    n: 26,
+    versao: "1.16.0",
+    data: "2026-11-03",
+    titulo: "Solicitar fatura: avulsa, orçamento de peças ou ordem de serviço",
+    itens: [
+      { tipo: "novo", texto: "Ao solicitar a fatura escolhe-se o tipo: Avulsa (serviços por mensagem, documentos por e-mail…), Orçamento de peças ou Ordem de serviço." },
+      { tipo: "novo", texto: "Orçamento de peças: o pedido leva o mesmo número do orçamento (ORP-…) e o valor das peças. Aparecem os orçamentos deste cliente e os mais recentes de todos, porque muitos são criados sem cliente ligado." },
+      { tipo: "novo", texto: "Ordem de serviço: o pedido leva o número da OS e, se a OS já tiver fechamento, o valor e o IVA vêm de lá." },
+      { tipo: "melhoria", texto: "O número aparece no topo do PDF; se o documento não estiver na lista, escreve-se o número à mão." },
+    ],
+  },
+  {
     n: 25,
     versao: "1.15.0",
     data: "2026-11-02",

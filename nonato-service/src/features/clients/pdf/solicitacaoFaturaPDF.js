@@ -1,7 +1,9 @@
 // src/features/clients/pdf/solicitacaoFaturaPDF.js
 // "Solicitação de Fatura" — pedido para emitir uma fatura a um cliente, com
 // o texto do pedido, os dados do cliente, o valor e uma nota. Gerado a partir
-// dos Detalhes do Cliente. Usa o mesmo kit de design dos outros PDFs
+// dos Detalhes do Cliente. Três tipos: avulsa, orçamento de peças e ordem de
+// serviço — nos dois últimos o pedido leva o MESMO número do documento de
+// origem (ORP-… / OS-…), que aparece no cabeçalho. Usa o mesmo kit de design dos outros PDFs
 // (utils/pdf/pdfKit.js).
 
 import { PDFDocument } from "pdf-lib";
@@ -39,6 +41,13 @@ function paragraph(kit, text, { size = 10, gapAfter = 18 } = {}) {
   kit.y -= boxH + gapAfter;
 }
 
+/** Tipos de pedido de fatura (rótulos). */
+export const TIPOS_FATURA = {
+  avulsa: "Avulsa",
+  pecas: "Orçamento de peças",
+  os: "Ordem de serviço",
+};
+
 /**
  * @param {Object} params
  * @param {Object} params.client   { name, company, nif, address, postalCode, email, phone }
@@ -48,19 +57,38 @@ function paragraph(kit, text, { size = 10, gapAfter = 18 } = {}) {
  * @param {boolean} params.comIva  acrescentar IVA ao valor
  * @param {number} params.taxaIva  % de IVA
  * @param {string} params.nota
+ * @param {"avulsa"|"pecas"|"os"} [params.tipo]
+ * @param {string} [params.referencia]  nº do orçamento de peças / da OS
  */
-export async function generateSolicitacaoFaturaPDF({ client, data, texto, valor, comIva, taxaIva, nota }) {
+export async function generateSolicitacaoFaturaPDF({
+  client,
+  data,
+  texto,
+  valor,
+  comIva,
+  taxaIva,
+  nota,
+  tipo = "avulsa",
+  referencia = "",
+}) {
   const pdfDoc = await PDFDocument.create();
   const dateLabel = new Date(`${data}T12:00:00`).toLocaleDateString("pt-PT");
   const kit = await createPdfKit(pdfDoc, {
     title: "Solicitação de Fatura",
     subtitle: "Nonato Service · Assistência Técnica",
-    docLabel: "Data",
-    docNumber: dateLabel,
+    // Com documento de origem, o cabeçalho mostra o número dele; senão, a data.
+    docLabel: referencia ? "Nº" : "Data",
+    docNumber: referencia || dateLabel,
     footerNote: "NONATO SERVICE · SOLICITAÇÃO DE FATURA",
   });
 
   kit.newPage();
+
+  kit.infoPanel([
+    ["Tipo", TIPOS_FATURA[tipo] || TIPOS_FATURA.avulsa],
+    [tipo === "pecas" ? "Nº do orçamento de peças" : tipo === "os" ? "Nº da ordem de serviço" : "Referência", referencia || "—"],
+    ["Data", dateLabel],
+  ], { cols: 3 });
 
   kit.sectionTitle("Pedido");
   paragraph(kit, texto);
@@ -133,6 +161,6 @@ export async function generateSolicitacaoFaturaPDF({ client, data, texto, valor,
   const safeName = (client.name || "Cliente").replace(/[\\/:*?"<>|]/g, "").trim();
   await deliverPdfToDevice(
     new Blob([bytes], { type: "application/pdf" }),
-    `Solicitação de fatura - ${safeName}.pdf`
+    `Solicitação de fatura - ${referencia ? `${referencia} - ` : ""}${safeName}.pdf`
   );
 }
