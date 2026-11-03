@@ -112,14 +112,14 @@ export async function generateSolicitacaoFaturaPDF({
   );
 
   if (maquinas.length) {
-    kit.sectionTitle(maquinas.length === 1 ? "Máquina" : "Máquinas");
+    kit.sectionTitle(maquinas.length === 1 ? "Equipamento" : "Equipamentos");
     const colN = 30;
     const colNum = 150;
     const colNome = CONTENT_WIDTH - colN - colNum;
     const cols = [
       { header: "#", width: colN, align: "center", key: "i" },
-      { header: "Máquina", width: colNome, key: "nome" },
-      { header: "Nº da máquina", width: colNum, key: "numero" },
+      { header: "Equipamento", width: colNome, key: "nome" },
+      { header: "Nº do equipamento", width: colNum, key: "numero" },
     ];
     kit.tableHeader(cols);
     maquinas.forEach((m, i) =>

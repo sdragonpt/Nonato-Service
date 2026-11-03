@@ -11,7 +11,7 @@
 //   ligado (muitos são criados sem cliente), aparecem TODOS. O pedido leva o
 //   mesmo número (ORP-…) e o valor vem das peças;
 // - Ordem de serviço — escolhe-se uma OS do cliente; o pedido leva o número
-//   da OS e as máquinas dela (nome + nº de série) e, se a OS já tiver
+//   da OS e os equipamentos dela (nome + nº de série) e, se a OS já tiver
 //   fechamento, o valor e o IVA vêm de lá.
 // O número e o valor são sempre editáveis (para documentos que não estejam na lista).
 // Cada pedido gerado fica guardado no perfil do cliente (só os dados, não o
@@ -56,7 +56,7 @@ import {
 const toMillis = (v) => (v?.toDate ? v.toDate().getTime() : new Date(v || 0).getTime() || 0);
 const RECENT_QUOTES = 50;
 
-// Máquinas de uma OS: a lista `equipmentsList` (OS com vários equipamentos);
+// Equipamentos de uma OS: a lista `equipmentsList` (OS com vários equipamentos);
 // nas mais antigas, o `equipmentId` (procura-se o equipamento) ou o
 // equipamento escrito à mão (`manualEquipment`).
 const machineOf = (e) => ({
@@ -187,7 +187,7 @@ const SolicitarFaturaDialog = ({ open, onOpenChange, client, onSaved }) => {
     setForm((f) => ({ ...f, referencia: o.orderNumber || o.id, maquinas: [] }));
     orderMachines(o)
       .then((maquinas) => setForm((f) => (f.referencia === (o.orderNumber || o.id) ? { ...f, maquinas } : f)))
-      .catch((err) => console.error("Erro ao ler as máquinas da OS:", err));
+      .catch((err) => console.error("Erro ao ler os equipamentos da OS:", err));
     try {
       const snap = await getDocs(query(collection(db, "orcamentos"), where("orderId", "==", id)));
       const fechamentos = snap.docs
@@ -369,7 +369,7 @@ const SolicitarFaturaDialog = ({ open, onOpenChange, client, onSaved }) => {
           {form.tipo === "os" && form.maquinas.length > 0 && (
             <div className="surface-muted space-y-1.5 p-3">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {form.maquinas.length === 1 ? "Máquina da OS" : `Máquinas da OS (${form.maquinas.length})`} — saem no PDF
+                {form.maquinas.length === 1 ? "Equipamento da OS" : `Equipamentos da OS (${form.maquinas.length})`} — saem no PDF
               </p>
               {form.maquinas.map((m, i) => (
                 <div key={i} className="flex items-center justify-between gap-3 text-sm">
