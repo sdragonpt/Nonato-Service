@@ -261,6 +261,8 @@ service cloud.firestore {
     match /checklist_machines/{id} { allow read, write: if isAuthorized(); }
     match /inspections/{id} { allow read, write: if isAuthorized(); }
     match /relatorios/{id} { allow read, write: if isAuthorized(); }
+    // Pedidos de fatura (só os dados preenchidos; ver features/clients/invoiceRequests.js)
+    match /pedidosFatura/{id} { allow read, write: if isAuthorized(); }
     match /mensagensInternas/{id} { allow read, write: if isAuthorized(); }
     match /doc_families/{id} { allow read, write: if isAuthorized(); }
     match /doc_machine_types/{id} { allow read, write: if isAuthorized(); }

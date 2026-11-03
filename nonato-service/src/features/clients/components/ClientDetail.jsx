@@ -23,6 +23,7 @@ import { db, storage } from "../../../firebase";
 import { useClients } from "../../../context/ClientsContext.jsx";
 import { ClientGroupField } from "../../../components/shared/GroupFields.jsx";
 import SolicitarFaturaDialog from "./SolicitarFaturaDialog.jsx";
+import ClientInvoiceRequests from "./ClientInvoiceRequests.jsx";
 import { useEquipments } from "../../../context/EquipmentsContext.jsx";
 import { useOrcamentos } from "../../../context/OrcamentosContext.jsx";
 import { downloadFileFromUrl } from "../../../utils/reportStorage.js";
@@ -921,6 +922,7 @@ const ClientDetail = () => {
   const [error, setError] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [faturaOpen, setFaturaOpen] = useState(false);
+  const [faturasKey, setFaturasKey] = useState(0); // recarrega a lista de pedidos de fatura
 
   useEffect(() => {
     const fetchData = async () => {
@@ -1323,6 +1325,7 @@ const ClientDetail = () => {
 
         {/* Documentos: anexos + relatórios + inspeções */}
         <TabsContent value="documentos" className="space-y-4">
+          <ClientInvoiceRequests clientId={clientId} refreshKey={faturasKey} />
           <ClientAttachments clientId={clientId} />
           <ClientReportsSection clientId={clientId} />
           <ClientInspectionsSection clientId={clientId} />
@@ -1330,7 +1333,12 @@ const ClientDetail = () => {
       </Tabs>
 
       {/* Delete Confirmation Dialog */}
-      <SolicitarFaturaDialog open={faturaOpen} onOpenChange={setFaturaOpen} client={client} />
+      <SolicitarFaturaDialog
+        open={faturaOpen}
+        onOpenChange={setFaturaOpen}
+        client={client}
+        onSaved={() => setFaturasKey((k) => k + 1)}
+      />
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>

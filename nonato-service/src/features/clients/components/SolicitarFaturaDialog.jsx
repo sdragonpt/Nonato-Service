@@ -6,17 +6,23 @@
 //
 // Tipos:
 // - Avulsa — serviços por mensagem, documentos por e-mail, etc. (valor à mão);
-// - Orçamento de peças — escolhe-se um orçamento de peças (os ligados a este
-//   cliente e os 50 mais recentes, porque muitos são criados sem cliente
-//   ligado); o pedido leva o mesmo número (ORP-…) e o valor vem das peças;
+// - Orçamento de peças — escolhe-se um orçamento de peças: os ligados a este
+//   cliente e os 50 mais recentes de todos; se o cliente não tiver nenhum
+//   ligado (muitos são criados sem cliente), aparecem TODOS. O pedido leva o
+//   mesmo número (ORP-…) e o valor vem das peças;
 // - Ordem de serviço — escolhe-se uma OS do cliente; o pedido leva o número
-//   da OS e, se a OS já tiver fechamento, o valor e o IVA vêm de lá.
+//   da OS e as máquinas dela (nome + nº de série) e, se a OS já tiver
+//   fechamento, o valor e o IVA vêm de lá.
 // O número e o valor são sempre editáveis (para documentos que não estejam na lista).
+// Cada pedido gerado fica guardado no perfil do cliente (só os dados, não o
+// PDF) — ver ../invoiceRequests.js e ClientInvoiceRequests.jsx.
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, limit, orderBy, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 import { FileText, Loader2, Euro } from "lucide-react";
 import { db } from "../../../firebase.jsx";
+import { useAuth } from "../../../hooks/useAuth";
+import { saveInvoiceRequest } from "../invoiceRequests.js";
 import { formatDate } from "../../../utils/formatDate.js";
 import {
   Dialog,
@@ -49,6 +55,23 @@ import {
 
 const toMillis = (v) => (v?.toDate ? v.toDate().getTime() : new Date(v || 0).getTime() || 0);
 const RECENT_QUOTES = 50;
+
+// Máquinas de uma OS: a lista `equipmentsList` (OS com vários equipamentos);
+// nas mais antigas, o `equipmentId` (procura-se o equipamento) ou o
+// equipamento escrito à mão (`manualEquipment`).
+const machineOf = (e) => ({
+  nome: [e.brand, e.model].filter(Boolean).join(" ").trim() || e.type || "Equipamento",
+  numero: e.serialNumber || "",
+});
+async function orderMachines(order) {
+  if (order.equipmentsList?.length) return order.equipmentsList.map(machineOf);
+  if (order.equipmentId) {
+    const snap = await getDoc(doc(db, "equipamentos", order.equipmentId));
+    if (snap.exists()) return [machineOf(snap.data())];
+  }
+  if (order.manualEquipment?.model || order.manualEquipment?.brand) return [machineOf(order.manualEquipment)];
+  return [];
+}
 const quoteClientName = (q) => q.unregisteredClient?.name || q.clientName || "Sem cliente";
 const partsTotal = (q) =>
   (q.partsQuoteItems || q.items || []).reduce((t, i) => t + (Number(i.quantity) || 0) * (Number(i.price) || 0), 0);
@@ -59,7 +82,8 @@ const today = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
-const SolicitarFaturaDialog = ({ open, onOpenChange, client }) => {
+const SolicitarFaturaDialog = ({ open, onOpenChange, client, onSaved }) => {
+  const { user } = useAuth();
   const [form, setForm] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
@@ -68,6 +92,9 @@ const SolicitarFaturaDialog = ({ open, onOpenChange, client }) => {
   // Orçamentos de peças recentes de qualquer cliente (só se carregam ao escolher "peças")
   const [recentQuotes, setRecentQuotes] = useState(null);
   const [docId, setDocId] = useState("");
+  // Número que veio do documento escolhido — se for alterado à mão, o pedido
+  // deixa de ficar ligado a esse documento.
+  const [docRef, setDocRef] = useState("");
 
   // Cada vez que abre, recomeça com os dados atuais do cliente.
   useEffect(() => {
@@ -88,8 +115,10 @@ const SolicitarFaturaDialog = ({ open, onOpenChange, client }) => {
       nota: "Prestação de serviços",
       tipo: "avulsa",
       referencia: "",
+      maquinas: [],
     });
     setDocId("");
+    setDocRef("");
     setError(null);
     setRecentQuotes(null);
 
@@ -114,15 +143,26 @@ const SolicitarFaturaDialog = ({ open, onOpenChange, client }) => {
     };
   }, [open, client]);
 
+  // Orçamentos de peças de todos os clientes, quando se escolhe "peças" e a
+  // lista do cliente já carregou: sem nenhum ligado → todos; senão → os 50
+  // mais recentes.
+  const tipo = form?.tipo;
+  useEffect(() => {
+    if (tipo !== "pecas" || docs.loading || recentQuotes !== null) return;
+    setRecentQuotes([]);
+    const base = [where("isQuote", "==", true), orderBy("createdAt", "desc")];
+    const q = docs.pecas.length
+      ? query(collection(db, "ordens"), ...base, limit(RECENT_QUOTES))
+      : query(collection(db, "ordens"), ...base);
+    getDocs(q)
+      .then((snap) => setRecentQuotes(snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((d) => !d.eliminadoEm)))
+      .catch((err) => console.error("Erro ao carregar orçamentos de peças:", err));
+  }, [tipo, docs.loading, docs.pecas.length, recentQuotes]);
+
   const setTipo = (tipo) => {
     setDocId("");
-    setForm((f) => ({ ...f, tipo, referencia: "", ...(tipo === "avulsa" ? {} : { valor: "" }) }));
-    if (tipo === "pecas" && recentQuotes === null) {
-      setRecentQuotes([]);
-      getDocs(query(collection(db, "ordens"), where("isQuote", "==", true), orderBy("createdAt", "desc"), limit(RECENT_QUOTES)))
-        .then((snap) => setRecentQuotes(snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((d) => !d.eliminadoEm)))
-        .catch((err) => console.error("Erro ao carregar orçamentos de peças recentes:", err));
-    }
+    setDocRef("");
+    setForm((f) => ({ ...f, tipo, referencia: "", maquinas: [], ...(tipo === "avulsa" ? {} : { valor: "" }) }));
   };
 
   // Ao escolher o documento: número + valor (peças: soma das peças; OS: valor
@@ -132,6 +172,7 @@ const SolicitarFaturaDialog = ({ open, onOpenChange, client }) => {
     if (form.tipo === "pecas") {
       const q = docs.pecas.find((d) => d.id === id) || (recentQuotes || []).find((d) => d.id === id);
       if (!q) return;
+      setDocRef(q.quoteNumber || q.id);
       setForm((f) => ({
         ...f,
         referencia: q.quoteNumber || q.id,
@@ -142,7 +183,11 @@ const SolicitarFaturaDialog = ({ open, onOpenChange, client }) => {
     }
     const o = docs.os.find((d) => d.id === id);
     if (!o) return;
-    setForm((f) => ({ ...f, referencia: o.orderNumber || o.id }));
+    setDocRef(o.orderNumber || o.id);
+    setForm((f) => ({ ...f, referencia: o.orderNumber || o.id, maquinas: [] }));
+    orderMachines(o)
+      .then((maquinas) => setForm((f) => (f.referencia === (o.orderNumber || o.id) ? { ...f, maquinas } : f)))
+      .catch((err) => console.error("Erro ao ler as máquinas da OS:", err));
     try {
       const snap = await getDocs(query(collection(db, "orcamentos"), where("orderId", "==", id)));
       const fechamentos = snap.docs
@@ -196,7 +241,23 @@ const SolicitarFaturaDialog = ({ open, onOpenChange, client }) => {
         nota: form.nota,
         tipo: form.tipo,
         referencia: form.referencia,
+        maquinas: form.tipo === "os" ? form.maquinas : [],
       });
+      // Guarda os dados (não o PDF) no perfil do cliente. Se falhar, o PDF já
+      // saiu — avisa sem fechar a janela.
+      try {
+        await saveInvoiceRequest({
+          clientId: client.id,
+          sourceId: docId && docRef === form.referencia ? docId : null,
+          form,
+          createdBy: user?.displayName || user?.email || "",
+        });
+        onSaved?.();
+      } catch (err) {
+        console.error("Erro ao guardar o pedido de fatura:", err);
+        setError("O PDF foi gerado, mas não foi possível guardar o pedido no perfil do cliente.");
+        return;
+      }
       onOpenChange(false);
     } catch (err) {
       console.error("Erro ao gerar a solicitação de fatura:", err);
@@ -255,7 +316,9 @@ const SolicitarFaturaDialog = ({ open, onOpenChange, client }) => {
                         : docList.length || otherQuotes.length
                         ? "Escolher…"
                         : form.tipo === "pecas"
-                        ? "Sem orçamentos de peças — escreva o número abaixo"
+                        ? recentQuotes === null || recentQuotes.length === 0
+                          ? "A procurar orçamentos de peças…"
+                          : "Sem orçamentos de peças — escreva o número abaixo"
                         : "Este cliente não tem ordens de serviço — escreva o número abaixo"
                     }
                   />
@@ -273,7 +336,7 @@ const SolicitarFaturaDialog = ({ open, onOpenChange, client }) => {
                       )}
                       {otherQuotes.length > 0 && (
                         <SelectGroup>
-                          <SelectLabel>Outros recentes</SelectLabel>
+                          <SelectLabel>{docList.length ? "Outros recentes" : "Todos os orçamentos de peças"}</SelectLabel>
                           {otherQuotes.map((d) => (
                             <SelectItem key={d.id} value={d.id}>{quoteLabel(d, true)}</SelectItem>
                           ))}
@@ -301,6 +364,20 @@ const SolicitarFaturaDialog = ({ open, onOpenChange, client }) => {
               placeholder={form.tipo === "pecas" ? "ORP-0000-0000" : "OS-0000-0000"}
               hint="Vem do documento escolhido; pode escrever-se à mão se não estiver na lista."
             />
+          )}
+
+          {form.tipo === "os" && form.maquinas.length > 0 && (
+            <div className="surface-muted space-y-1.5 p-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {form.maquinas.length === 1 ? "Máquina da OS" : `Máquinas da OS (${form.maquinas.length})`} — saem no PDF
+              </p>
+              {form.maquinas.map((m, i) => (
+                <div key={i} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="truncate">{m.nome}</span>
+                  <span className="shrink-0 font-mono text-xs text-muted-foreground">{m.numero || "sem nº"}</span>
+                </div>
+              ))}
+            </div>
           )}
 
           <FieldGrid cols={2}>

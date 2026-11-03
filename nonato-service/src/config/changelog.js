@@ -17,6 +17,18 @@
 
 export const CHANGELOG = [
   {
+    n: 27,
+    versao: "1.17.0",
+    data: "2026-11-03",
+    titulo: "Pedidos de fatura guardados no cliente e máquinas da OS",
+    itens: [
+      { tipo: "novo", texto: "Cada pedido de fatura gerado fica guardado no cliente (separador Documentos → Pedidos de fatura), com um botão para gerar o mesmo PDF outra vez. Guardam-se só os dados, não o PDF." },
+      { tipo: "novo", texto: "Se o orçamento de peças ou a ordem de serviço de um pedido tiver sido apagado, ao tentar gerá-lo aparece um aviso e o pedido é removido do histórico." },
+      { tipo: "novo", texto: "No pedido de fatura de uma ordem de serviço, o PDF mostra a(s) máquina(s) dessa OS, com nome e número." },
+      { tipo: "melhoria", texto: "Orçamento de peças: se o cliente não tiver nenhum orçamento ligado, a lista mostra todos os orçamentos de peças." },
+    ],
+  },
+  {
     n: 26,
     versao: "1.16.0",
     data: "2026-11-03",

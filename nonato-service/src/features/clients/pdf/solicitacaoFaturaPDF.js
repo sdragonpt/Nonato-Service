@@ -59,6 +59,7 @@ export const TIPOS_FATURA = {
  * @param {string} params.nota
  * @param {"avulsa"|"pecas"|"os"} [params.tipo]
  * @param {string} [params.referencia]  nº do orçamento de peças / da OS
+ * @param {Array<{nome: string, numero: string}>} [params.maquinas]  máquinas da OS
  */
 export async function generateSolicitacaoFaturaPDF({
   client,
@@ -70,6 +71,7 @@ export async function generateSolicitacaoFaturaPDF({
   nota,
   tipo = "avulsa",
   referencia = "",
+  maquinas = [],
 }) {
   const pdfDoc = await PDFDocument.create();
   const dateLabel = new Date(`${data}T12:00:00`).toLocaleDateString("pt-PT");
@@ -108,6 +110,23 @@ export async function generateSolicitacaoFaturaPDF({
     ],
     { cols: 1 }
   );
+
+  if (maquinas.length) {
+    kit.sectionTitle(maquinas.length === 1 ? "Máquina" : "Máquinas");
+    const colN = 30;
+    const colNum = 150;
+    const colNome = CONTENT_WIDTH - colN - colNum;
+    const cols = [
+      { header: "#", width: colN, align: "center", key: "i" },
+      { header: "Máquina", width: colNome, key: "nome" },
+      { header: "Nº da máquina", width: colNum, key: "numero" },
+    ];
+    kit.tableHeader(cols);
+    maquinas.forEach((m, i) =>
+      kit.tableRow(cols, { i: String(i + 1), nome: m.nome || "—", numero: m.numero || "—" }, i)
+    );
+    kit.y -= 18;
+  }
 
   // Valor: caixa discreta alinhada à direita (com IVA, duas linhas por cima
   // do total), em vez de uma faixa a toda a largura.
