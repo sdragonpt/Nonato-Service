@@ -17,6 +17,17 @@
 
 export const CHANGELOG = [
   {
+    n: 28,
+    versao: "1.18.0",
+    data: "2026-11-12",
+    titulo: "Novo documento: Peças para Manutenção",
+    itens: [
+      { tipo: "novo", texto: "Em Peças & Armazém → Peças para Manutenção cria-se a lista de peças necessárias para a manutenção de um equipamento: cliente, equipamento (do cliente, do Armazém ou escrito à mão), assunto e observações." },
+      { tipo: "novo", texto: "As peças escolhem-se do catálogo pelo código ou nome (com imagem) ou escrevem-se à mão se não estiverem no catálogo; cada uma tem quantidade e nota." },
+      { tipo: "novo", texto: "Gera um PDF com o design da app — imagem, nome, código, quantidade e nota de cada peça, sem preços. Cada documento fica guardado com número próprio (PM-…) para abrir, alterar e voltar a gerar." },
+    ],
+  },
+  {
     n: 27,
     versao: "1.17.0",
     data: "2026-11-03",

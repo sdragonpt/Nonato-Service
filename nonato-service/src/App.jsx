@@ -328,6 +328,12 @@ const EditPartBudget = React.lazy(() =>
 const AddPartBudget = React.lazy(() =>
   import("./features/partsBudgets/components/AddPartBudget")
 );
+const ManageMaintenanceParts = React.lazy(() =>
+  import("./features/maintenanceParts/ManageMaintenanceParts")
+);
+const MaintenancePartsForm = React.lazy(() =>
+  import("./features/maintenanceParts/MaintenancePartsForm")
+);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ✅ IMPORTS DE FEATURES - CHECKLISTS (LAZY LOADING)
@@ -1155,6 +1161,16 @@ const App = () => {
                           <Route
                             path="edit-part-budget/:quoteId"
                             element={<EditPartBudget />}
+                          />
+
+                          {/* Peças para Manutenção ("nova" = documento novo) */}
+                          <Route
+                            path="pecas-manutencao"
+                            element={<ManageMaintenanceParts />}
+                          />
+                          <Route
+                            path="pecas-manutencao/:docId"
+                            element={<MaintenancePartsForm />}
                           />
 
                           {/* Agenda */}
