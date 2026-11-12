@@ -10,6 +10,7 @@
 //   ORP-0826-0009   Orçamento de Peças nº 9
 //   PROT-0826-0003  Protocolo nº 3
 //   INSP-0826-0056  Inspeção nº 56
+//   PM-1126-0004    Peças para Manutenção nº 4
 //
 // O bloco "0826" é o mês+ano de criação (MMAA) — apenas informativo, o
 // contador em si nunca reinicia, para nunca haver dois documentos com o
@@ -24,6 +25,7 @@ export const DOC_NUMBER_PREFIXES = {
   orp: "ORP",
   prot: "PROT",
   insp: "INSP",
+  pm: "PM",
 };
 
 const pad4 = (n) => String(n).padStart(4, "0");

@@ -263,6 +263,8 @@ service cloud.firestore {
     match /relatorios/{id} { allow read, write: if isAuthorized(); }
     // Pedidos de fatura (só os dados preenchidos; ver features/clients/invoiceRequests.js)
     match /pedidosFatura/{id} { allow read, write: if isAuthorized(); }
+    // Peças para Manutenção (ver features/maintenanceParts/maintenancePartsStore.js)
+    match /pecasManutencao/{id} { allow read, write: if isAuthorized(); }
     match /mensagensInternas/{id} { allow read, write: if isAuthorized(); }
     match /doc_families/{id} { allow read, write: if isAuthorized(); }
     match /doc_machine_types/{id} { allow read, write: if isAuthorized(); }
