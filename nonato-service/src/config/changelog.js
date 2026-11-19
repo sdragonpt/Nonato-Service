@@ -17,6 +17,16 @@
 
 export const CHANGELOG = [
   {
+    n: 31,
+    versao: "1.19.2",
+    data: "2026-11-19",
+    titulo: "Margem de lucro no PDF do orçamento de peças",
+    itens: [
+      { tipo: "correcao", texto: "O PDF do orçamento de peças passa a contar a margem de lucro: os preços unitários, subtotais e totais já saem com a margem, sem a mostrar ao cliente — igual às contas do ecrã." },
+      { tipo: "melhoria", texto: "Nos orçamentos de peças, os campos Portes, Margem de lucro e Preço unitário já não vêm com \"0\" escrito — ficam vazios, é só escrever." },
+    ],
+  },
+  {
     n: 30,
     versao: "1.19.1",
     data: "2026-11-19",

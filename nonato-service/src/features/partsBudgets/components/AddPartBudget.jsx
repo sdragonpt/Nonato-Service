@@ -38,6 +38,19 @@ import {
 import { toDateKey } from "../../../utils/formatDate.js";
 import { PageHeader, PageLoader } from "../../../components/app";
 
+// Converte os campos numéricos (que no formulário são texto, para poderem
+// ficar vazios em vez de "0") antes de gravar.
+const toNumber = (v) => {
+  const n = parseFloat(String(v ?? "").replace(",", "."));
+  return Number.isNaN(n) ? 0 : n;
+};
+const numericQuote = (data) => ({
+  ...data,
+  shippingPrice: toNumber(data.shippingPrice),
+  profitMargin: toNumber(data.profitMargin),
+  partsQuoteItems: (data.partsQuoteItems || []).map((i) => ({ ...i, price: toNumber(i.price) })),
+});
+
 const AddPartBudget = () => {
   const navigate = useNavigate();
 
@@ -71,12 +84,12 @@ const AddPartBudget = () => {
 
     // Configurações de envio e IVA
     shippingType: "",
-    shippingPrice: 0,
+    shippingPrice: "",
     includeVat: false,
     vatRate: 23,
 
     // ✅ Sistema de margem de lucro
-    profitMargin: 0,
+    profitMargin: "",
     includeProfitMargin: false,
   });
 
@@ -132,7 +145,7 @@ const AddPartBudget = () => {
         name: part.name,
         code: part.code,
         quantity: 1,
-        price: 0,
+        price: "",
         imageHash: part.imageHash || null,
         image: part.image || null,
       };
@@ -169,8 +182,9 @@ const AddPartBudget = () => {
   };
 
   // Função para atualizar preço
+  // Guarda o que foi escrito (pode ficar vazio); passa a número ao gravar.
   const updatePartPrice = (partId, price) => {
-    const newPrice = Math.max(0, parseFloat(price) || 0);
+    const newPrice = price;
     setFormData((prev) => ({
       ...prev,
       partsQuoteItems: prev.partsQuoteItems.map((item) =>
@@ -253,7 +267,7 @@ const AddPartBudget = () => {
 
       const quoteNumber = await generateDocNumber("orp");
       const partsQuoteData = {
-        ...formData,
+        ...numericQuote(formData),
         quoteNumber,
         isQuote: true, // FLAG PRINCIPAL para orçamentos de peças
         source: "admin-created",
@@ -503,7 +517,7 @@ const AddPartBudget = () => {
                               type="number"
                               step="0.01"
                               min="0"
-                              value={item.price}
+                              value={item.price === 0 ? "" : item.price ?? ""}
                               onChange={(e) =>
                                 updatePartPrice(item.id, e.target.value)
                               }
@@ -596,7 +610,7 @@ const AddPartBudget = () => {
                       min="0"
                       max="1000"
                       name="profitMargin"
-                      value={formData.profitMargin}
+                      value={formData.profitMargin || ""}
                       onChange={handleChange}
                       className="hover:bg-white/5 hover:border-border focus:border-muted-foreground/40"
                     />
@@ -626,7 +640,7 @@ const AddPartBudget = () => {
                   step="0.01"
                   min="0"
                   name="shippingPrice"
-                  value={formData.shippingPrice}
+                  value={formData.shippingPrice || ""}
                   onChange={handleChange}
                   placeholder="0.00"
                   className="hover:bg-white/5 hover:border-border focus:border-muted-foreground/40"

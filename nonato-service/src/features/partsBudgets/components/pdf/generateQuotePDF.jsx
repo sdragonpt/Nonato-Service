@@ -83,8 +83,14 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     return `${isNegative ? "-" : ""}€ ${intWithDots},${decPart}`;
   };
 
+  // Margem de lucro: não aparece ao cliente, mas entra nos preços — cada
+  // preço unitário do PDF já vem com a margem (igual às contas do ecrã).
+  const marginPct =
+    order.includeProfitMargin !== false && parseFloat(order.profitMargin) > 0 ? parseFloat(order.profitMargin) : 0;
+  const unitPrice = (item) => (parseFloat(item.price) || 0) * (1 + marginPct / 100);
+
   const calculateTotals = (items = []) => {
-    const subtotal = items?.reduce((sum, item) => sum + item.quantity * (item.price || 0), 0) || 0;
+    const subtotal = items?.reduce((sum, item) => sum + (parseFloat(item.quantity) || 1) * unitPrice(item), 0) || 0;
     const shipping = parseFloat(order.shippingPrice) || 0;
     const totalBeforeVat = subtotal + shipping;
     const vatAmount = order.includeVat && order.vatRate ? (totalBeforeVat * order.vatRate) / 100 : 0;
@@ -174,8 +180,8 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
 
   for (let idx = 0; idx < enrichedItems.length; idx++) {
     const item = enrichedItems[idx];
-    const price = item.price || 0;
-    const subtotal = item.quantity * price;
+    const price = unitPrice(item);
+    const subtotal = (parseFloat(item.quantity) || 1) * price;
     const hasPrice = price > 0;
 
     const nameLines = kit.wrapText(item.name, columns[1].width - 12, kit.font, 9);

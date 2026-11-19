@@ -51,6 +51,19 @@ import {
 import { toDateKey } from "../../../utils/formatDate.js";
 import { PageHeader, PageLoader } from "../../../components/app";
 
+// Converte os campos numéricos (que no formulário são texto, para poderem
+// ficar vazios em vez de "0") antes de gravar.
+const toNumber = (v) => {
+  const n = parseFloat(String(v ?? "").replace(",", "."));
+  return Number.isNaN(n) ? 0 : n;
+};
+const numericQuote = (data) => ({
+  ...data,
+  shippingPrice: toNumber(data.shippingPrice),
+  profitMargin: toNumber(data.profitMargin),
+  partsQuoteItems: (data.partsQuoteItems || []).map((i) => ({ ...i, price: toNumber(i.price) })),
+});
+
 const EditPartBudget = () => {
   const { quoteId } = useParams();
   const navigate = useNavigate();
@@ -81,11 +94,11 @@ const EditPartBudget = () => {
     },
     partsQuoteItems: [],
     shippingType: "",
-    shippingPrice: 0,
+    shippingPrice: "",
     includeVat: false,
     vatRate: 23,
     // ✅ NOVO: Campos de margem de lucro
-    profitMargin: 0,
+    profitMargin: "",
     includeProfitMargin: false,
   });
 
@@ -144,7 +157,7 @@ const EditPartBudget = () => {
         name: part.name,
         code: part.code,
         quantity: 1,
-        price: 0,
+        price: "",
         imageHash: part.imageHash || null,
         image: part.image || null,
       };
@@ -181,8 +194,9 @@ const EditPartBudget = () => {
   };
 
   // Função para atualizar preço
+  // Guarda o que foi escrito (pode ficar vazio); passa a número ao gravar.
   const updatePartPrice = (partId, price) => {
-    const newPrice = Math.max(0, parseFloat(price) || 0);
+    const newPrice = price;
     setFormData((prev) => ({
       ...prev,
       partsQuoteItems: prev.partsQuoteItems.map((item) =>
@@ -276,11 +290,11 @@ const EditPartBudget = () => {
           },
           partsQuoteItems: quoteData.partsQuoteItems || quoteData.items || [],
           shippingType: quoteData.shippingType || "",
-          shippingPrice: quoteData.shippingPrice || 0,
+          shippingPrice: quoteData.shippingPrice || "",
           includeVat: quoteData.includeVat || false,
           vatRate: quoteData.vatRate || 23,
           // ✅ NOVO: Campos de margem
-          profitMargin: quoteData.profitMargin || 0,
+          profitMargin: quoteData.profitMargin || "",
           includeProfitMargin: quoteData.includeProfitMargin || false,
         });
 
@@ -403,7 +417,7 @@ const EditPartBudget = () => {
       setError(null);
 
       await updateDoc(doc(db, "ordens", quoteId), {
-        ...formData,
+        ...numericQuote(formData),
         lastUpdated: new Date(),
       });
 
@@ -854,7 +868,7 @@ const EditPartBudget = () => {
                                   type="number"
                                   step="0.01"
                                   min="0"
-                                  value={item.price}
+                                  value={item.price === 0 ? "" : item.price ?? ""}
                                   onChange={(e) =>
                                     updatePartPrice(item.id, e.target.value)
                                   }
@@ -948,7 +962,7 @@ const EditPartBudget = () => {
                           min="0"
                           max="1000"
                           name="profitMargin"
-                          value={formData.profitMargin}
+                          value={formData.profitMargin || ""}
                           onChange={handleChange}
                         />
                       </div>
@@ -977,7 +991,7 @@ const EditPartBudget = () => {
                       step="0.01"
                       min="0"
                       name="shippingPrice"
-                      value={formData.shippingPrice}
+                      value={formData.shippingPrice || ""}
                       onChange={handleChange}
                       placeholder="0.00"
                     />
