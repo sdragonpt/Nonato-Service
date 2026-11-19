@@ -12,6 +12,7 @@ import {
   invalidatePartsCatalogEdits,
 } from "../utils/partsCatalogLoader.js";
 import { invalidatePartEditsCache } from "../services/partEdits.js";
+import { invalidateCreatedPartsCache } from "../services/createdParts.js";
 import {
   loadPartAssignments,
   invalidatePartAssignmentsCache,
@@ -32,6 +33,7 @@ function mergePart(catalogPart, assignment) {
     codigosRelacionados: catalogPart.codigosRelacionados || [],
     relatedCodes: catalogPart.codigosRelacionados || [],
     editada: Boolean(catalogPart.editada),
+    criadaNaApp: Boolean(catalogPart.criadaNaApp),
     original: catalogPart.original || null,
     categoryId: assignment?.categoryId || "",
     categoryName: assignment?.categoryName || "",
@@ -95,6 +97,7 @@ export function useCatalogParts() {
   const refresh = useCallback(() => {
     invalidatePartAssignmentsCache();
     invalidatePartEditsCache();
+    invalidateCreatedPartsCache();
     invalidatePartsCatalogEdits();
     setReloadToken((t) => t + 1);
   }, []);

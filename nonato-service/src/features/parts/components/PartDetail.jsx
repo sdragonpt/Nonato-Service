@@ -2,11 +2,14 @@
 // Detalhe de uma peça do catálogo HOMAG. Todas as peças vêm do catálogo
 // estático (ver useCatalogParts.js). Nome, descrição e imagem podem ser
 // editados (EditPartDialog → coleção "pecasEditadas"), e a categoria/
-// subcategoria é atribuída à parte (AssignPartCategoryDialog). Não há
-// exclusão: a peça continua sempre no catálogo.
+// subcategoria é atribuída à parte (AssignPartCategoryDialog). As peças do
+// catálogo HOMAG não se apagam; as criadas na app (services/createdParts.js)
+// podem ser apagadas aqui.
 
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { deleteCreatedPart } from "../../../services/createdParts.js";
+import { resetPartEdit } from "../../../services/partEdits.js";
 import { useCatalogParts } from "../../../hooks/useCatalogParts.js";
 import AssignPartCategoryDialog from "./AssignPartCategoryDialog.jsx";
 import EditPartDialog from "./EditPartDialog.jsx";
@@ -16,6 +19,7 @@ import {
   AlertTriangle,
   Package,
   Pencil,
+  Trash2,
 } from "lucide-react";
 
 // UI Components
@@ -23,10 +27,13 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
-import { PageHeader, PageLoader } from "../../../components/app";
+import { PageHeader, PageLoader, useConfirm } from "../../../components/app";
 
 const PartDetail = () => {
   const { partId } = useParams();
+  const navigate = useNavigate();
+  const confirm = useConfirm();
+  const [deleteError, setDeleteError] = useState(null);
 
   const {
     parts,
@@ -40,6 +47,26 @@ const PartDetail = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const part = parts.find((p) => p.id === partId);
+
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: `Apagar a peça ${part.code}?`,
+      description: `“${part.name}” sai da Biblioteca de Peças. Orçamentos e documentos que já a usam ficam como estão.`,
+      confirmLabel: "Apagar peça",
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      setDeleteError(null);
+      await deleteCreatedPart(part.codigo);
+      if (part.editada) await resetPartEdit(part.codigo);
+      refreshCatalog();
+      navigate("/app/parts-library");
+    } catch (err) {
+      console.error("Erro ao apagar a peça:", err);
+      setDeleteError("A peça não foi apagada. Tente novamente.");
+    }
+  };
 
   if (catalogLoading) {
     return (
@@ -97,6 +124,7 @@ const PartDetail = () => {
                 <Badge className="bg-blue-500/10 text-blue-500">
                   {part.code}
                 </Badge>
+                {part.criadaNaApp && <Badge variant="success">Criada na app</Badge>}
                 {part.editada && (
                   <Badge className="bg-amber-500/10 text-amber-400 border border-amber-500/30">
                     Editada
@@ -166,7 +194,14 @@ const PartDetail = () => {
               <Tag className="w-4 h-4" />
               {part.categoryName ? "Editar Categoria" : "Atribuir Categoria"}
             </Button>
+            {part.criadaNaApp && (
+              <Button variant="ghost" onClick={handleDelete} className="text-red-400 hover:text-red-300 sm:ml-auto">
+                <Trash2 className="w-4 h-4" />
+                Apagar peça
+              </Button>
+            )}
           </div>
+          {deleteError && <p className="text-sm text-red-400">{deleteError}</p>}
         </CardContent>
       </Card>
 

@@ -17,6 +17,17 @@
 
 export const CHANGELOG = [
   {
+    n: 29,
+    versao: "1.19.0",
+    data: "2026-11-19",
+    titulo: "Criar peças novas na Biblioteca de Peças",
+    itens: [
+      { tipo: "novo", texto: "Botão \"Nova peça\" na Biblioteca de Peças: código, nome, descrição, códigos relacionados e imagem (fotografia ou endereço). O código tem de ser único." },
+      { tipo: "novo", texto: "As peças novas ficam guardadas na base de dados da app (não no catálogo HOMAG) e aparecem em todo o lado: biblioteca, pesquisa nos orçamentos, ordens e documentos, PDFs e loja." },
+      { tipo: "melhoria", texto: "As peças criadas na app têm a etiqueta \"Criada na app\", podem ser editadas e ter categoria como as outras, e podem ser apagadas no detalhe da peça." },
+    ],
+  },
+  {
     n: 28,
     versao: "1.18.0",
     data: "2026-11-12",

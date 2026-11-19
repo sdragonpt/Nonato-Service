@@ -205,6 +205,14 @@ service cloud.firestore {
       allow write: if isAuthorized();
     }
 
+    // ── pecasCriadas — peças novas criadas na app (não existem no catálogo
+    // estático; ver src/services/createdParts.js). Leitura pública porque a
+    // loja pública também as mostra. ──
+    match /pecasCriadas/{id} {
+      allow read: if true;
+      allow write: if isAuthorized();
+    }
+
     // ── image_library — só leitura pontual (get), nunca listagem completa.
     // Não foi encontrado nenhum caminho de escrita a partir do código da
     // app; se algo externo escreve aqui, ajustar antes de publicar. ──

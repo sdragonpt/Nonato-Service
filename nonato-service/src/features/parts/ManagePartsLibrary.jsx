@@ -12,6 +12,7 @@ import { useCatalogParts } from "../../hooks/useCatalogParts.js";
 import { comparePtPt } from "../../utils/sortHelpers.js";
 import PartImage from "../../components/ui/PartImage.jsx";
 import AssignPartCategoryDialog from "./components/AssignPartCategoryDialog.jsx";
+import NewPartDialog from "./components/NewPartDialog.jsx";
 import {
   Search,
   Loader2,
@@ -28,6 +29,7 @@ import {
   Wand2,
   Package,
   AlertTriangle,
+  Plus,
 } from "lucide-react";
 
 // UI Components
@@ -243,6 +245,7 @@ const ManagePartsLibrary = () => {
 
   const [error, setError] = useState(null);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [newPartOpen, setNewPartOpen] = useState(false);
   const [partToAssign, setPartToAssign] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState(() =>
@@ -568,6 +571,10 @@ const ManagePartsLibrary = () => {
               className="bg-muted"
             >
               <RefreshCw className="w-4 h-4" />
+            </Button>
+            <Button onClick={() => setNewPartOpen(true)}>
+              <Plus className="w-4 h-4" />
+              Nova peça
             </Button>
           </div>
           </>
@@ -1122,6 +1129,15 @@ const ManagePartsLibrary = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      <NewPartDialog
+        open={newPartOpen}
+        onOpenChange={setNewPartOpen}
+        onCreated={(codigo) => {
+          refreshCatalog();
+          navigate(`/app/part/${encodeURIComponent(codigo)}`);
+        }}
+      />
 
       <AssignPartCategoryDialog
         open={assignDialogOpen}

@@ -3,14 +3,17 @@
 // scripts/parts-catalog/build-catalog.js a partir de CSVs ou JSONs (ex.:
 // exports da HOMAG). Suporta múltiplos "lotes" listados no manifest.json.
 //
-// Por cima do catálogo aplica as edições feitas na app (coleção
-// "pecasEditadas", ver services/partEdits.js) — assim todos os sítios que
-// usam o catálogo (Biblioteca de Peças, loja pública, pesquisa de peças nos
-// formulários) veem o nome/imagem/descrição já editados.
+// Junta ao catálogo as peças criadas na app (coleção "pecasCriadas", ver
+// services/createdParts.js) e por cima aplica as edições feitas na app
+// (coleção "pecasEditadas", ver services/partEdits.js) — assim todos os
+// sítios que usam o catálogo (Biblioteca de Peças, loja pública, pesquisa de
+// peças nos formulários) veem as peças novas e o nome/imagem/descrição já
+// editados.
 
 import { useState, useEffect } from "react";
 import { comparePtPt } from "./sortHelpers.js";
 import { loadPartEdits } from "../services/partEdits.js";
+import { loadCreatedParts } from "../services/createdParts.js";
 
 let baseCatalog = null; // catálogo tal como vem dos JSONs
 let baseInFlight = null;
@@ -91,7 +94,17 @@ export async function loadPartsCatalog({ force = false } = {}) {
       console.warn("Não foi possível carregar as edições de peças:", err);
     }
 
-    const merged = Array.from(base.byCodigo.values())
+    // Peças criadas na app (o catálogo HOMAG ganha se o código já existir lá).
+    let created = new Map();
+    try {
+      created = await loadCreatedParts({ force });
+    } catch (err) {
+      console.warn("Não foi possível carregar as peças criadas na app:", err);
+    }
+    const all = new Map(base.byCodigo);
+    for (const [codigo, peca] of created) if (!all.has(codigo)) all.set(codigo, peca);
+
+    const merged = Array.from(all.values())
       .map((p) => applyEdit(p, edits.get(p.codigo)))
       .sort((a, b) => comparePtPt(a.nome, b.nome));
 
