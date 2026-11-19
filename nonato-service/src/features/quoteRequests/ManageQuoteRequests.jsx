@@ -4,7 +4,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileQuestion, FileText, Loader2, Plus, Trash2, Truck } from "lucide-react";
+import { FileQuestion, FileText, Loader2, Plus, Trash2, User } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
@@ -46,7 +46,7 @@ const ManageQuoteRequests = () => {
   const filtered = useMemo(() => {
     if (!search.trim()) return docs;
     return docs.filter((d) =>
-      [d.number, d.fornecedor?.nome, d.clientName, d.equipment?.model,
+      [d.number, d.cliente?.name, d.cliente?.nif,
         ...(d.itens || []).flatMap((i) => [i.nome, i.referencia, i.marca])]
         .filter(Boolean)
         .some((t) => searchIncludes(t, search))
@@ -90,7 +90,7 @@ const ManageQuoteRequests = () => {
       <PageHeader
         icon={FileQuestion}
         title="Pedidos de Orçamento Avulsos"
-        description="Pedir preços a fornecedores por peças que não são do nosso catálogo"
+        description="Pedidos de orçamento de peças que não são do nosso catálogo, para clientes registados ou não"
         actions={
           <Button onClick={() => navigate(NEW_PATH)} className="hidden sm:inline-flex">
             <Plus /> Novo pedido
@@ -108,7 +108,7 @@ const ManageQuoteRequests = () => {
         <SearchInput
           value={search}
           onChange={setSearch}
-          placeholder="Procurar por nº, fornecedor, cliente ou peça…"
+          placeholder="Procurar por nº, cliente ou peça…"
           className="lg:max-w-none"
         />
       </FilterBar>
@@ -144,10 +144,12 @@ const ManageQuoteRequests = () => {
                   <div className="min-w-0">
                     <p className="font-mono text-sm text-primary">{d.number}</p>
                     <p className="flex items-center gap-1.5 truncate font-medium">
-                      <Truck className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      {d.fornecedor?.nome || "Sem fornecedor"}
+                      <User className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      {d.cliente?.name || "Sem cliente"}
                     </p>
-                    {d.clientName && <p className="truncate text-sm text-muted-foreground">Para: {d.clientName}</p>}
+                    {d.cliente && !d.cliente.id && d.cliente.name && (
+                      <p className="text-xs text-muted-foreground">Cliente não registado</p>
+                    )}
                   </div>
                   <span className="shrink-0 text-xs text-muted-foreground">{formatDate(d.createdAt)}</span>
                 </div>

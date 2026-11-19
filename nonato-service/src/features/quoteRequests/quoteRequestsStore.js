@@ -1,12 +1,12 @@
 // src/features/quoteRequests/quoteRequestsStore.js
-// "Pedidos de Orçamento Avulsos" — pedir preços a um fornecedor por peças que
-// não são do nosso catálogo. Coleção "pedidosOrcamentoAvulso"; número próprio
-// POA-MMAA-0000. Sem preços: é o fornecedor que os vai dar.
+// "Pedidos de Orçamento Avulsos" — pedido de orçamento de peças que não são
+// do nosso catálogo, para um cliente (registado ou não). Coleção
+// "pedidosOrcamentoAvulso"; número próprio POA-MMAA-0000. Sem preços.
 //
-// Documento: { number, fornecedor: { id, nome, contato, email, telefone },
-//   clientName, equipment: { brand, model, serialNumber }, texto,
+// Documento: { number, cliente: { id, name, nif, phone, email, address },
 //   observacoes, itens: [{ key, nome, marca, referencia, quantidade, nota,
 //   imagem }], createdAt, updatedAt, createdBy }
+// cliente.id vazio = cliente não registado (dados escritos à mão).
 
 import {
   addDoc,
@@ -25,16 +25,8 @@ import { generateDocNumber } from "../../utils/docNumbering.js";
 
 const COL = "pedidosOrcamentoAvulso";
 
-export const DEFAULT_REQUEST_TEXT =
-  "Vimos por este meio solicitar orçamento para as peças abaixo indicadas.\n" +
-  "Agradecemos o envio dos preços unitários, disponibilidade e prazo de entrega.\n" +
-  "Com os melhores cumprimentos, Nonato Service";
-
 export const emptyQuoteRequest = () => ({
-  fornecedor: { id: "", nome: "", contato: "", email: "", telefone: "" },
-  clientName: "",
-  equipment: { brand: "", model: "", serialNumber: "" },
-  texto: DEFAULT_REQUEST_TEXT,
+  cliente: { id: "", name: "", nif: "", phone: "", email: "", address: "" },
   observacoes: "",
   itens: [],
 });
@@ -50,20 +42,14 @@ export async function getQuoteRequest(id) {
 }
 
 const clean = (d) => ({
-  fornecedor: {
-    id: d.fornecedor?.id || "",
-    nome: d.fornecedor?.nome || "",
-    contato: d.fornecedor?.contato || "",
-    email: d.fornecedor?.email || "",
-    telefone: d.fornecedor?.telefone || "",
+  cliente: {
+    id: d.cliente?.id || "",
+    name: d.cliente?.name || "",
+    nif: d.cliente?.nif || "",
+    phone: d.cliente?.phone || "",
+    email: d.cliente?.email || "",
+    address: d.cliente?.address || "",
   },
-  clientName: d.clientName || "",
-  equipment: {
-    brand: d.equipment?.brand || "",
-    model: d.equipment?.model || "",
-    serialNumber: d.equipment?.serialNumber || "",
-  },
-  texto: d.texto || "",
   observacoes: d.observacoes || "",
   itens: (d.itens || []).map((i) => ({
     key: i.key,

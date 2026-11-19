@@ -1,7 +1,7 @@
 // src/features/quoteRequests/generateQuoteRequestPDF.js
-// PDF "Pedido de Orçamento Avulso": destinatário (fornecedor), texto do
-// pedido, cliente/equipamento a que se destinam (opcional) e a lista de peças
-// com imagem, nome, marca, referência, quantidade e nota — sem preços.
+// PDF "Pedido de Orçamento Avulso": cliente e dados, a lista de peças com
+// imagem, nome, marca, referência, quantidade e nota — sem preços — e as
+// observações.
 // Mesmo design dos outros PDFs (utils/pdf/pdfKit.js).
 
 import { PDFDocument } from "pdf-lib";
@@ -46,34 +46,17 @@ export async function generateQuoteRequestPDF(record) {
 
   kit.newPage();
 
-  // ── Destinatário ──────────────────────────────────────────────────
-  const f = record.fornecedor || {};
-  kit.sectionTitle("Destinatário");
+  // ── Cliente ───────────────────────────────────────────────────────
+  const c = record.cliente || {};
+  kit.sectionTitle("Cliente");
   kit.infoPanel([
-    ["Fornecedor", orDash(f.nome)],
+    ["Cliente", orDash(c.name)],
     ["Data", toDate(record.createdAt).toLocaleDateString("pt-PT")],
-    ["Contacto", orDash(f.contato)],
-    ["E-mail", orDash(f.email)],
-    ...(f.telefone ? [["Telefone", f.telefone]] : []),
+    ["NIF", orDash(c.nif)],
+    ["Telefone", orDash(c.phone)],
+    ["E-mail", orDash(c.email)],
+    ["Morada", orDash(c.address)],
   ]);
-
-  // ── Pedido ────────────────────────────────────────────────────────
-  if (record.texto && record.texto.trim()) {
-    kit.sectionTitle("Pedido");
-    textBox(kit, record.texto);
-  }
-
-  // ── Para (cliente / equipamento), se preenchido ───────────────────
-  const eq = record.equipment || {};
-  const eqName = [eq.brand, eq.model].filter(Boolean).join(" ");
-  if (record.clientName || eqName || eq.serialNumber) {
-    kit.sectionTitle("Destino das peças");
-    kit.infoPanel([
-      ["Cliente", orDash(record.clientName)],
-      ["Equipamento", orDash(eqName)],
-      ["Nº do equipamento", orDash(eq.serialNumber)],
-    ]);
-  }
 
   // ── Peças ─────────────────────────────────────────────────────────
   const itens = record.itens || [];
@@ -196,7 +179,7 @@ export async function generateQuoteRequestPDF(record) {
 
   kit.finish();
   const bytes = await pdfDoc.save();
-  const safe = (f.nome || "").replace(/[\\/:*?"<>|]/g, "").trim();
+  const safe = (c.name || "").replace(/[\\/:*?"<>|]/g, "").trim();
   await deliverPdfToDevice(
     new Blob([bytes], { type: "application/pdf" }),
     `Pedido de Orçamento Avulso - ${record.number || "novo"}${safe ? ` - ${safe}` : ""}.pdf`

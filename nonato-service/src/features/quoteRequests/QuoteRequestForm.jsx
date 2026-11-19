@@ -1,16 +1,15 @@
 // QuoteRequestForm.jsx
-// Criar / editar um "Pedido de Orçamento Avulso": fornecedor (registado ou
-// escrito à mão), texto do pedido, cliente/equipamento a que se destina
-// (opcional) e as peças — escritas à mão, porque não são do nosso catálogo —
-// com marca, referência, quantidade, nota e fotografia opcional.
+// Criar / editar um "Pedido de Orçamento Avulso": cliente (registado ou não)
+// e os seus dados, as peças — escritas à mão, porque não são do nosso
+// catálogo — com marca, referência, quantidade, nota e fotografia opcional,
+// e observações.
 // Rotas: /app/pedidos-orcamento/novo e /app/pedidos-orcamento/:docId
 
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { collection, getDocs } from "firebase/firestore";
-import { Camera, FileQuestion, FileText, Loader2, Package, Plus, Save, Trash2, Truck, X } from "lucide-react";
-import { db } from "../../firebase.jsx";
+import { Camera, FileQuestion, FileText, Loader2, Package, Plus, Save, Trash2, User, X } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
+import { useClients } from "../../context/ClientsContext.jsx";
 import { uploadPartImage } from "../../services/partEdits.js";
 import { Button } from "@/components/ui/button.jsx";
 import { Input } from "@/components/ui/input.jsx";
@@ -32,7 +31,7 @@ import {
 } from "./quoteRequestsStore.js";
 import { generateQuoteRequestPDF } from "./generateQuoteRequestPDF.js";
 
-const MANUAL = "__manual__";
+const UNREGISTERED = "__nao_registado__";
 const genKey = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const emptyItem = () => ({ key: genKey(), nome: "", marca: "", referencia: "", quantidade: 1, nota: "", imagem: "" });
 
@@ -93,6 +92,7 @@ const QuoteRequestForm = () => {
   const isNew = !docId || docId === "novo";
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { ensureClients } = useClients();
 
   const [data, setData] = useState(() => ({ ...emptyQuoteRequest(), itens: [emptyItem()] }));
   const [number, setNumber] = useState("");
@@ -100,21 +100,13 @@ const QuoteRequestForm = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [saved, setSaved] = useState(null);
-  const [suppliers, setSuppliers] = useState([]);
-  const [manualSupplier, setManualSupplier] = useState(false);
+  const [clients, setClients] = useState([]);
 
   useEffect(() => {
-    getDocs(collection(db, "fornecedores"))
-      .then((snap) =>
-        setSuppliers(
-          snap.docs
-            .map((d) => ({ id: d.id, ...d.data() }))
-            .filter((s) => !s.eliminadoEm)
-            .sort((a, b) => (a.nomeEmpresa || "").localeCompare(b.nomeEmpresa || "", "pt"))
-        )
-      )
-      .catch((err) => console.error("Erro ao carregar fornecedores:", err));
-  }, []);
+    ensureClients()
+      .then((list) => setClients([...list].sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt"))))
+      .catch((err) => console.error("Erro ao carregar clientes:", err));
+  }, [ensureClients]);
 
   useEffect(() => {
     if (isNew) return;
@@ -126,7 +118,6 @@ const QuoteRequestForm = () => {
         }
         setNumber(d.number || "");
         setData({ ...emptyQuoteRequest(), ...d, itens: (d.itens || []).map((i) => ({ ...i, key: i.key || genKey() })) });
-        setManualSupplier(!d.fornecedor?.id && !!d.fornecedor?.nome);
       })
       .catch((err) => {
         console.error("Erro ao abrir o pedido:", err);
@@ -136,23 +127,22 @@ const QuoteRequestForm = () => {
   }, [docId, isNew]);
 
   const set = (patch) => setData((d) => ({ ...d, ...patch }));
-  const setF = (patch) => setData((d) => ({ ...d, fornecedor: { ...d.fornecedor, ...patch } }));
-  const setEq = (patch) => setData((d) => ({ ...d, equipment: { ...d.equipment, ...patch } }));
+  const setC = (patch) => setData((d) => ({ ...d, cliente: { ...d.cliente, ...patch } }));
 
-  const chooseSupplier = (v) => {
-    if (v === MANUAL) {
-      setManualSupplier(true);
-      setF({ id: "", nome: "", contato: "", email: "", telefone: "" });
+  // Cliente registado: os dados vêm da ficha (e podem ser acertados só para este pedido).
+  const chooseClient = (v) => {
+    if (v === UNREGISTERED) {
+      setC({ id: "", name: "", nif: "", phone: "", email: "", address: "" });
       return;
     }
-    setManualSupplier(false);
-    const s = suppliers.find((x) => x.id === v);
-    setF({
+    const c = clients.find((x) => x.id === v);
+    setC({
       id: v,
-      nome: s?.nomeEmpresa || "",
-      contato: s?.contato || "",
-      email: s?.email || "",
-      telefone: s?.telefones || "",
+      name: c?.name || "",
+      nif: c?.nif || "",
+      phone: c?.phone || "",
+      email: c?.email || "",
+      address: [c?.address, c?.postalCode].filter(Boolean).join(" · "),
     });
   };
 
@@ -162,10 +152,10 @@ const QuoteRequestForm = () => {
   const addItem = () => setData((d) => ({ ...d, itens: [...d.itens, emptyItem()] }));
 
   const filledItems = data.itens.filter((i) => (i.nome || i.referencia).trim());
-  const valid = filledItems.length > 0 && (data.fornecedor.nome || "").trim();
+  const valid = filledItems.length > 0 && (data.cliente.name || "").trim();
 
   const save = async (withPdf) => {
-    if (!(data.fornecedor.nome || "").trim()) return setError("Escolha ou escreva o fornecedor.");
+    if (!(data.cliente.name || "").trim()) return setError("Escolha o cliente ou escreva o nome.");
     if (!filledItems.length) return setError("Adicione pelo menos uma peça (nome ou referência).");
     const toSave = { ...data, itens: filledItems };
     try {
@@ -200,7 +190,7 @@ const QuoteRequestForm = () => {
       <PageHeader
         icon={FileQuestion}
         title={isNew ? "Novo Pedido de Orçamento Avulso" : `Pedido de Orçamento ${number}`}
-        description="Pedir preços a um fornecedor por peças que não são do nosso catálogo"
+        description="Peças que não são do nosso catálogo, para um cliente registado ou não"
         back="/app/pedidos-orcamento"
       />
 
@@ -215,44 +205,34 @@ const QuoteRequestForm = () => {
         </Alert>
       )}
 
-      <FormSection title="Fornecedor" icon={Truck}>
-        <Field label="Fornecedor" required>
-          <Select value={manualSupplier ? MANUAL : data.fornecedor.id} onValueChange={chooseSupplier}>
+      <FormSection title="Cliente" icon={User}>
+        <Field label="Cliente">
+          <Select value={data.cliente.id || UNREGISTERED} onValueChange={chooseClient}>
             <SelectTrigger>
-              <SelectValue placeholder="Escolher fornecedor" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={MANUAL}>Escrever à mão (fornecedor não registado)…</SelectItem>
-              {suppliers.map((s) => (
-                <SelectItem key={s.id} value={s.id}>{s.nomeEmpresa}</SelectItem>
+              <SelectItem value={UNREGISTERED}>Cliente não registado (escrever os dados)</SelectItem>
+              {clients.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </Field>
-        {(manualSupplier || data.fornecedor.id) && (
-          <FieldGrid cols={2}>
-            <InputField label="Nome" required value={data.fornecedor.nome} onChange={(e) => setF({ nome: e.target.value })} />
-            <InputField label="Contacto (pessoa)" value={data.fornecedor.contato} onChange={(e) => setF({ contato: e.target.value })} />
-            <InputField label="E-mail" type="email" value={data.fornecedor.email} onChange={(e) => setF({ email: e.target.value })} />
-            <InputField label="Telefone" value={data.fornecedor.telefone} onChange={(e) => setF({ telefone: e.target.value })} />
-          </FieldGrid>
-        )}
-        <Field label="Texto do pedido">
-          <Textarea rows={4} value={data.texto} onChange={(e) => set({ texto: e.target.value })} />
-        </Field>
-      </FormSection>
-
-      <FormSection title="Destino das peças" description="Opcional — para que cliente e equipamento são as peças" icon={Package}>
-        <InputField label="Cliente" value={data.clientName} onChange={(e) => set({ clientName: e.target.value })} placeholder="Ex.: FERWOOD" />
-        <FieldGrid cols={3}>
-          <InputField label="Marca do equipamento" value={data.equipment.brand} onChange={(e) => setEq({ brand: e.target.value })} />
-          <InputField label="Modelo" value={data.equipment.model} onChange={(e) => setEq({ model: e.target.value })} />
-          <InputField label="Nº do equipamento" value={data.equipment.serialNumber} onChange={(e) => setEq({ serialNumber: e.target.value })} />
+        <FieldGrid cols={2}>
+          <InputField label="Nome" required value={data.cliente.name} onChange={(e) => setC({ name: e.target.value })} />
+          <InputField label="NIF" value={data.cliente.nif} onChange={(e) => setC({ nif: e.target.value })} />
+          <InputField label="Telefone" value={data.cliente.phone} onChange={(e) => setC({ phone: e.target.value })} />
+          <InputField label="E-mail" type="email" value={data.cliente.email} onChange={(e) => setC({ email: e.target.value })} />
         </FieldGrid>
+        <InputField label="Morada" value={data.cliente.address} onChange={(e) => setC({ address: e.target.value })} />
+        {data.cliente.id && (
+          <p className="text-xs text-muted-foreground">Os dados vêm da ficha do cliente; alterar aqui não muda a ficha.</p>
+        )}
       </FormSection>
 
       <FormSection
-        title={`Peças a orçamentar${filledItems.length ? ` (${filledItems.length} · ${totalQtd} un.)` : ""}`}
+        title={`Peças${filledItems.length ? ` (${filledItems.length} · ${totalQtd} un.)` : ""}`}
         icon={Package}
         actions={
           <Button type="button" size="sm" variant="outline" onClick={addItem}>
@@ -290,7 +270,7 @@ const QuoteRequestForm = () => {
       </FormSection>
 
       <FormSection title="Observações">
-        <Textarea rows={3} value={data.observacoes} onChange={(e) => set({ observacoes: e.target.value })} placeholder="Ex.: urgente, entrega na morada do cliente…" />
+        <Textarea rows={3} value={data.observacoes} onChange={(e) => set({ observacoes: e.target.value })} placeholder="Ex.: urgente, prazo de entrega…" />
       </FormSection>
 
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

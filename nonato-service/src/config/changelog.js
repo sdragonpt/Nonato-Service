@@ -22,8 +22,8 @@ export const CHANGELOG = [
     data: "2026-11-19",
     titulo: "Pedidos de Orçamento Avulsos",
     itens: [
-      { tipo: "novo", texto: "Novo item Pedidos de Orçamento Avulsos no menu Orçamentos & Financeiro: pedir preços a um fornecedor por peças que não são do nosso catálogo." },
-      { tipo: "novo", texto: "Escolhe-se o fornecedor (registado ou escrito à mão), o texto do pedido, para que cliente/equipamento são as peças (opcional) e as peças com nome, marca, referência, quantidade, nota e fotografia." },
+      { tipo: "novo", texto: "Novo item Pedidos de Orçamento Avulsos no menu Orçamentos & Financeiro: pedidos de orçamento de peças que não são do nosso catálogo." },
+      { tipo: "novo", texto: "Escolhe-se o cliente (registado, com os dados preenchidos, ou não registado, com os dados escritos à mão), as peças com nome, marca, referência, quantidade, nota e fotografia, e as observações." },
       { tipo: "novo", texto: "Gera o PDF “Pedido de Orçamento Avulso” no design da app, sem preços. Cada pedido fica guardado com número próprio (POA-…) para abrir, alterar e voltar a gerar." },
     ],
   },
