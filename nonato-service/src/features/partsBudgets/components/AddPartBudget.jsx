@@ -615,11 +615,11 @@ const AddPartBudget = () => {
               )}
             </div>
 
-            {/* Configurações de Envio e IVA */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-border">
+            {/* Portes e IVA */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-border">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">
-                  Preço do Envio (€)
+                  Portes (€)
                 </label>
                 <Input
                   type="number"
@@ -630,6 +630,19 @@ const AddPartBudget = () => {
                   onChange={handleChange}
                   placeholder="0.00"
                   className="hover:bg-white/5 hover:border-border focus:border-muted-foreground/40"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Tipo de portes (opcional)
+                </label>
+                <Input
+                  type="text"
+                  name="shippingType"
+                  value={formData.shippingType}
+                  onChange={handleChange}
+                  placeholder="Ex.: CTT Expresso, transportadora…"
                 />
               </div>
 
@@ -692,7 +705,7 @@ const AddPartBudget = () => {
 
                 {formData.shippingPrice > 0 && (
                   <div className="flex justify-between items-center">
-                    <span className="text-foreground">Envio:</span>
+                    <span className="text-foreground">Portes{formData.shippingType ? ` (${formData.shippingType})` : ""}:</span>
                     <span className="text-foreground">
                       {formatPrice(formData.shippingPrice)}
                     </span>

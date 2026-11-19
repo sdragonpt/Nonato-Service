@@ -17,6 +17,17 @@
 
 export const CHANGELOG = [
   {
+    n: 30,
+    versao: "1.19.1",
+    data: "2026-11-19",
+    titulo: "Portes nos orçamentos de peças",
+    itens: [
+      { tipo: "melhoria", texto: "Nos orçamentos de peças o antigo \"Preço do Envio\" passa a chamar-se Portes, com um campo opcional para o tipo de portes (ex.: CTT Expresso). Também nas ordens de serviço e nos PDFs." },
+      { tipo: "correcao", texto: "O total no detalhe do orçamento de peças passa a incluir os portes, a margem e o IVA (antes mostrava só as peças)." },
+      { tipo: "correcao", texto: "Ao solicitar a fatura de um orçamento de peças, o valor já inclui os portes e o IVA do orçamento." },
+    ],
+  },
+  {
     n: 29,
     versao: "1.19.0",
     data: "2026-11-19",

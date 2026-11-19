@@ -23,6 +23,7 @@ import { FileText, Loader2, Euro } from "lucide-react";
 import { db } from "../../../firebase.jsx";
 import { useAuth } from "../../../hooks/useAuth";
 import { saveInvoiceRequest } from "../invoiceRequests.js";
+import { partsQuoteTotals } from "../../partsBudgets/partsQuoteTotals.js";
 import { formatDate } from "../../../utils/formatDate.js";
 import {
   Dialog,
@@ -73,8 +74,8 @@ async function orderMachines(order) {
   return [];
 }
 const quoteClientName = (q) => q.unregisteredClient?.name || q.clientName || "Sem cliente";
-const partsTotal = (q) =>
-  (q.partsQuoteItems || q.items || []).reduce((t, i) => t + (Number(i.quantity) || 0) * (Number(i.price) || 0), 0);
+// Valor sem IVA do orçamento de peças: peças (com margem) + portes.
+const partsTotal = (q) => partsQuoteTotals(q).semIva;
 
 const DEFAULT_TEXT = "Venho por meio desta solicitar que seja feita uma fatura com os dados abaixo.\nObrigado. Nonato";
 const today = () => {
@@ -173,10 +174,13 @@ const SolicitarFaturaDialog = ({ open, onOpenChange, client, onSaved }) => {
       const q = docs.pecas.find((d) => d.id === id) || (recentQuotes || []).find((d) => d.id === id);
       if (!q) return;
       setDocRef(q.quoteNumber || q.id);
+      const t = partsQuoteTotals(q);
       setForm((f) => ({
         ...f,
         referencia: q.quoteNumber || q.id,
-        valor: String(Math.round(partsTotal(q) * 100) / 100).replace(".", ","),
+        valor: String(t.semIva).replace(".", ","),
+        comIva: t.taxaIva > 0,
+        taxaIva: t.taxaIva > 0 ? String(t.taxaIva) : f.taxaIva,
         nota: f.nota === "Prestação de serviços" ? "Fornecimento de peças" : f.nota,
       }));
       return;

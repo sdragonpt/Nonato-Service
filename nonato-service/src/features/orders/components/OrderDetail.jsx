@@ -871,15 +871,15 @@ const OrderDetail = () => {
             {order.shippingType && (
               <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-border">
                 <h5 className="text-sm font-medium text-foreground mb-2">
-                  Informações de Envio
+                  Portes
                 </h5>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-muted-foreground">Tipo de Envio</p>
+                    <p className="text-sm text-muted-foreground">Tipo de portes</p>
                     <p className="text-foreground">{order.shippingType}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Preço do Envio</p>
+                    <p className="text-sm text-muted-foreground">Portes</p>
                     <p className="text-foreground">
                       {formatPrice(order.shippingPrice)}
                     </p>
@@ -903,7 +903,7 @@ const OrderDetail = () => {
 
                 {quoteTotals.shipping > 0 && (
                   <div className="flex justify-between items-center">
-                    <span className="text-foreground">Envio:</span>
+                    <span className="text-foreground">Portes:</span>
                     <span className="text-foreground">
                       {formatPrice(quoteTotals.shipping)}
                     </span>

@@ -1150,7 +1150,7 @@ const AddOrder = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-muted-foreground">
-                          Tipo de Envio
+                          Tipo de portes
                         </label>
                         <Input
                           type="text"
@@ -1167,7 +1167,7 @@ const AddOrder = () => {
 
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-muted-foreground">
-                          Preço do Envio (€)
+                          Portes (€)
                         </label>
                         <Input
                           type="number"
@@ -1237,7 +1237,7 @@ const AddOrder = () => {
 
                       {shippingConfig.shippingPrice > 0 && (
                         <div className="flex justify-between items-center">
-                          <span className="text-foreground">Envio:</span>
+                          <span className="text-foreground">Portes:</span>
                           <span className="text-foreground">
                             {formatPrice(shippingConfig.shippingPrice)}
                           </span>

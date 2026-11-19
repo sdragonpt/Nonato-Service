@@ -48,6 +48,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.jsx";
 import { PageHeader, PageLoader } from "../../../components/app";
+import { partsQuoteTotals } from "../partsQuoteTotals.js";
 
 const PartBudgetDetail = () => {
   const { quoteId } = useParams();
@@ -235,12 +236,8 @@ const PartBudgetDetail = () => {
     return `${isNegative ? "-" : ""}€ ${intWithDots},${decPart}`;
   };
 
-  const calculateTotal = () => {
-    const items = quote.partsQuoteItems || quote.items || [];
-    return items.reduce((total, item) => {
-      return total + item.quantity * (item.price || 0);
-    }, 0);
-  };
+  // Peças (com margem) + portes (+ IVA) — mesma conta da lista de orçamentos.
+  const calculateTotal = () => partsQuoteTotals(quote).total;
 
   if (isLoading) {
     return (
@@ -536,11 +533,21 @@ const PartBudgetDetail = () => {
                   </div>
                   <Euro className="h-8 w-8 text-green-400" />
                 </div>
-                <div className="mt-2">
-                  <p className="text-xs text-muted-foreground">
-                    {(quote.partsQuoteItems || quote.items || []).length}{" "}
-                    item(s)
+                <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+                  <p>
+                    {(quote.partsQuoteItems || quote.items || []).length} item(s) ·
+                    Peças {formatPrice(partsQuoteTotals(quote).pecas)}
                   </p>
+                  {partsQuoteTotals(quote).portes > 0 && (
+                    <p>
+                      Portes{quote.shippingType ? ` (${quote.shippingType})` : ""} {formatPrice(partsQuoteTotals(quote).portes)}
+                    </p>
+                  )}
+                  {partsQuoteTotals(quote).iva > 0 && (
+                    <p>
+                      IVA ({partsQuoteTotals(quote).taxaIva}%) {formatPrice(partsQuoteTotals(quote).iva)}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

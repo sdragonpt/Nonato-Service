@@ -248,10 +248,10 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
 
   kit.y -= 16;
 
-  // ── Envio ─────────────────────────────────────────────────────────
+  // ── Portes ────────────────────────────────────────────────────────
   if (order.shippingType && order.shippingPrice > 0) {
     kit.checkSpace(60);
-    kit.sectionTitle("Informações de Envio");
+    kit.sectionTitle("Portes");
     kit.infoPanel([
       ["Tipo", order.shippingType],
       ["Preço", formatPrice(order.shippingPrice)],
@@ -290,7 +290,7 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
 
   drawTotalLine("Subtotal Itens", formatPrice(totals.subtotal));
   if (totals.shipping > 0) {
-    drawTotalLine("Envio", formatPrice(totals.shipping));
+    drawTotalLine("Portes", formatPrice(totals.shipping));
   }
   if (order.includeVat && totals.vatAmount > 0) {
     drawTotalLine("Total S/ IVA", formatPrice(totals.totalBeforeVat));
