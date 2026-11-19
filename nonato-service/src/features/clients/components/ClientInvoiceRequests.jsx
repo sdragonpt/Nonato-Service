@@ -21,6 +21,7 @@ import { useConfirm } from "../../../components/app";
 import { formatDateTime } from "../../../utils/formatDate.js";
 import {
   listInvoiceRequests,
+  listAllInvoiceRequests,
   deleteInvoiceRequest,
   invoiceSourceExists,
 } from "../invoiceRequests.js";
@@ -33,7 +34,9 @@ import {
 
 const num = (v) => Number(String(v ?? "").replace(",", ".")) || 0;
 
-const ClientInvoiceRequests = ({ clientId, refreshKey = 0 }) => {
+// Sem clientId mostra os pedidos de todos os clientes (página Pedidos de Fatura).
+const ClientInvoiceRequests = ({ clientId, refreshKey = 0, search = "" }) => {
+  const showClient = !clientId;
   const confirm = useConfirm();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +47,7 @@ const ClientInvoiceRequests = ({ clientId, refreshKey = 0 }) => {
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      setItems(await listInvoiceRequests(clientId));
+      setItems(clientId ? await listInvoiceRequests(clientId) : await listAllInvoiceRequests());
     } catch (err) {
       console.error("Erro ao carregar pedidos de fatura:", err);
       setError("Não foi possível carregar os pedidos de fatura.");
@@ -56,6 +59,13 @@ const ClientInvoiceRequests = ({ clientId, refreshKey = 0 }) => {
   useEffect(() => {
     load();
   }, [load, refreshKey]);
+
+  const term = search.trim().toLowerCase();
+  const visible = term
+    ? items.filter((r) =>
+        [r.cliente?.name, r.referencia, r.nota, TIPOS_FATURA[r.tipo]].some((t) => (t || "").toLowerCase().includes(term))
+      )
+    : items;
 
   const regenerate = async (req) => {
     try {
@@ -121,12 +131,16 @@ const ClientInvoiceRequests = ({ clientId, refreshKey = 0 }) => {
           <div className="flex justify-center py-6">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        ) : visible.length === 0 && items.length > 0 ? (
+          <p className="text-sm text-muted-foreground">Nada encontrado.</p>
         ) : items.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Ainda não há pedidos de fatura. Use o botão &quot;Solicitar fatura&quot; no topo.
+            {showClient
+            ? "Ainda não há pedidos de fatura. Use o botão “Novo pedido de fatura”."
+            : "Ainda não há pedidos de fatura. Use o botão “Solicitar fatura” no topo."}
           </p>
         ) : (
-          items.map((req) => {
+          visible.map((req) => {
             const { total } = invoiceAmounts({ valor: num(req.valor), comIva: req.comIva, taxaIva: num(req.taxaIva) });
             return (
               <div key={req.id} className="surface-muted flex flex-wrap items-center gap-3 p-3">
@@ -137,6 +151,12 @@ const ClientInvoiceRequests = ({ clientId, refreshKey = 0 }) => {
                     <span className="text-sm font-semibold tabular-nums">{formatEuro(total)}</span>
                     {req.comIva && <span className="text-xs text-muted-foreground">IVA incluído</span>}
                   </div>
+                  {showClient && (
+                    <p className="mt-1 truncate text-sm font-medium">
+                      {req.cliente?.name || "Sem nome"}
+                      {!req.clientId && <span className="ml-2 text-xs font-normal text-muted-foreground">não registado</span>}
+                    </p>
+                  )}
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">
                     {formatDateTime(req.createdAt, "")}
                     {req.nota ? ` · ${req.nota}` : ""}

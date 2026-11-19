@@ -196,6 +196,9 @@ const ManageReport = React.lazy(() =>
 const ManageExpenses = React.lazy(() =>
   import("./features/expenses/ManageExpenses")
 );
+const ManageInvoiceRequests = React.lazy(() =>
+  import("./features/finances/ManageInvoiceRequests")
+);
 const AddExpense = React.lazy(() =>
   import("./features/expenses/components/AddExpense")
 );
@@ -1062,6 +1065,10 @@ const App = () => {
                           <Route
                             path="manage-expenses"
                             element={<ManageExpenses />}
+                          />
+                          <Route
+                            path="pedidos-fatura"
+                            element={<ManageInvoiceRequests />}
                           />
                           <Route
                             path="add-expense"

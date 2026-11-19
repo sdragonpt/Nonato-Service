@@ -6,6 +6,7 @@
 // Documento: { clientId, tipo, referencia, sourceId, data, texto, valor,
 //   comIva, taxaIva, nota, maquinas: [{ nome, numero }], cliente: { name,
 //   nif, phone, email, address, postalCode, company }, createdAt, createdBy }
+// clientId = null para clientes não registados (dados só em `cliente`).
 // sourceId = id do orçamento de peças / OS de origem (em "ordens"), ou null
 // nos pedidos avulsos. Se a origem for apagada, o pedido deixa de ser válido.
 
@@ -16,6 +17,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  orderBy,
   query,
   serverTimestamp,
   where,
@@ -57,6 +59,12 @@ export async function listInvoiceRequests(clientId) {
   return snap.docs
     .map((d) => ({ id: d.id, ...d.data() }))
     .sort((a, b) => millis(b.createdAt) - millis(a.createdAt));
+}
+
+/** Todos os pedidos de fatura (página Pedidos de Fatura), mais recentes primeiro. */
+export async function listAllInvoiceRequests() {
+  const snap = await getDocs(query(collection(db, COL), orderBy("createdAt", "desc")));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 export const deleteInvoiceRequest = (id) => deleteDoc(doc(db, COL, id));

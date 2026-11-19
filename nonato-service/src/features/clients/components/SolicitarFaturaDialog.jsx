@@ -14,6 +14,11 @@
 //   da OS e os equipamentos dela (nome + nº de série) e, se a OS já tiver
 //   fechamento, o valor e o IVA vêm de lá.
 // O número e o valor são sempre editáveis (para documentos que não estejam na lista).
+//
+// Sem `client` (página Pedidos de Fatura), a janela começa por escolher o
+// cliente: um registado ou "não registado" (dados escritos à mão). Para não
+// registados não há OS/orçamentos ligados — mostram-se os mais recentes de
+// todos, e o número pode sempre escrever-se à mão.
 // Cada pedido gerado fica guardado no perfil do cliente (só os dados, não o
 // PDF) — ver ../invoiceRequests.js e ClientInvoiceRequests.jsx.
 
@@ -22,6 +27,7 @@ import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from "
 import { FileText, Loader2, Euro } from "lucide-react";
 import { db } from "../../../firebase.jsx";
 import { useAuth } from "../../../hooks/useAuth";
+import { useClients } from "../../../context/ClientsContext.jsx";
 import { saveInvoiceRequest } from "../invoiceRequests.js";
 import { partsQuoteTotals } from "../../partsBudgets/partsQuoteTotals.js";
 import { formatDate } from "../../../utils/formatDate.js";
@@ -83,8 +89,26 @@ const today = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
-const SolicitarFaturaDialog = ({ open, onOpenChange, client, onSaved }) => {
+// Cliente "não registado" (dados escritos à mão na própria janela).
+const UNREGISTERED = { id: null, name: "" };
+const UNREG_VALUE = "__nao_registado__";
+const RECENT_ORDERS = 50;
+
+const SolicitarFaturaDialog = ({ open, onOpenChange, client: clientProp, onSaved }) => {
   const { user } = useAuth();
+  const { ensureClients } = useClients();
+  // Sem cliente dado: escolhe-se na janela (registado ou não registado).
+  const [picked, setPicked] = useState(UNREGISTERED);
+  const [clientsList, setClientsList] = useState([]);
+  const client = clientProp || picked;
+
+  useEffect(() => {
+    if (!open || clientProp) return;
+    setPicked(UNREGISTERED);
+    ensureClients()
+      .then((list) => setClientsList([...list].sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt"))))
+      .catch((err) => console.error("Erro ao carregar clientes:", err));
+  }, [open, clientProp, ensureClients]);
   const [form, setForm] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
@@ -124,16 +148,25 @@ const SolicitarFaturaDialog = ({ open, onOpenChange, client, onSaved }) => {
     setRecentQuotes(null);
 
     // Orçamentos de peças e OS deste cliente (as duas estão em "ordens").
+    // Cliente não registado: as OS mais recentes de todos (os orçamentos de
+    // peças vêm todos, mais abaixo).
     let cancelled = false;
     setDocs({ loading: true, pecas: [], os: [] });
-    getDocs(query(collection(db, "ordens"), where("clientId", "==", client.id)))
+    const docsQuery = client.id
+      ? query(collection(db, "ordens"), where("clientId", "==", client.id))
+      : query(collection(db, "ordens"), orderBy("createdAt", "desc"), limit(RECENT_ORDERS));
+    getDocs(docsQuery)
       .then((snap) => {
         if (cancelled) return;
         const all = snap.docs
           .map((d) => ({ id: d.id, ...d.data() }))
           .filter((d) => !d.eliminadoEm)
           .sort((a, b) => toMillis(b.createdAt || b.date) - toMillis(a.createdAt || a.date));
-        setDocs({ loading: false, pecas: all.filter((d) => d.isQuote), os: all.filter((d) => !d.isQuote) });
+        setDocs({
+          loading: false,
+          pecas: client.id ? all.filter((d) => d.isQuote) : [],
+          os: all.filter((d) => !d.isQuote),
+        });
       })
       .catch((err) => {
         console.error("Erro ao carregar orçamentos/ordens do cliente:", err);
@@ -251,7 +284,7 @@ const SolicitarFaturaDialog = ({ open, onOpenChange, client, onSaved }) => {
       // saiu — avisa sem fechar a janela.
       try {
         await saveInvoiceRequest({
-          clientId: client.id,
+          clientId: client.id || null,
           sourceId: docId && docRef === form.referencia ? docId : null,
           form,
           createdBy: user?.displayName || user?.email || "",
@@ -282,6 +315,30 @@ const SolicitarFaturaDialog = ({ open, onOpenChange, client, onSaved }) => {
         </DialogHeader>
 
         <form onSubmit={handleGenerate} className="space-y-5">
+          {/* Cliente (só quando a janela abre sem cliente) */}
+          {!clientProp && (
+            <Field label="Cliente">
+              <Select
+                value={picked.id || UNREG_VALUE}
+                onValueChange={(v) =>
+                  setPicked(v === UNREG_VALUE ? UNREGISTERED : clientsList.find((c) => c.id === v) || UNREGISTERED)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={UNREG_VALUE}>Cliente não registado (escrever os dados)</SelectItem>
+                  {clientsList.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+
           {/* Tipo de pedido */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-muted-foreground">Tipo</label>
@@ -350,7 +407,7 @@ const SolicitarFaturaDialog = ({ open, onOpenChange, client, onSaved }) => {
                   ) : (
                     docList.map((d) => (
                       <SelectItem key={d.id} value={d.id}>
-                        {`${d.orderNumber || d.id} · ${formatDate(d.date || d.createdAt)}${d.status ? ` · ${d.status}` : ""}`}
+                        {`${d.orderNumber || d.id}${client.id ? "" : ` · ${d.clientName || d.unregisteredClient?.name || "—"}`} · ${formatDate(d.date || d.createdAt)}${d.status ? ` · ${d.status}` : ""}`}
                       </SelectItem>
                     ))
                   )}

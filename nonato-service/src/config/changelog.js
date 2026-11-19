@@ -17,6 +17,17 @@
 
 export const CHANGELOG = [
   {
+    n: 32,
+    versao: "1.20.0",
+    data: "2026-11-19",
+    titulo: "Pedidos de Fatura no menu, também para clientes não registados",
+    itens: [
+      { tipo: "novo", texto: "Novo item Pedidos de Fatura no menu Orçamentos & Financeiro, com todos os pedidos de fatura de todos os clientes (gerar de novo, apagar, pesquisar)." },
+      { tipo: "novo", texto: "Botão “Novo pedido de fatura”: escolhe-se um cliente registado ou “Cliente não registado” e escrevem-se os dados à mão. Funciona com os três tipos (avulsa, orçamento de peças e ordem de serviço)." },
+      { tipo: "melhoria", texto: "Os pedidos feitos nos Detalhes do Cliente continuam lá e aparecem também na lista geral." },
+    ],
+  },
+  {
     n: 31,
     versao: "1.19.2",
     data: "2026-11-19",

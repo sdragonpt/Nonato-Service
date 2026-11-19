@@ -35,6 +35,7 @@ import {
   FolderTree,
   Contact,
   Boxes,
+  Receipt,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -43,6 +44,7 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const ICON_MAP = {
+  Receipt,
   Users,
   Wrench,
   Book,
@@ -114,6 +116,7 @@ export const NAVIGATION_ITEMS = [
       { path: "/app/manage-finances", icon: Euro, iconKey: "Euro", label: "Painel de Gestão Financeira" },
       { path: "/app/clientes-devedores", icon: Euro, iconKey: "Euro", label: "Clientes / Financeiro" },
       { path: "/app/manage-expenses", icon: FileSpreadsheet, iconKey: "FileSpreadsheet", label: "Registro de Despesas" },
+      { path: "/app/pedidos-fatura", icon: Receipt, iconKey: "Receipt", label: "Pedidos de Fatura" },
     ],
   },
   {
@@ -230,6 +233,7 @@ export const ROUTE_META = [
   { pattern: "/app/manage-finances", label: "Finanças", iconKey: "Euro" },
   { pattern: "/app/clientes-devedores", label: "Clientes Devedores & IVA", iconKey: "Euro" },
   { pattern: "/app/manage-expenses", label: "Comprovantes de Despesas", iconKey: "FileSpreadsheet" },
+  { pattern: "/app/pedidos-fatura", label: "Pedidos de Fatura", iconKey: "Receipt" },
   { pattern: "/app/add-expense", label: "Nova Despesa", iconKey: "FileSpreadsheet" },
 
   // Almoxarifado / Armazém
