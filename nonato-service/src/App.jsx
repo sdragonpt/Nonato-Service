@@ -199,6 +199,12 @@ const ManageExpenses = React.lazy(() =>
 const ManageInvoiceRequests = React.lazy(() =>
   import("./features/finances/ManageInvoiceRequests")
 );
+const ManageQuoteRequests = React.lazy(() =>
+  import("./features/quoteRequests/ManageQuoteRequests")
+);
+const QuoteRequestForm = React.lazy(() =>
+  import("./features/quoteRequests/QuoteRequestForm")
+);
 const AddExpense = React.lazy(() =>
   import("./features/expenses/components/AddExpense")
 );
@@ -1069,6 +1075,15 @@ const App = () => {
                           <Route
                             path="pedidos-fatura"
                             element={<ManageInvoiceRequests />}
+                          />
+                          {/* Pedidos de Orçamento Avulsos ("novo" = pedido novo) */}
+                          <Route
+                            path="pedidos-orcamento"
+                            element={<ManageQuoteRequests />}
+                          />
+                          <Route
+                            path="pedidos-orcamento/:docId"
+                            element={<QuoteRequestForm />}
                           />
                           <Route
                             path="add-expense"

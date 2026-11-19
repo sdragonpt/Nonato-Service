@@ -36,6 +36,7 @@ import {
   Contact,
   Boxes,
   Receipt,
+  FileQuestion,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -45,6 +46,7 @@ import {
 
 export const ICON_MAP = {
   Receipt,
+  FileQuestion,
   Users,
   Wrench,
   Book,
@@ -117,6 +119,7 @@ export const NAVIGATION_ITEMS = [
       { path: "/app/clientes-devedores", icon: Euro, iconKey: "Euro", label: "Clientes / Financeiro" },
       { path: "/app/manage-expenses", icon: FileSpreadsheet, iconKey: "FileSpreadsheet", label: "Registro de Despesas" },
       { path: "/app/pedidos-fatura", icon: Receipt, iconKey: "Receipt", label: "Pedidos de Fatura" },
+      { path: "/app/pedidos-orcamento", icon: FileQuestion, iconKey: "FileQuestion", label: "Pedidos de Orçamento Avulsos" },
     ],
   },
   {
@@ -234,6 +237,9 @@ export const ROUTE_META = [
   { pattern: "/app/clientes-devedores", label: "Clientes Devedores & IVA", iconKey: "Euro" },
   { pattern: "/app/manage-expenses", label: "Comprovantes de Despesas", iconKey: "FileSpreadsheet" },
   { pattern: "/app/pedidos-fatura", label: "Pedidos de Fatura", iconKey: "Receipt" },
+  { pattern: "/app/pedidos-orcamento", label: "Pedidos de Orçamento", iconKey: "FileQuestion" },
+  { pattern: "/app/pedidos-orcamento/novo", label: "Novo Pedido de Orçamento", iconKey: "FileQuestion" },
+  { pattern: "/app/pedidos-orcamento/:docId", label: "Pedido de Orçamento", iconKey: "FileQuestion" },
   { pattern: "/app/add-expense", label: "Nova Despesa", iconKey: "FileSpreadsheet" },
 
   // Almoxarifado / Armazém
