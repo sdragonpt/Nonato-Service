@@ -17,6 +17,18 @@
 
 export const CHANGELOG = [
   {
+    n: 34,
+    versao: "1.22.0",
+    data: "2026-11-23",
+    titulo: "Propostas de orçamento de peças avulsas",
+    itens: [
+      { tipo: "novo", texto: "No Orçamento de Peças há o botão “Peça fora do catálogo”: nome, marca, referência, fotografia e preço de custo. A margem de lucro aplica-se igual e não aparece ao cliente." },
+      { tipo: "novo", texto: "No Pedido de Orçamento Avulso, o botão “Criar proposta para o cliente” abre um Orçamento de Peças já com o cliente, as peças e o nº do pedido — é só pôr os preços que o fornecedor deu." },
+      { tipo: "novo", texto: "Com peças fora do catálogo, o PDF chama-se “Proposta de Orçamento de Peças Avulsas” e leva o nº do pedido (POA-…) e a validade de 15 dias." },
+      { tipo: "melhoria", texto: "Quando o cliente pagar, a Solicitar fatura → Orçamento de peças usa o mesmo nº da proposta e o valor com margem, portes e IVA." },
+    ],
+  },
+  {
     n: 33,
     versao: "1.21.0",
     data: "2026-11-19",

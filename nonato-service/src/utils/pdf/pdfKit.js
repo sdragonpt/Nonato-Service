@@ -119,8 +119,15 @@ export async function createPdfKit(
       textX = PDF_MARGIN + logoW + 14;
     }
 
-    drawText(safeText(title).toUpperCase(), textX, PDF_PAGE_HEIGHT - 33, {
-      size: 15,
+    // Largura disponível até à caixa do número (calculada como em baixo);
+    // títulos compridos encolhem (até 10pt) em vez de ficarem por baixo dela.
+    const titleText = safeText(title).toUpperCase();
+    const numberBoxW = docNumber ? boldFont.widthOfTextAtSize(`${docLabel || "Nº"} ${docNumber}`, 11) + 24 : 0;
+    const titleMaxW = PDF_PAGE_WIDTH - PDF_MARGIN - numberBoxW - (docNumber ? 14 : 0) - textX;
+    let titleSize = 15;
+    while (titleSize > 10 && boldFont.widthOfTextAtSize(titleText, titleSize) > titleMaxW) titleSize -= 0.5;
+    drawText(titleText, textX, PDF_PAGE_HEIGHT - 33, {
+      size: titleSize,
       useFont: boldFont,
       color: pdfColors.white,
     });

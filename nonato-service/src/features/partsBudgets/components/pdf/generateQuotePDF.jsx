@@ -26,7 +26,7 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     if (!items || items.length === 0) return [];
     const enrichedItems = [];
     for (const item of items) {
-      if (item.id) {
+      if (item.id && !item.avulsa) {
         const completePartData = await fetchCompletePartData(item.id);
         if (completePartData) {
           enrichedItems.push({
@@ -103,9 +103,14 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
   const shortQuoteId = getShortQuoteId(orderId);
   const totals = calculateTotals(enrichedItems);
   const serviceType = order.serviceType || "Orçamento de Peças";
+  // Proposta com peças fora do catálogo (pedidas a um fornecedor — Pedido de
+  // Orçamento Avulso): outro título, nº do pedido e validade de 15 dias.
+  const isAvulsa = !!order.poaNumber || enrichedItems.some((i) => i.avulsa);
+  const VALIDADE_DIAS = 15;
+  const validadeAte = new Date(Date.now() + VALIDADE_DIAS * 24 * 60 * 60 * 1000);
 
   const kit = await createPdfKit(pdfDoc, {
-    title: "Orçamento",
+    title: isAvulsa ? "Proposta de Orçamento de Peças Avulsas" : "Orçamento",
     subtitle: `Nonato Service · ${serviceType}`,
     docLabel: "Nº",
     docNumber: shortQuoteId,
@@ -142,6 +147,20 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
   ];
   if (order.clientInfo?.company) {
     infoRows.push(["Empresa", order.clientInfo.company]);
+  }
+  if (isAvulsa) {
+    // Sem equipamento indicado (valores por defeito), as linhas do equipamento saem.
+    const semEquipamento =
+      [equipmentBrand, "Diversos", "N/A"].includes(equipmentBrand) &&
+      ["N/A", "Orçamento de Peças"].includes(equipmentModel);
+    if (semEquipamento) {
+      for (const label of ["Marca / Modelo", "Nº de Série"]) {
+        const i = infoRows.findIndex((r) => r[0] === label);
+        if (i >= 0) infoRows.splice(i, 1);
+      }
+    }
+    if (order.poaNumber) infoRows.push(["Ref. pedido", order.poaNumber]);
+    infoRows.push(["Validade", `${VALIDADE_DIAS} dias (até ${formatDate(validadeAte)})`]);
   }
   kit.infoPanel(infoRows, { cols: 2 });
 
@@ -184,7 +203,7 @@ const generateQuotePDF = async (orderId, order, client, fileName) => {
     const subtotal = (parseFloat(item.quantity) || 1) * price;
     const hasPrice = price > 0;
 
-    const nameLines = kit.wrapText(item.name, columns[1].width - 12, kit.font, 9);
+    const nameLines = kit.wrapText(item.marca ? `${item.name} · ${item.marca}` : item.name, columns[1].width - 12, kit.font, 9);
     const maxLines = Math.min(nameLines.length, 3);
     const itemHeight = Math.max(46, maxLines * 12 + 16);
 

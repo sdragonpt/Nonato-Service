@@ -1,6 +1,6 @@
 // src/features/partsBudgets/components/AddPartBudget.jsx - ✅ SIMPLIFICADO
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { collection, doc, setDoc } from "firebase/firestore";
 import { db } from "../../../firebase";
 import { searchCatalogParts } from "../../../utils/catalogPartSearch.js";
@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/select.jsx";
 import { toDateKey } from "../../../utils/formatDate.js";
 import { PageHeader, PageLoader } from "../../../components/app";
+import ManualPartAdder, { newManualPart } from "./ManualPartAdder.jsx";
 
 // Converte os campos numéricos (que no formulário são texto, para poderem
 // ficar vazios em vez de "0") antes de gravar.
@@ -53,6 +54,9 @@ const numericQuote = (data) => ({
 
 const AddPartBudget = () => {
   const navigate = useNavigate();
+  // Vindo de um Pedido de Orçamento Avulso ("Criar proposta para o cliente"):
+  // cliente, peças (fora do catálogo, sem preço) e o nº do pedido.
+  const fromPOA = useLocation().state?.fromPOA || null;
 
   // ✅ SIMPLIFICADO: Form state sem cliente
   const [formData, setFormData] = useState({
@@ -66,9 +70,9 @@ const AddPartBudget = () => {
     // ✅ NOVO: Sempre cliente não registrado (vazio inicialmente)
     isUnregisteredClient: true,
     unregisteredClient: {
-      name: "",
-      email: "",
-      phone: "",
+      name: fromPOA?.cliente?.name || "",
+      email: fromPOA?.cliente?.email || "",
+      phone: fromPOA?.cliente?.phone || "",
       company: "",
     },
 
@@ -80,7 +84,13 @@ const AddPartBudget = () => {
     },
 
     // Lista de peças do orçamento
-    partsQuoteItems: [],
+    partsQuoteItems: fromPOA
+      ? (fromPOA.itens || []).map((i) =>
+          newManualPart({ name: i.nome || i.referencia, marca: i.marca, code: i.referencia, image: i.imagem, quantity: i.quantidade })
+        )
+      : [],
+    // Nº do Pedido de Orçamento Avulso de origem (aparece no PDF)
+    poaNumber: fromPOA?.number || "",
 
     // Configurações de envio e IVA
     shippingType: "",
@@ -312,6 +322,16 @@ const AddPartBudget = () => {
         back="/app/parts-budgets"
       />
 
+      {fromPOA && (
+        <Alert variant="info">
+          <AlertDescription>
+            Proposta a partir do pedido <strong>{fromPOA.number}</strong>: o cliente e as peças já vêm preenchidos.
+            Falta pôr o preço de cada peça (e a margem, portes e IVA). No PDF sai como “Proposta de Orçamento de
+            Peças Avulsas”, com o nº do pedido e validade de 15 dias.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {error && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
@@ -464,6 +484,13 @@ const AddPartBudget = () => {
               )}
             </div>
 
+            {/* Peças fora do catálogo (pedidas a um fornecedor) */}
+            <ManualPartAdder
+              onAdd={(item) =>
+                setFormData((prev) => ({ ...prev, partsQuoteItems: [...prev.partsQuoteItems, item] }))
+              }
+            />
+
             {/* Lista de Peças Adicionadas */}
             {formData.partsQuoteItems.length > 0 && (
               <div className="space-y-4">
@@ -489,7 +516,9 @@ const AddPartBudget = () => {
                         <div className="flex items-center gap-2 mb-2">
                           <span className="font-medium text-foreground">
                             {item.name}
+                            {item.marca ? <span className="ml-1.5 text-sm font-normal text-muted-foreground">· {item.marca}</span> : null}
                           </span>
+                          {item.avulsa && <Badge variant="warning" className="text-xs">Fora do catálogo</Badge>}
                           <Badge className="bg-blue-500/20 text-blue-400 text-xs">
                             {item.code}
                           </Badge>

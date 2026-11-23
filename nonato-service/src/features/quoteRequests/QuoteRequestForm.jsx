@@ -4,10 +4,14 @@
 // catálogo — com marca, referência, quantidade, nota e fotografia opcional,
 // e observações.
 // Rotas: /app/pedidos-orcamento/novo e /app/pedidos-orcamento/:docId
+//
+// Depois de o fornecedor dar os preços, "Criar proposta para o cliente" abre
+// um Orçamento de Peças novo com o cliente e as peças deste pedido (como
+// peças fora do catálogo) e o nº do pedido, que aparece no PDF da proposta.
 
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Camera, FileQuestion, FileText, Loader2, Package, Plus, Save, Trash2, User, X } from "lucide-react";
+import { Calculator, Camera, FileQuestion, FileText, Loader2, Package, Plus, Save, Trash2, User, X } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useClients } from "../../context/ClientsContext.jsx";
 import { uploadPartImage } from "../../services/partEdits.js";
@@ -274,6 +278,23 @@ const QuoteRequestForm = () => {
       </FormSection>
 
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        {!isNew && number && (
+          <Button
+            type="button"
+            variant="soft"
+            className="sm:mr-auto"
+            disabled={saving || !filledItems.length}
+            onClick={() =>
+              navigate("/app/add-part-budget", {
+                state: { fromPOA: { number, cliente: data.cliente, itens: filledItems } },
+              })
+            }
+            title="Abre um Orçamento de Peças com este cliente e estas peças, para pôr os preços"
+          >
+            <Calculator />
+            Criar proposta para o cliente
+          </Button>
+        )}
         <Button type="button" variant="outline" onClick={() => save(false)} disabled={saving || !valid}>
           {saving ? <Loader2 className="animate-spin" /> : <Save />}
           Guardar

@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/tabs.jsx";
 import { toDateKey } from "../../../utils/formatDate.js";
 import { PageHeader, PageLoader } from "../../../components/app";
+import ManualPartAdder from "./ManualPartAdder.jsx";
 
 // Converte os campos numéricos (que no formulário são texto, para poderem
 // ficar vazios em vez de "0") antes de gravar.
@@ -815,6 +816,13 @@ const EditPartBudget = () => {
                   )}
                 </div>
 
+                {/* Peças fora do catálogo (pedidas a um fornecedor) */}
+                <ManualPartAdder
+                  onAdd={(item) =>
+                    setFormData((prev) => ({ ...prev, partsQuoteItems: [...prev.partsQuoteItems, item] }))
+                  }
+                />
+
                 {/* Lista de Peças Adicionadas */}
                 {formData.partsQuoteItems.length > 0 && (
                   <div className="space-y-4">
@@ -840,7 +848,9 @@ const EditPartBudget = () => {
                             <div className="flex items-center gap-2 mb-2">
                               <span className="font-medium text-foreground">
                                 {item.name}
+                                {item.marca ? <span className="ml-1.5 text-sm font-normal text-muted-foreground">· {item.marca}</span> : null}
                               </span>
+                              {item.avulsa && <Badge variant="warning" className="text-xs">Fora do catálogo</Badge>}
                               <Badge className="bg-blue-500/20 text-blue-400 text-xs">
                                 {item.code}
                               </Badge>
