@@ -1327,7 +1327,7 @@ const App = () => {
                           <Route
                             path="emails-clientes"
                             element={
-                              <RoleRoute allowedRoles={["admin"]}>
+                              <RoleRoute allowedRoles={["admin", "gestor"]}>
                                 <ManageEmailCampaigns />
                               </RoleRoute>
                             }

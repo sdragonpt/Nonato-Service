@@ -4,7 +4,7 @@
 // - enviarCampanhaEmail (callable): envia uma campanha da coleção
 //   "campanhasEmail" a todos os clientes com e-mail que não pediram para
 //   deixar de receber (ou só a um grupo). Um e-mail por cliente, pelo Brevo,
-//   cada um com o seu link para deixar de receber. Só administradores.
+//   cada um com o seu link para deixar de receber. Só administradores e gestores.
 //   Com { teste: true } envia só para o e-mail de quem pediu.
 // - cancelarEmails (HTTP): o link "deixar de receber" de cada e-mail
 //   (servido em https://app.nonatoservice.pt/cancelar-emails pela regra de
@@ -35,7 +35,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // ── Permissões ──────────────────────────────────────────────────────────
 
-/** Só contas autorizadas na app com papel de administrador (ou os donos). */
+/** Só contas autorizadas na app com papel de administrador ou gestor (ou os donos). */
+const SEND_ROLES = ["admin", "gestor"];
 async function assertCanSend(auth) {
   if (!auth?.token?.email) throw new HttpsError("unauthenticated", "Sessão necessária.");
   const email = auth.token.email.toLowerCase();
@@ -45,7 +46,9 @@ async function assertCanSend(auth) {
     throw new HttpsError("permission-denied", "Conta sem acesso à app.");
   }
   const role = (await db.doc(`users/${auth.uid}`).get()).data()?.role;
-  if (role !== "admin") throw new HttpsError("permission-denied", "Só administradores podem enviar e-mails.");
+  if (!SEND_ROLES.includes(role)) {
+    throw new HttpsError("permission-denied", "Só administradores e gestores podem enviar e-mails.");
+  }
   return email;
 }
 

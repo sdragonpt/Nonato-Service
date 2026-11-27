@@ -3,7 +3,7 @@
 // Escrever um e-mail (avisos, promoções, máquinas à venda…), ver como fica,
 // mandar um teste para o próprio e depois enviar a todos os clientes com
 // e-mail (ou só a um grupo). O envio é feito no servidor pela Cloud Function
-// enviarCampanhaEmail (functions/index.js), que só aceita administradores,
+// enviarCampanhaEmail (functions/index.js), que só aceita administradores e gestores,
 // salta quem pediu para não receber e põe em cada e-mail o link pessoal para
 // deixar de receber.
 //

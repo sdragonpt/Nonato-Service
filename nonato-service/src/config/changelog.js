@@ -17,6 +17,15 @@
 
 export const CHANGELOG = [
   {
+    n: 36,
+    versao: "1.23.1",
+    data: "2026-11-27",
+    titulo: "Gestores também enviam e-mails",
+    itens: [
+      { tipo: "melhoria", texto: "Os gestores passam a ter acesso à página “E-mails para Clientes” e podem enviar e-mails aos clientes." },
+    ],
+  },
+  {
     n: 35,
     versao: "1.23.0",
     data: "2026-11-27",

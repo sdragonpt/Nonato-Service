@@ -276,7 +276,7 @@ service cloud.firestore {
     // Pedidos de Orçamento Avulsos (ver features/quoteRequests/quoteRequestsStore.js)
     match /pedidosOrcamentoAvulso/{id} { allow read, write: if isAuthorized(); }
     // Campanhas de e-mail (ver features/emailCampaigns). O envio é feito pela
-    // Cloud Function enviarCampanhaEmail, que só aceita administradores; os
+    // Cloud Function enviarCampanhaEmail, que só aceita administradores e gestores; os
     // campos do resultado do envio só são escritos pelo servidor.
     match /campanhasEmail/{id} {
       allow read, create, delete: if isAuthorized();

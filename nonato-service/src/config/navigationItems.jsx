@@ -107,7 +107,7 @@ export const NAVIGATION_ITEMS = [
     items: [
       { path: "/app/manage-clients", icon: Users, iconKey: "Users", label: "Cadastro de Clientes" },
       { path: "/app/import-contacts", icon: Contact, iconKey: "Contact", label: "Importar Contactos", adminOnly: true },
-      { path: "/app/emails-clientes", icon: Mail, iconKey: "Mail", label: "E-mails para Clientes", adminOnly: true },
+      { path: "/app/emails-clientes", icon: Mail, iconKey: "Mail", label: "E-mails para Clientes", roles: ["admin", "gestor"] },
       { path: "/app/manage-suppliers", icon: Truck, iconKey: "Truck", label: "Cadastro de Fornecedores" },
     ],
   },
