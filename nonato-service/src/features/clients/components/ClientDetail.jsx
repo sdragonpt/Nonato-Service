@@ -55,6 +55,7 @@ import {
   LayoutGrid,
   FolderOpen,
   Receipt,
+  Mail,
 } from "lucide-react";
 
 // UI Components
@@ -1141,6 +1142,19 @@ const ClientDetail = () => {
                   <div>
                     <p className="text-sm text-muted-foreground">Telefone</p>
                     <p className="text-foreground">{client.phone || "N/A"}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <p className="text-sm text-muted-foreground">E-mail</p>
+                    <p className="truncate text-foreground">
+                      {client.email || "N/A"}
+                      {client.email && client.emailOptOut && (
+                        <span className="ml-2 text-xs text-amber-400">não quer receber e-mails</span>
+                      )}
+                    </p>
                   </div>
                 </div>
 

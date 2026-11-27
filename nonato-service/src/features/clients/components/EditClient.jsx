@@ -7,6 +7,7 @@ import { useClients } from "../../../context/ClientsContext.jsx";
 import { searchIncludes } from "../../../utils/normalizeSearch.js";
 import { compressImage } from "../../../utils/imageCompression.js";
 import {
+  Mail,
   Camera,
   Loader2,
   Save,
@@ -26,6 +27,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar.jsx";
 import { PageHeader, FormSection, InputField, FieldGrid, PageLoader } from "../../../components/app";
+import { Switch } from "@/components/ui/switch.jsx";
 
 const onlyDigits = (value) => (value || "").replace(/\D/g, "");
 
@@ -40,6 +42,8 @@ const EditClient = () => {
     phone: "",
     postalCode: "",
     nif: "",
+    email: "",
+    emailOptOut: false,
     type: "individual",
     company: "",
     grupoIds: [],
@@ -75,6 +79,8 @@ const EditClient = () => {
           address: data.address || "",
           phone: data.phone || "",
           nif: data.nif || "",
+          email: data.email || "",
+          emailOptOut: !!data.emailOptOut,
           postalCode: data.postalCode || "",
           type: data.type || "individual",
           company: data.company || "",
@@ -204,6 +210,7 @@ const EditClient = () => {
         name: formData.name.trim(),
         company: formData.company.trim(),
         address: formData.address.trim(),
+        email: (formData.email || "").trim().toLowerCase(),
         lastUpdate: new Date(),
       };
 
@@ -396,6 +403,28 @@ const EditClient = () => {
               placeholder="Nº de identificação fiscal"
             />
           </FieldGrid>
+
+          <InputField
+            label="E-mail"
+            icon={Mail}
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            placeholder="Ex: geral@empresa.pt"
+          />
+          <label className="flex items-center justify-between gap-3 rounded-lg bg-muted/40 px-3 py-2.5 text-sm">
+            <span>
+              Não quer receber e-mails de divulgação
+              <span className="block text-xs text-muted-foreground">
+                Avisos, promoções e máquinas à venda (E-mails para Clientes). Também muda sozinho se o cliente carregar em “deixar de receber”.
+              </span>
+            </span>
+            <Switch
+              checked={!!formData.emailOptOut}
+              onCheckedChange={(v) => setFormData((prev) => ({ ...prev, emailOptOut: v }))}
+            />
+          </label>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_11rem]">
             <InputField

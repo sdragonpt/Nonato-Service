@@ -133,6 +133,7 @@ const ImportContacts = () => {
           batch.set(doc(db, "clientes", id), {
             name: c.name,
             phone: c.phone,
+            email: c.email || "",
             company: c.company,
             address: c.address,
             postalCode: c.postalCode,

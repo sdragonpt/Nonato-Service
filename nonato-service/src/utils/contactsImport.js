@@ -1,6 +1,6 @@
 // src/utils/contactsImport.js
 // Lê ficheiros de contactos e converte-os em clientes da app
-// ({ name, phone, company, address, postalCode, nif, type }).
+// ({ name, phone, email, company, address, postalCode, nif, type }).
 //
 // Formatos aceites:
 // - .vcf (vCard) — o que o Android e o iPhone exportam ("Exportar contactos").
@@ -83,6 +83,10 @@ const COLUMNS = {
     "telefone", "telemovel", "celular", "phone", "mobile", "mobile phone", "telefone movel",
     "phone 1 - value", "primary phone", "home phone", "business phone", "contacto", "whatsapp",
   ],
+  email: [
+    "email", "e-mail", "e mail", "correio eletronico", "email address", "e-mail address",
+    "e-mail 1 - value", "email 1 - value", "primary email", "e-mail principal",
+  ],
   company: [
     "empresa", "company", "organization", "organization name", "organization 1 - name",
     "organizacao", "nome da empresa",
@@ -131,6 +135,7 @@ function parseCsvContacts(text) {
     return {
       name: get(row, "name") || composed,
       phone: firstPhone(get(row, "phone")),
+      email: firstPhone(get(row, "email")),
       company: get(row, "company"),
       address: get(row, "address").replace(/\s*\n\s*/g, ", "),
       postalCode: get(row, "postalCode"),
@@ -165,7 +170,7 @@ function parseVcfContacts(text) {
 
   for (const line of lines) {
     if (/^BEGIN:VCARD/i.test(line)) {
-      card = { name: "", n: "", phone: "", company: "", address: "", postalCode: "", nif: "" };
+      card = { name: "", n: "", phone: "", email: "", company: "", address: "", postalCode: "", nif: "" };
       continue;
     }
     if (/^END:VCARD/i.test(line)) {
@@ -173,6 +178,7 @@ function parseVcfContacts(text) {
         contacts.push({
           name: card.name || card.n,
           phone: card.phone,
+          email: card.email,
           company: card.company,
           address: card.address,
           postalCode: card.postalCode,
@@ -197,6 +203,7 @@ function parseVcfContacts(text) {
       const [last, first, middle] = value.split(";").map(unescapeVcard);
       card.n = [first, middle, last].filter(Boolean).join(" ");
     } else if (prop === "TEL" && !card.phone) card.phone = value.trim();
+    else if (prop === "EMAIL" && !card.email) card.email = value.trim();
     else if (prop === "ORG" && !card.company) card.company = unescapeVcard(value.split(";")[0]);
     else if (prop === "ADR" && !card.address) {
       // ADR: caixa postal; extra; rua; localidade; região; código postal; país
@@ -224,6 +231,8 @@ export function parseContacts(text, fileName = "") {
       return {
         name,
         phone: c.phone.trim(),
+        // só se parecer mesmo um e-mail
+        email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((c.email || "").trim()) ? c.email.trim().toLowerCase() : "",
         company: c.company.trim(),
         address: c.address.trim(),
         postalCode: c.postalCode.trim(),
