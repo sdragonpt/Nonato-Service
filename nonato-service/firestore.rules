@@ -275,6 +275,15 @@ service cloud.firestore {
     match /pecasManutencao/{id} { allow read, write: if isAuthorized(); }
     // Pedidos de Orçamento Avulsos (ver features/quoteRequests/quoteRequestsStore.js)
     match /pedidosOrcamentoAvulso/{id} { allow read, write: if isAuthorized(); }
+    // Campanhas de e-mail (ver features/emailCampaigns). O envio é feito pela
+    // Cloud Function enviarCampanhaEmail, que só aceita administradores; os
+    // campos do resultado do envio só são escritos pelo servidor.
+    match /campanhasEmail/{id} {
+      allow read, create, delete: if isAuthorized();
+      allow update: if isAuthorized()
+        && !request.resource.data.diff(resource.data).affectedKeys()
+             .hasAny(['estado', 'enviados', 'falhados', 'erros', 'enviadaEm', 'destinatarios', 'enviadaPor', 'envioIniciadoEm']);
+    }
     match /mensagensInternas/{id} { allow read, write: if isAuthorized(); }
     match /doc_families/{id} { allow read, write: if isAuthorized(); }
     match /doc_machine_types/{id} { allow read, write: if isAuthorized(); }

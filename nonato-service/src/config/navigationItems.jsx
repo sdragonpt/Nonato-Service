@@ -37,6 +37,7 @@ import {
   Boxes,
   Receipt,
   FileQuestion,
+  Mail,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -45,6 +46,7 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const ICON_MAP = {
+  Mail,
   Receipt,
   FileQuestion,
   Users,
@@ -105,6 +107,7 @@ export const NAVIGATION_ITEMS = [
     items: [
       { path: "/app/manage-clients", icon: Users, iconKey: "Users", label: "Cadastro de Clientes" },
       { path: "/app/import-contacts", icon: Contact, iconKey: "Contact", label: "Importar Contactos", adminOnly: true },
+      { path: "/app/emails-clientes", icon: Mail, iconKey: "Mail", label: "E-mails para Clientes", adminOnly: true },
       { path: "/app/manage-suppliers", icon: Truck, iconKey: "Truck", label: "Cadastro de Fornecedores" },
     ],
   },
@@ -316,6 +319,7 @@ export const ROUTE_META = [
   { pattern: "/app/parts-export", label: "Exportar Peças CSV", iconKey: "FileSpreadsheet" },
   { pattern: "/app/parts-import-categories", label: "Importar Categorias", iconKey: "FolderTree" },
   { pattern: "/app/import-contacts", label: "Importar Contactos", iconKey: "Contact" },
+  { pattern: "/app/emails-clientes", label: "E-mails para Clientes", iconKey: "Mail" },
   { pattern: "/app/manual", label: "Manual do Programa", iconKey: "HelpCircle" },
 ];
 

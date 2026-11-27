@@ -15,8 +15,13 @@ import { execSync, spawnSync } from "node:child_process";
 const args = process.argv.slice(2);
 const force = args.includes("--mesmo-assim");
 const targetArg = args.find((a) => !a.startsWith("--"));
+//   npm run deploy -- emails       → site + regras + funções do servidor (e-mails)
 const targets =
-  targetArg === "regras" ? "hosting,firestore:rules,storage" : targetArg || "hosting";
+  targetArg === "regras"
+    ? "hosting,firestore:rules,storage"
+    : targetArg === "emails"
+      ? "hosting,firestore:rules,storage,functions"
+      : targetArg || "hosting";
 
 const run = (cmd) => {
   console.log(`\n> ${cmd}\n`);
@@ -26,7 +31,7 @@ const run = (cmd) => {
 
 let pending = "";
 try {
-  pending = execSync("git status --porcelain -- src public scripts firestore.rules storage.rules firebase.json package.json vite.config.js")
+  pending = execSync("git status --porcelain -- src public scripts functions/index.js functions/package.json firestore.rules storage.rules firebase.json package.json vite.config.js")
     .toString()
     .trim();
 } catch {

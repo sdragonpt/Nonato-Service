@@ -2,9 +2,20 @@
   "firestore": {
     "rules": "firestore.rules"
   },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs22"
+  },
   "hosting": {
     "public": "dist",
     "rewrites": [
+      {
+        "source": "/cancelar-emails",
+        "function": {
+          "functionId": "cancelarEmails",
+          "region": "europe-west1"
+        }
+      },
       {
         "source": "**",
         "destination": "/index.html"

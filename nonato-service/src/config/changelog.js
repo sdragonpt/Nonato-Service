@@ -17,6 +17,18 @@
 
 export const CHANGELOG = [
   {
+    n: 35,
+    versao: "1.23.0",
+    data: "2026-11-27",
+    titulo: "E-mails para clientes",
+    itens: [
+      { tipo: "novo", texto: "Nova página “E-mails para Clientes” (em Clientes & Fornecedores, só administradores): escrever um aviso, promoção ou máquina à venda, ver como fica, enviar um teste para si e depois enviar a todos os clientes com e-mail — ou só a um grupo." },
+      { tipo: "novo", texto: "Já vem preparado o primeiro e-mail: o lançamento do novo website nonatoservice.pt." },
+      { tipo: "novo", texto: "Cada e-mail leva um link para o cliente deixar de receber; quem carregar fica marcado na ficha e não volta a receber." },
+      { tipo: "novo", texto: "A ficha do cliente tem agora o campo E-mail e a opção “Não quer receber e-mails de divulgação”. O Importar Contactos também traz os e-mails." },
+    ],
+  },
+  {
     n: 34,
     versao: "1.22.0",
     data: "2026-11-23",

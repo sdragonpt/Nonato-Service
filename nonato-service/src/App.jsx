@@ -202,6 +202,9 @@ const ManageInvoiceRequests = React.lazy(() =>
 const ManageQuoteRequests = React.lazy(() =>
   import("./features/quoteRequests/ManageQuoteRequests")
 );
+const ManageEmailCampaigns = React.lazy(() =>
+  import("./features/emailCampaigns/ManageEmailCampaigns")
+);
 const QuoteRequestForm = React.lazy(() =>
   import("./features/quoteRequests/QuoteRequestForm")
 );
@@ -1318,6 +1321,14 @@ const App = () => {
                             element={
                               <RoleRoute allowedRoles={["admin"]}>
                                 <PartsExportTool />
+                              </RoleRoute>
+                            }
+                          />
+                          <Route
+                            path="emails-clientes"
+                            element={
+                              <RoleRoute allowedRoles={["admin"]}>
+                                <ManageEmailCampaigns />
                               </RoleRoute>
                             }
                           />
